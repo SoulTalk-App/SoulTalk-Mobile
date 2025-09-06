@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "SoulTalk",
+    "slug": "soultalk-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soultalk.mobile",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to authenticate with SoulTalk"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.soultalk.mobile",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "keycloakConfig": {
+        "url": "http://localhost:8080",
+        "realm": "soultalk",
+        "clientId": "soultalk-mobile"
+      },
+      "apiConfig": {
+        "baseUrl": "http://localhost:8000/api"
+      }
+    }
+  }
+}
