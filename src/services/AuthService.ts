@@ -1,0 +1,278 @@
+import SecureStorage from '../utils/SecureStorage';
+import * as LocalAuthentication from 'expo-local-authentication';
+import { AuthRequest, AuthRequestConfig, AuthSessionResult } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
+import axios, { AxiosResponse } from 'axios';
+
+WebBrowser.maybeCompleteAuthSession();
+
+interface KeycloakConfig {
+  url: string;
+  realm: string;
+  clientId: string;
+}
+
+interface ApiConfig {
+  baseUrl: string;
+}
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface UserRegistration {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface UserLogin {
+  email: string;
+  password: string;
+}
+
+interface UserInfo {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  email_verified: boolean;
+  groups: string[];
+}
+
+class AuthService {
+  private keycloakConfig: KeycloakConfig;
+  private apiConfig: ApiConfig;
+  private axiosInstance;
+
+  constructor() {
+    this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
+      url: 'http://localhost:8080',
+      realm: 'soultalk',
+      clientId: 'soultalk-mobile'
+    };
+
+    this.apiConfig = Constants.expoConfig?.extra?.apiConfig || {
+      baseUrl: 'http://localhost:8000/api'
+    };
+
+    this.axiosInstance = axios.create({
+      baseURL: this.apiConfig.baseUrl,
+      timeout: 10000,
+    });
+
+    // Add request interceptor to include auth token
+    this.axiosInstance.interceptors.request.use(
+      async (config) => {
+        const token = await this.getStoredAccessToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Add response interceptor to handle token refresh
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 401) {
+          const refreshed = await this.refreshTokens();
+          if (refreshed) {
+            // Retry the original request
+            const token = await this.getStoredAccessToken();
+            error.config.headers.Authorization = `Bearer ${token}`;
+            return this.axiosInstance.request(error.config);
+          } else {
+            // Refresh failed, logout user
+            await this.logout();
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
+
+  // Password grant flow (as requested)
+  async login(email: string, password: string): Promise<TokenResponse> {
+    try {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/login', {
+        email,
+        password
+      });
+
+      const tokenData = response.data;
+      
+      // Store tokens securely
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+      
+      return tokenData;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Login failed');
+    }
+  }
+
+  async register(userData: UserRegistration): Promise<{ message: string; user_id: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/register', userData);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Registration failed');
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      const refreshToken = await this.getStoredRefreshToken();
+      if (refreshToken) {
+        await this.axiosInstance.post('/auth/logout', {
+          refresh_token: refreshToken
+        });
+      }
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Clear stored tokens regardless of API call success
+      await this.clearStoredTokens();
+    }
+  }
+
+  async refreshTokens(): Promise<boolean> {
+    try {
+      const refreshToken = await this.getStoredRefreshToken();
+      if (!refreshToken) {
+        return false;
+      }
+
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/refresh', {
+        refresh_token: refreshToken
+      });
+
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+      
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }
+
+  async getCurrentUser(): Promise<UserInfo> {
+    try {
+      const response: AxiosResponse<UserInfo> = await this.axiosInstance.get('/auth/me');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get user info');
+    }
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    try {
+      await this.axiosInstance.post('/auth/reset-password', { email });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Password reset failed');
+    }
+  }
+
+  async verifyToken(): Promise<boolean> {
+    try {
+      await this.axiosInstance.get('/auth/verify-token');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async isAuthenticated(): Promise<boolean> {
+    const accessToken = await this.getStoredAccessToken();
+    if (!accessToken) {
+      return false;
+    }
+
+    // Verify token is still valid
+    return await this.verifyToken();
+  }
+
+  // Biometric authentication
+  async isBiometricAvailable(): Promise<boolean> {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    return compatible && enrolled;
+  }
+
+  async authenticateWithBiometrics(): Promise<boolean> {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate with SoulTalk',
+        fallbackLabel: 'Use password instead',
+      });
+      return result.success;
+    } catch (error) {
+      console.error('Biometric authentication error:', error);
+      return false;
+    }
+  }
+
+  async enableBiometricLogin(): Promise<void> {
+    const available = await this.isBiometricAvailable();
+    if (!available) {
+      throw new Error('Biometric authentication not available');
+    }
+
+    await SecureStorage.setItem('biometric_enabled', 'true');
+  }
+
+  async disableBiometricLogin(): Promise<void> {
+    await SecureStorage.deleteItem('biometric_enabled');
+  }
+
+  async isBiometricEnabled(): Promise<boolean> {
+    const enabled = await SecureStorage.getItem('biometric_enabled');
+    return enabled === 'true';
+  }
+
+  async loginWithBiometrics(): Promise<boolean> {
+    const enabled = await this.isBiometricEnabled();
+    if (!enabled) {
+      return false;
+    }
+
+    const authenticated = await this.authenticateWithBiometrics();
+    if (!authenticated) {
+      return false;
+    }
+
+    // Check if we have valid tokens
+    return await this.isAuthenticated();
+  }
+
+  // Token storage methods
+  private async storeTokens(accessToken: string, refreshToken: string): Promise<void> {
+    await SecureStorage.setItem('access_token', accessToken);
+    await SecureStorage.setItem('refresh_token', refreshToken);
+  }
+
+  private async getStoredAccessToken(): Promise<string | null> {
+    return await SecureStorage.getItem('access_token');
+  }
+
+  private async getStoredRefreshToken(): Promise<string | null> {
+    return await SecureStorage.getItem('refresh_token');
+  }
+
+  private async clearStoredTokens(): Promise<void> {
+    await SecureStorage.deleteItem('access_token');
+    await SecureStorage.deleteItem('refresh_token');
+  }
+}
+
+export default new AuthService();
