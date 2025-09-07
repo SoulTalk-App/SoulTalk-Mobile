@@ -49,6 +49,8 @@ class AuthService {
   private keycloakConfig: KeycloakConfig;
   private apiConfig: ApiConfig;
   private axiosInstance;
+  private isRefreshing = false;
+  private failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
   constructor() {
     this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
@@ -84,18 +86,51 @@ class AuthService {
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
-          const refreshed = await this.refreshTokens();
-          if (refreshed) {
-            // Retry the original request
-            const token = await this.getStoredAccessToken();
-            error.config.headers.Authorization = `Bearer ${token}`;
-            return this.axiosInstance.request(error.config);
-          } else {
-            // Refresh failed, logout user
-            await this.logout();
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          if (this.isRefreshing) {
+            // If already refreshing, queue the request
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject });
+            }).then(token => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.axiosInstance.request(originalRequest);
+            }).catch(err => {
+              return Promise.reject(err);
+            });
+          }
+
+          originalRequest._retry = true;
+          this.isRefreshing = true;
+
+          try {
+            const refreshed = await this.refreshTokens();
+            if (refreshed) {
+              const token = await this.getStoredAccessToken();
+              // Process failed queue
+              this.failedQueue.forEach(({ resolve }) => resolve(token));
+              this.failedQueue = [];
+              
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return this.axiosInstance.request(originalRequest);
+            } else {
+              // Refresh failed, reject all queued requests and logout
+              this.failedQueue.forEach(({ reject }) => reject(error));
+              this.failedQueue = [];
+              await this.clearStoredTokens();
+              return Promise.reject(error);
+            }
+          } catch (refreshError) {
+            this.failedQueue.forEach(({ reject }) => reject(refreshError));
+            this.failedQueue = [];
+            await this.clearStoredTokens();
+            return Promise.reject(refreshError);
+          } finally {
+            this.isRefreshing = false;
           }
         }
+        
         return Promise.reject(error);
       }
     );

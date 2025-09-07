@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
 
@@ -45,20 +45,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const initializingRef = useRef(false);
 
-  useEffect(() => {
-    checkAuthState();
-  }, []);
-
-  const checkAuthState = async () => {
+  const checkAuthState = useCallback(async () => {
+    if (initializingRef.current) {
+      return; // Prevent multiple simultaneous auth checks
+    }
+    
     try {
+      initializingRef.current = true;
       setIsLoading(true);
+      
       const authenticated = await AuthService.isAuthenticated();
       
       if (authenticated) {
-        const userInfo = await AuthService.getCurrentUser();
-        setUser(userInfo);
-        setIsAuthenticated(true);
+        try {
+          const userInfo = await AuthService.getCurrentUser();
+          setUser(userInfo);
+          setIsAuthenticated(true);
+        } catch (userError) {
+          console.error('Failed to get user info:', userError);
+          // If we can't get user info, clear auth state
+          setUser(null);
+          setIsAuthenticated(false);
+          await AuthService.logout();
+        }
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -69,10 +80,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
+      initializingRef.current = false;
     }
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  useEffect(() => {
+    checkAuthState();
+  }, [checkAuthState]);
+
+  const login = useCallback(async (email: string, password: string) => {
     try {
       setIsLoading(true);
       await AuthService.login(email, password);
@@ -86,13 +102,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
       console.error('Login failed:', error);
+      // Ensure we clear any partial state on login failure
+      setUser(null);
+      setIsAuthenticated(false);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const register = async (userData: {
+  const register = useCallback(async (userData: {
     email: string;
     password: string;
     first_name: string;
@@ -108,9 +127,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       setIsLoading(true);
       await AuthService.logout();
@@ -122,29 +141,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.removeItem('user_logged_in');
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      if (isAuthenticated) {
+      if (isAuthenticated && !initializingRef.current) {
         const userInfo = await AuthService.getCurrentUser();
         setUser(userInfo);
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);
       // If refresh fails, user might need to re-authenticate
-      await logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      await AuthService.logout();
     }
-  };
+  }, [isAuthenticated]);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     try {
       await AuthService.resetPassword(email);
     } catch (error) {
       console.error('Password reset failed:', error);
       throw error;
     }
-  };
+  }, []);
 
   const value: AuthContextType = {
     user,
