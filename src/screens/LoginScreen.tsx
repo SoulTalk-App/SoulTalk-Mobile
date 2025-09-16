@@ -9,19 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import AuthService from '../services/AuthService';
+import WebStyleInjector from '../components/WebStyleInjector';
+import SoulTalkLogo from '../components/SoulTalkLogo';
 
 interface LoginScreenProps {
   navigation: any;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
@@ -40,14 +42,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password');
       return;
     }
 
     try {
       setIsLoading(true);
-      await login(email, password);
+      await login(username, password);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'An error occurred during login');
@@ -69,8 +71,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword');
+  const handleResetPassword = () => {
+    Alert.prompt(
+      'Reset Password',
+      'Enter your email address to receive reset instructions:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Send Reset Email',
+          onPress: async (email) => {
+            if (!email) {
+              Alert.alert('Error', 'Please enter a valid email address');
+              return;
+            }
+            try {
+              setIsLoading(true);
+              await AuthService.resetPassword(email);
+              Alert.alert('Success', 'Password reset instructions have been sent to your email');
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to send reset email');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ],
+      'plain-text',
+      '',
+      'email-address'
+    );
   };
 
   const handleSignUp = () => {
@@ -78,191 +110,202 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+    <View style={styles.container}>
+      <WebStyleInjector />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          <View style={styles.topSection}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle} />
+              <SoulTalkLogo width={100} height={22} color="#FFFFFF" />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color="#666"
+          <View style={styles.bottomSection}>
+            <Text style={styles.welcomeText}>Welcome</Text>
+            
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="email"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={username}
+                onChangeText={setUsername}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                spellCheck={false}
+                autoFocus={false}
               />
-            </TouchableOpacity>
-          </View>
 
-          <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="password"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="new-password"
+                textContentType="none"
+                spellCheck={false}
+                autoFocus={false}
+              />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
+            <View style={styles.buttonContainer}>
+              <View style={styles.leftButtons}>
+                <TouchableOpacity
+                  style={[styles.actionButton, { width: 58 }]}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.buttonText}>login</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.actionButton, { width: 71, marginLeft: 13 }]}
+                  onPress={handleSignUp}
+                >
+                  <Text style={styles.buttonText}>signup</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.actionButton, { width: 143 }]}
+                onPress={handleResetPassword}
+              >
+                <Text style={styles.buttonText}>reset password</Text>
+              </TouchableOpacity>
+            </View>
+
+            {biometricAvailable && biometricEnabled && (
+              <TouchableOpacity style={styles.biometricButton} onPress={handleBiometricLogin}>
+                <Ionicons name="finger-print-outline" size={24} color="#666" />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-
-          {biometricAvailable && biometricEnabled && (
-            <TouchableOpacity style={styles.biometricButton} onPress={handleBiometricLogin}>
-              <Ionicons name="finger-print-outline" size={24} color="#007AFF" />
-              <Text style={styles.biometricButtonText}>Use Biometric Authentication</Text>
-            </TouchableOpacity>
-          )}
+          </View>
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.signupText}>
-            Don't have an account?{' '}
-            <Text style={styles.signupLink} onPress={handleSignUp}>
-              Sign Up
-            </Text>
-          </Text>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 30,
+  },
+  topSection: {
+    flex: 1,
     justifyContent: 'center',
-  },
-  header: {
     alignItems: 'center',
-    marginBottom: 40,
+    paddingTop: 60,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+  logoContainer: {
+    alignItems: 'center',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  logoCircle: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
+  },
+  bottomSection: {
+    paddingBottom: 50,
+  },
+  welcomeText: {
+    fontSize: 36,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    marginBottom: 30,
+    marginLeft: 5,
   },
   form: {
-    marginBottom: 40,
-  },
-  inputContainer: {
-    flexDirection: 'row',
+    marginBottom: 20,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 50,
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
+    backgroundColor: '#3D3D3D',
+    borderRadius: 5,
+    height: 38,
+    paddingHorizontal: 16,
+    fontSize: 24,
+    fontWeight: '100',
+    color: '#FFFFFF',
+    marginBottom: 11,
+    width: 324,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    ...(Platform.OS === 'web' && {
+      outline: 'none',
+      outlineStyle: 'none',
+      outlineWidth: 0,
+      outlineColor: 'transparent',
+      border: 'none',
+      borderStyle: 'none',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      boxShadow: 'none',
+      WebkitAppearance: 'none',
+      MozAppearance: 'none',
+      appearance: 'none',
+      WebkitBoxShadow: 'none',
+      MozBoxShadow: 'none',
+      backgroundColor: '#3D3D3D !important',
+      WebkitBackgroundClip: 'padding-box',
+      backgroundClip: 'padding-box',
+      WebkitTextFillColor: '#FFFFFF',
+      caretColor: '#FFFFFF',
+    }),
   },
-  passwordInput: {
-    paddingRight: 40,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: '#007AFF',
-    fontSize: 14,
-  },
-  loginButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
-    justifyContent: 'center',
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginTop: 10,
+    marginBottom: 20,
+    width: 324,
+    alignSelf: 'center',
   },
-  loginButtonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  biometricButton: {
+  leftButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    borderRadius: 8,
   },
-  biometricButtonText: {
-    color: '#007AFF',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  footer: {
+  actionButton: {
+    backgroundColor: '#3D3D3D',
+    borderRadius: 10,
+    height: 29,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  signupText: {
-    fontSize: 16,
-    color: '#666',
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '100',
   },
-  signupLink: {
-    color: '#007AFF',
-    fontWeight: '600',
+  biometricButton: {
+    alignSelf: 'center',
+    padding: 15,
   },
 });
 

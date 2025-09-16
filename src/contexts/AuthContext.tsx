@@ -19,8 +19,7 @@ interface AuthContextType {
   register: (userData: {
     email: string;
     password: string;
-    first_name: string;
-    last_name: string;
+    username: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -114,12 +113,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = useCallback(async (userData: {
     email: string;
     password: string;
-    first_name: string;
-    last_name: string;
+    username: string;
   }) => {
     try {
       setIsLoading(true);
-      await AuthService.register(userData);
+      // Transform username to first_name and last_name for backend compatibility
+      const backendData = {
+        email: userData.email,
+        password: userData.password,
+        first_name: userData.username,
+        last_name: ''
+      };
+      await AuthService.register(backendData);
       // Note: User will need to verify email before they can login
     } catch (error) {
       console.error('Registration failed:', error);

@@ -10,9 +10,12 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import GhostIllustration from '../components/GhostIllustration';
+import WebStyleInjector from '../components/WebStyleInjector';
 
 interface RegisterScreenProps {
   navigation: any;
@@ -20,14 +23,12 @@ interface RegisterScreenProps {
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
     email: '',
+    username: '',
     password: '',
-    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const { register } = useAuth();
@@ -37,17 +38,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const validateForm = () => {
-    const { firstName, lastName, email, password, confirmPassword } = formData;
-
-    if (!firstName.trim()) {
-      Alert.alert('Error', 'Please enter your first name');
-      return false;
-    }
-
-    if (!lastName.trim()) {
-      Alert.alert('Error', 'Please enter your last name');
-      return false;
-    }
+    const { email, username, password } = formData;
 
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
@@ -60,38 +51,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       return false;
     }
 
+    if (!username.trim()) {
+      Alert.alert('Error', 'Please enter your username');
+      return false;
+    }
+
     if (!password) {
       Alert.alert('Error', 'Please enter a password');
       return false;
     }
 
-    if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
-      return false;
-    }
-
-    if (!/(?=.*[a-z])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one lowercase letter');
-      return false;
-    }
-
-    if (!/(?=.*[A-Z])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one uppercase letter');
-      return false;
-    }
-
-    if (!/(?=.*\d)/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one number');
-      return false;
-    }
-
-    if (!/(?=.*[!@#$%^&*])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one special character');
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!acceptTerms) {
+      Alert.alert('Error', 'Please accept the Privacy Policy and Community Guidelines');
       return false;
     }
 
@@ -108,17 +79,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await register({
         email: formData.email,
         password: formData.password,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+        username: formData.username,
       });
 
       Alert.alert(
         'Registration Successful',
-        'Please check your email to verify your account before logging in.',
+        'Welcome to SoulTalk!',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Login'),
+            onPress: () => navigation.navigate('Home'),
           },
         ]
       );
@@ -129,245 +99,227 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleSignIn = () => {
-    navigation.navigate('Login');
+  const handleBack = () => {
+    navigation.goBack();
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join SoulTalk today</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                value={formData.firstName}
-                onChangeText={(value) => handleInputChange('firstName', value)}
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChangeText={(value) => handleInputChange('lastName', value)}
-                autoCapitalize="words"
-                autoCorrect={false}
-              />
-            </View>
+    <View style={styles.container}>
+      <WebStyleInjector />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Create a New{"\n"}Account</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+          <View style={styles.ghostContainer}>
+            <GhostIllustration width={228} height={312} color="#FFFFFF" />
+          </View>
+
+          <View style={styles.form}>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="email"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={formData.email}
               onChangeText={(value) => handleInputChange('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="off"
+              textContentType="none"
             />
-          </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
             <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Password"
+              style={styles.input}
+              placeholder="username"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              value={formData.username}
+              onChangeText={(value) => handleInputChange('username', value)}
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="off"
+              textContentType="none"
+            />
+
+            <TextInput
+              style={[styles.input, { marginBottom: 15 }]}
+              placeholder="password"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={formData.password}
               onChangeText={(value) => handleInputChange('password', value)}
-              secureTextEntry={!showPassword}
+              secureTextEntry={true}
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="off"
+              textContentType="none"
             />
+
+            <View style={styles.checkboxContainer}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setAcceptTerms(!acceptTerms)}
+              >
+                <View style={[styles.checkboxInner, acceptTerms && styles.checkboxChecked]} />
+              </TouchableOpacity>
+              <Text style={styles.checkboxText}>
+                I accept the Privacy Policy and consent to the processing of my personal information in accordance with it.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
+              style={[styles.actionButton, { width: 58 }]}
+              onPress={handleRegister}
+              disabled={isLoading}
             >
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color="#666"
-              />
+              {isLoading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>go</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { width: 77 }]}
+              onPress={handleBack}
+            >
+              <Text style={styles.buttonText}>back</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChangeText={(value) => handleInputChange('confirmPassword', value)}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <Ionicons
-                name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color="#666"
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.passwordRequirements}>
-            <Text style={styles.requirementsTitle}>Password must contain:</Text>
-            <Text style={styles.requirement}>• At least 8 characters</Text>
-            <Text style={styles.requirement}>• One uppercase letter</Text>
-            <Text style={styles.requirement}>• One lowercase letter</Text>
-            <Text style={styles.requirement}>• One number</Text>
-            <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
-            onPress={handleRegister}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.registerButtonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.signinText}>
-            Already have an account?{' '}
-            <Text style={styles.signinLink} onPress={handleSignIn}>
-              Sign In
-            </Text>
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000000',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
-    justifyContent: 'center',
+    paddingTop: 56,
+    paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 40,
+    alignItems: 'flex-start',
+    marginBottom: 50,
+    marginLeft: 35,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    fontSize: 40,
+    fontWeight: '300',
+    color: '#FFFFFF',
+    lineHeight: 50,
+    width: 243,
+    height: 100,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  ghostContainer: {
+    alignItems: 'center',
+    marginBottom: 50,
+    marginTop: 30,
   },
   form: {
-    marginBottom: 40,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  inputContainer: {
-    flexDirection: 'row',
+    marginBottom: 30,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 50,
-  },
-  halfWidth: {
-    width: '48%',
-  },
-  inputIcon: {
-    marginRight: 12,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
+    backgroundColor: '#3D3D3D',
+    borderRadius: 5,
+    height: 38,
+    paddingHorizontal: 16,
+    fontSize: 24,
+    fontWeight: '100',
+    color: '#FFFFFF',
+    marginBottom: 11,
+    width: 324,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    ...(Platform.OS === 'web' && {
+      outline: 'none',
+      outlineStyle: 'none',
+      outlineWidth: 0,
+      outlineColor: 'transparent',
+      border: 'none',
+      borderStyle: 'none',
+      borderWidth: 0,
+      borderColor: 'transparent',
+      boxShadow: 'none',
+      WebkitAppearance: 'none',
+      MozAppearance: 'none',
+      appearance: 'none',
+      WebkitBoxShadow: 'none',
+      MozBoxShadow: 'none',
+      backgroundColor: '#3D3D3D !important',
+      WebkitBackgroundClip: 'padding-box',
+      backgroundClip: 'padding-box',
+      WebkitTextFillColor: '#FFFFFF',
+      caretColor: '#FFFFFF',
+    }),
   },
-  passwordInput: {
-    paddingRight: 40,
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 25,
+    marginTop: 20,
+    paddingHorizontal: 35,
+    width: '100%',
   },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
-  },
-  passwordRequirements: {
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: '#f8f9fa',
+  checkbox: {
+    width: 21,
+    height: 16,
     borderRadius: 8,
-  },
-  requirementsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  requirement: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  registerButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  checkboxInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FFFFFF',
+  },
+  checkboxText: {
+    flex: 1,
+    fontSize: 8,
+    color: 'rgba(255, 255, 255, 0.4)',
+    lineHeight: 10,
+    fontWeight: '400',
+    maxWidth: 299,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 35,
+    width: '100%',
+  },
+  actionButton: {
+    backgroundColor: '#3D3D3D',
+    borderRadius: 10,
+    height: 29,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
   },
-  registerButtonDisabled: {
-    opacity: 0.6,
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-  },
-  signinText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  signinLink: {
-    color: '#007AFF',
-    fontWeight: '600',
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '100',
+    textAlign: 'center',
   },
 });
 

@@ -1,19 +1,48 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
 const HomeScreen = () => {
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
-      ]
-    );
+  const handleLogout = async () => {
+    console.log('Logout button clicked');
+    try {
+      if (Platform.OS === 'web') {
+        // Use browser confirm for web
+        const confirmed = window.confirm('Are you sure you want to logout?');
+        if (confirmed) {
+          console.log('Logout confirmed, calling logout function');
+          await logout();
+          console.log('Logout completed successfully');
+        }
+      } else {
+        // Use React Native Alert for mobile
+        Alert.alert(
+          'Logout',
+          'Are you sure you want to logout?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Logout', 
+              style: 'destructive', 
+              onPress: async () => {
+                console.log('Logout confirmed, calling logout function');
+                try {
+                  await logout();
+                  console.log('Logout completed successfully');
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  Alert.alert('Error', 'Failed to logout properly');
+                }
+              }
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (

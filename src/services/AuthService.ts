@@ -52,6 +52,37 @@ class AuthService {
   private isRefreshing = false;
   private failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
+  // Helper method to parse backend error messages
+  private parseErrorMessage(error: any): string {
+    if (!error.response?.data?.detail) {
+      return 'An unexpected error occurred';
+    }
+
+    const detail = error.response.data.detail;
+
+    // Handle validation errors (array format)
+    if (Array.isArray(detail)) {
+      const firstError = detail[0];
+      if (firstError && firstError.msg) {
+        // Extract the meaningful part of the error message
+        const msg = firstError.msg;
+        if (msg.includes(': ')) {
+          // Split on ': ' and take the part after it
+          const parts = msg.split(': ');
+          return parts[parts.length - 1];
+        }
+        return msg;
+      }
+    }
+
+    // Handle simple string errors
+    if (typeof detail === 'string') {
+      return detail;
+    }
+
+    return 'An error occurred';
+  }
+
   constructor() {
     this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
       url: 'http://localhost:8080',
@@ -151,7 +182,7 @@ class AuthService {
       
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      throw new Error(this.parseErrorMessage(error));
     }
   }
 
@@ -160,7 +191,7 @@ class AuthService {
       const response = await this.axiosInstance.post('/auth/register', userData);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+      throw new Error(this.parseErrorMessage(error));
     }
   }
 
@@ -206,7 +237,7 @@ class AuthService {
       const response: AxiosResponse<UserInfo> = await this.axiosInstance.get('/auth/me');
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to get user info');
+      throw new Error(this.parseErrorMessage(error));
     }
   }
 
@@ -214,7 +245,7 @@ class AuthService {
     try {
       await this.axiosInstance.post('/auth/reset-password', { email });
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Password reset failed');
+      throw new Error(this.parseErrorMessage(error));
     }
   }
 
@@ -223,6 +254,16 @@ class AuthService {
       await this.axiosInstance.get('/auth/verify-token');
       return true;
     } catch (error) {
+      return false;
+    }
+  }
+
+  async checkHealth(): Promise<boolean> {
+    try {
+      const response = await this.axiosInstance.get('/health');
+      return response.status === 200;
+    } catch (error) {
+      console.error('Health check failed:', error);
       return false;
     }
   }

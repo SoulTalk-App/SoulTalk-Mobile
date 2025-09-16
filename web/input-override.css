@@ -1,0 +1,50 @@
+/* Force dark input styling for React Native Web */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+textarea {
+  background-color: #3D3D3D !important;
+  background: #3D3D3D !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  -webkit-box-shadow: none !important;
+  -moz-box-shadow: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
+}
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+textarea:focus {
+  background-color: #3D3D3D !important;
+  background: #3D3D3D !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+input[type="text"]::placeholder, 
+input[type="email"]::placeholder, 
+input[type="password"]::placeholder, 
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 0.5 !important;
+}
+
+/* Webkit autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #3D3D3D inset !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  background-color: #3D3D3D !important;
+}
