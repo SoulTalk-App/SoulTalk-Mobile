@@ -22,30 +22,30 @@ const LayeredCarouselImage: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 300,
-    height: 250,
+    width: 220,
+    height: 300,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
   },
   sideImageLeft: {
     position: "absolute",
-    left: 10,
-    width: 100,
-    height: 180,
+    left: -25,
+    width: 120,
+    height: 220,
     zIndex: 1,
   },
   centerImage: {
     position: "absolute",
-    width: 140,
-    height: 220,
+    width: 170,
+    height: 270,
     zIndex: 2,
   },
   sideImageRight: {
     position: "absolute",
-    right: 10,
-    width: 100,
-    height: 180,
+    right: -25,
+    width: 120,
+    height: 220,
     zIndex: 1,
   },
 });

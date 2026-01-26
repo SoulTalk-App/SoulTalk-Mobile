@@ -3,10 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { termsAndConditions } from "../mocks/content";
 import { colors, typography } from "../theme";
@@ -17,6 +17,8 @@ interface TermsScreenProps {
 }
 
 const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+
   const handleBack = () => {
     navigation.goBack();
   };
@@ -27,7 +29,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="chevron-back" size={28} color={colors.primary} />
@@ -38,24 +40,26 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
         </Text>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={true}
-      >
-        <Text style={styles.content}>{termsAndConditions.content}</Text>
-      </ScrollView>
+      <View style={styles.scrollContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+        >
+          <Text style={styles.content}>{termsAndConditions.content}</Text>
+        </ScrollView>
+      </View>
 
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.separator} />
         <Text style={styles.agreementText}>
-          By tapping Accept, you agree to our Terms & Conditions and Privacy
-          Policy
+          By tapping Accept, you agree to our Terms and Privacy Policy
         </Text>
         <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
           <Text style={styles.acceptButtonText}>Accept</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -68,8 +72,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   backButton: {
     marginLeft: -8,
@@ -86,22 +88,28 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text.light,
   },
-  scrollView: {
+  scrollContainer: {
     flex: 1,
+    overflow: 'hidden',
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   content: {
     ...typography.body,
-    color: colors.text.dark,
+    color: colors.primary,
     lineHeight: 24,
   },
   buttonContainer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
     backgroundColor: colors.white,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: 16,
   },
   agreementText: {
     ...typography.caption,

@@ -32,14 +32,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === onboardingSlides.length - 1;
 
-  const handleNext = () => {
-    if (isLastSlide) {
-      navigation.navigate("Terms");
-    } else {
-      carouselRef.current?.next();
-    }
-  };
-
   const handleSkip = () => {
     navigation.navigate("Terms");
   };
@@ -55,7 +47,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   };
 
   const handleNextSlide = () => {
-    if (!isLastSlide) {
+    if (isLastSlide) {
+      navigation.navigate("Terms");
+    } else {
       carouselRef.current?.next();
     }
   };
@@ -94,13 +88,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
         <TouchableOpacity
           onPress={handleNextSlide}
-          style={[styles.arrowButton, isLastSlide && styles.arrowDisabled]}
-          disabled={isLastSlide}
+          style={styles.arrowButton}
         >
           <Ionicons
             name="chevron-forward"
             size={24}
-            color={isLastSlide ? colors.text.secondary : colors.primary}
+            color={colors.primary}
           />
         </TouchableOpacity>
       </View>
@@ -131,7 +124,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               ImageComponent = (
                 <Image
                   source={Carousel1}
-                  style={{ width: 250, height: 250 }}
+                  style={{ width: 300, height: 300 }}
                   resizeMode="contain"
                 />
               );
@@ -141,7 +134,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               ImageComponent = (
                 <Image
                   source={Carousel3}
-                  style={{ width: 250, height: 250 }}
+                  style={{ width: 300, height: 300 }}
                   resizeMode="contain"
                 />
               );
@@ -160,14 +153,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       </View>
 
       {renderDots()}
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>
-            {isLastSlide ? "Continue" : "Next"}
-          </Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
@@ -222,21 +207,6 @@ const styles = StyleSheet.create({
   },
   inactiveDot: {
     backgroundColor: colors.border,
-  },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  nextButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  nextButtonText: {
-    ...typography.button,
-    color: colors.white,
   },
 });
 

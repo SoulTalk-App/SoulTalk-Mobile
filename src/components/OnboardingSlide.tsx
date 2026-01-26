@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
+    marginTop: 30,
   },
   placeholderImage: {
     width: 250,
@@ -65,7 +66,8 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 0,
+    marginTop: 40,
   },
   title: {
     ...typography.heading,
@@ -73,10 +75,10 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
   subtitle: {
-    ...typography.body,
-    color: colors.text.light,
+    ...typography.subheading,
+    color: colors.primary,
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 28,
   },
 });
 

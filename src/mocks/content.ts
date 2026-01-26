@@ -1,8 +1,7 @@
 export const termsAndConditions = {
-  title: "Terms & Conditions",
+  title: "Terms and Privacy",
   lastUpdated: "January 2025",
-  content: `
-Welcome to SoulTalk. By using our application, you agree to the following terms and conditions. Please read them carefully.
+  content: `Welcome to SoulTalk. By using our application, you agree to the following terms and conditions. Please read them carefully.
 
 1. ACCEPTANCE OF TERMS
 
@@ -54,20 +53,20 @@ export const onboardingSlides = [
   {
     id: "1",
     title: "Welcome to SoulTalk",
-    subtitle: "Your personal companion for mental wellness and self-discovery",
-    image: "welcome", // placeholder - will be replaced with actual SVG
+    subtitle: "Your space to slow down, reflect and reconnect with your inner world.",
+    image: "welcome",
   },
   {
     id: "2",
-    title: "Express Yourself",
-    subtitle: "A safe space to share your thoughts and feelings without judgment",
-    image: "express", // placeholder - will be replaced with actual SVG
+    title: "Meet your SoulPal",
+    subtitle: "Your tiny companion for the journey inward.",
+    image: "express",
   },
   {
     id: "3",
-    title: "Grow Every Day",
-    subtitle: "Build healthy habits and track your journey towards inner peace",
-    image: "grow", // placeholder - will be replaced with actual SVG
+    title: "What you'll Discover",
+    subtitle: "A gentle way to understand yourself, one reflection at a time.",
+    image: "grow",
   },
 ];
 
