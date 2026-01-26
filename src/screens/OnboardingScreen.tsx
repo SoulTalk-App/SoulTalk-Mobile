@@ -5,12 +5,19 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import OnboardingSlide from "../components/OnboardingSlide";
+import LayeredCarouselImage from "../components/LayeredCarouselImage";
 import { onboardingSlides } from "../mocks/content";
 import { colors, typography } from "../theme";
+
+// PNG imports
+const Carousel1 = require("../../assets/images/onboarding/Carousel1.png");
+const Carousel3 = require("../../assets/images/onboarding/Carousel3.png");
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,6 +29,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const carouselRef = useRef<ICarouselInstance>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === onboardingSlides.length - 1;
 
   const handleNext = () => {
@@ -40,23 +48,61 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     carouselRef.current?.scrollTo({ index, animated: true });
   };
 
+  const handlePrev = () => {
+    if (!isFirstSlide) {
+      carouselRef.current?.prev();
+    }
+  };
+
+  const handleNextSlide = () => {
+    if (!isLastSlide) {
+      carouselRef.current?.next();
+    }
+  };
+
   const renderDots = () => {
     return (
       <View style={styles.dotsContainer}>
-        {onboardingSlides.map((_, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleDotPress(index)}
-            style={styles.dotTouchable}
-          >
-            <View
-              style={[
-                styles.dot,
-                index === activeIndex ? styles.activeDot : styles.inactiveDot,
-              ]}
-            />
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity
+          onPress={handlePrev}
+          style={[styles.arrowButton, isFirstSlide && styles.arrowDisabled]}
+          disabled={isFirstSlide}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color={isFirstSlide ? colors.text.secondary : colors.primary}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.dotsWrapper}>
+          {onboardingSlides.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => handleDotPress(index)}
+              style={styles.dotTouchable}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  index === activeIndex ? styles.activeDot : styles.inactiveDot,
+                ]}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          onPress={handleNextSlide}
+          style={[styles.arrowButton, isLastSlide && styles.arrowDisabled]}
+          disabled={isLastSlide}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={24}
+            color={isLastSlide ? colors.text.secondary : colors.primary}
+          />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -78,13 +124,38 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           height={height * 0.65}
           data={onboardingSlides}
           onSnapToItem={(index) => setActiveIndex(index)}
-          renderItem={({ item }) => (
-            <OnboardingSlide
-              title={item.title}
-              subtitle={item.subtitle}
-              image={item.image}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            let ImageComponent: React.ReactNode = null;
+
+            if (index === 0) {
+              ImageComponent = (
+                <Image
+                  source={Carousel1}
+                  style={{ width: 250, height: 250 }}
+                  resizeMode="contain"
+                />
+              );
+            } else if (index === 1) {
+              ImageComponent = <LayeredCarouselImage />;
+            } else if (index === 2) {
+              ImageComponent = (
+                <Image
+                  source={Carousel3}
+                  style={{ width: 250, height: 250 }}
+                  resizeMode="contain"
+                />
+              );
+            }
+
+            return (
+              <OnboardingSlide
+                title={item.title}
+                subtitle={item.subtitle}
+                image={item.image}
+                ImageComponent={ImageComponent}
+              />
+            );
+          }}
         />
       </View>
 
@@ -124,6 +195,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  arrowButton: {
+    padding: 8,
+  },
+  arrowDisabled: {
+    opacity: 0.4,
+  },
+  dotsWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
   },
   dotTouchable: {
     padding: 8,

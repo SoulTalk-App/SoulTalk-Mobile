@@ -18,6 +18,10 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
 }) => {
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>{title}</Text>
+      </View>
+
       <View style={styles.imageContainer}>
         {ImageComponent ? (
           ImageComponent
@@ -25,8 +29,8 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
           <View style={styles.placeholderImage} />
         )}
       </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
+
+      <View style={styles.footerContainer}>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
     </View>
@@ -38,11 +42,17 @@ const styles = StyleSheet.create({
     width,
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 40,
+    justifyContent: "space-between",
+    paddingHorizontal: 32,
+    paddingVertical: 20,
+  },
+  headerContainer: {
+    alignItems: "flex-start",
+    width: "100%",
+    paddingTop: 20,
   },
   imageContainer: {
-    flex: 0.6,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
@@ -53,16 +63,14 @@ const styles = StyleSheet.create({
     borderRadius: 125,
     backgroundColor: colors.overlay,
   },
-  textContainer: {
-    flex: 0.4,
+  footerContainer: {
     alignItems: "center",
-    paddingTop: 40,
+    paddingBottom: 20,
   },
   title: {
     ...typography.heading,
     color: colors.primary,
-    textAlign: "center",
-    marginBottom: 16,
+    textAlign: "left",
   },
   subtitle: {
     ...typography.body,
