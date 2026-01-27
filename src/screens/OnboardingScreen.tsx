@@ -7,11 +7,6 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -157,13 +152,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
             }
 
             const ImageComponent = (
-              <Animated.View
+              <View
                 style={{
-                  transform: [{ scale: withSpring(scale, { damping: 15 }) }],
+                  transform: [{ scale }],
                 }}
               >
                 {ImageContent}
-              </Animated.View>
+              </View>
             );
 
             return (

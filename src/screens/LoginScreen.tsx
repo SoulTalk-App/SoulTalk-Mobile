@@ -9,8 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
 import { colors, typography } from "../theme";
@@ -20,6 +22,7 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -88,155 +91,210 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     navigation.navigate("Welcome");
   };
 
+  const handleSocialLogin = (provider: string) => {
+    Alert.alert("Coming Soon", `${provider} login will be available soon.`);
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.content}>
+    <View style={styles.container}>
+      {/* Purple Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
-          <Ionicons name="chevron-back" size={24} color="#653495" />
-          <Text style={styles.backButtonText}>Home</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.white} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>SoulTalk</Text>
+        <View style={styles.backButton} />
+      </View>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
+      {/* Content Area */}
+      <KeyboardAvoidingView
+        style={styles.contentContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Sign In</Text>
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
-        </View>
 
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color={colors.text.secondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color={colors.text.secondary}
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
               <Ionicons
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                name="mail-outline"
                 size={20}
                 color={colors.text.secondary}
+                style={styles.inputIcon}
               />
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={colors.text.secondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={colors.text.secondary}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Password"
+                placeholderTextColor={colors.text.secondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.forgotPassword}
+              onPress={handleForgotPassword}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                isLoading && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.loginButtonText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+
+            {biometricAvailable && biometricEnabled && (
+              <TouchableOpacity
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+              >
+                <Ionicons name="finger-print-outline" size={24} color={colors.primary} />
+                <Text style={styles.biometricButtonText}>
+                  Use Biometric Authentication
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Social Login Section */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.divider} />
+            </View>
+
+            <View style={styles.socialContainer}>
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin("Google")}
+              >
+                <FontAwesome5 name="google" size={24} color="#DB4437" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin("Facebook")}
+              >
+                <FontAwesome5 name="facebook-f" size={24} color="#1877F2" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin("Apple")}
+              >
+                <FontAwesome5 name="apple" size={24} color="#000000" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={handleForgotPassword}
-          >
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.loginButton,
-              isLoading && styles.loginButtonDisabled,
-            ]}
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
-            )}
-          </TouchableOpacity>
-
-          {biometricAvailable && biometricEnabled && (
-            <TouchableOpacity
-              style={styles.biometricButton}
-              onPress={handleBiometricLogin}
-            >
-              <Ionicons name="finger-print-outline" size={24} color={colors.primary} />
-              <Text style={styles.biometricButtonText}>
-                Use Biometric Authentication
+          <View style={styles.footer}>
+            <Text style={styles.signupText}>
+              Don't have an account?{" "}
+              <Text style={styles.signupLink} onPress={handleSignUp}>
+                Sign Up
               </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.signupText}>
-            Don't have an account?{" "}
-            <Text style={styles.signupLink} onPress={handleSignUp}>
-              Sign Up
             </Text>
-          </Text>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
-    top: 60,
-    left: 20,
-    zIndex: 10,
-  },
-  backButtonText: {
-    ...typography.body,
-    color: colors.primary,
-    marginLeft: 4,
+    backgroundColor: colors.primary,
   },
   header: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 40,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    backgroundColor: colors.primary,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    ...typography.subheading,
+    color: colors.white,
+    fontWeight: "700",
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 24,
   },
   title: {
     ...typography.heading,
     color: colors.primary,
+    textAlign: "left",
+    marginTop: 10,
     marginBottom: 8,
   },
   subtitle: {
     ...typography.body,
     color: colors.text.secondary,
+    textAlign: "left",
+    marginBottom: 30,
   },
   form: {
-    marginBottom: 40,
+    marginBottom: 20,
   },
   inputContainer: {
     flexDirection: "row",
@@ -297,14 +355,47 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: 12,
     backgroundColor: colors.white,
+    marginBottom: 24,
   },
   biometricButtonText: {
     ...typography.body,
     color: colors.primary,
     marginLeft: 8,
   },
+  dividerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginHorizontal: 16,
+  },
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 20,
+    marginBottom: 24,
+  },
+  socialButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   footer: {
     alignItems: "center",
+    marginTop: -30,
   },
   signupText: {
     ...typography.body,

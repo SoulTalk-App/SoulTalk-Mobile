@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, typography } from '../theme';
 
@@ -20,6 +21,7 @@ interface RegisterScreenProps {
 }
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -30,6 +32,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const { register } = useAuth();
 
@@ -37,73 +40,27 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const validateForm = () => {
+  const isFormValid = useMemo(() => {
     const { firstName, lastName, email, password, confirmPassword } = formData;
-
-    if (!firstName.trim()) {
-      Alert.alert('Error', 'Please enter your first name');
-      return false;
-    }
-
-    if (!lastName.trim()) {
-      Alert.alert('Error', 'Please enter your last name');
-      return false;
-    }
-
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
-      return false;
-    }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return false;
-    }
+    const passwordValid =
+      password.length >= 8 &&
+      /(?=.*[a-z])/.test(password) &&
+      /(?=.*[A-Z])/.test(password) &&
+      /(?=.*\d)/.test(password) &&
+      /(?=.*[!@#$%^&*])/.test(password);
 
-    if (!password) {
-      Alert.alert('Error', 'Please enter a password');
-      return false;
-    }
-
-    if (password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
-      return false;
-    }
-
-    if (!/(?=.*[a-z])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one lowercase letter');
-      return false;
-    }
-
-    if (!/(?=.*[A-Z])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one uppercase letter');
-      return false;
-    }
-
-    if (!/(?=.*\d)/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one number');
-      return false;
-    }
-
-    if (!/(?=.*[!@#$%^&*])/.test(password)) {
-      Alert.alert('Error', 'Password must contain at least one special character');
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return false;
-    }
-
-    return true;
-  };
+    return (
+      firstName.trim() !== '' &&
+      lastName.trim() !== '' &&
+      emailRegex.test(email) &&
+      passwordValid &&
+      password === confirmPassword &&
+      agreedToTerms
+    );
+  }, [formData, agreedToTerms]);
 
   const handleRegister = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       await register({
@@ -138,178 +95,264 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Welcome');
   };
 
+  const handleTermsPress = () => {
+    navigation.navigate('Terms');
+  };
+
+  const handleSocialLogin = (provider: string) => {
+    Alert.alert('Coming Soon', `${provider} login will be available soon.`);
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.container}>
+      {/* Purple Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
-          <Ionicons name="chevron-back" size={24} color="#653495" />
-          <Text style={styles.backButtonText}>Home</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.white} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>SoulTalk</Text>
+        <View style={styles.backButton} />
+      </View>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
+      {/* Content Area */}
+      <KeyboardAvoidingView
+        style={styles.contentContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subtitle}>Join SoulTalk today</Text>
-        </View>
 
-        <View style={styles.form}>
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+          <View style={styles.form}>
+            <View style={styles.row}>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  placeholderTextColor={colors.text.secondary}
+                  value={formData.firstName}
+                  onChangeText={(value) => handleInputChange('firstName', value)}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Last Name"
+                  placeholderTextColor={colors.text.secondary}
+                  value={formData.lastName}
+                  onChangeText={(value) => handleInputChange('lastName', value)}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="First Name"
-                value={formData.firstName}
-                onChangeText={(value) => handleInputChange('firstName', value)}
-                autoCapitalize="words"
+                placeholder="Email"
+                placeholderTextColor={colors.text.secondary}
+                value={formData.email}
+                onChangeText={(value) => handleInputChange('email', value)}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
 
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChangeText={(value) => handleInputChange('lastName', value)}
-                autoCapitalize="words"
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Password"
+                placeholderTextColor={colors.text.secondary}
+                value={formData.password}
+                onChangeText={(value) => handleInputChange('password', value)}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
                 autoCorrect={false}
               />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Confirm Password"
+                placeholderTextColor={colors.text.secondary}
+                value={formData.confirmPassword}
+                onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.text.secondary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Password Requirements */}
+            <View style={styles.passwordRequirements}>
+              <Text style={styles.requirementsTitle}>Password must contain:</Text>
+              <Text style={styles.requirement}>• At least 8 characters</Text>
+              <Text style={styles.requirement}>• One uppercase letter</Text>
+              <Text style={styles.requirement}>• One lowercase letter</Text>
+              <Text style={styles.requirement}>• One number</Text>
+              <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
+            </View>
+
+            {/* Terms and Privacy Checkbox */}
+            <TouchableOpacity
+              style={styles.termsContainer}
+              onPress={() => setAgreedToTerms(!agreedToTerms)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
+              </View>
+              <Text style={styles.termsText}>
+                I agree to the{' '}
+                <Text style={styles.termsLink} onPress={handleTermsPress}>
+                  Terms and Privacy
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                !isFormValid && styles.registerButtonDisabled,
+              ]}
+              onPress={handleRegister}
+              disabled={!isFormValid || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.registerButtonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Social Login Section */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.divider} />
+            </View>
+
+            <View style={styles.socialContainer}>
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('Google')}
+              >
+                <FontAwesome5 name="google" size={24} color="#DB4437" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('Facebook')}
+              >
+                <FontAwesome5 name="facebook-f" size={24} color="#1877F2" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialLogin('Apple')}
+              >
+                <FontAwesome5 name="apple" size={24} color="#000000" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={formData.email}
-              onChangeText={(value) => handleInputChange('email', value)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Password"
-              value={formData.password}
-              onChangeText={(value) => handleInputChange('password', value)}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChangeText={(value) => handleInputChange('confirmPassword', value)}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <Ionicons
-                name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.passwordRequirements}>
-            <Text style={styles.requirementsTitle}>Password must contain:</Text>
-            <Text style={styles.requirement}>• At least 8 characters</Text>
-            <Text style={styles.requirement}>• One uppercase letter</Text>
-            <Text style={styles.requirement}>• One lowercase letter</Text>
-            <Text style={styles.requirement}>• One number</Text>
-            <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
-            onPress={handleRegister}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.registerButtonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.signinText}>
-            Already have an account?{' '}
-            <Text style={styles.signinLink} onPress={handleSignIn}>
-              Sign In
+          <View style={styles.footer}>
+            <Text style={styles.signinText}>
+              Already have an account?{' '}
+              <Text style={styles.signinLink} onPress={handleSignIn}>
+                Sign In
+              </Text>
             </Text>
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.primary,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    backgroundColor: colors.primary,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    ...typography.subheading,
+    color: colors.white,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    flex: 1,
     backgroundColor: colors.background,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
-    paddingTop: 60,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButtonText: {
-    ...typography.body,
-    color: colors.primary,
-    marginLeft: 4,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
+    padding: 24,
   },
   title: {
     ...typography.heading,
     color: colors.primary,
+    textAlign: 'left',
+    marginTop: 10,
     marginBottom: 8,
   },
   subtitle: {
     ...typography.body,
     color: colors.text.secondary,
+    textAlign: 'left',
+    marginBottom: 30,
   },
   form: {
-    marginBottom: 40,
+    marginBottom: 20,
   },
   row: {
     flexDirection: 'row',
@@ -346,7 +389,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   passwordRequirements: {
-    marginBottom: 24,
+    marginBottom: 16,
     padding: 16,
     backgroundColor: colors.overlay,
     borderRadius: 12,
@@ -362,13 +405,42 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: 4,
   },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+  },
+  termsText: {
+    ...typography.bodySmall,
+    color: colors.text.secondary,
+    flex: 1,
+  },
+  termsLink: {
+    color: '#2196F3',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
   registerButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   registerButtonDisabled: {
     backgroundColor: colors.button.disabled,
@@ -377,8 +449,40 @@ const styles = StyleSheet.create({
     ...typography.button,
     color: colors.white,
   },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    ...typography.caption,
+    color: colors.text.secondary,
+    marginHorizontal: 16,
+  },
+  socialContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 24,
+  },
+  socialButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   footer: {
     alignItems: 'center',
+    marginTop: -30,
   },
   signinText: {
     ...typography.body,
