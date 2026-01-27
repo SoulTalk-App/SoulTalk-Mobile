@@ -18,6 +18,7 @@ import { colors, typography } from "../theme";
 // PNG imports
 const Carousel1 = require("../../assets/images/onboarding/Carousel1.png");
 const Carousel3 = require("../../assets/images/onboarding/Carousel3.png");
+const SoultalkLogo = require("../../assets/images/logo/SoultalkLogo.png");
 
 const { width, height } = Dimensions.get("window");
 
@@ -102,11 +103,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.skipContainer}>
-        {!isLastSlide && (
+      <View style={styles.headerContainer}>
+        <Image
+          source={SoultalkLogo}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        {!isLastSlide ? (
           <TouchableOpacity onPress={handleSkip}>
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.skipPlaceholder} />
         )}
       </View>
 
@@ -162,15 +170,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  skipContainer: {
-    alignItems: "flex-end",
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    height: 44,
+    height: 50,
+  },
+  headerLogo: {
+    width: 100,
+    height: 22,
   },
   skipText: {
     ...typography.body,
     color: colors.primary,
+  },
+  skipPlaceholder: {
+    width: 40,
   },
   carouselContainer: {
     flex: 1,

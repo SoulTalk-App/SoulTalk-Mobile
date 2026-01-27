@@ -50,8 +50,8 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
         </ScrollView>
       </View>
 
+      <View style={styles.separator} />
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
-        <View style={styles.separator} />
         <Text style={styles.agreementText}>
           By tapping Accept, you agree to our Terms and Privacy Policy
         </Text>
@@ -101,15 +101,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
     lineHeight: 24,
   },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
   buttonContainer: {
     backgroundColor: colors.white,
     paddingHorizontal: 20,
     paddingTop: 16,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: 16,
   },
   agreementText: {
     ...typography.caption,

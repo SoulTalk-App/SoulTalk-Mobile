@@ -1,22 +1,17 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { welcomeContent } from "../mocks/content";
 import { colors, typography } from "../theme";
 import { resetOnboarding } from "../utils/resetOnboarding";
+
+const SoultalkLogo = require("../../assets/images/logo/SoultalkLogo.png");
 
 interface WelcomeScreenProps {
   navigation: any;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
-  const canGoBack = navigation.canGoBack();
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
   const handleGetStarted = () => {
     navigation.navigate("Register");
   };
@@ -33,18 +28,13 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {canGoBack && (
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={28} color={colors.primary} />
-        </TouchableOpacity>
-      )}
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          {/* Logo placeholder - replace with actual logo */}
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>ST</Text>
-          </View>
-          <Text style={styles.appName}>SoulTalk</Text>
+          <Image
+            source={SoultalkLogo}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.tagline}>{welcomeContent.tagline}</Text>
         </View>
 
@@ -83,13 +73,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left: 16,
-    zIndex: 10,
-    padding: 8,
-  },
   content: {
     flex: 1,
     justifyContent: "space-between",
@@ -101,28 +84,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
+  logo: {
+    width: 228,
+    height: 50,
     marginBottom: 24,
   },
-  logoText: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: colors.white,
-  },
-  appName: {
-    ...typography.displayLarge,
-    color: colors.primary,
-    marginBottom: 12,
-  },
   tagline: {
-    ...typography.body,
-    color: colors.text.light,
+    ...typography.subheading,
+    color: colors.primary,
     textAlign: "center",
   },
   buttonContainer: {
