@@ -7,6 +7,11 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -126,10 +131,13 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           data={onboardingSlides}
           onSnapToItem={(index) => setActiveIndex(index)}
           renderItem={({ item, index }) => {
-            let ImageComponent: React.ReactNode = null;
+            const isActive = index === activeIndex;
+            const scale = isActive ? 1.05 : 1;
+
+            let ImageContent: React.ReactNode = null;
 
             if (index === 0) {
-              ImageComponent = (
+              ImageContent = (
                 <Image
                   source={Carousel1}
                   style={{ width: 300, height: 300 }}
@@ -137,9 +145,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 />
               );
             } else if (index === 1) {
-              ImageComponent = <LayeredCarouselImage />;
+              ImageContent = <LayeredCarouselImage />;
             } else if (index === 2) {
-              ImageComponent = (
+              ImageContent = (
                 <Image
                   source={Carousel3}
                   style={{ width: 300, height: 300 }}
@@ -147,6 +155,16 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 />
               );
             }
+
+            const ImageComponent = (
+              <Animated.View
+                style={{
+                  transform: [{ scale: withSpring(scale, { damping: 15 }) }],
+                }}
+              >
+                {ImageContent}
+              </Animated.View>
+            );
 
             return (
               <OnboardingSlide

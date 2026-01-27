@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { colors, typography } from '../theme';
 
 interface RegisterScreenProps {
   navigation: any;
@@ -133,12 +134,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Login');
   };
 
+  const handleBackToHome = () => {
+    navigation.navigate('Welcome');
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
+          <Ionicons name="chevron-back" size={24} color="#653495" />
+          <Text style={styles.backButtonText}>Home</Text>
+        </TouchableOpacity>
+
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join SoulTalk today</Text>
@@ -147,7 +157,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         <View style={styles.form}>
           <View style={styles.row}>
             <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="First Name"
@@ -159,7 +169,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             </View>
 
             <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+              <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Last Name"
@@ -172,7 +182,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="mail-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -185,7 +195,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, styles.passwordInput]}
               placeholder="Password"
@@ -202,13 +212,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color="#666"
+                color={colors.text.secondary}
               />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+            <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, styles.passwordInput]}
               placeholder="Confirm Password"
@@ -225,7 +235,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
-                color="#666"
+                color={colors.text.secondary}
               />
             </TouchableOpacity>
           </View>
@@ -268,26 +278,35 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
-    justifyContent: 'center',
+    paddingTop: 60,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    marginLeft: 4,
   },
   header: {
     alignItems: 'center',
     marginBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    ...typography.heading,
+    color: colors.primary,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.text.secondary,
   },
   form: {
     marginBottom: 40,
@@ -300,11 +319,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 12,
-    height: 50,
+    height: 56,
+    backgroundColor: colors.white,
   },
   halfWidth: {
     width: '48%',
@@ -314,8 +334,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: '#333',
+    ...typography.body,
+    color: colors.text.dark,
   },
   passwordInput: {
     paddingRight: 40,
@@ -328,45 +348,44 @@ const styles = StyleSheet.create({
   passwordRequirements: {
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: colors.overlay,
+    borderRadius: 12,
   },
   requirementsTitle: {
-    fontSize: 14,
+    ...typography.bodySmall,
     fontWeight: '600',
-    color: '#333',
+    color: colors.primary,
     marginBottom: 8,
   },
   requirement: {
-    fontSize: 12,
-    color: '#666',
+    ...typography.caption,
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   registerButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    height: 50,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   registerButtonDisabled: {
-    opacity: 0.6,
+    backgroundColor: colors.button.disabled,
   },
   registerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.button,
+    color: colors.white,
   },
   footer: {
     alignItems: 'center',
   },
   signinText: {
-    fontSize: 16,
-    color: '#666',
+    ...typography.body,
+    color: colors.text.secondary,
   },
   signinLink: {
-    color: '#007AFF',
+    color: colors.primary,
     fontWeight: '600',
   },
 });

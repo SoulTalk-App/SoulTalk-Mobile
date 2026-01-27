@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
+import { colors, typography } from "../theme";
 
 interface LoginScreenProps {
   navigation: any;
@@ -83,12 +84,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     navigation.navigate("Register");
   };
 
+  const handleBackToHome = () => {
+    navigation.navigate("Welcome");
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
+          <Ionicons name="chevron-back" size={24} color="#653495" />
+          <Text style={styles.backButtonText}>Home</Text>
+        </TouchableOpacity>
+
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
@@ -99,7 +109,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <Ionicons
               name="mail-outline"
               size={20}
-              color="#666"
+              color={colors.text.secondary}
               style={styles.inputIcon}
             />
             <TextInput
@@ -117,7 +127,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <Ionicons
               name="lock-closed-outline"
               size={20}
-              color="#666"
+              color={colors.text.secondary}
               style={styles.inputIcon}
             />
             <TextInput
@@ -136,7 +146,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={showPassword ? "eye-off-outline" : "eye-outline"}
                 size={20}
-                color="#666"
+                color={colors.text.secondary}
               />
             </TouchableOpacity>
           </View>
@@ -168,7 +178,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               style={styles.biometricButton}
               onPress={handleBiometricLogin}
             >
-              <Ionicons name="finger-print-outline" size={24} color="#007AFF" />
+              <Ionicons name="finger-print-outline" size={24} color={colors.primary} />
               <Text style={styles.biometricButtonText}>
                 Use Biometric Authentication
               </Text>
@@ -192,26 +202,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
     padding: 20,
     justifyContent: "center",
   },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "absolute",
+    top: 60,
+    left: 20,
+    zIndex: 10,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: colors.primary,
+    marginLeft: 4,
+  },
   header: {
     alignItems: "center",
     marginBottom: 40,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
+    ...typography.heading,
+    color: colors.primary,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
+    ...typography.body,
+    color: colors.text.secondary,
   },
   form: {
     marginBottom: 40,
@@ -220,19 +242,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 12,
-    height: 50,
+    height: 56,
+    backgroundColor: colors.white,
   },
   inputIcon: {
     marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    color: "#333",
+    ...typography.body,
+    color: colors.text.dark,
   },
   passwordInput: {
     paddingRight: 40,
@@ -247,48 +270,48 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    color: "#007AFF",
-    fontSize: 14,
+    ...typography.bodySmall,
+    color: colors.primary,
   },
   loginButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    height: 50,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    height: 56,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   loginButtonDisabled: {
-    opacity: 0.6,
+    backgroundColor: colors.button.disabled,
   },
   loginButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    ...typography.button,
+    color: colors.white,
   },
   biometricButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    backgroundColor: colors.white,
   },
   biometricButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
+    ...typography.body,
+    color: colors.primary,
     marginLeft: 8,
   },
   footer: {
     alignItems: "center",
   },
   signupText: {
-    fontSize: 16,
-    color: "#666",
+    ...typography.body,
+    color: colors.text.secondary,
   },
   signupLink: {
-    color: "#007AFF",
+    color: colors.primary,
     fontWeight: "600",
   },
 });

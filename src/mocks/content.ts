@@ -71,5 +71,5 @@ export const onboardingSlides = [
 ];
 
 export const welcomeContent = {
-  tagline: "Begin your journey to inner peace",
+  tagline: "Your space to slow down, reflect and reconnect with your inner world",
 };
