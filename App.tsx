@@ -134,6 +134,12 @@ const AuthStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
+    <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+    <Stack.Screen
+      name="Terms"
+      component={TermsScreen}
+      options={{ gestureEnabled: false }}
+    />
     <Stack.Screen
       name="Login"
       component={LoginScreen}

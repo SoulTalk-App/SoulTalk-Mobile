@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   peekingImage: {
-    width: 105,
-    height: 105,
-    transform: [{ rotate: "-20deg" }],
+    width: 120,
+    height: 120,
+    transform: [{ rotate: "45deg" }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
