@@ -51,7 +51,11 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
 
     // For testing - validate against test OTP
     if (otpCode !== TEST_OTP) {
-      Alert.alert('Invalid Code', 'Please enter the correct verification code.');
+      Alert.alert('Invalid Code', 'The verification code you entered is incorrect. Please try again.');
+      // Clear all fields
+      setOtp(['', '', '', '']);
+      // Focus first input
+      inputRefs.current[0]?.focus();
       return;
     }
 
@@ -70,7 +74,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
         <Text style={styles.title}>Verify Your Email</Text>
 
         <Text style={styles.subtitle}>
-          Enter the 4-digit code sent to your email
+          A 4 digit verification code has been sent to your email.{'\n'}Please check your inbox.
         </Text>
 
         <View style={styles.otpContainer}>
@@ -142,10 +146,8 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    color: colors.white,
+    backgroundColor: colors.white,
+    color: colors.primary,
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
@@ -153,7 +155,7 @@ const styles = StyleSheet.create({
   resendText: {
     ...typography.body,
     color: colors.white,
-    opacity: 0.8,
+    fontWeight: '600',
     textDecorationLine: 'underline',
     marginBottom: 40,
   },
@@ -170,6 +172,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...typography.button,
+    fontSize: 18,
     color: colors.primary,
   },
 });
