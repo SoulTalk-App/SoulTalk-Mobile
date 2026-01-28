@@ -91,11 +91,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   tagline: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.edensor.lightItalic,
     fontSize: 20,
     color: colors.primary,
     textAlign: "center",
-    fontStyle: "italic",
   },
   buttonContainer: {
     gap: 16,

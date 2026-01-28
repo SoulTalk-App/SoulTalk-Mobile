@@ -11,6 +11,8 @@ export const fonts = {
     medium: "Edensor-Medium",
     semiBold: "Edensor-SemiBold",
     bold: "Edensor-Bold",
+    italic: "Edensor-Italic",
+    lightItalic: "Edensor-LightItalic",
   },
   // Outfit - Geometric sans-serif for UI, functional communication
   outfit: {

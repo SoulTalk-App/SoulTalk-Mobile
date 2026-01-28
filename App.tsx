@@ -242,6 +242,8 @@ export default function App() {
     "Edensor-Medium": require("./assets/fonts/Edensor/Edensor-Medium.otf"),
     "Edensor-SemiBold": require("./assets/fonts/Edensor/Edensor-SemiBold.otf"),
     "Edensor-Bold": require("./assets/fonts/Edensor/Edensor-Bold.otf"),
+    "Edensor-Italic": require("./assets/fonts/Edensor/Edensor-Italic.otf"),
+    "Edensor-LightItalic": require("./assets/fonts/Edensor/Edensor-Light-Italic.otf"),
   });
 
   const onLayoutRootView = useCallback(async () => {
