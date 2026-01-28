@@ -25,6 +25,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  setLocalAuth: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,13 +52,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (initializingRef.current) {
       return; // Prevent multiple simultaneous auth checks
     }
-    
+
     try {
       initializingRef.current = true;
       setIsLoading(true);
-      
+
+      // Check for local auth first (for testing without backend)
+      const localAuth = await AsyncStorage.getItem('@soultalk_local_auth');
+      if (localAuth === 'true') {
+        const username = await AsyncStorage.getItem('@soultalk_username');
+        setUser({
+          id: 'local-user',
+          email: 'local@test.com',
+          first_name: username || 'User',
+          last_name: '',
+          email_verified: true,
+          groups: [],
+        });
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        initializingRef.current = false;
+        return;
+      }
+
       const authenticated = await AuthService.isAuthenticated();
-      
+
       if (authenticated) {
         try {
           const userInfo = await AuthService.getCurrentUser();
@@ -167,6 +186,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const setLocalAuth = useCallback((value: boolean) => {
+    if (value) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -176,6 +204,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     resetPassword,
+    setLocalAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

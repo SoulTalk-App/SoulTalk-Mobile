@@ -13,8 +13,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, typography } from '../theme';
+
+// TODO: Set to false when backend is ready
+const USE_LOCAL_AUTH = true;
 
 interface RegisterScreenProps {
   navigation: any;
@@ -63,23 +67,33 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const handleRegister = async () => {
     try {
       setIsLoading(true);
-      await register({
-        email: formData.email,
-        password: formData.password,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-      });
 
-      Alert.alert(
-        'Registration Successful',
-        'Please check your email to verify your account before logging in.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]
-      );
+      if (USE_LOCAL_AUTH) {
+        // Local testing mode - store user data locally and proceed
+        await AsyncStorage.setItem('@soultalk_user_email', formData.email);
+        await AsyncStorage.setItem('@soultalk_user_firstname', formData.firstName);
+        await AsyncStorage.setItem('@soultalk_user_lastname', formData.lastName);
+        navigation.navigate('WelcomeSplash');
+      } else {
+        // Backend mode
+        await register({
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+        });
+
+        Alert.alert(
+          'Registration Successful',
+          'Please check your email to verify your account before logging in.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
+      }
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
     } finally {

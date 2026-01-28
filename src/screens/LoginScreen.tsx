@@ -13,9 +13,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
 import { colors, typography } from "../theme";
+
+// TODO: Set to false when backend is ready
+const USE_LOCAL_AUTH = true;
 
 interface LoginScreenProps {
   navigation: any;
@@ -51,8 +55,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     try {
       setIsLoading(true);
-      await login(email, password);
-      // Navigation will be handled by the auth state change
+
+      if (USE_LOCAL_AUTH) {
+        // Local testing mode - store email and proceed
+        await AsyncStorage.setItem('@soultalk_user_email', email);
+        navigation.navigate('WelcomeSplash');
+      } else {
+        // Backend mode
+        await login(email, password);
+        // Navigation will be handled by the auth state change
+      }
     } catch (error: any) {
       Alert.alert(
         "Login Failed",
