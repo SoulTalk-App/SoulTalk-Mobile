@@ -155,25 +155,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.titleRow}>
-            {/* Peeking Auth Icon */}
-            <Animated.View
-              style={[
-                styles.peekingImageContainer,
-                { transform: [{ translateX: slideAnim }] }
-              ]}
-            >
-              <Image
-                source={AuthIcon}
-                style={styles.peekingImage}
-                resizeMode="contain"
-              />
-            </Animated.View>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>Sign Up</Text>
-              <Text style={styles.subtitle}>Join SoulTalk today</Text>
-            </View>
-          </View>
+          {/* Peeking Auth Icon from left edge */}
+          <Animated.View
+            style={[
+              styles.peekingImageContainer,
+              { transform: [{ translateX: slideAnim }] }
+            ]}
+          >
+            <Image
+              source={AuthIcon}
+              style={styles.peekingImage}
+              resizeMode="contain"
+            />
+          </Animated.View>
+
+          <Text style={styles.title}>Sign Up</Text>
+          <Text style={styles.subtitle}>Join SoulTalk today</Text>
 
           <View style={styles.form}>
             <View style={styles.row}>
@@ -386,36 +383,36 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
+    position: 'relative',
+    overflow: 'visible',
   },
   peekingImageContainer: {
-    marginRight: 12,
-    marginTop: -10,
+    position: 'absolute',
+    left: -24,
+    top: 0,
+    zIndex: 10,
   },
   peekingImage: {
-    width: 60,
-    height: 60,
-    transform: [{ rotate: '-10deg' }],
-  },
-  titleContainer: {
-    flex: 1,
+    width: 90,
+    height: 90,
+    transform: [{ rotate: '-12deg' }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
     fontSize: 28,
     color: colors.primary,
     textAlign: 'left',
+    marginTop: 10,
     marginBottom: 4,
+    marginLeft: 60,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
     fontSize: 16,
     color: colors.text.secondary,
     textAlign: 'left',
+    marginBottom: 30,
+    marginLeft: 60,
   },
   form: {
     marginBottom: 20,
