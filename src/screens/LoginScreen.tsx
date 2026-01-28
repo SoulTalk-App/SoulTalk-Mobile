@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   peekingImage: {
     width: 120,
     height: 120,
-    transform: [{ rotate: "45deg" }],
+    transform: [{ rotate: "15deg" }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    height: 56,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,

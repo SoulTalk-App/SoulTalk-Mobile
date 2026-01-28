@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   peekingImage: {
     width: 120,
     height: 120,
-    transform: [{ rotate: '45deg' }],
+    transform: [{ rotate: '15deg' }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
@@ -460,13 +460,13 @@ const styles = StyleSheet.create({
   },
   requirementsTitle: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.primary,
     marginBottom: 8,
   },
   requirement: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.text.secondary,
     marginBottom: 4,
   },
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    marginTop: 8,
+    marginTop: 2,
   },
   checkbox: {
     width: 22,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   registerButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    height: 56,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
