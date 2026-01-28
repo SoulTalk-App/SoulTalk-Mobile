@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { colors, typography } from "../theme";
+import { colors, fonts } from "../theme";
 
 const { width } = Dimensions.get("window");
 
@@ -70,12 +70,14 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   title: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 28,
     color: colors.primary,
     textAlign: "left",
   },
   subtitle: {
-    ...typography.subheading,
+    fontFamily: fonts.outfit.light,
+    fontSize: 20,
     color: colors.primary,
     textAlign: "center",
     lineHeight: 28,

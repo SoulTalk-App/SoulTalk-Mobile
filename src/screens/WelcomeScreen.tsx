@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { welcomeContent } from "../mocks/content";
-import { colors, typography } from "../theme";
+import { colors, fonts } from "../theme";
 import { resetOnboarding } from "../utils/resetOnboarding";
 
 const SoultalkLogo = require("../../assets/images/logo/SoultalkLogo.png");
@@ -91,11 +91,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   tagline: {
-    ...typography.subheading,
+    fontFamily: fonts.outfit.light,
+    fontSize: 20,
     color: colors.primary,
     textAlign: "center",
     fontStyle: "italic",
-    fontWeight: "300",
   },
   buttonContainer: {
     gap: 16,
@@ -115,7 +115,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryButtonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: "#4F1786",
   },
   secondaryButton: {
@@ -127,7 +128,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
   },
   // TODO: Remove before production
@@ -137,6 +139,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   devButtonText: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 12,
     color: colors.error,
   },

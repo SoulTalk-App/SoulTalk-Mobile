@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { colors, fonts } from '../theme';
 
 const HomeScreen = () => {
   const { user, logout } = useAuth();
@@ -56,55 +57,58 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     padding: 20,
   },
   header: {
     alignItems: 'center',
     paddingVertical: 40,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.border,
     marginBottom: 40,
   },
   welcomeText: {
+    fontFamily: fonts.edensor.bold,
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
+    color: colors.primary,
     marginBottom: 16,
   },
   userInfo: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 18,
-    color: '#666',
+    color: colors.text.secondary,
     marginBottom: 8,
   },
   emailText: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
-    color: '#666',
+    color: colors.text.secondary,
     marginBottom: 8,
   },
   verifiedText: {
+    fontFamily: fonts.outfit.medium,
     fontSize: 14,
     color: '#28a745',
-    fontWeight: '500',
   },
   unverifiedText: {
+    fontFamily: fonts.outfit.medium,
     fontSize: 14,
     color: '#ffc107',
-    fontWeight: '500',
   },
   groupsContainer: {
     marginTop: 16,
     alignItems: 'center',
   },
   groupsTitle: {
+    fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    color: colors.text.dark,
     marginBottom: 8,
   },
   groupText: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
-    color: '#666',
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   content: {
@@ -113,22 +117,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentText: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 18,
-    color: '#666',
+    color: colors.text.secondary,
     textAlign: 'center',
   },
   logoutButton: {
-    backgroundColor: '#dc3545',
-    borderRadius: 8,
-    height: 50,
+    backgroundColor: colors.error,
+    borderRadius: 12,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
   },
   logoutButtonText: {
-    color: '#fff',
+    fontFamily: fonts.outfit.semiBold,
+    color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

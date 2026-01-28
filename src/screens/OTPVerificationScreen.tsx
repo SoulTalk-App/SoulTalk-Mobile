@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -122,14 +122,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
+    fontFamily: fonts.edensor.bold,
     fontSize: 28,
-    fontWeight: '700',
     color: colors.white,
     textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     color: colors.white,
     textAlign: 'center',
@@ -148,14 +148,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.white,
     color: colors.primary,
+    fontFamily: fonts.outfit.bold,
     fontSize: 24,
-    fontWeight: '700',
     textAlign: 'center',
   },
   resendText: {
-    ...typography.body,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
-    fontWeight: '600',
     textDecorationLine: 'underline',
     marginBottom: 40,
   },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   buttonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
     fontSize: 18,
     color: colors.primary,
   },

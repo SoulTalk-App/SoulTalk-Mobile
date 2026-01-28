@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 // TODO: Set to false when backend is ready
 const USE_LOCAL_AUTH = true;
@@ -339,9 +339,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    ...typography.subheading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 20,
     color: colors.white,
-    fontWeight: '700',
   },
   contentContainer: {
     flex: 1,
@@ -354,14 +354,16 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 28,
     color: colors.primary,
     textAlign: 'left',
     marginTop: 10,
     marginBottom: 8,
   },
   subtitle: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.secondary,
     textAlign: 'left',
     marginBottom: 30,
@@ -392,7 +394,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.dark,
   },
   passwordInput: {
@@ -410,13 +413,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   requirementsTitle: {
-    ...typography.bodySmall,
-    fontWeight: '600',
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 14,
     color: colors.primary,
     marginBottom: 8,
   },
   requirement: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
     color: colors.text.secondary,
     marginBottom: 4,
   },
@@ -440,13 +444,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   termsText: {
-    ...typography.bodySmall,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
     color: colors.text.secondary,
     flex: 1,
   },
   termsLink: {
+    fontFamily: fonts.outfit.semiBold,
     color: '#2196F3',
-    fontWeight: '600',
     textDecorationLine: 'underline',
   },
   registerButton: {
@@ -461,7 +466,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.button.disabled,
   },
   registerButtonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
   },
   dividerContainer: {
@@ -475,7 +481,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
     color: colors.text.secondary,
     marginHorizontal: 16,
   },
@@ -500,12 +507,13 @@ const styles = StyleSheet.create({
     marginTop: -30,
   },
   signinText: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.secondary,
   },
   signinLink: {
+    fontFamily: fonts.outfit.semiBold,
     color: colors.primary,
-    fontWeight: '600',
   },
 });
 

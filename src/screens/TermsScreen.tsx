@@ -9,7 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { termsAndConditions } from "../mocks/content";
-import { colors, typography } from "../theme";
+import { colors, fonts } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 
 interface TermsScreenProps {
@@ -80,12 +80,14 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   title: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 28,
     color: colors.primary,
     marginBottom: 4,
   },
   lastUpdated: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
     color: colors.text.light,
   },
   scrollContainer: {
@@ -97,7 +99,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   content: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.primary,
     lineHeight: 24,
   },
@@ -111,7 +114,8 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   agreementText: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
     color: colors.text.light,
     textAlign: "center",
     marginBottom: 16,
@@ -124,7 +128,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   acceptButtonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
   },
 });

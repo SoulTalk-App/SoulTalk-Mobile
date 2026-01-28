@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 interface SetupCompleteScreenProps {
   navigation: any;
@@ -79,15 +79,15 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
-    ...typography.displayLarge,
+    fontFamily: fonts.edensor.bold,
     fontSize: 32,
-    fontWeight: '700',
     color: colors.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
   subtitle: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.secondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -102,7 +102,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
   },
   // TODO: Remove before production
@@ -112,6 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   devButtonText: {
+    fontFamily: fonts.outfit.regular,
     fontSize: 12,
     color: colors.error,
   },

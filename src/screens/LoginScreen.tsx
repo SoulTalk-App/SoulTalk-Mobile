@@ -16,7 +16,7 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
-import { colors, typography } from "../theme";
+import { colors, fonts } from "../theme";
 
 // TODO: Set to false when backend is ready
 const USE_LOCAL_AUTH = true;
@@ -278,9 +278,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    ...typography.subheading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 20,
     color: colors.white,
-    fontWeight: "700",
   },
   contentContainer: {
     flex: 1,
@@ -293,14 +293,16 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.bold,
+    fontSize: 28,
     color: colors.primary,
     textAlign: "left",
     marginTop: 10,
     marginBottom: 8,
   },
   subtitle: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.secondary,
     textAlign: "left",
     marginBottom: 30,
@@ -324,7 +326,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.dark,
   },
   passwordInput: {
@@ -340,7 +343,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   forgotPasswordText: {
-    ...typography.bodySmall,
+    fontFamily: fonts.outfit.medium,
+    fontSize: 14,
     color: colors.primary,
   },
   loginButton: {
@@ -355,7 +359,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.button.disabled,
   },
   loginButtonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.white,
   },
   biometricButton: {
@@ -370,7 +375,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   biometricButtonText: {
-    ...typography.body,
+    fontFamily: fonts.outfit.medium,
+    fontSize: 16,
     color: colors.primary,
     marginLeft: 8,
   },
@@ -385,7 +391,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dividerText: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
     color: colors.text.secondary,
     marginHorizontal: 16,
   },
@@ -410,12 +417,13 @@ const styles = StyleSheet.create({
     marginTop: -30,
   },
   signupText: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.text.secondary,
   },
   signupLink: {
+    fontFamily: fonts.outfit.semiBold,
     color: colors.primary,
-    fontWeight: "600",
   },
 });
 

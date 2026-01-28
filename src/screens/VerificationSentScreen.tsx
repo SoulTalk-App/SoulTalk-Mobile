@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 interface VerificationSentScreenProps {
   navigation: any;
@@ -72,14 +72,14 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   title: {
+    fontFamily: fonts.edensor.bold,
     fontSize: 32,
-    fontWeight: '700',
     color: colors.white,
     textAlign: 'center',
     marginBottom: 16,
   },
   subtitle: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     color: colors.white,
     textAlign: 'center',
@@ -88,13 +88,15 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   timer: {
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.white,
     opacity: 0.7,
     marginBottom: 20,
   },
   tapHint: {
-    ...typography.caption,
+    fontFamily: fonts.outfit.thin,
+    fontSize: 12,
     color: colors.white,
     opacity: 0.5,
   },

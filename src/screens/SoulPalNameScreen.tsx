@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 const Carousel1 = require('../../assets/images/onboarding/Carousel1.png');
 
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     height: 250,
   },
   question: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.semiBold,
     fontSize: 22,
     color: colors.white,
     textAlign: 'center',
@@ -111,7 +111,8 @@ const styles = StyleSheet.create({
     height: 56,
     width: '100%',
     paddingHorizontal: 16,
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.white,
     marginBottom: 24,
   },
@@ -127,7 +128,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   buttonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.primary,
   },
 });

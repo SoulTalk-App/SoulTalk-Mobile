@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 interface TransitionSplashScreenProps {
   navigation: any;
@@ -46,17 +46,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   logo: {
-    ...typography.displayLarge,
+    fontFamily: fonts.edensor.bold,
     fontSize: 40,
     color: colors.white,
-    fontWeight: '700',
     letterSpacing: 2,
   },
   cursor: {
-    ...typography.displayLarge,
+    fontFamily: fonts.edensor.light,
     fontSize: 40,
     color: colors.white,
-    fontWeight: '300',
     opacity: 0.8,
   },
 });

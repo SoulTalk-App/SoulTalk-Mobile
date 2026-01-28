@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import OnboardingSlide from "../components/OnboardingSlide";
 import LayeredCarouselImage from "../components/LayeredCarouselImage";
 import { onboardingSlides } from "../mocks/content";
-import { colors, typography } from "../theme";
+import { colors, fonts } from "../theme";
 
 // PNG imports
 const Carousel1 = require("../../assets/images/onboarding/Carousel1.png");
@@ -196,7 +196,8 @@ const styles = StyleSheet.create({
     height: 22,
   },
   skipText: {
-    ...typography.body,
+    fontFamily: fonts.outfit.medium,
+    fontSize: 16,
     color: colors.primary,
   },
   skipPlaceholder: {

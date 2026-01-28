@@ -11,7 +11,7 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, typography } from '../theme';
+import { colors, fonts } from '../theme';
 
 const SoultalkLogo = require('../../assets/images/logo/SoultalkLogo.png');
 
@@ -158,17 +158,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   welcomeText: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.bold,
     fontSize: 28,
     color: colors.white,
-    fontWeight: '700',
     letterSpacing: 1,
   },
   cursor: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.light,
     fontSize: 28,
     color: colors.white,
-    fontWeight: '300',
     opacity: 0.8,
   },
   logo: {
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   question: {
-    ...typography.heading,
+    fontFamily: fonts.edensor.semiBold,
     fontSize: 22,
     color: colors.white,
     textAlign: 'center',
@@ -195,7 +193,8 @@ const styles = StyleSheet.create({
     height: 56,
     width: '100%',
     paddingHorizontal: 16,
-    ...typography.body,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 16,
     color: colors.white,
     marginBottom: 24,
   },
@@ -211,7 +210,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   buttonText: {
-    ...typography.button,
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
     color: colors.primary,
   },
 });
