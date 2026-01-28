@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontFamily: fonts.edensor.lightItalic,
-    fontSize: 20,
+    fontSize: 24,
     color: colors.primary,
     textAlign: "center",
   },
