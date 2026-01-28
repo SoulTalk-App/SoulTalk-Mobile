@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { termsAndConditions } from "../mocks/content";
 import { colors, typography } from "../theme";
-import { completeOnboarding } from "../../App";
+import { completeOnboarding } from "../utils/resetOnboarding";
 
 interface TermsScreenProps {
   navigation: any;
@@ -25,7 +25,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
 
   const handleAccept = async () => {
     await completeOnboarding();
-    navigation.navigate("Welcome");
+    navigation.navigate("TransitionSplash");
   };
 
   return (
