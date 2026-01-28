@@ -14,6 +14,9 @@ interface OTPVerificationScreenProps {
   navigation: any;
 }
 
+// TODO: Remove before production - Test OTP code
+const TEST_OTP = '1234';
+
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation }) => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -46,7 +49,12 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
       return;
     }
 
-    // For testing - navigate to transition splash after successful OTP
+    // For testing - validate against test OTP
+    if (otpCode !== TEST_OTP) {
+      Alert.alert('Invalid Code', 'Please enter the correct verification code.');
+      return;
+    }
+
     navigation.navigate('TransitionSplash');
   };
 
