@@ -46,13 +46,8 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
       return;
     }
 
-    // For testing - just show success
-    Alert.alert('Success', `OTP entered: ${otpCode}`, [
-      {
-        text: 'OK',
-        onPress: () => navigation.navigate('WelcomeSplash'),
-      },
-    ]);
+    // For testing - navigate to transition splash after successful OTP
+    navigation.navigate('TransitionSplash');
   };
 
   const handleResend = () => {

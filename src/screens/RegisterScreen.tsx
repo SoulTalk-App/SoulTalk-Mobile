@@ -73,7 +73,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         await AsyncStorage.setItem('@soultalk_user_email', formData.email);
         await AsyncStorage.setItem('@soultalk_user_firstname', formData.firstName);
         await AsyncStorage.setItem('@soultalk_user_lastname', formData.lastName);
-        navigation.navigate('WelcomeSplash');
+        // Navigate to verification flow (email verification)
+        navigation.navigate('VerificationSent');
       } else {
         // Backend mode
         await register({

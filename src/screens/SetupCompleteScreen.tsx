@@ -44,8 +44,8 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
         <Text style={styles.title}>You're all set!</Text>
 
         <Text style={styles.subtitle}>
-          A verification code has been sent to your email.{'\n'}
-          Please check your inbox.
+          Your account is ready.{'\n'}
+          Let's start your SoulTalk journey!
         </Text>
 
         <TouchableOpacity style={styles.button} onPress={handleContinue}>

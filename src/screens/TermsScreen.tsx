@@ -25,7 +25,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
 
   const handleAccept = async () => {
     await completeOnboarding();
-    navigation.navigate("TransitionSplash");
+    navigation.navigate("Register");
   };
 
   return (

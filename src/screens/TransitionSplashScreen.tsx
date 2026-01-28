@@ -19,9 +19,9 @@ const TransitionSplashScreen: React.FC<TransitionSplashScreenProps> = ({ navigat
         currentIndex++;
       } else {
         clearInterval(interval);
-        // Navigate to Welcome screen after animation completes
+        // Navigate to WelcomeSplash screen after animation completes
         setTimeout(() => {
-          navigation.replace('Welcome', { fromTerms: true });
+          navigation.replace('WelcomeSplash');
         }, 500);
       }
     }, 150);

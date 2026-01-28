@@ -9,21 +9,12 @@ const SoultalkLogo = require("../../assets/images/logo/SoultalkLogo.png");
 
 interface WelcomeScreenProps {
   navigation: any;
-  route: any;
 }
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation, route }) => {
-  // Check if coming from Terms (via TransitionSplash)
-  const fromTerms = route?.params?.fromTerms === true;
-
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const handleGetStarted = () => {
-    if (fromTerms) {
-      // After terms accepted - go to Register
-      navigation.navigate("Register");
-    } else {
-      // First time - go through onboarding carousel
-      navigation.navigate("Onboarding");
-    }
+    // Go through onboarding carousel
+    navigation.navigate("Onboarding");
   };
 
   const handleHaveAccount = () => {
