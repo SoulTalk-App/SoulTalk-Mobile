@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
 
 const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
+const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
 
 // TODO: Set to false when backend is ready
 const USE_LOCAL_AUTH = true;
@@ -403,7 +404,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 style={[styles.socialButton, styles.googleButton]}
                 onPress={() => handleSocialLogin('Google')}
               >
-                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
+                <FontAwesome5 name="google" size={18} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -414,10 +415,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.socialButton, styles.appleButton]}
-                onPress={() => handleSocialLogin('Apple')}
+                style={[styles.socialButton, styles.ssoButton]}
+                onPress={() => handleSocialLogin('SSO')}
               >
-                <FontAwesome5 name="apple" size={22} color="#FFFFFF" />
+                <Image source={SSOIcon} style={styles.ssoIcon} resizeMode="contain" />
               </TouchableOpacity>
             </View>
           </View>
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     marginTop: 20,
     marginBottom: 4,
-    marginLeft: 70,
+    marginLeft: 55,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'left',
     marginBottom: 30,
-    marginLeft: 70,
+    marginLeft: 55,
   },
   form: {
     marginBottom: 20,
@@ -506,6 +507,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 16,
   },
   halfWidthWrapper: {
     width: '48%',
@@ -516,7 +518,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 16,
     paddingHorizontal: 12,
     height: 56,
     backgroundColor: colors.white,
@@ -640,8 +642,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   socialButton: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -652,8 +654,14 @@ const styles = StyleSheet.create({
   facebookButton: {
     backgroundColor: '#1877F2',
   },
-  appleButton: {
-    backgroundColor: '#000000',
+  ssoButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  ssoIcon: {
+    width: 40,
+    height: 40,
   },
   footer: {
     alignItems: 'center',
