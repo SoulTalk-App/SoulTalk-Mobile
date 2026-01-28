@@ -19,6 +19,8 @@ import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
+import VerificationSentScreen from "./src/screens/VerificationSentScreen";
+import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 
@@ -76,6 +78,8 @@ const OnboardingStack = () => (
     />
     <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
     <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
+    <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
+    <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
     <Stack.Screen
       name="Login"
       component={LoginScreen}
@@ -117,6 +121,7 @@ const OnboardingStack = () => (
 
 const AuthStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen
       name="Login"

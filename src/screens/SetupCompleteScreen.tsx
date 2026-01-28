@@ -30,6 +30,10 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
     navigation.navigate('WelcomeSplash');
   };
 
+  const handleTestOTPFlow = () => {
+    navigation.navigate('VerificationSent');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -51,6 +55,9 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
         {/* TODO: Remove before production */}
         <TouchableOpacity style={styles.devButton} onPress={handleBackToStart}>
           <Text style={styles.devButtonText}>DEV: Back to Start</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.devButton} onPress={handleTestOTPFlow}>
+          <Text style={styles.devButtonText}>DEV: Test OTP Verification</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
