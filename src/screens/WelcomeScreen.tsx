@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   tagline: {
-    fontFamily: fonts.edensor.lightItalic,
-    fontSize: 24,
+    fontFamily: fonts.edensor.italic,
+    fontSize: 22,
     color: colors.primary,
     textAlign: "center",
   },
