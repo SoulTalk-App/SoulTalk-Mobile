@@ -38,6 +38,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
 
+  // Focus states
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
+  // Validation states
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
   // Animation for peeking image
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
@@ -113,6 +121,37 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     navigation.navigate("Register");
   };
 
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value) {
+      setEmailError("");
+    } else if (!emailRegex.test(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      setPasswordError("");
+    } else if (value.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+    } else {
+      setPasswordError("");
+    }
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    validateEmail(value);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    validatePassword(value);
+  };
+
   const handleBackToHome = () => {
     navigation.navigate("Welcome");
   };
@@ -159,38 +198,43 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
 
           <View style={styles.form}>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, emailFocused && styles.inputContainerFocused]}>
               <Ionicons
                 name="mail-outline"
                 size={20}
-                color={colors.text.secondary}
+                color={emailFocused ? colors.primary : colors.text.secondary}
                 style={styles.inputIcon}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={emailFocused ? colors.primary : colors.text.secondary}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, passwordFocused && styles.inputContainerFocused]}>
               <Ionicons
                 name="lock-closed-outline"
                 size={20}
-                color={colors.text.secondary}
+                color={passwordFocused ? colors.primary : colors.text.secondary}
                 style={styles.inputIcon}
               />
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={passwordFocused ? colors.primary : colors.text.secondary}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={handlePasswordChange}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -202,10 +246,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
-                  color={colors.text.secondary}
+                  color={passwordFocused ? colors.primary : colors.text.secondary}
                 />
               </TouchableOpacity>
             </View>
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
             <TouchableOpacity
               style={styles.forgotPassword}
@@ -250,24 +295,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
             <View style={styles.socialContainer}>
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.googleButton]}
                 onPress={() => handleSocialLogin("Google")}
               >
-                <FontAwesome5 name="google" size={24} color="#DB4437" />
+                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.facebookButton]}
                 onPress={() => handleSocialLogin("Facebook")}
               >
-                <FontAwesome5 name="facebook-f" size={24} color="#1877F2" />
+                <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.appleButton]}
                 onPress={() => handleSocialLogin("Apple")}
               >
-                <FontAwesome5 name="apple" size={24} color="#000000" />
+                <FontAwesome5 name="apple" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -356,13 +401,24 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 12,
     height: 56,
     backgroundColor: colors.white,
+  },
+  inputContainerFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    color: colors.error,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   inputIcon: {
     marginRight: 12,
@@ -449,11 +505,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 12,
-    backgroundColor: colors.white,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
+  },
+  googleButton: {
+    backgroundColor: "#EA4335",
+  },
+  facebookButton: {
+    backgroundColor: "#1877F2",
+  },
+  appleButton: {
+    backgroundColor: "#000000",
   },
   footer: {
     alignItems: "center",

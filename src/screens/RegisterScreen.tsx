@@ -42,6 +42,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Focus states
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Error states
+  const [errors, setErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+
   // Animation for peeking image
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
@@ -57,8 +69,63 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }).start();
   }, []);
 
+  const validateField = (field: string, value: string) => {
+    let error = '';
+
+    switch (field) {
+      case 'firstName':
+        if (value && !/^[a-zA-Z\s'-]+$/.test(value)) {
+          error = 'First name can only contain letters';
+        }
+        break;
+      case 'lastName':
+        if (value && !/^[a-zA-Z\s'-]+$/.test(value)) {
+          error = 'Last name can only contain letters';
+        }
+        break;
+      case 'email':
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (value && !emailRegex.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'password':
+        if (value) {
+          if (value.length < 8) {
+            error = 'Password must be at least 8 characters';
+          } else if (!/(?=.*[a-z])/.test(value)) {
+            error = 'Password must include a lowercase letter';
+          } else if (!/(?=.*[A-Z])/.test(value)) {
+            error = 'Password must include an uppercase letter';
+          } else if (!/(?=.*\d)/.test(value)) {
+            error = 'Password must include a number';
+          } else if (!/(?=.*[!@#$%^&*])/.test(value)) {
+            error = 'Password must include a special character';
+          }
+        }
+        break;
+      case 'confirmPassword':
+        if (value && value !== formData.password) {
+          error = 'Passwords do not match';
+        }
+        break;
+    }
+
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
+    validateField(field, value);
+
+    // Also validate confirmPassword when password changes
+    if (field === 'password' && formData.confirmPassword) {
+      if (value !== formData.confirmPassword) {
+        setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+      } else {
+        setErrors(prev => ({ ...prev, confirmPassword: '' }));
+      }
+    }
   };
 
   const isFormValid = useMemo(() => {
@@ -174,55 +241,70 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
           <View style={styles.form}>
             <View style={styles.row}>
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="First Name"
-                  placeholderTextColor={colors.text.secondary}
-                  value={formData.firstName}
-                  onChangeText={(value) => handleInputChange('firstName', value)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
+              <View style={styles.halfWidthWrapper}>
+                <View style={[styles.inputContainer, styles.halfWidth, focusedField === 'firstName' && styles.inputContainerFocused]}>
+                  <Ionicons name="person-outline" size={20} color={focusedField === 'firstName' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="First Name"
+                    placeholderTextColor={focusedField === 'firstName' ? colors.primary : colors.text.secondary}
+                    value={formData.firstName}
+                    onChangeText={(value) => handleInputChange('firstName', value)}
+                    onFocus={() => setFocusedField('firstName')}
+                    onBlur={() => setFocusedField(null)}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+                {errors.firstName ? <Text style={styles.errorText}>{errors.firstName}</Text> : null}
               </View>
 
-              <View style={[styles.inputContainer, styles.halfWidth]}>
-                <Ionicons name="person-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Last Name"
-                  placeholderTextColor={colors.text.secondary}
-                  value={formData.lastName}
-                  onChangeText={(value) => handleInputChange('lastName', value)}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                />
+              <View style={styles.halfWidthWrapper}>
+                <View style={[styles.inputContainer, styles.halfWidth, focusedField === 'lastName' && styles.inputContainerFocused]}>
+                  <Ionicons name="person-outline" size={20} color={focusedField === 'lastName' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Last Name"
+                    placeholderTextColor={focusedField === 'lastName' ? colors.primary : colors.text.secondary}
+                    value={formData.lastName}
+                    onChangeText={(value) => handleInputChange('lastName', value)}
+                    onFocus={() => setFocusedField('lastName')}
+                    onBlur={() => setFocusedField(null)}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+                {errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
               </View>
             </View>
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+            <View style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}>
+              <Ionicons name="mail-outline" size={20} color={focusedField === 'email' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={focusedField === 'email' ? colors.primary : colors.text.secondary}
                 value={formData.email}
                 onChangeText={(value) => handleInputChange('email', value)}
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
             </View>
+            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+            <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
+              <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={focusedField === 'password' ? colors.primary : colors.text.secondary}
                 value={formData.password}
                 onChangeText={(value) => handleInputChange('password', value)}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -234,19 +316,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color={colors.text.secondary}
+                  color={focusedField === 'password' ? colors.primary : colors.text.secondary}
                 />
               </TouchableOpacity>
             </View>
+            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.text.secondary} style={styles.inputIcon} />
+            <View style={[styles.inputContainer, focusedField === 'confirmPassword' && styles.inputContainerFocused]}>
+              <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Confirm Password"
-                placeholderTextColor={colors.text.secondary}
+                placeholderTextColor={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary}
                 value={formData.confirmPassword}
                 onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                onFocus={() => setFocusedField('confirmPassword')}
+                onBlur={() => setFocusedField(null)}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -258,10 +343,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color={colors.text.secondary}
+                  color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary}
                 />
               </TouchableOpacity>
             </View>
+            {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
 
             {/* Password Requirements */}
             <View style={styles.passwordRequirements}>
@@ -314,24 +400,24 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
             <View style={styles.socialContainer}>
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.googleButton]}
                 onPress={() => handleSocialLogin('Google')}
               >
-                <FontAwesome5 name="google" size={24} color="#DB4437" />
+                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.facebookButton]}
                 onPress={() => handleSocialLogin('Facebook')}
               >
-                <FontAwesome5 name="facebook-f" size={24} color="#1877F2" />
+                <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, styles.appleButton]}
                 onPress={() => handleSocialLogin('Apple')}
               >
-                <FontAwesome5 name="apple" size={24} color="#000000" />
+                <FontAwesome5 name="apple" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -421,19 +507,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  halfWidthWrapper: {
+    width: '48%',
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 12,
     height: 56,
     backgroundColor: colors.white,
   },
+  inputContainerFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   halfWidth: {
-    width: '48%',
+    width: '100%',
+    marginBottom: 0,
+  },
+  errorText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    color: colors.error,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   inputIcon: {
     marginRight: 12,
@@ -542,11 +643,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 12,
-    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+  },
+  googleButton: {
+    backgroundColor: '#EA4335',
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
+  },
+  appleButton: {
+    backgroundColor: '#000000',
   },
   footer: {
     alignItems: 'center',
