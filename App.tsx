@@ -170,6 +170,20 @@ const AuthStack = () => (
         }),
       }}
     />
+    <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
+    <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen
+      name="TransitionSplash"
+      component={TransitionSplashScreen}
+      options={{ gestureEnabled: false }}
+    />
+    <Stack.Screen
+      name="WelcomeSplash"
+      component={WelcomeSplashScreen}
+      options={{ gestureEnabled: false }}
+    />
+    <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
+    <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
   </Stack.Navigator>
 );
 

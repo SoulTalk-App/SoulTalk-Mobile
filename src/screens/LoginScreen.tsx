@@ -106,7 +106,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleForgotPassword = () => {
-    navigation.navigate("ForgotPassword");
+    Alert.alert("Coming Soon", "Password reset will be available soon.");
   };
 
   const handleSignUp = () => {
