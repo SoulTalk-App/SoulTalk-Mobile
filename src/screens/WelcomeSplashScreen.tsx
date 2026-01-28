@@ -14,53 +14,56 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 
 const SoultalkLogo = require('../../assets/images/logo/SoultalkLogo.png');
+const SendIcon = require('../../assets/images/common/SendIcon.png');
 
 interface WelcomeSplashScreenProps {
   navigation: any;
 }
 
 const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation }) => {
-  const [displayedText, setDisplayedText] = useState('');
   const [showLogo, setShowLogo] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [username, setUsername] = useState('');
-  const fullText = 'Welcome to';
+  const welcomeSlideAnim = useRef(new Animated.Value(60)).current;
+  const welcomeFadeAnim = useRef(new Animated.Value(0)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
   const inputFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let currentIndex = 0;
-
-    const interval = setInterval(() => {
-      if (currentIndex < fullText.length) {
-        setDisplayedText(fullText.substring(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        clearInterval(interval);
-        // Show the logo after "Welcome to" animation
-        setTimeout(() => {
-          setShowLogo(true);
-          Animated.timing(logoFadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }).start(() => {
-            // After logo appears, show the input section
-            setTimeout(() => {
-              setShowInput(true);
-              Animated.timing(inputFadeAnim, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: true,
-              }).start();
-            }, 800);
-          });
-        }, 300);
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [logoFadeAnim, inputFadeAnim]);
+    // Slide up "Welcome to" from center
+    Animated.parallel([
+      Animated.timing(welcomeFadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(welcomeSlideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Show the logo after slide-up completes
+      setTimeout(() => {
+        setShowLogo(true);
+        Animated.timing(logoFadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => {
+          // After logo appears, show the input section
+          setTimeout(() => {
+            setShowInput(true);
+            Animated.timing(inputFadeAnim, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }).start();
+          }, 800);
+        });
+      }, 300);
+    });
+  }, [welcomeSlideAnim, welcomeFadeAnim, logoFadeAnim, inputFadeAnim]);
 
   const handleContinue = async () => {
     if (username.trim()) {
@@ -76,16 +79,20 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
-          {/* Welcome to text */}
+          {/* Welcome to text - slides up from center */}
           <View style={styles.welcomeSection}>
-            <View style={styles.textRow}>
-              <Text style={styles.welcomeText}>{displayedText}</Text>
-              {!showLogo && <Text style={styles.cursor}>|</Text>}
-            </View>
+            <Animated.View
+              style={{
+                opacity: welcomeFadeAnim,
+                transform: [{ translateY: welcomeSlideAnim }],
+              }}
+            >
+              <Text style={styles.welcomeText}>Welcome to</Text>
+            </Animated.View>
 
             {/* SoulTalk Logo */}
             {showLogo && (
-              <Animated.View style={{ opacity: logoFadeAnim }}>
+              <Animated.View style={{ opacity: logoFadeAnim, marginTop: 16 }}>
                 <Image
                   source={SoultalkLogo}
                   style={styles.logo}
@@ -125,6 +132,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
                 disabled={!username.trim()}
               >
                 <Text style={styles.buttonText}>Continue</Text>
+                <Image source={SendIcon} style={styles.sendIcon} resizeMode="contain" />
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -152,22 +160,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 60,
   },
-  textRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   welcomeText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 28,
     color: colors.white,
     letterSpacing: 1,
-  },
-  cursor: {
-    fontFamily: fonts.edensor.light,
-    fontSize: 28,
-    color: colors.white,
-    opacity: 0.8,
+    textAlign: 'center',
   },
   logo: {
     width: 200,
@@ -203,8 +201,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     height: 56,
     width: '100%',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+  },
+  sendIcon: {
+    width: 20,
+    height: 20,
+    tintColor: colors.primary,
   },
   buttonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.5)',

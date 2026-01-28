@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 
 const Carousel1 = require('../../assets/images/onboarding/Carousel1.png');
+const SendIcon = require('../../assets/images/common/SendIcon.png');
 
 interface SoulPalNameScreenProps {
   navigation: any;
@@ -68,6 +69,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
             disabled={!soulPalName.trim()}
           >
             <Text style={styles.buttonText}>Continue</Text>
+            <Image source={SendIcon} style={styles.sendIcon} resizeMode="contain" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -121,8 +123,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     height: 56,
     width: '100%',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
+  },
+  sendIcon: {
+    width: 20,
+    height: 20,
+    tintColor: colors.primary,
   },
   buttonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.5)',
