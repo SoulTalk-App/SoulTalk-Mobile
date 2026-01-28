@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { welcomeContent } from "../mocks/content";
 import { colors, fonts } from "../theme";
@@ -12,8 +12,50 @@ interface WelcomeScreenProps {
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
+  // Button press animations
+  const primaryScaleAnim = useRef(new Animated.Value(1)).current;
+  const secondaryScaleAnim = useRef(new Animated.Value(1)).current;
+  const [primaryPressed, setPrimaryPressed] = useState(false);
+  const [secondaryPressed, setSecondaryPressed] = useState(false);
+
+  // Tagline slide-up animation
+  const taglineSlideAnim = useRef(new Animated.Value(40)).current;
+  const taglineFadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(taglineFadeAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(taglineSlideAnim, {
+        toValue: 0,
+        duration: 1200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [taglineFadeAnim, taglineSlideAnim]);
+
+  const handlePressIn = (scaleAnim: Animated.Value, setPressed: (v: boolean) => void) => {
+    setPressed(true);
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = (scaleAnim: Animated.Value, setPressed: (v: boolean) => void) => {
+    setPressed(false);
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const handleGetStarted = () => {
-    // Go through onboarding carousel
     navigation.navigate("Onboarding");
   };
 
@@ -36,25 +78,47 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.tagline}>{welcomeContent.tagline}</Text>
+          <Animated.Text
+            style={[
+              styles.tagline,
+              {
+                opacity: taglineFadeAnim,
+                transform: [{ translateY: taglineSlideAnim }],
+              },
+            ]}
+          >
+            {welcomeContent.tagline}
+          </Animated.Text>
         </View>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleGetStarted}
-          >
-            <Text style={styles.primaryButtonText}>Get Started</Text>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: primaryScaleAnim }] }}>
+            <TouchableOpacity
+              style={[styles.primaryButton, primaryPressed && styles.buttonPressed]}
+              onPress={handleGetStarted}
+              onPressIn={() => handlePressIn(primaryScaleAnim, setPrimaryPressed)}
+              onPressOut={() => handlePressOut(primaryScaleAnim, setPrimaryPressed)}
+              activeOpacity={1}
+            >
+              <Text style={[styles.primaryButtonText, primaryPressed && styles.pressedText]}>
+                Get Started
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleHaveAccount}
-          >
-            <Text style={styles.secondaryButtonText}>
-              I already have an account
-            </Text>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: secondaryScaleAnim }] }}>
+            <TouchableOpacity
+              style={[styles.secondaryButton, secondaryPressed && styles.buttonPressed]}
+              onPress={handleHaveAccount}
+              onPressIn={() => handlePressIn(secondaryScaleAnim, setSecondaryPressed)}
+              onPressOut={() => handlePressOut(secondaryScaleAnim, setSecondaryPressed)}
+              activeOpacity={1}
+            >
+              <Text style={[styles.secondaryButtonText, secondaryPressed && styles.pressedText]}>
+                I already have an account
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* TODO: Remove before production */}
           <TouchableOpacity
@@ -130,6 +194,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
     color: colors.white,
+  },
+  buttonPressed: {
+    backgroundColor: "rgba(79, 23, 134, 0.12)",
+  },
+  pressedText: {
+    color: colors.primary,
   },
   // TODO: Remove before production
   devButton: {

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors, fonts } from '../theme';
 
 interface SplashScreenProps {
@@ -9,6 +9,7 @@ interface SplashScreenProps {
 const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
   const [displayedText, setDisplayedText] = useState('');
   const fullText = 'SoulTalk';
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     let currentIndex = 0;
@@ -19,21 +20,27 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
         currentIndex++;
       } else {
         clearInterval(interval);
-        // Navigate to Welcome screen after animation completes
+        // Fade out the splash screen before navigating
         setTimeout(() => {
-          navigation.replace('Welcome');
-        }, 500);
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }).start(() => {
+            navigation.replace('Welcome');
+          });
+        }, 300);
       }
     }, 150);
 
     return () => clearInterval(interval);
-  }, [navigation]);
+  }, [navigation, fadeAnim]);
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <Text style={styles.logo}>{displayedText}</Text>
       <Text style={styles.cursor}>|</Text>
-    </View>
+    </Animated.View>
   );
 };
 
