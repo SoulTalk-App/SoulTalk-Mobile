@@ -144,20 +144,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SoulTalk</Text>
         <View style={styles.backButton} />
-
-        {/* Peeking Auth Icon */}
-        <Animated.View
-          style={[
-            styles.peekingImageContainer,
-            { transform: [{ translateX: slideAnim }] }
-          ]}
-        >
-          <Image
-            source={AuthIcon}
-            style={styles.peekingImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
       </View>
 
       {/* Content Area */}
@@ -169,8 +155,25 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Sign Up</Text>
-          <Text style={styles.subtitle}>Join SoulTalk today</Text>
+          <View style={styles.titleRow}>
+            {/* Peeking Auth Icon */}
+            <Animated.View
+              style={[
+                styles.peekingImageContainer,
+                { transform: [{ translateX: slideAnim }] }
+              ]}
+            >
+              <Image
+                source={AuthIcon}
+                style={styles.peekingImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>Sign Up</Text>
+              <Text style={styles.subtitle}>Join SoulTalk today</Text>
+            </View>
+          </View>
 
           <View style={styles.form}>
             <View style={styles.row}>
@@ -362,19 +365,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 20,
     backgroundColor: colors.primary,
-    position: 'relative',
-    overflow: 'visible',
-  },
-  peekingImageContainer: {
-    position: 'absolute',
-    left: -20,
-    bottom: -30,
-    zIndex: 10,
-  },
-  peekingImage: {
-    width: 80,
-    height: 80,
-    transform: [{ rotate: '15deg' }],
   },
   backButton: {
     width: 40,
@@ -384,7 +374,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: fonts.edensor.bold,
-    fontSize: 20,
+    fontSize: 26,
     color: colors.white,
   },
   contentContainer: {
@@ -397,20 +387,35 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  peekingImageContainer: {
+    marginRight: 12,
+    marginTop: -10,
+  },
+  peekingImage: {
+    width: 60,
+    height: 60,
+    transform: [{ rotate: '-10deg' }],
+  },
+  titleContainer: {
+    flex: 1,
+  },
   title: {
     fontFamily: fonts.edensor.bold,
     fontSize: 28,
     color: colors.primary,
     textAlign: 'left',
-    marginTop: 10,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
     fontSize: 16,
     color: colors.text.secondary,
     textAlign: 'left',
-    marginBottom: 30,
   },
   form: {
     marginBottom: 20,

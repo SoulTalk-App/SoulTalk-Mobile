@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
     height: 50,
   },
   headerLogo: {
-    width: 100,
-    height: 22,
+    width: 70,
+    height: 16,
   },
   skipText: {
     fontFamily: fonts.outfit.medium,
