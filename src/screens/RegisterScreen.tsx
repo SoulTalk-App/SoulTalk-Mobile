@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,16 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Image,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
+
+const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
 
 // TODO: Set to false when backend is ready
 const USE_LOCAL_AUTH = true;
@@ -38,7 +42,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Animation for peeking image
+  const slideAnim = useRef(new Animated.Value(-100)).current;
+
   const { register } = useAuth();
+
+  useEffect(() => {
+    // Slide in animation
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -127,6 +144,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SoulTalk</Text>
         <View style={styles.backButton} />
+
+        {/* Peeking Auth Icon */}
+        <Animated.View
+          style={[
+            styles.peekingImageContainer,
+            { transform: [{ translateX: slideAnim }] }
+          ]}
+        >
+          <Image
+            source={AuthIcon}
+            style={styles.peekingImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
       </View>
 
       {/* Content Area */}
@@ -331,6 +362,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 20,
     backgroundColor: colors.primary,
+    position: 'relative',
+    overflow: 'visible',
+  },
+  peekingImageContainer: {
+    position: 'absolute',
+    left: -20,
+    bottom: -30,
+    zIndex: 10,
+  },
+  peekingImage: {
+    width: 80,
+    height: 80,
+    transform: [{ rotate: '15deg' }],
   },
   backButton: {
     width: 40,
