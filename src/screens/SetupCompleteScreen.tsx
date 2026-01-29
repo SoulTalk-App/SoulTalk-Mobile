@@ -23,7 +23,7 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
     await AsyncStorage.setItem('@soultalk_local_auth', 'true');
 
     // Update auth context - this will trigger navigation to AppStack automatically
-    setLocalAuth(true);
+    await setLocalAuth(true);
   };
 
   const handleBackToStart = () => {

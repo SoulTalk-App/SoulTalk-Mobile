@@ -12,6 +12,7 @@ import {
   ScrollView,
   Image,
   Animated,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -57,6 +58,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   // Animation for peeking image
   const slideAnim = useRef(new Animated.Value(-100)).current;
+
+  // Input refs
+  const firstNameInputRef = useRef<TextInput>(null);
+  const lastNameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
 
   const { register } = useAuth();
 
@@ -243,9 +251,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           <View style={styles.form}>
             <View style={styles.row}>
               <View style={styles.halfWidthWrapper}>
-                <View style={[styles.inputContainer, styles.halfWidth, focusedField === 'firstName' && styles.inputContainerFocused]}>
+                <Pressable
+                  style={[styles.inputContainer, styles.halfWidth, focusedField === 'firstName' && styles.inputContainerFocused]}
+                  onPress={() => firstNameInputRef.current?.focus()}
+                >
                   <Ionicons name="person-outline" size={20} color={focusedField === 'firstName' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
                   <TextInput
+                    ref={firstNameInputRef}
                     style={styles.input}
                     placeholder="First Name"
                     placeholderTextColor={focusedField === 'firstName' ? colors.primary : colors.text.secondary}
@@ -255,15 +267,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onBlur={() => setFocusedField(null)}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    textContentType="givenName"
+                    autoComplete="given-name"
                   />
-                </View>
+                </Pressable>
                 {errors.firstName ? <Text style={styles.errorText}>{errors.firstName}</Text> : null}
               </View>
 
               <View style={styles.halfWidthWrapper}>
-                <View style={[styles.inputContainer, styles.halfWidth, focusedField === 'lastName' && styles.inputContainerFocused]}>
+                <Pressable
+                  style={[styles.inputContainer, styles.halfWidth, focusedField === 'lastName' && styles.inputContainerFocused]}
+                  onPress={() => lastNameInputRef.current?.focus()}
+                >
                   <Ionicons name="person-outline" size={20} color={focusedField === 'lastName' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
                   <TextInput
+                    ref={lastNameInputRef}
                     style={styles.input}
                     placeholder="Last Name"
                     placeholderTextColor={focusedField === 'lastName' ? colors.primary : colors.text.secondary}
@@ -273,15 +291,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onBlur={() => setFocusedField(null)}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    textContentType="familyName"
+                    autoComplete="family-name"
                   />
-                </View>
+                </Pressable>
                 {errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
               </View>
             </View>
 
-            <View style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}>
+            <Pressable
+              style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}
+              onPress={() => emailInputRef.current?.focus()}
+            >
               <Ionicons name="mail-outline" size={20} color={focusedField === 'email' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
+                ref={emailInputRef}
                 style={styles.input}
                 placeholder="Email"
                 placeholderTextColor={focusedField === 'email' ? colors.primary : colors.text.secondary}
@@ -292,13 +316,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
               />
-            </View>
+            </Pressable>
             {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
             <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
-              <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+              <TouchableOpacity onPress={() => passwordInputRef.current?.focus()}>
+                <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+              </TouchableOpacity>
               <TextInput
+                ref={passwordInputRef}
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
                 placeholderTextColor={focusedField === 'password' ? colors.primary : colors.text.secondary}
@@ -309,6 +338,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="password-new"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -324,8 +355,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
             <View style={[styles.inputContainer, focusedField === 'confirmPassword' && styles.inputContainerFocused]}>
-              <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+              <TouchableOpacity onPress={() => confirmPasswordInputRef.current?.focus()}>
+                <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+              </TouchableOpacity>
               <TextInput
+                ref={confirmPasswordInputRef}
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Confirm Password"
                 placeholderTextColor={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary}
@@ -336,6 +370,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="password-new"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}

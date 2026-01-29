@@ -38,7 +38,7 @@ const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 const Stack = createStackNavigator();
 
 const OnboardingStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator screenOptions={{ headerShown: false, detachPreviousScreen: false }}>
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -131,7 +131,7 @@ const OnboardingStack = () => (
 );
 
 const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator screenOptions={{ headerShown: false, detachPreviousScreen: false }}>
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen name="Onboarding" component={OnboardingScreen} />

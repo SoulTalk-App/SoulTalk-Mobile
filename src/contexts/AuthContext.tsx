@@ -25,7 +25,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setLocalAuth: (value: boolean) => void;
+  setLocalAuth: (value: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,14 +60,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Check for local auth first (for testing without backend)
       const localAuth = await AsyncStorage.getItem('@soultalk_local_auth');
       if (localAuth === 'true') {
-        const username = await AsyncStorage.getItem('@soultalk_username');
+        const firstName = await AsyncStorage.getItem('@soultalk_user_firstname') || 'User';
+        const lastName = await AsyncStorage.getItem('@soultalk_user_lastname') || '';
+        const email = await AsyncStorage.getItem('@soultalk_user_email') || 'local@test.com';
+        const soulPalName = await AsyncStorage.getItem('@soultalk_soulpal_name') || '';
         setUser({
           id: 'local-user',
-          email: 'local@test.com',
-          first_name: username || 'User',
-          last_name: '',
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
           email_verified: true,
-          groups: [],
+          groups: soulPalName ? [soulPalName] : [],
         });
         setIsAuthenticated(true);
         setIsLoading(false);
@@ -186,8 +189,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const setLocalAuth = useCallback((value: boolean) => {
+  const setLocalAuth = useCallback(async (value: boolean) => {
     if (value) {
+      // Get stored user info for local auth
+      const firstName = await AsyncStorage.getItem('@soultalk_user_firstname') || 'User';
+      const lastName = await AsyncStorage.getItem('@soultalk_user_lastname') || '';
+      const email = await AsyncStorage.getItem('@soultalk_user_email') || 'local@test.com';
+      const soulPalName = await AsyncStorage.getItem('@soultalk_soulpal_name') || '';
+
+      setUser({
+        id: 'local-user',
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        email_verified: true,
+        groups: soulPalName ? [soulPalName] : [],
+      });
       setIsAuthenticated(true);
     } else {
       setIsAuthenticated(false);

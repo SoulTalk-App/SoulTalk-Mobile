@@ -12,6 +12,7 @@ import {
   ScrollView,
   Image,
   Animated,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
@@ -49,6 +50,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   // Animation for peeking image
   const slideAnim = useRef(new Animated.Value(-100)).current;
+
+  // Input refs
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const { login } = useAuth();
 
@@ -199,7 +204,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
 
           <View style={styles.form}>
-            <View style={[styles.inputContainer, emailFocused && styles.inputContainerFocused]}>
+            <Pressable
+              style={[styles.inputContainer, emailFocused && styles.inputContainerFocused]}
+              onPress={() => emailInputRef.current?.focus()}
+            >
               <Ionicons
                 name="mail-outline"
                 size={20}
@@ -207,6 +215,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 style={styles.inputIcon}
               />
               <TextInput
+                ref={emailInputRef}
                 style={styles.input}
                 placeholder="Email"
                 placeholderTextColor={emailFocused ? colors.primary : colors.text.secondary}
@@ -217,18 +226,23 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
               />
-            </View>
+            </Pressable>
             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
             <View style={[styles.inputContainer, passwordFocused && styles.inputContainerFocused]}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={passwordFocused ? colors.primary : colors.text.secondary}
-                style={styles.inputIcon}
-              />
+              <TouchableOpacity onPress={() => passwordInputRef.current?.focus()}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color={passwordFocused ? colors.primary : colors.text.secondary}
+                  style={styles.inputIcon}
+                />
+              </TouchableOpacity>
               <TextInput
+                ref={passwordInputRef}
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
                 placeholderTextColor={passwordFocused ? colors.primary : colors.text.secondary}
@@ -239,6 +253,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="password"
+                autoComplete="password"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
