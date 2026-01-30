@@ -1,46 +1,74 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { colors, fonts } from '../theme';
+import React, { useRef, useEffect, useState } from 'react';
+import { StyleSheet, View, Dimensions, Text } from 'react-native';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { colors } from '../theme';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Video with purple background baked in
+const IntroVideo = require('../../assets/videos/intro.mp4');
 
 interface SplashScreenProps {
   navigation: any;
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
-  const [displayedText, setDisplayedText] = useState('');
-  const fullText = 'SoulTalk';
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const videoRef = useRef<Video>(null);
+  const [error, setError] = useState<string | null>(null);
+  const hasNavigated = useRef(false);
 
+  // Fallback timer in case video fails to load
   useEffect(() => {
-    let currentIndex = 0;
-
-    const interval = setInterval(() => {
-      if (currentIndex < fullText.length) {
-        setDisplayedText(fullText.substring(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        clearInterval(interval);
-        // Fade out the splash screen before navigating
-        setTimeout(() => {
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 600,
-            useNativeDriver: true,
-          }).start(() => {
-            navigation.replace('Welcome');
-          });
-        }, 300);
+    const fallbackTimer = setTimeout(() => {
+      if (!hasNavigated.current) {
+        hasNavigated.current = true;
+        navigation.replace('Onboarding');
       }
-    }, 150);
+    }, 5000); // 5 second fallback
 
-    return () => clearInterval(interval);
-  }, [navigation, fadeAnim]);
+    return () => clearTimeout(fallbackTimer);
+  }, [navigation]);
+
+  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (status.isLoaded && status.didJustFinish && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigation.replace('Onboarding');
+    }
+  };
+
+  const handleError = (errorMessage: string) => {
+    console.error('Video error:', errorMessage);
+    setError(errorMessage);
+    // Navigate anyway after error
+    if (!hasNavigated.current) {
+      hasNavigated.current = true;
+      setTimeout(() => navigation.replace('Onboarding'), 1000);
+    }
+  };
+
+  const handleLoad = () => {
+    console.log('Video loaded successfully');
+  };
 
   return (
-    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <Text style={styles.logo}>{displayedText}</Text>
-      <Text style={styles.cursor}>|</Text>
-    </Animated.View>
+    <View style={styles.container}>
+      <Video
+        ref={videoRef}
+        source={IntroVideo}
+        style={styles.video}
+        resizeMode={ResizeMode.COVER}
+        shouldPlay={true}
+        isLooping={false}
+        isMuted={false}
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+        onError={(e) => handleError(e)}
+        onLoad={handleLoad}
+        useNativeControls={false}
+      />
+      {__DEV__ && error && (
+        <Text style={styles.errorText}>Error: {error}</Text>
+      )}
+    </View>
   );
 };
 
@@ -50,19 +78,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
   },
-  logo: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 40,
-    color: colors.white,
-    letterSpacing: 2,
+  video: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    position: 'absolute',
   },
-  cursor: {
-    fontFamily: fonts.edensor.light,
-    fontSize: 40,
-    color: colors.white,
-    opacity: 0.8,
+  errorText: {
+    color: 'white',
+    fontSize: 12,
+    position: 'absolute',
+    bottom: 50,
   },
 });
 
