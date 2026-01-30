@@ -18,13 +18,15 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
+import { useGoogleAuth } from "../hooks/useGoogleAuth";
+import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { colors, fonts } from "../theme";
 
 const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
 const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
 
-// TODO: Set to false when backend is ready
-const USE_LOCAL_AUTH = true;
+// Backend mode enabled
+const USE_LOCAL_AUTH = false;
 
 interface LoginScreenProps {
   navigation: any;
@@ -50,7 +52,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   // Animation for peeking image
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
-  const { login } = useAuth();
+  const { login, loginWithGoogle, loginWithFacebook } = useAuth();
+
+  // Social auth hooks
+  const {
+    response: googleResponse,
+    promptAsync: promptGoogleAsync,
+    getIdToken: getGoogleIdToken,
+    isLoading: isGoogleLoading,
+  } = useGoogleAuth();
+
+  const {
+    response: facebookResponse,
+    promptAsync: promptFacebookAsync,
+    getAccessToken: getFacebookAccessToken,
+    isLoading: isFacebookLoading,
+  } = useFacebookAuth();
 
   useEffect(() => {
     checkBiometricStatus();
@@ -62,6 +79,54 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  // Handle Google auth response
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken = getGoogleIdToken();
+      if (idToken) {
+        handleGoogleLogin(idToken);
+      }
+    } else if (googleResponse?.type === 'error') {
+      Alert.alert('Google Sign-In Failed', googleResponse.error?.message || 'An error occurred');
+    }
+  }, [googleResponse]);
+
+  // Handle Facebook auth response
+  useEffect(() => {
+    if (facebookResponse?.type === 'success') {
+      const accessToken = getFacebookAccessToken();
+      if (accessToken) {
+        handleFacebookLogin(accessToken);
+      }
+    } else if (facebookResponse?.type === 'error') {
+      Alert.alert('Facebook Login Failed', facebookResponse.error?.message || 'An error occurred');
+    }
+  }, [facebookResponse]);
+
+  const handleGoogleLogin = async (idToken: string) => {
+    try {
+      setIsLoading(true);
+      await loginWithGoogle(idToken);
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
+      Alert.alert('Google Login Failed', error.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async (accessToken: string) => {
+    try {
+      setIsLoading(true);
+      await loginWithFacebook(accessToken);
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
+      Alert.alert('Facebook Login Failed', error.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const checkBiometricStatus = async () => {
     const available = await AuthService.isBiometricAvailable();
@@ -115,7 +180,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleForgotPassword = () => {
-    Alert.alert("Coming Soon", "Password reset will be available soon.");
+    navigation.navigate("ForgotPassword");
   };
 
   const handleSignUp = () => {
@@ -157,8 +222,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     navigation.navigate("Welcome");
   };
 
-  const handleSocialLogin = (provider: string) => {
-    Alert.alert("Coming Soon", `${provider} login will be available soon.`);
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === 'Google') {
+      await promptGoogleAsync();
+    } else if (provider === 'Facebook') {
+      await promptFacebookAsync();
+    } else if (provider === 'SSO') {
+      Alert.alert("Coming Soon", "SSO login will be available soon.");
+    }
   };
 
   return (

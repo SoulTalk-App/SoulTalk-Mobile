@@ -8,7 +8,13 @@ interface UserInfo {
   first_name: string;
   last_name: string;
   email_verified: boolean;
-  groups: string[];
+  providers: string[];
+}
+
+interface LinkedAccount {
+  provider: string;
+  provider_email: string;
+  linked_at: string;
 }
 
 interface AuthContextType {
@@ -26,6 +32,22 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setLocalAuth: (value: boolean) => void;
+  // Social auth methods
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithFacebook: (accessToken: string) => Promise<void>;
+  // Account linking
+  linkGoogleAccount: (idToken: string) => Promise<void>;
+  linkFacebookAccount: (accessToken: string) => Promise<void>;
+  unlinkProvider: (provider: 'google' | 'facebook') => Promise<void>;
+  getLinkedAccounts: () => Promise<LinkedAccount[]>;
+  // Email verification
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
+  // Password management
+  confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
+  setPassword: (password: string) => Promise<void>;
+  // Logout all devices
+  logoutAllDevices: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -195,6 +217,140 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Social auth methods
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    try {
+      setIsLoading(true);
+      await AuthService.loginWithGoogle(idToken);
+
+      const userInfo = await AuthService.getCurrentUser();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+
+      await AsyncStorage.setItem('user_logged_in', 'true');
+    } catch (error) {
+      console.error('Google login failed:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loginWithFacebook = useCallback(async (accessToken: string) => {
+    try {
+      setIsLoading(true);
+      await AuthService.loginWithFacebook(accessToken);
+
+      const userInfo = await AuthService.getCurrentUser();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+
+      await AsyncStorage.setItem('user_logged_in', 'true');
+    } catch (error) {
+      console.error('Facebook login failed:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Account linking methods
+  const linkGoogleAccount = useCallback(async (idToken: string) => {
+    try {
+      await AuthService.linkGoogleAccount(idToken);
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to link Google account:', error);
+      throw error;
+    }
+  }, [refreshUser]);
+
+  const linkFacebookAccount = useCallback(async (accessToken: string) => {
+    try {
+      await AuthService.linkFacebookAccount(accessToken);
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to link Facebook account:', error);
+      throw error;
+    }
+  }, [refreshUser]);
+
+  const unlinkProvider = useCallback(async (provider: 'google' | 'facebook') => {
+    try {
+      await AuthService.unlinkProvider(provider);
+      await refreshUser();
+    } catch (error) {
+      console.error(`Failed to unlink ${provider}:`, error);
+      throw error;
+    }
+  }, [refreshUser]);
+
+  const getLinkedAccounts = useCallback(async (): Promise<LinkedAccount[]> => {
+    try {
+      return await AuthService.getLinkedAccounts();
+    } catch (error) {
+      console.error('Failed to get linked accounts:', error);
+      throw error;
+    }
+  }, []);
+
+  // Email verification
+  const verifyEmail = useCallback(async (token: string) => {
+    try {
+      await AuthService.verifyEmail(token);
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      throw error;
+    }
+  }, []);
+
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    try {
+      await AuthService.resendVerificationEmail(email);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+      throw error;
+    }
+  }, []);
+
+  // Password management
+  const confirmPasswordReset = useCallback(async (token: string, newPassword: string) => {
+    try {
+      await AuthService.confirmPasswordReset(token, newPassword);
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  }, []);
+
+  const setPassword = useCallback(async (password: string) => {
+    try {
+      await AuthService.setPassword(password);
+    } catch (error) {
+      console.error('Failed to set password:', error);
+      throw error;
+    }
+  }, []);
+
+  // Logout all devices
+  const logoutAllDevices = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      await AuthService.logoutAllDevices();
+    } catch (error) {
+      console.error('Logout all devices error:', error);
+    } finally {
+      setUser(null);
+      setIsAuthenticated(false);
+      await AsyncStorage.removeItem('user_logged_in');
+      setIsLoading(false);
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -205,6 +361,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshUser,
     resetPassword,
     setLocalAuth,
+    loginWithGoogle,
+    loginWithFacebook,
+    linkGoogleAccount,
+    linkFacebookAccount,
+    unlinkProvider,
+    getLinkedAccounts,
+    verifyEmail,
+    resendVerificationEmail,
+    confirmPasswordReset,
+    setPassword,
+    logoutAllDevices,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
