@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, LinkingOptions } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoSplashScreen from "expo-splash-screen";
+import * as Linking from "expo-linking";
 import { useFonts } from "expo-font";
 import {
   Outfit_100Thin,
@@ -32,10 +33,25 @@ import LoadingScreen from "./src/screens/LoadingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import VerificationSentScreen from "./src/screens/VerificationSentScreen";
 import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
+import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
+import ResetPasswordConfirmScreen from "./src/screens/ResetPasswordConfirmScreen";
+import EmailVerifiedScreen from "./src/screens/EmailVerifiedScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 
 const Stack = createStackNavigator();
+
+// Deep linking configuration
+const prefix = Linking.createURL("/");
+const linking: LinkingOptions<any> = {
+  prefixes: [prefix, "soultalk://"],
+  config: {
+    screens: {
+      EmailVerified: "verify-email/:token",
+      ResetPasswordConfirm: "reset-password/:token",
+    },
+  },
+};
 
 const OnboardingStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -91,6 +107,9 @@ const OnboardingStack = () => (
     <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
     <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
+    <Stack.Screen name="EmailVerified" component={EmailVerifiedScreen} />
     <Stack.Screen
       name="Login"
       component={LoginScreen}
@@ -178,6 +197,9 @@ const AuthStack = () => (
     />
     <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
+    <Stack.Screen name="EmailVerified" component={EmailVerifiedScreen} />
     <Stack.Screen
       name="TransitionSplash"
       component={TransitionSplashScreen}
@@ -229,7 +251,7 @@ const Navigation = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       {isAuthenticated ? (
         <AppStack />
       ) : onboardingComplete ? (

@@ -1,6 +1,11 @@
+/**
+ * Content data for SoulTalk app
+ * Text content extracted from Figma designs
+ */
+
 export const termsAndConditions = {
-  title: "Terms and Privacy",
-  lastUpdated: "January 2025",
+  title: 'Terms and Privacy',
+  lastUpdated: 'January 2025',
   content: `Welcome to SoulTalk. By using our application, you agree to the following terms and conditions. Please read them carefully.
 
 1. ACCEPTANCE OF TERMS
@@ -49,27 +54,55 @@ If you have questions about these Terms & Conditions, please contact us at suppo
 `,
 };
 
+// Onboarding slides - exact text from Figma
 export const onboardingSlides = [
   {
-    id: "1",
-    title: "Welcome to SoulTalk",
-    subtitle: "Your space to slow down, reflect and reconnect with your inner world.",
-    image: "welcome",
+    id: '1',
+    title: 'Welcome to  SoulTalk',  // Note: double space matches Figma
+    tagline: 'Your space to slow down, reflect, and reconnect with your inner world',
+    image: 'welcome',
   },
   {
-    id: "2",
-    title: "Meet your SoulPal",
-    subtitle: "Your tiny companion for the journey inward.",
-    image: "express",
+    id: '2',
+    title: 'Meet your SoulPal',
+    tagline: 'Your tiny companion for the journey inward',
+    image: 'soulpal',
   },
   {
-    id: "3",
-    title: "What you'll Discover",
-    subtitle: "A gentle way to understand yourself, one reflection at a time.",
-    image: "grow",
+    id: '3',
+    title: "What You'll Discover",
+    tagline: 'A gentler way to understand yourself, one reflection at a time',
+    image: 'discover',
   },
 ];
 
+// Welcome screen content
 export const welcomeContent = {
-  tagline: "Your space to slow down, reflect and reconnect with your inner world",
+  tagline: 'Your space to slow down, reflect, and reconnect with your inner world',
+  primaryButton: 'Get Started',
+  secondaryButton: 'I Already Have An Account',
+};
+
+// Button labels
+export const buttonLabels = {
+  getStarted: 'Get Started',
+  signIn: 'Sign In',
+  signUp: 'Sign Up',
+  continue: 'Continue',
+  agree: 'I Agree',
+  skip: 'Skip',
+};
+
+// SoulPal naming screen
+export const soulPalContent = {
+  question: 'What would you like to name your SoulPal?',
+  placeholder: 'Enter a name',
+  buttonText: 'Continue',
+};
+
+// Setup complete screen
+export const setupCompleteContent = {
+  title: "You're all set!",
+  subtitle: "Your account is ready.\nLet's start your SoulTalk journey!",
+  buttonText: 'Continue',
 };
