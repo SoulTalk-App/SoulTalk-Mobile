@@ -1,138 +1,193 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, Animated } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { welcomeContent } from "../mocks/content";
-import { colors, fonts } from "../theme";
-import { resetOnboarding } from "../utils/resetOnboarding";
+import React, { useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, Image, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withDelay,
+  withSequence,
+  withRepeat,
+  Easing,
+} from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { welcomeContent } from '../mocks/content';
+import { colors, fonts } from '../theme';
+import { resetOnboarding } from '../utils/resetOnboarding';
+import { SpringConfigs, TimingConfigs, AnimationValues, ScreenAnimations } from '../animations/constants';
 
-const SoultalkLogo = require("../../assets/images/logo/SoultalkLogo.png");
+const SoultalkLogo = require('../../assets/images/logo/SoultalkLogo.png');
 
 interface WelcomeScreenProps {
   navigation: any;
 }
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
-  // Button press animations
-  const primaryScaleAnim = useRef(new Animated.Value(1)).current;
-  const secondaryScaleAnim = useRef(new Animated.Value(1)).current;
-  const [primaryPressed, setPrimaryPressed] = useState(false);
-  const [secondaryPressed, setSecondaryPressed] = useState(false);
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-  // Tagline slide-up animation
-  const taglineSlideAnim = useRef(new Animated.Value(40)).current;
-  const taglineFadeAnim = useRef(new Animated.Value(0)).current;
+// ============================================
+// Animated Button Component
+// ============================================
+const WelcomeButton: React.FC<{
+  title: string;
+  variant: 'primary' | 'secondary';
+  onPress: () => void;
+}> = ({ title, variant, onPress }) => {
+  const scale = useSharedValue(1);
+
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(AnimationValues.buttonPressScale, SpringConfigs.snappy);
+  }, []);
+
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, SpringConfigs.bouncy);
+  }, []);
+
+  const buttonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const isPrimary = variant === 'primary';
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[
+        styles.button,
+        isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
+        buttonStyle,
+      ]}
+    >
+      <Text
+        style={[
+          styles.buttonText,
+          isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary,
+        ]}
+      >
+        {title}
+      </Text>
+    </AnimatedPressable>
+  );
+};
+
+// ============================================
+// Main Welcome Screen
+// ============================================
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
+  // Animation values
+  const logoOpacity = useSharedValue(0);
+  const logoScale = useSharedValue(0.8);
+  const logoFloat = useSharedValue(0);
+
+  const taglineOpacity = useSharedValue(0);
+  const taglineTranslateY = useSharedValue(30);
+
+  const buttonsOpacity = useSharedValue(0);
+  const buttonsTranslateY = useSharedValue(40);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(taglineFadeAnim, {
-        toValue: 1,
-        duration: 1200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(taglineSlideAnim, {
-        toValue: 0,
-        duration: 1200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [taglineFadeAnim, taglineSlideAnim]);
+    // Logo entrance
+    logoOpacity.value = withDelay(200, withTiming(1, TimingConfigs.entrance));
+    logoScale.value = withDelay(200, withSpring(1, SpringConfigs.bouncy));
 
-  const handlePressIn = (scaleAnim: Animated.Value, setPressed: (v: boolean) => void) => {
-    setPressed(true);
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
+    // Tagline entrance
+    taglineOpacity.value = withDelay(500, withTiming(1, { duration: 600 }));
+    taglineTranslateY.value = withDelay(500, withSpring(0, SpringConfigs.subtle));
 
-  const handlePressOut = (scaleAnim: Animated.Value, setPressed: (v: boolean) => void) => {
-    setPressed(false);
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
+    // Buttons entrance
+    buttonsOpacity.value = withDelay(800, withTiming(1, { duration: 500 }));
+    buttonsTranslateY.value = withDelay(800, withSpring(0, SpringConfigs.subtle));
+
+    // Subtle floating animation for logo
+    logoFloat.value = withDelay(
+      1200,
+      withRepeat(
+        withSequence(
+          withTiming(-6, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
+          withTiming(6, { duration: 2500, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      )
+    );
+  }, []);
+
+  const logoStyle = useAnimatedStyle(() => ({
+    opacity: logoOpacity.value,
+    transform: [
+      { scale: logoScale.value },
+      { translateY: logoFloat.value },
+    ],
+  }));
+
+  const taglineStyle = useAnimatedStyle(() => ({
+    opacity: taglineOpacity.value,
+    transform: [{ translateY: taglineTranslateY.value }],
+  }));
+
+  const buttonsStyle = useAnimatedStyle(() => ({
+    opacity: buttonsOpacity.value,
+    transform: [{ translateY: buttonsTranslateY.value }],
+  }));
 
   const handleGetStarted = () => {
-    navigation.navigate("Onboarding");
+    navigation.navigate('Onboarding');
   };
 
   const handleHaveAccount = () => {
-    navigation.navigate("Login");
+    navigation.navigate('Login');
   };
 
-  // TODO: Remove this before production
+  // DEV only
   const handleResetOnboarding = async () => {
     await resetOnboarding();
-    Alert.alert("Reset", "Onboarding reset. Reload the app to see carousel.");
+    Alert.alert('Reset', 'Onboarding reset. Reload the app.');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <Image
+        {/* Logo and Tagline Section */}
+        <View style={styles.centerSection}>
+          <Animated.Image
             source={SoultalkLogo}
-            style={styles.logo}
+            style={[styles.logo, logoStyle]}
             resizeMode="contain"
           />
-          <Animated.Text
-            style={[
-              styles.tagline,
-              {
-                opacity: taglineFadeAnim,
-                transform: [{ translateY: taglineSlideAnim }],
-              },
-            ]}
-          >
+          <Animated.Text style={[styles.tagline, taglineStyle]}>
             {welcomeContent.tagline}
           </Animated.Text>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <Animated.View style={{ transform: [{ scale: primaryScaleAnim }] }}>
-            <TouchableOpacity
-              style={[styles.primaryButton, primaryPressed && styles.buttonPressed]}
-              onPress={handleGetStarted}
-              onPressIn={() => handlePressIn(primaryScaleAnim, setPrimaryPressed)}
-              onPressOut={() => handlePressOut(primaryScaleAnim, setPrimaryPressed)}
-              activeOpacity={1}
-            >
-              <Text style={[styles.primaryButtonText, primaryPressed && styles.pressedText]}>
-                Get Started
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+        {/* Buttons Section */}
+        <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
+          <WelcomeButton
+            title={welcomeContent.primaryButton}
+            variant="primary"
+            onPress={handleGetStarted}
+          />
+          <WelcomeButton
+            title={welcomeContent.secondaryButton}
+            variant="secondary"
+            onPress={handleHaveAccount}
+          />
 
-          <Animated.View style={{ transform: [{ scale: secondaryScaleAnim }] }}>
-            <TouchableOpacity
-              style={[styles.secondaryButton, secondaryPressed && styles.buttonPressed]}
-              onPress={handleHaveAccount}
-              onPressIn={() => handlePressIn(secondaryScaleAnim, setSecondaryPressed)}
-              onPressOut={() => handlePressOut(secondaryScaleAnim, setSecondaryPressed)}
-              activeOpacity={1}
-            >
-              <Text style={[styles.secondaryButtonText, secondaryPressed && styles.pressedText]}>
-                I already have an account
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-          {/* TODO: Remove before production */}
-          <TouchableOpacity
-            style={styles.devButton}
-            onPress={handleResetOnboarding}
-          >
-            <Text style={styles.devButtonText}>DEV: Reset Onboarding</Text>
-          </TouchableOpacity>
-        </View>
+          {/* DEV Button */}
+          {__DEV__ && (
+            <Pressable style={styles.devButton} onPress={handleResetOnboarding}>
+              <Text style={styles.devButtonText}>DEV: Reset Onboarding</Text>
+            </Pressable>
+          )}
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
 };
 
+// ============================================
+// Styles
+// ============================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -140,72 +195,63 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    justifyContent: 'space-between',
+    paddingVertical: 60,
   },
-  logoContainer: {
+  centerSection: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
   },
   logo: {
     width: 228,
-    height: 50,
-    marginBottom: 24,
+    height: 52,
+    marginBottom: 30,
   },
   tagline: {
     fontFamily: fonts.edensor.italic,
-    fontSize: 22,
-    color: colors.primary,
-    textAlign: "center",
+    fontSize: 20,
+    color: colors.text.primary,
+    textAlign: 'center',
+    lineHeight: 28,
   },
-  buttonContainer: {
-    gap: 16,
-    alignItems: "center",
+  buttonsSection: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 12,
   },
-  primaryButton: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    width: 280,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+  button: {
+    width: 319,
+    height: 48,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  primaryButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: "#4F1786",
+  buttonPrimary: {
+    backgroundColor: colors.white,
   },
-  secondaryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    height: 56,
-    width: 280,
-    justifyContent: "center",
-    alignItems: "center",
+  buttonSecondary: {
+    backgroundColor: colors.secondary,
   },
-  secondaryButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
+  buttonText: {
+    fontFamily: fonts.outfit.bold,
+    fontSize: 18,
+  },
+  buttonTextPrimary: {
+    color: colors.primary,
+  },
+  buttonTextSecondary: {
     color: colors.white,
   },
-  buttonPressed: {
-    backgroundColor: "rgba(79, 23, 134, 0.12)",
-  },
-  pressedText: {
-    color: colors.primary,
-  },
-  // TODO: Remove before production
   devButton: {
     marginTop: 20,
     padding: 10,
-    alignItems: "center",
   },
   devButtonText: {
     fontFamily: fonts.outfit.regular,
