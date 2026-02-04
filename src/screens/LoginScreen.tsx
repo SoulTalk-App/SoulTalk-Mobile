@@ -25,8 +25,8 @@ import { colors, fonts } from "../theme";
 const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
 const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
 
-// Backend mode enabled
-const USE_LOCAL_AUTH = false;
+// Local testing mode - bypass backend auth
+const USE_LOCAL_AUTH = true;
 
 interface LoginScreenProps {
   navigation: any;

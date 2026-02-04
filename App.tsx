@@ -39,6 +39,9 @@ import EmailVerifiedScreen from "./src/screens/EmailVerifiedScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 
+// DEV MODE: Set to true to skip directly to WelcomeSplash screen
+const DEV_SKIP_TO_WELCOME_SPLASH = true;
+
 const Stack = createStackNavigator();
 
 // Deep linking configuration
@@ -54,7 +57,10 @@ const linking: LinkingOptions<any> = {
 };
 
 const OnboardingStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator
+    screenOptions={{ headerShown: false }}
+    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Splash"}
+  >
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -150,7 +156,10 @@ const OnboardingStack = () => (
 );
 
 const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator
+    screenOptions={{ headerShown: false }}
+    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Splash"}
+  >
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen name="Onboarding" component={OnboardingScreen} />

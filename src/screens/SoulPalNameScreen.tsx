@@ -19,14 +19,13 @@ import Animated, {
   withSequence,
   withRepeat,
   Easing,
-  interpolateColor,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
-import { SpringConfigs, TimingConfigs, AnimationValues } from '../animations/constants';
 
-const CharacterSoulpal = require('../../assets/images/onboarding/Carousel2b.png');
+const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
+const SubmitIcon = require('../../assets/images/common/SubmitIcon.png');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -36,87 +35,47 @@ interface SoulPalNameScreenProps {
 }
 
 const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [soulPalName, setSoulPalName] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
 
   // Animation values
-  const imageScale = useSharedValue(0.8);
-  const imageOpacity = useSharedValue(0);
-  const imageFloat = useSharedValue(0);
-  const imageRotation = useSharedValue(0);
+  const characterOpacity = useSharedValue(0);
+  const characterScale = useSharedValue(0.8);
+  const characterRotation = useSharedValue(0);
 
-  const questionOpacity = useSharedValue(0);
-  const questionTranslateY = useSharedValue(30);
-
-  const inputOpacity = useSharedValue(0);
-  const inputTranslateY = useSharedValue(30);
-  const inputBorderColor = useSharedValue(0);
-
-  const buttonOpacity = useSharedValue(0);
-  const buttonTranslateY = useSharedValue(30);
+  const formOpacity = useSharedValue(0);
+  const formTranslateY = useSharedValue(30);
   const buttonScale = useSharedValue(1);
 
   useEffect(() => {
-    // Staggered entrance animations
-    // Image comes in first with bounce
-    imageOpacity.value = withDelay(200, withTiming(1, TimingConfigs.entrance));
-    imageScale.value = withDelay(200, withSpring(1, SpringConfigs.bouncy));
+    // Character entrance
+    characterOpacity.value = withTiming(1, { duration: 500 });
+    characterScale.value = withSpring(1, { damping: 12, stiffness: 100 });
 
-    // Question text
-    questionOpacity.value = withDelay(400, withTiming(1, TimingConfigs.entrance));
-    questionTranslateY.value = withDelay(400, withSpring(0, SpringConfigs.subtle));
+    // Form fades in
+    formOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
+    formTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 100 }));
 
-    // Input field
-    inputOpacity.value = withDelay(600, withTiming(1, TimingConfigs.entrance));
-    inputTranslateY.value = withDelay(600, withSpring(0, SpringConfigs.subtle));
-
-    // Button
-    buttonOpacity.value = withDelay(800, withTiming(1, TimingConfigs.entrance));
-    buttonTranslateY.value = withDelay(800, withSpring(0, SpringConfigs.subtle));
-
-    // Continuous floating animation for image
-    imageFloat.value = withDelay(
-      1000,
+    // Continuous 3D wobble animation - rotates back and forth around Y axis
+    characterRotation.value = withDelay(
+      600,
       withRepeat(
         withSequence(
-          withTiming(-AnimationValues.floatDistance, {
-            duration: 2200,
-            easing: Easing.inOut(Easing.sin),
+          withTiming(180, {
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
           }),
-          withTiming(AnimationValues.floatDistance, {
-            duration: 2200,
-            easing: Easing.inOut(Easing.sin),
+          withTiming(0, {
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
           })
         ),
-        -1,
-        true
-      )
-    );
-
-    // Subtle rotation
-    imageRotation.value = withDelay(
-      1000,
-      withRepeat(
-        withSequence(
-          withTiming(-AnimationValues.floatRotation, {
-            duration: 2800,
-            easing: Easing.inOut(Easing.sin),
-          }),
-          withTiming(AnimationValues.floatRotation, {
-            duration: 2800,
-            easing: Easing.inOut(Easing.sin),
-          })
-        ),
-        -1,
-        true
+        -1, // Infinite repeat
+        false
       )
     );
   }, []);
-
-  // Update input border animation on focus
-  useEffect(() => {
-    inputBorderColor.value = withTiming(inputFocused ? 1 : 0, TimingConfigs.fast);
-  }, [inputFocused]);
 
   const handleContinue = async () => {
     if (soulPalName.trim()) {
@@ -127,168 +86,169 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
 
   const handlePressIn = useCallback(() => {
     if (soulPalName.trim()) {
-      buttonScale.value = withSpring(AnimationValues.buttonPressScale, SpringConfigs.snappy);
+      buttonScale.value = withSpring(0.9, { damping: 10, stiffness: 400 });
     }
   }, [soulPalName]);
 
   const handlePressOut = useCallback(() => {
-    buttonScale.value = withSpring(1, SpringConfigs.bouncy);
+    buttonScale.value = withSpring(1, { damping: 8, stiffness: 200 });
   }, []);
 
   // Animated styles
-  const imageAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: imageOpacity.value,
+  const characterAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: characterOpacity.value,
     transform: [
-      { scale: imageScale.value },
-      { translateY: imageFloat.value },
-      { rotate: `${imageRotation.value}deg` },
+      { perspective: 800 },
+      { scale: characterScale.value },
+      { rotateY: `${characterRotation.value}deg` },
     ],
   }));
 
-  const questionAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: questionOpacity.value,
-    transform: [{ translateY: questionTranslateY.value }],
-  }));
-
-  const inputContainerStyle = useAnimatedStyle(() => ({
-    opacity: inputOpacity.value,
-    transform: [{ translateY: inputTranslateY.value }],
-  }));
-
-  const inputAnimatedStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(
-      inputBorderColor.value,
-      [0, 1],
-      ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.8)']
-    ),
+  const formAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: formOpacity.value,
+    transform: [{ translateY: formTranslateY.value }],
   }));
 
   const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: buttonOpacity.value * (soulPalName.trim() ? 1 : 0.5),
-    transform: [
-      { translateY: buttonTranslateY.value },
-      { scale: buttonScale.value },
-    ],
+    transform: [{ scale: buttonScale.value }],
+    opacity: soulPalName.trim() ? 1 : 0.5,
   }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.content}>
-          {/* Character Image */}
-          <Animated.View style={[styles.imageContainer, imageAnimatedStyle]}>
-            <Image
-              source={CharacterSoulpal}
-              style={styles.image}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
-          {/* Question */}
-          <Animated.Text style={[styles.question, questionAnimatedStyle]}>
-            What would you like to name your SoulPal?
-          </Animated.Text>
-
-          {/* Input */}
-          <Animated.View style={[styles.inputWrapper, inputContainerStyle]}>
-            <Animated.View style={[styles.inputContainer, inputAnimatedStyle]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter a name"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                value={soulPalName}
-                onChangeText={setSoulPalName}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                autoCapitalize="words"
-                autoCorrect={false}
+        <View style={[styles.content, { paddingTop: insets.top }]}>
+          {/* Main content wrapper */}
+          <View style={styles.mainWrapper}>
+            {/* SoulPal Character - Floating */}
+            <Animated.View style={[styles.characterContainer, characterAnimatedStyle]}>
+              <Image
+                source={SoulpalCharacter}
+                style={styles.characterImage}
+                resizeMode="contain"
               />
             </Animated.View>
-          </Animated.View>
 
-          {/* Continue Button */}
-          <AnimatedPressable
-            style={[styles.button, buttonAnimatedStyle]}
-            onPress={handleContinue}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            disabled={!soulPalName.trim()}
-          >
-            <Text style={styles.buttonText}>Continue</Text>
-          </AnimatedPressable>
+            {/* Form Section */}
+            <Animated.View style={[styles.formSection, formAnimatedStyle]}>
+              {/* Question */}
+              <Text style={styles.question}>What would you like to name your SoulPal?</Text>
+
+              {/* SoulPal Name Input */}
+              <View style={styles.inputWrapper}>
+                <View style={[styles.inputContainer, inputFocused && styles.inputContainerFocused]}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="SoulPal"
+                    placeholderTextColor="#D3C5E1"
+                    value={soulPalName}
+                    onChangeText={setSoulPalName}
+                    onFocus={() => setInputFocused(true)}
+                    onBlur={() => setInputFocused(false)}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    onSubmitEditing={handleContinue}
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+
+              {/* Submit Icon Button */}
+              <AnimatedPressable
+                style={[styles.iconButton, buttonAnimatedStyle]}
+                onPress={handleContinue}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={!soulPalName.trim()}
+              >
+                <Image
+                  source={SubmitIcon}
+                  style={styles.submitIcon}
+                  resizeMode="contain"
+                />
+              </AnimatedPressable>
+            </Animated.View>
+          </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: '#59168B',
   },
   keyboardView: {
     flex: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  imageContainer: {
-    marginBottom: 40,
+  mainWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: 120, // Position content from top
   },
-  image: {
-    width: SCREEN_WIDTH * 0.6,
-    height: SCREEN_WIDTH * 0.6,
+  characterContainer: {
+    alignItems: 'center',
+  },
+  characterImage: {
+    width: SCREEN_WIDTH * 0.35,
+    height: SCREEN_WIDTH * 0.55,
+  },
+  formSection: {
+    marginTop: 40, // Gap between character and form
+    alignItems: 'center',
+    width: '100%',
   },
   question: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 24,
+    fontFamily: fonts.outfit.light,
+    fontSize: 15,
     color: colors.white,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 32,
+    marginBottom: 20,
+    lineHeight: 15 * 1.26,
+    paddingHorizontal: 40,
   },
   inputWrapper: {
-    width: '100%',
-    marginBottom: 24,
+    width: 268,
+    marginBottom: 20,
   },
   inputContainer: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  input: {
-    height: 48,
-    width: '100%',
-    paddingHorizontal: 16,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.white,
-  },
-  button: {
     backgroundColor: colors.white,
     borderRadius: 10,
-    height: 48,
-    width: 319,
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  inputContainerFocused: {
+    borderWidth: 2,
+    borderColor: '#4F1786',
+  },
+  input: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 18,
+    color: colors.text.dark,
+  },
+  iconButton: {
+    width: 55,
+    height: 38,
+    backgroundColor: colors.white,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  buttonText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 18,
-    color: colors.primary,
+  submitIcon: {
+    width: 22,
+    height: 22,
   },
 });
 
