@@ -172,3 +172,6 @@ build
 .env.production.local
 # MCP config
 .mcp.json
+
+# Figma MCP reference downloads
+.figma-references/
