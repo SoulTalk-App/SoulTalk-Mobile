@@ -16,8 +16,9 @@ import Animated, {
   withSpring,
   withTiming,
   withDelay,
-  withSequence,
   withRepeat,
+  withSequence,
+  interpolate,
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,7 +43,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   // Animation values
   const characterOpacity = useSharedValue(0);
   const characterScale = useSharedValue(0.8);
-  const characterRotation = useSharedValue(0);
+  const turnProgress = useSharedValue(0);
 
   const formOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
@@ -57,21 +58,19 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     formOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
     formTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 100 }));
 
-    // Continuous 3D wobble animation - rotates back and forth around Y axis
-    characterRotation.value = withDelay(
+    // Character turn cycle: 0 → 1 represents one full turn
+    // 0 = front, 0.5 = back (no features), 1 = front again
+    turnProgress.value = withDelay(
       600,
       withRepeat(
         withSequence(
-          withTiming(180, {
-            duration: 1500,
-            easing: Easing.inOut(Easing.ease),
+          withTiming(1, {
+            duration: 4000,
+            easing: Easing.linear,
           }),
-          withTiming(0, {
-            duration: 1500,
-            easing: Easing.inOut(Easing.ease),
-          })
+          withTiming(0, { duration: 0 }) // instant reset for seamless loop
         ),
-        -1, // Infinite repeat
+        -1,
         false
       )
     );
@@ -95,14 +94,31 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   }, []);
 
   // Animated styles
-  const characterAnimatedStyle = useAnimatedStyle(() => ({
+  const characterContainerStyle = useAnimatedStyle(() => ({
     opacity: characterOpacity.value,
-    transform: [
-      { perspective: 800 },
-      { scale: characterScale.value },
-      { rotateY: `${characterRotation.value}deg` },
-    ],
+    transform: [{ scale: characterScale.value }],
   }));
+
+  // Front image (with features): rotates away and back with fade
+  const frontImageStyle = useAnimatedStyle(() => {
+    const op = interpolate(
+      turnProgress.value,
+      [0, 0.2, 0.3, 0.7, 0.8, 1],
+      [1, 1, 0, 0, 1, 1]
+    );
+    const ry = interpolate(
+      turnProgress.value,
+      [0, 0.2, 0.3, 0.7, 0.8, 1],
+      [0, 0, 90, -90, 0, 0]
+    );
+    return {
+      opacity: op,
+      transform: [
+        { perspective: 800 },
+        { rotateY: `${ry}deg` },
+      ],
+    };
+  });
 
   const formAnimatedStyle = useAnimatedStyle(() => ({
     opacity: formOpacity.value,
@@ -124,11 +140,18 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
         <View style={[styles.content, { paddingTop: insets.top }]}>
           {/* Main content wrapper */}
           <View style={styles.mainWrapper}>
-            {/* SoulPal Character - Floating */}
-            <Animated.View style={[styles.characterContainer, characterAnimatedStyle]}>
+            {/* SoulPal Character - Rotating turn */}
+            <Animated.View style={[styles.characterContainer, characterContainerStyle]}>
+              {/* Back layer: tinted solid teal (no features visible) */}
               <Image
                 source={SoulpalCharacter}
-                style={styles.characterImage}
+                style={[styles.characterImage, { tintColor: '#70CACF' }]}
+                resizeMode="contain"
+              />
+              {/* Front layer: full character with features, fades in/out */}
+              <Animated.Image
+                source={SoulpalCharacter}
+                style={[styles.characterImage, styles.characterFront, frontImageStyle]}
                 resizeMode="contain"
               />
             </Animated.View>
@@ -203,6 +226,11 @@ const styles = StyleSheet.create({
   characterImage: {
     width: SCREEN_WIDTH * 0.35,
     height: SCREEN_WIDTH * 0.55,
+  },
+  characterFront: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   formSection: {
     marginTop: 40, // Gap between character and form
