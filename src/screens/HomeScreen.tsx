@@ -47,7 +47,7 @@ type TabName = 'Home' | 'Journal' | 'Profile';
 
 const TOTAL_BARS = 15;
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
@@ -147,7 +147,7 @@ const HomeScreen = () => {
               </View>
               <Text style={styles.dayText}>How's your day today?</Text>
             </View>
-            <Pressable style={styles.gearButton}>
+            <Pressable style={styles.gearButton} onPress={() => navigation.navigate('Settings')}>
               <Image
                 source={GearIconImg}
                 style={styles.gearIcon}
