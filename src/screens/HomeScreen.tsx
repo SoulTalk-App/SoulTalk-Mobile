@@ -11,6 +11,11 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  withSequence,
+  withDelay,
+  withRepeat,
+  Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +37,7 @@ const LockIcon = require('../../assets/images/home/LockIcon.png');
 const AffirmationMirrorFull = require('../../assets/images/home/AffirmationMirrorFull.png');
 const MirrorCharLeft = require('../../assets/images/home/MirrorCharLeft.png');
 const MirrorCharRight = require('../../assets/images/home/MirrorCharRight.png');
-const ProgressBarImg = require('../../assets/images/home/ProgressBarPng.png');
+
 const SendIconImg = require('../../assets/images/home/SendIconPng.png');
 
 
@@ -40,13 +45,20 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type TabName = 'Home' | 'Journal' | 'Profile';
 
+const TOTAL_BARS = 15;
+
 const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
+  const [filledBars, setFilledBars] = useState(0);
 
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
+
+  // Eye blink animation
+  const eyeOpacity = useSharedValue(1);
+  const eyeTranslateX = useSharedValue(0);
 
   useEffect(() => {
     const loadUsername = async () => {
@@ -55,6 +67,36 @@ const HomeScreen = () => {
     };
     loadUsername();
   }, []);
+
+  // Blinking + looking animation loop
+  useEffect(() => {
+    eyeOpacity.value = withRepeat(
+      withSequence(
+        withDelay(2000, withTiming(0, { duration: 80 })),
+        withTiming(1, { duration: 80 }),
+        withDelay(3000, withTiming(0, { duration: 80 })),
+        withTiming(1, { duration: 80 }),
+      ),
+      -1,
+    );
+    eyeTranslateX.value = withRepeat(
+      withSequence(
+        withDelay(1500, withTiming(3, { duration: 400, easing: Easing.inOut(Easing.ease) })),
+        withDelay(1000, withTiming(-3, { duration: 400, easing: Easing.inOut(Easing.ease) })),
+        withDelay(800, withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) })),
+      ),
+      -1,
+    );
+  }, []);
+
+  const eyeAnimStyle = useAnimatedStyle(() => ({
+    opacity: eyeOpacity.value,
+    transform: [{ translateX: eyeTranslateX.value }],
+  }));
+
+  const handleBarPress = useCallback((index: number) => {
+    setFilledBars(index + 1 === filledBars ? 0 : index + 1);
+  }, [filledBars]);
 
   const handleTabPress = useCallback((tab: TabName) => {
     // Bounce up animation
@@ -91,11 +133,18 @@ const HomeScreen = () => {
               <Text style={styles.welcomeText}>
                 Welcome Back, {username}!
               </Text>
-              <Image
-                source={ProgressBarImg}
-                style={styles.progressBar}
-                resizeMode="contain"
-              />
+              <View style={styles.progressBarContainer}>
+                {Array.from({ length: TOTAL_BARS }).map((_, i) => (
+                  <Pressable
+                    key={i}
+                    onPress={() => handleBarPress(i)}
+                    style={[
+                      styles.progressBarSegment,
+                      { backgroundColor: i < filledBars ? '#A47DCB' : 'rgba(164, 125, 203, 0.3)' },
+                    ]}
+                  />
+                ))}
+              </View>
               <Text style={styles.dayText}>How's your day today?</Text>
             </View>
             <Pressable style={styles.gearButton}>
@@ -109,11 +158,13 @@ const HomeScreen = () => {
 
           {/* I'm Feeling Bar */}
           <View style={styles.feelingBar}>
-            <Image
-              source={SoulpalEyes}
-              style={styles.soulpalEyes}
-              resizeMode="contain"
-            />
+            <View style={styles.soulpalEyesContainer}>
+              <Animated.Image
+                source={SoulpalEyes}
+                style={[styles.soulpalEyes, eyeAnimStyle]}
+                resizeMode="cover"
+              />
+            </View>
             <Text style={styles.feelingText}>I'm Feeling........</Text>
             <Pressable style={styles.sendButton}>
               <Image
@@ -123,15 +174,15 @@ const HomeScreen = () => {
               />
             </Pressable>
           </View>
-        </View>
 
-        {/* Soul Sight Card */}
-        <View style={styles.soulSightCard}>
-          <View style={styles.soulSightTextSection}>
-            <Text style={styles.soulSightTitle}>Soul Sight</Text>
-            <Text style={styles.goalsText}>0/10 Goals Completed</Text>
+          {/* Soul Sight Card */}
+          <View style={styles.soulSightCard}>
+            <View style={styles.soulSightTextSection}>
+              <Text style={styles.soulSightTitle}>Soul Sight</Text>
+              <Text style={styles.goalsText}>0/10 Goals Completed</Text>
+            </View>
+            <View style={styles.soulSightProgress} />
           </View>
-          <View style={styles.soulSightProgress} />
         </View>
 
         {/* Charge Up Section */}
@@ -336,9 +387,20 @@ const styles = StyleSheet.create({
     color: colors.white,
     marginBottom: 6,
   },
-  progressBar: {
+  progressBarContainer: {
     width: 178,
     height: 19,
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 10,
+    gap: 5,
+  },
+  progressBarSegment: {
+    width: 6,
+    height: 12,
+    borderRadius: 1.5,
   },
   dayText: {
     fontFamily: fonts.outfit.light,
@@ -365,9 +427,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 10,
   },
+  soulpalEyesContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
   soulpalEyes: {
     width: 28,
-    height: 20,
+    height: 28,
   },
   feelingText: {
     flex: 1,
@@ -394,7 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginTop: 12,
+    marginTop: 16,
   },
   soulSightTextSection: {
     flex: 1,
@@ -425,7 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 24 * 1.4,
     color: colors.white,
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -527,27 +595,27 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   lockIcon: {
-    width: '85%',
-    height: '85%',
+    width: '95%',
+    height: '95%',
   },
   affirmationImage: {
-    width: 144,
-    height: 149,
+    width: 155,
+    height: 155,
   },
   mirrorCharLeft: {
     position: 'absolute',
-    left: 8,
-    top: 38,
-    width: 32,
-    height: 38,
+    left: -2,
+    top: 22,
+    width: 50,
+    height: 60,
     opacity: 0.5,
   },
   mirrorCharRight: {
     position: 'absolute',
-    right: 8,
-    top: 38,
-    width: 32,
-    height: 38,
+    right: -2,
+    top: 22,
+    width: 50,
+    height: 60,
     opacity: 0.5,
   },
   cardLabel: {
