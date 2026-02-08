@@ -595,8 +595,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   lockIcon: {
-    width: '95%',
-    height: '95%',
+    width: '110%',
+    height: '110%',
   },
   affirmationImage: {
     width: 155,
@@ -604,18 +604,18 @@ const styles = StyleSheet.create({
   },
   mirrorCharLeft: {
     position: 'absolute',
-    left: -2,
-    top: 22,
-    width: 50,
-    height: 60,
+    left: -1,
+    bottom: 52,
+    width: 48,
+    height: 55,
     opacity: 0.5,
   },
   mirrorCharRight: {
     position: 'absolute',
-    right: -2,
-    top: 22,
-    width: 50,
-    height: 60,
+    right: -1,
+    bottom: 52,
+    width: 48,
+    height: 55,
     opacity: 0.5,
   },
   cardLabel: {
