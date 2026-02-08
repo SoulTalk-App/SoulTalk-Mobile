@@ -225,12 +225,8 @@ const AuthStack = () => (
 );
 
 const AppStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen
-      name="Home"
-      component={HomeScreen}
-      options={{ title: "SoulTalk" }}
-    />
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Home" component={HomeScreen} />
   </Stack.Navigator>
 );
 
@@ -311,7 +307,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="auto" />
+          <StatusBar style="light" />
           <Navigation />
         </AuthProvider>
       </SafeAreaProvider>
