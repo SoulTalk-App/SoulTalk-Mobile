@@ -229,6 +229,7 @@ const AppStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Home" component={HomeScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
   </Stack.Navigator>
 );
 

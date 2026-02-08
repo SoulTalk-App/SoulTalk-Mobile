@@ -5,9 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Switch,
   Image,
   Alert,
+  TextInput,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,11 +18,42 @@ import { colors, fonts } from '../theme';
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
+const PRONOUN_OPTIONS = [
+  'He/Him',
+  'She/Her',
+  'They/Them',
+  'He/They',
+  'She/They',
+  'Ze/Zir',
+  'Xe/Xem',
+  'Prefer not to say',
+];
+
+const CustomToggle = ({
+  value,
+  onToggle,
+}: {
+  value: boolean;
+  onToggle: () => void;
+}) => (
+  <Pressable onPress={onToggle} style={styles.toggleTrack}>
+    <View
+      style={[
+        styles.toggleThumb,
+        value ? styles.toggleThumbOn : styles.toggleThumbOff,
+      ]}
+    />
+  </Pressable>
+);
+
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user, logout, resetPassword } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [bio, setBio] = useState('');
+  const [pronoun, setPronoun] = useState('He/Him');
+  const [showPronounPicker, setShowPronounPicker] = useState(false);
 
   const maskEmail = (email: string) => {
     const [local, domain] = email.split('@');
@@ -50,7 +83,7 @@ const SettingsScreen = ({ navigation }: any) => {
     <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -73,49 +106,54 @@ const SettingsScreen = ({ navigation }: any) => {
         <Text style={styles.fieldMuted}>{user?.first_name?.toLowerCase() || 'user'}</Text>
         <View style={styles.separator} />
 
-        {/* @username */}
-        <Text style={styles.fieldMuted}>@{user?.first_name?.toLowerCase() || 'username'}</Text>
+        {/* @username placeholder */}
+        <Text style={styles.fieldMuted}>@username</Text>
         <View style={styles.separator} />
 
         {/* User Email */}
-        <Text style={styles.fieldWhite}>User Email</Text>
-        <Text style={styles.fieldMuted}>{user?.email ? maskEmail(user.email) : 'No email'}</Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldWhite}>User Email</Text>
+          <Text style={styles.fieldMuted}>{user?.email ? maskEmail(user.email) : 'No email'}</Text>
+        </View>
         <View style={styles.separator} />
 
         {/* Reset Password */}
-        <Pressable onPress={handleResetPassword}>
-          <Text style={styles.fieldWhite}>RESET PASSWORD</Text>
+        <Pressable onPress={handleResetPassword} style={styles.resetButton}>
+          <Text style={styles.resetButtonText}>RESET PASSWORD</Text>
         </Pressable>
 
         {/* Bio */}
-        <Text style={styles.fieldWhite}>Bio</Text>
+        <TextInput
+          style={styles.bioInput}
+          value={bio}
+          onChangeText={setBio}
+          placeholder="Bio"
+          placeholderTextColor={colors.white}
+          multiline
+        />
         <View style={styles.separator} />
 
         {/* Pronouns */}
-        <Text style={styles.pronounText}>He/Him</Text>
+        <Pressable onPress={() => setShowPronounPicker(true)}>
+          <Text style={styles.pronounText}>{pronoun}</Text>
+        </Pressable>
         <View style={styles.separator} />
 
         {/* Push Notification */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Push Notification</Text>
-          <Switch
+          <CustomToggle
             value={pushNotifications}
-            onValueChange={setPushNotifications}
-            trackColor={{ false: 'rgba(255,255,255,0.3)', true: colors.accent.cyan }}
-            thumbColor={colors.white}
-            style={styles.toggle}
+            onToggle={() => setPushNotifications(!pushNotifications)}
           />
         </View>
 
         {/* Dark/Light Mode */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Dark/Light Mode</Text>
-          <Switch
+          <CustomToggle
             value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: 'rgba(255,255,255,0.3)', true: colors.accent.cyan }}
-            thumbColor={colors.white}
-            style={styles.toggle}
+            onToggle={() => setDarkMode(!darkMode)}
           />
         </View>
 
@@ -129,7 +167,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* Footer */}
         <View style={styles.footerLinks}>
-          <Pressable>
+          <Pressable onPress={() => navigation.navigate('Terms')}>
             <Text style={styles.footerLink}>Terms & Privacy</Text>
           </Pressable>
           <Pressable>
@@ -140,9 +178,41 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.logoContainer}>
           <Image source={SoulTalkLogo} style={styles.logo} resizeMode="contain" />
         </View>
-
-        <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
+
+      {/* Pronoun Picker Modal */}
+      <Modal visible={showPronounPicker} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPronounPicker(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Pronouns</Text>
+            <FlatList
+              data={PRONOUN_OPTIONS}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={[
+                    styles.modalOption,
+                    pronoun === item && styles.modalOptionActive,
+                  ]}
+                  onPress={() => {
+                    setPronoun(item);
+                    setShowPronounPicker(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      pronoun === item && styles.modalOptionTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </Pressable>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -157,6 +227,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 22,
+    flexGrow: 1,
   },
 
   // Header
@@ -195,10 +266,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderStyle: 'dashed',
-    marginBottom: 0,
   },
 
   // Fields
+  fieldGroup: {
+    marginTop: 6,
+  },
   fieldMuted: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
@@ -208,7 +281,7 @@ const styles = StyleSheet.create({
   fieldWhite: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    lineHeight: 46,
+    lineHeight: 30,
     color: colors.white,
   },
 
@@ -216,7 +289,27 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: colors.white,
-    marginRight: 0,
+  },
+
+  // Reset Password
+  resetButton: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  resetButtonText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 15,
+    lineHeight: 46,
+    color: colors.white,
+  },
+
+  // Bio
+  bioInput: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.white,
+    paddingVertical: 12,
   },
 
   // Pronouns
@@ -225,6 +318,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 46,
     color: colors.white,
+  },
+
+  // Toggle
+  toggleTrack: {
+    width: 34,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.white,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleThumb: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  toggleThumbOff: {
+    backgroundColor: '#000000',
+    alignSelf: 'flex-start',
+  },
+  toggleThumbOn: {
+    backgroundColor: colors.white,
+    alignSelf: 'flex-end',
   },
 
   // Toggle rows
@@ -240,9 +357,6 @@ const styles = StyleSheet.create({
     lineHeight: 46,
     color: colors.white,
   },
-  toggle: {
-    transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }],
-  },
 
   // Logout
   logoutText: {
@@ -250,6 +364,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 46,
     color: '#FF5E5E',
+    marginTop: 4,
   },
 
   // Footer
@@ -276,6 +391,47 @@ const styles = StyleSheet.create({
   logo: {
     width: 100,
     height: 22,
+  },
+
+  // Pronoun Picker Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#59168B',
+    borderRadius: 16,
+    width: 280,
+    maxHeight: 400,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  modalTitle: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 18,
+    color: colors.white,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  modalOptionActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  modalOptionText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  modalOptionTextActive: {
+    color: colors.white,
+    fontFamily: fonts.outfit.medium,
   },
 });
 
