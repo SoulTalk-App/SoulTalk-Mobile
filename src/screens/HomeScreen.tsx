@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Image,
-  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -30,11 +29,13 @@ const PalmTree2 = require('../../assets/images/home/PalmTree2.png');
 const PalmTree3 = require('../../assets/images/home/PalmTree3.png');
 const SoulpalEyes = require('../../assets/images/home/SoulpalIcon-f02c98.png');
 const LockIcon = require('../../assets/images/home/LockIcon.png');
-const AffirmationMirrorChars = require('../../assets/images/home/AffirmationMirrorChars.png');
+const AffirmationMirrorFull = require('../../assets/images/home/AffirmationMirrorFull.png');
+const MirrorCharLeft = require('../../assets/images/home/MirrorCharLeft.png');
+const MirrorCharRight = require('../../assets/images/home/MirrorCharRight.png');
 const ProgressBarImg = require('../../assets/images/home/ProgressBarPng.png');
 const SendIconImg = require('../../assets/images/home/SendIconPng.png');
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type TabName = 'Home' | 'Journal' | 'Profile';
@@ -200,10 +201,20 @@ const HomeScreen = () => {
 
           {/* Affirmation Mirror Card */}
           <View style={styles.smallCardWrapper}>
-            <View style={[styles.smallCard, styles.affirmationCard]}>
+            <View style={styles.smallCard}>
               <Image
-                source={AffirmationMirrorChars}
+                source={MirrorCharLeft}
+                style={styles.mirrorCharLeft}
+                resizeMode="contain"
+              />
+              <Image
+                source={AffirmationMirrorFull}
                 style={styles.affirmationImage}
+                resizeMode="contain"
+              />
+              <Image
+                source={MirrorCharRight}
+                style={styles.mirrorCharRight}
                 resizeMode="contain"
               />
             </View>
@@ -214,7 +225,7 @@ const HomeScreen = () => {
         </View>
 
         {/* Bottom spacing for tab bar */}
-        <View style={{ height: 120 + (insets.bottom || 16) }} />
+        <View style={{ height: 140 + (insets.bottom || 16) }} />
       </ScrollView>
 
       {/* Bottom Tab Bar */}
@@ -228,7 +239,7 @@ const HomeScreen = () => {
         <View style={styles.tabBarInner}>
           {/* Home Tab */}
           <AnimatedPressable
-            style={styles.tabItem}
+            style={activeTab === 'Home' ? styles.activeTabItem : styles.tabItem}
             onPress={() => handleTabPress('Home')}
           >
             {activeTab === 'Home' ? (
@@ -245,7 +256,7 @@ const HomeScreen = () => {
 
           {/* Journal Tab */}
           <AnimatedPressable
-            style={styles.tabItem}
+            style={activeTab === 'Journal' ? styles.activeTabItem : styles.tabItem}
             onPress={() => handleTabPress('Journal')}
           >
             {activeTab === 'Journal' ? (
@@ -262,7 +273,7 @@ const HomeScreen = () => {
 
           {/* Profile Tab */}
           <AnimatedPressable
-            style={styles.tabItem}
+            style={activeTab === 'Profile' ? styles.activeTabItem : styles.tabItem}
             onPress={() => handleTabPress('Profile')}
           >
             {activeTab === 'Profile' ? (
@@ -282,8 +293,7 @@ const HomeScreen = () => {
   );
 };
 
-const CARD_HORIZONTAL_MARGIN = 16;
-const CARD_WIDTH = SCREEN_WIDTH - CARD_HORIZONTAL_MARGIN * 2;
+const CARD_HORIZONTAL_MARGIN = 20;
 
 const styles = StyleSheet.create({
   container: {
@@ -445,8 +455,7 @@ const styles = StyleSheet.create({
     top: 9,
     width: 99,
     height: 162,
-    tintColor: '#231F20',
-    opacity: 0.5,
+    opacity: 0.25,
   },
   palmTree2: {
     position: 'absolute',
@@ -454,8 +463,7 @@ const styles = StyleSheet.create({
     top: 40,
     width: 86,
     height: 130,
-    tintColor: '#231F20',
-    opacity: 0.5,
+    opacity: 0.25,
   },
   palmTree3: {
     position: 'absolute',
@@ -463,8 +471,7 @@ const styles = StyleSheet.create({
     top: 49,
     width: 78,
     height: 120,
-    tintColor: '#231F20',
-    opacity: 0.5,
+    opacity: 0.25,
   },
   goalGardenCharacter: {
     position: 'absolute',
@@ -500,35 +507,48 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Small Cards Row — compact
+  // Small Cards Row
   cardsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 16,
   },
   smallCardWrapper: {
-    width: (CARD_WIDTH - 16) / 2,
+    width: 155,
     alignItems: 'center',
   },
   smallCard: {
     width: '100%',
-    aspectRatio: 1,
+    height: 155,
     backgroundColor: colors.white,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  affirmationCard: {
-    borderRadius: 20,
-  },
   lockIcon: {
-    width: '60%',
-    height: '60%',
-  },
-  affirmationImage: {
     width: '85%',
     height: '85%',
+  },
+  affirmationImage: {
+    width: 144,
+    height: 149,
+  },
+  mirrorCharLeft: {
+    position: 'absolute',
+    left: 8,
+    top: 38,
+    width: 32,
+    height: 38,
+    opacity: 0.5,
+  },
+  mirrorCharRight: {
+    position: 'absolute',
+    right: 8,
+    top: 38,
+    width: 32,
+    height: 38,
+    opacity: 0.5,
   },
   cardLabel: {
     backgroundColor: colors.white,
@@ -567,6 +587,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 50,
+  },
+  activeTabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
+    marginTop: -28,
   },
   activeTabBg: {
     backgroundColor: '#59168B',
