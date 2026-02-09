@@ -167,7 +167,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* Display Name */}
         <TextInput
-          style={styles.fieldInput}
+          style={[styles.fieldInput, displayName ? styles.fieldInputActive : null]}
           value={displayName}
           onChangeText={setDisplayName}
           placeholder="user"
@@ -189,10 +189,10 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* User Email */}
         <Text style={styles.emailLabel}>User Email</Text>
         <TextInput
-          style={styles.emailInput}
+          style={[styles.emailInput, email ? styles.fieldInputActive : null]}
           value={email}
           onChangeText={handleEmailChange}
-          placeholder={user?.email || 'email@example.com'}
+          placeholder="youremail@domain.com"
           placeholderTextColor="rgba(255, 255, 255, 0.5)"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -222,6 +222,7 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.separator} />
 
         {/* Pronouns */}
+        <Text style={styles.fieldLabel}>Pronouns</Text>
         <Pressable onPress={() => setShowPronounPicker(true)}>
           <Text style={styles.pronounText}>{pronoun}</Text>
         </Pressable>
@@ -364,13 +365,24 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
     height: 46,
   },
+  fieldInputActive: {
+    color: colors.white,
+  },
+
+  // Field label
+  fieldLabel: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 15,
+    color: colors.white,
+    marginTop: 16,
+  },
 
   // Email
   emailLabel: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     color: colors.white,
-    marginTop: 8,
+    marginTop: 16,
   },
   emailInput: {
     fontFamily: fonts.outfit.regular,
@@ -427,9 +439,10 @@ const styles = StyleSheet.create({
   // Pronouns
   pronounText: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    lineHeight: 46,
-    color: colors.white,
+    fontSize: 14,
+    lineHeight: 20,
+    height: 36,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
 
   // Toggle
