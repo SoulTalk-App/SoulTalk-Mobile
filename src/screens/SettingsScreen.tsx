@@ -41,7 +41,7 @@ const CustomToggle = ({
   value: boolean;
   onToggle: () => void;
 }) => (
-  <Pressable onPress={onToggle} style={styles.toggleTrack}>
+  <Pressable onPress={onToggle} style={[styles.toggleTrack, value ? styles.toggleTrackOn : null]}>
     <View
       style={[
         styles.toggleThumb,
@@ -453,6 +453,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     justifyContent: 'center',
     paddingHorizontal: 3,
+  },
+  toggleTrackOn: {
+    backgroundColor: '#5ECFFF',
   },
   toggleThumb: {
     width: 10,
