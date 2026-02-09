@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,16 @@ import {
   FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
 
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
+
+const SETTINGS_KEY = '@soultalk_settings';
+const BIO_MAX_LENGTH = 150;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PRONOUN_OPTIONS = [
   'He/Him',
@@ -51,14 +56,71 @@ const SettingsScreen = ({ navigation }: any) => {
   const { user, logout, resetPassword } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [bio, setBio] = useState('');
+  const [bioError, setBioError] = useState('');
   const [pronoun, setPronoun] = useState('He/Him');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
 
-  const maskEmail = (email: string) => {
-    const [local, domain] = email.split('@');
-    if (!domain) return email;
-    return local.slice(0, 2) + '********@' + domain;
+  // Load saved settings
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(SETTINGS_KEY);
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data.displayName) setDisplayName(data.displayName);
+          if (data.username) setUsername(data.username);
+          if (data.bio) setBio(data.bio);
+          if (data.pronoun) setPronoun(data.pronoun);
+          if (data.pushNotifications !== undefined) setPushNotifications(data.pushNotifications);
+          if (data.darkMode !== undefined) setDarkMode(data.darkMode);
+        }
+      } catch {}
+    };
+    load();
+
+    // Pre-fill from auth user
+    if (user?.first_name) setDisplayName((prev) => prev || user.first_name || '');
+    if (user?.email) setEmail(user.email);
+  }, [user]);
+
+  // Auto-save on navigate away
+  const saveSettings = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({ displayName, username, bio, pronoun, pushNotifications, darkMode })
+      );
+    } catch {}
+  }, [displayName, username, bio, pronoun, pushNotifications, darkMode]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      saveSettings();
+    });
+    return unsubscribe;
+  }, [navigation, saveSettings]);
+
+  const handleBioChange = (text: string) => {
+    setBio(text);
+    if (text.length > BIO_MAX_LENGTH) {
+      setBioError(`Bio cannot exceed ${BIO_MAX_LENGTH} characters (${text.length}/${BIO_MAX_LENGTH})`);
+    } else {
+      setBioError('');
+    }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (text.length > 0 && !EMAIL_REGEX.test(text)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
   };
 
   const handleResetPassword = async () => {
@@ -85,6 +147,7 @@ const SettingsScreen = ({ navigation }: any) => {
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <View style={styles.header}>
@@ -102,19 +165,39 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* Dashed separator */}
         <View style={styles.dashedLine} />
 
-        {/* Username */}
-        <Text style={styles.fieldMuted}>{user?.first_name?.toLowerCase() || 'user'}</Text>
+        {/* Display Name */}
+        <TextInput
+          style={styles.fieldInput}
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="user"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+        />
         <View style={styles.separator} />
 
-        {/* @username placeholder */}
-        <Text style={styles.fieldMuted}>@username</Text>
+        {/* @username */}
+        <TextInput
+          style={styles.fieldInput}
+          value={username}
+          onChangeText={setUsername}
+          placeholder="@username"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          autoCapitalize="none"
+        />
         <View style={styles.separator} />
 
         {/* User Email */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldWhite}>User Email</Text>
-          <Text style={styles.fieldMuted}>{user?.email ? maskEmail(user.email) : 'No email'}</Text>
-        </View>
+        <Text style={styles.emailLabel}>User Email</Text>
+        <TextInput
+          style={styles.emailInput}
+          value={email}
+          onChangeText={handleEmailChange}
+          placeholder={user?.email || 'email@example.com'}
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
         <View style={styles.separator} />
 
         {/* Reset Password */}
@@ -126,11 +209,16 @@ const SettingsScreen = ({ navigation }: any) => {
         <TextInput
           style={styles.bioInput}
           value={bio}
-          onChangeText={setBio}
+          onChangeText={handleBioChange}
           placeholder="Bio"
           placeholderTextColor={colors.white}
           multiline
+          maxLength={BIO_MAX_LENGTH + 10}
         />
+        {bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
+        {bio.length > 0 && !bioError ? (
+          <Text style={styles.charCount}>{bio.length}/{BIO_MAX_LENGTH}</Text>
+        ) : null}
         <View style={styles.separator} />
 
         {/* Pronouns */}
@@ -170,7 +258,7 @@ const SettingsScreen = ({ navigation }: any) => {
           <Pressable onPress={() => navigation.navigate('Terms')}>
             <Text style={styles.footerLink}>Terms & Privacy</Text>
           </Pressable>
-          <Pressable>
+          <Pressable onPress={() => Alert.alert('Coming Soon', 'Help page is under development.')}>
             <Text style={styles.footerLink}>Help</Text>
           </Pressable>
         </View>
@@ -268,21 +356,44 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
 
-  // Fields
-  fieldGroup: {
-    marginTop: 6,
-  },
-  fieldMuted: {
+  // Input fields
+  fieldInput: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    lineHeight: 46,
+    lineHeight: 20,
     color: 'rgba(255, 255, 255, 0.5)',
+    height: 46,
   },
-  fieldWhite: {
+
+  // Email
+  emailLabel: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    lineHeight: 30,
     color: colors.white,
+    marginTop: 8,
+  },
+  emailInput: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255, 255, 255, 0.5)',
+    height: 36,
+  },
+
+  // Error text
+  errorText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 11,
+    color: '#FF5E5E',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  charCount: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'right',
+    marginTop: 2,
   },
 
   // Separator
@@ -293,8 +404,8 @@ const styles = StyleSheet.create({
 
   // Reset Password
   resetButton: {
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 6,
+    marginBottom: 6,
   },
   resetButtonText: {
     fontFamily: fonts.outfit.regular,
@@ -310,6 +421,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.white,
     paddingVertical: 12,
+    minHeight: 46,
   },
 
   // Pronouns
@@ -325,22 +437,20 @@ const styles = StyleSheet.create({
     width: 34,
     height: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.white,
+    backgroundColor: colors.white,
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 3,
   },
   toggleThumb: {
     width: 10,
     height: 10,
     borderRadius: 5,
+    backgroundColor: '#000000',
   },
   toggleThumbOff: {
-    backgroundColor: '#000000',
     alignSelf: 'flex-start',
   },
   toggleThumbOn: {
-    backgroundColor: colors.white,
     alignSelf: 'flex-end',
   },
 
@@ -378,6 +488,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 28,
     color: '#5ECFFF',
+    textDecorationLine: 'underline',
   },
   footerSeparator: {
     height: 1,
