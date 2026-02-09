@@ -161,41 +161,29 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Personality Test + Soul Sight Row */}
-        <View style={styles.cardsRow}>
-          {/* Personality Test Card */}
-          <View style={styles.personalityCard}>
-            <Text style={styles.cardTitle}>Personality Test</Text>
-            <View style={styles.personalityContent}>
-              <Text style={styles.loremText}>
-                Lorem Ipsum Dolor Res{'\n'}Lorem...
-              </Text>
+        {/* Two Column Layout */}
+        <View style={styles.twoColumns}>
+          {/* Left Column */}
+          <View style={styles.leftColumn}>
+            {/* Personality Test Card */}
+            <View style={styles.personalityCard}>
+              <Text style={styles.cardTitle}>Personality Test</Text>
+              <View style={styles.personalityContent}>
+                <Text style={styles.loremText}>
+                  Lorem Ipsum Dolor Res{'\n'}Lorem...
+                </Text>
+              </View>
+              <View style={styles.personalityProgress}>
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <View key={i} style={styles.progressDot} />
+                ))}
+              </View>
+              <Pressable style={styles.takeTestButton}>
+                <Text style={styles.takeTestText}>Take the test</Text>
+              </Pressable>
             </View>
-            <View style={styles.personalityProgress}>
-              {Array.from({ length: 15 }).map((_, i) => (
-                <View key={i} style={styles.progressDot} />
-              ))}
-            </View>
-            <Pressable style={styles.takeTestButton}>
-              <Text style={styles.takeTestText}>Take the test</Text>
-            </Pressable>
-          </View>
 
-          {/* Soul Sight Card */}
-          <View style={styles.soulSightCard}>
-            <Text style={styles.cardTitle}>Soul Sight</Text>
-            <Text style={styles.soulSightDesc}>
-              Lorem Ipsum Dolor Res{'\n'}Lorem...
-            </Text>
-            <View style={styles.soulSightBar} />
-            <View style={styles.soulSightBlock} />
-          </View>
-        </View>
-
-        {/* Soul Pal Character + Achievement Row */}
-        <View style={styles.bottomSection}>
-          {/* Left: SoulPal Character + Dots */}
-          <View style={styles.soulPalSection}>
+            {/* SoulPal Character + Dots */}
             <View style={styles.soulPalCharRow}>
               <Image source={ProfileSoulPalChar} style={styles.soulPalChar} resizeMode="contain" />
               <View style={styles.dotsColumn}>
@@ -204,14 +192,27 @@ const ProfileScreen = ({ navigation }: any) => {
                 ))}
               </View>
             </View>
+
+            {/* Soul Pal Label Card */}
             <View style={styles.soulPalLabelCard}>
               <Text style={styles.soulPalLabelText}>Soul Pal</Text>
               <Image source={ThreeDots} style={styles.threeDots} resizeMode="contain" />
             </View>
           </View>
 
-          {/* Right: Achievement Card */}
-          <View style={styles.achievementSection}>
+          {/* Right Column */}
+          <View style={styles.rightColumn}>
+            {/* Soul Sight Card */}
+            <View style={styles.soulSightCard}>
+              <Text style={styles.cardTitle}>Soul Sight</Text>
+              <Text style={styles.soulSightDesc}>
+                Lorem Ipsum Dolor Res{'\n'}Lorem...
+              </Text>
+              <View style={styles.soulSightBar} />
+              <View style={styles.soulSightBlock} />
+            </View>
+
+            {/* Achievement Card */}
             <View style={styles.achievementCard}>
               <Text style={styles.achievementTitle}>Achievement</Text>
               <View style={styles.achievementGrid}>
@@ -228,7 +229,7 @@ const ProfileScreen = ({ navigation }: any) => {
       <Animated.View
         style={[
           styles.tabBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 },
+          { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
           tabBarAnimStyle,
         ]}
       >
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 0,
   },
   topIcon: {
     width: 42,
@@ -306,7 +307,8 @@ const styles = StyleSheet.create({
   // Avatar
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginTop: -10,
+    marginBottom: 4,
   },
   avatarCircle: {
     width: 109,
@@ -331,13 +333,13 @@ const styles = StyleSheet.create({
     lineHeight: 24 * 1.4,
     color: colors.white,
     textAlign: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
   // Edit Profile
   editProfileContainer: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   editProfileButton: {
     backgroundColor: colors.white,
@@ -390,11 +392,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#59168B',
   },
 
-  // Cards Row (Personality Test + Soul Sight)
-  cardsRow: {
+  // Two Column Layout
+  twoColumns: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+  },
+  leftColumn: {
+    width: 149,
+  },
+  rightColumn: {
+    width: 148,
   },
 
   // Personality Test Card
@@ -405,6 +412,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.white,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginBottom: 8,
   },
   cardTitle: {
     fontFamily: fonts.edensor.bold,
@@ -457,9 +465,11 @@ const styles = StyleSheet.create({
   // Soul Sight Card
   soulSightCard: {
     width: 148,
+    height: 238,
     backgroundColor: colors.white,
     borderRadius: 10,
     padding: 8,
+    marginBottom: 22,
   },
   soulSightDesc: {
     fontFamily: fonts.outfit.regular,
@@ -480,16 +490,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Bottom Section (SoulPal + Achievement)
-  bottomSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  // Soul Pal Section (left)
-  soulPalSection: {
-    width: 166,
-  },
+  // SoulPal Character + Dots
   soulPalCharRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
     height: 143,
   },
   dotsColumn: {
-    marginLeft: 10,
+    marginLeft: 2,
     gap: 4,
   },
   progressCircle: {
@@ -509,6 +510,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: colors.white,
   },
+
+  // Soul Pal Label Card
   soulPalLabelCard: {
     backgroundColor: colors.white,
     borderRadius: 10,
@@ -526,15 +529,12 @@ const styles = StyleSheet.create({
     color: '#59168B',
   },
 
-  // Achievement Section (right)
-  achievementSection: {
-    width: 148,
-    justifyContent: 'flex-end',
-  },
+  // Achievement Card
   achievementCard: {
     backgroundColor: colors.white,
     borderRadius: 10,
     padding: 8,
+    width: 148,
   },
   achievementTitle: {
     fontFamily: fonts.edensor.bold,
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
   },
   tabItem: {
     alignItems: 'center',
@@ -599,14 +599,16 @@ const styles = StyleSheet.create({
   tabIcon: {
     width: 24,
     height: 22,
+    tintColor: '#FFFFFF',
   },
   tabIconInactive: {
     width: 28,
     height: 25,
-    opacity: 0.5,
+    opacity: 0.85,
+    tintColor: '#59168B',
   },
   activeTabLabel: {
-    fontFamily: fonts.edensor.regular,
+    fontFamily: fonts.edensor.bold,
     fontSize: 12,
     lineHeight: 12 * 1.4,
     color: '#59168B',

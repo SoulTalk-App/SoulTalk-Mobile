@@ -226,10 +226,31 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
+// Smooth crossfade for tab-like transitions (Home <-> Profile)
+const forFadeTransition = ({ current }: any) => ({
+  cardStyle: {
+    opacity: current.progress,
+    backgroundColor: 'transparent',
+  },
+});
+
+const tabTransitionSpec = {
+  open: { animation: 'timing' as const, config: { duration: 250 } },
+  close: { animation: 'timing' as const, config: { duration: 250 } },
+};
+
+const tabScreenOptions = {
+  cardStyleInterpolator: forFadeTransition,
+  transitionSpec: tabTransitionSpec,
+  gestureEnabled: false,
+  cardOverlayEnabled: false,
+  cardStyle: { backgroundColor: 'transparent' },
+};
+
 const AppStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen name="Profile" component={ProfileScreen} />
+    <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
   </Stack.Navigator>

@@ -318,7 +318,7 @@ const HomeScreen = ({ navigation }: any) => {
       <Animated.View
         style={[
           styles.tabBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 },
+          { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
           tabBarAnimStyle,
         ]}
       >
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
   },
   tabItem: {
     alignItems: 'center',
@@ -698,14 +698,16 @@ const styles = StyleSheet.create({
   tabIcon: {
     width: 24,
     height: 22,
+    tintColor: '#FFFFFF',
   },
   tabIconInactive: {
     width: 28,
     height: 25,
-    opacity: 0.5,
+    opacity: 0.85,
+    tintColor: '#59168B',
   },
   activeTabLabel: {
-    fontFamily: fonts.edensor.regular,
+    fontFamily: fonts.edensor.bold,
     fontSize: 12,
     lineHeight: 12 * 1.4,
     color: '#59168B',
