@@ -36,6 +36,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabName>('Profile');
   const [username, setUsername] = useState('');
+  const [filledBars, setFilledBars] = useState(0);
 
   // Tab bar animations
   const tabTranslateY = useSharedValue(0);
@@ -54,6 +55,10 @@ const ProfileScreen = ({ navigation }: any) => {
     };
     loadProfile();
   }, []);
+
+  const handleBarPress = useCallback((index: number) => {
+    setFilledBars(index + 1 === filledBars ? 0 : index + 1);
+  }, [filledBars]);
 
   const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
 
@@ -167,20 +172,27 @@ const ProfileScreen = ({ navigation }: any) => {
           <View style={styles.leftColumn}>
             {/* Personality Test Card */}
             <View style={styles.personalityCard}>
-              <Text style={styles.cardTitle}>Personality Test</Text>
-              <View style={styles.personalityContent}>
-                <Text style={styles.loremText}>
-                  Lorem Ipsum Dolor Res{'\n'}Lorem...
-                </Text>
+              <View style={styles.personalityHeader}>
+                <Text style={styles.personalityTitle}>Personality Test</Text>
               </View>
-              <View style={styles.personalityProgress}>
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <View key={i} style={styles.progressDot} />
-                ))}
-              </View>
-              <Pressable style={styles.takeTestButton}>
+              <Text style={styles.personalityLoremText}>
+                Lorem Ipsum Dolor Res{'\n'}Lorem...
+              </Text>
+              <View style={styles.personalityFooter}>
+                <View style={styles.personalityProgressRow}>
+                  {Array.from({ length: 15 }).map((_, i) => (
+                    <Pressable key={i} onPress={() => handleBarPress(i)}>
+                      <View
+                        style={[
+                          styles.progressDot,
+                          { backgroundColor: i < filledBars ? '#A47DCB' : 'rgba(164, 125, 203, 0.3)' },
+                        ]}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
                 <Text style={styles.takeTestText}>Take the test</Text>
-              </Pressable>
+              </View>
             </View>
 
             {/* SoulPal Character + Dots */}
@@ -204,7 +216,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <View style={styles.rightColumn}>
             {/* Soul Sight Card */}
             <View style={styles.soulSightCard}>
-              <Text style={styles.cardTitle}>Soul Sight</Text>
+              <Text style={styles.soulSightTitle}>Soul Sight</Text>
               <Text style={styles.soulSightDesc}>
                 Lorem Ipsum Dolor Res{'\n'}Lorem...
               </Text>
@@ -214,7 +226,9 @@ const ProfileScreen = ({ navigation }: any) => {
 
             {/* Achievement Card */}
             <View style={styles.achievementCard}>
-              <Text style={styles.achievementTitle}>Achievement</Text>
+              <View style={styles.achievementHeader}>
+                <Text style={styles.achievementHeaderText}>Achievement</Text>
+              </View>
               <View style={styles.achievementGrid}>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <View key={i} style={styles.achievementItem} />
@@ -307,8 +321,8 @@ const styles = StyleSheet.create({
   // Avatar
   avatarContainer: {
     alignItems: 'center',
-    marginTop: -10,
-    marginBottom: 4,
+    marginTop: -34,
+    marginBottom: 2,
   },
   avatarCircle: {
     width: 109,
@@ -333,13 +347,13 @@ const styles = StyleSheet.create({
     lineHeight: 24 * 1.4,
     color: colors.white,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 10,
   },
 
   // Edit Profile
   editProfileContainer: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   editProfileButton: {
     backgroundColor: colors.white,
@@ -360,9 +374,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingTop: 6,
-    paddingBottom: 12,
-    marginBottom: 16,
-    height: 78,
+    paddingBottom: 18,
+    marginBottom: 20,
   },
   badgesHeader: {
     flexDirection: 'row',
@@ -411,55 +424,53 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.white,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
     marginBottom: 8,
   },
-  cardTitle: {
+  personalityHeader: {
+    backgroundColor: colors.white,
+    height: 30,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  personalityTitle: {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
     color: '#59168B',
-    paddingHorizontal: 10,
-    paddingTop: 4,
   },
-  personalityContent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    marginHorizontal: 8,
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-  },
-  loremText: {
+  personalityLoremText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
     lineHeight: 12 * 1.26,
     color: colors.white,
+    paddingHorizontal: 11,
+    flex: 1,
+    marginTop: 10,
   },
-  personalityProgress: {
-    flexDirection: 'row',
+  personalityFooter: {
+    backgroundColor: colors.white,
     paddingHorizontal: 8,
-    marginTop: 4,
-    gap: 2,
+    paddingTop: 4,
+    paddingBottom: 4,
+    alignItems: 'center',
+  },
+  personalityProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   progressDot: {
     width: 5,
     height: 10,
     borderRadius: 1.5,
-    backgroundColor: '#A47DCB',
-  },
-  takeTestButton: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    marginTop: 4,
-    paddingVertical: 2,
-    alignItems: 'center',
   },
   takeTestText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
     lineHeight: 13 * 1.4,
     color: '#59168B',
+    marginTop: 2,
   },
 
   // Soul Sight Card
@@ -468,8 +479,16 @@ const styles = StyleSheet.create({
     height: 238,
     backgroundColor: colors.white,
     borderRadius: 10,
-    padding: 8,
+    paddingTop: 4,
+    paddingHorizontal: 8,
     marginBottom: 22,
+  },
+  soulSightTitle: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 15,
+    lineHeight: 15 * 1.4,
+    color: '#59168B',
+    textAlign: 'left',
   },
   soulSightDesc: {
     fontFamily: fonts.outfit.regular,
@@ -481,13 +500,15 @@ const styles = StyleSheet.create({
   soulSightBar: {
     height: 23,
     backgroundColor: '#59168B',
-    marginTop: 8,
+    marginHorizontal: 2,
+    marginTop: 12,
   },
   soulSightBlock: {
     flex: 1,
-    minHeight: 100,
     backgroundColor: '#59168B',
-    marginTop: 4,
+    marginHorizontal: 2,
+    marginTop: 8,
+    marginBottom: 12,
   },
 
   // SoulPal Character + Dots
@@ -533,30 +554,38 @@ const styles = StyleSheet.create({
   achievementCard: {
     backgroundColor: colors.white,
     borderRadius: 10,
-    padding: 8,
     width: 148,
+    height: 104,
+    overflow: 'hidden',
   },
-  achievementTitle: {
+  achievementHeader: {
+    backgroundColor: '#622C92',
+    height: 29,
+    justifyContent: 'center',
+    paddingHorizontal: 9,
+  },
+  achievementHeaderText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
     color: colors.white,
-    backgroundColor: '#622C92',
-    borderRadius: 10,
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginBottom: 6,
   },
   achievementGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 7,
+    paddingBottom: 8,
+    rowGap: 7,
   },
   achievementItem: {
     width: 29,
     height: 25,
-    borderRadius: 10,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     backgroundColor: '#622C92',
   },
 
@@ -591,19 +620,19 @@ const styles = StyleSheet.create({
   activeTabBg: {
     backgroundColor: '#59168B',
     borderRadius: 24,
-    width: 48,
-    height: 38,
+    width: 52,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   tabIcon: {
-    width: 24,
-    height: 22,
+    width: 28,
+    height: 26,
     tintColor: '#FFFFFF',
   },
   tabIconInactive: {
-    width: 28,
-    height: 25,
+    width: 33,
+    height: 30,
     opacity: 0.85,
     tintColor: '#59168B',
   },

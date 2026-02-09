@@ -226,25 +226,30 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-// Smooth crossfade for tab-like transitions (Home <-> Profile)
-const forFadeTransition = ({ current }: any) => ({
+// Horizontal glide for tab-like transitions (Home <-> Profile)
+const forTabGlide = ({ current, layouts }: any) => ({
   cardStyle: {
-    opacity: current.progress,
-    backgroundColor: 'transparent',
+    transform: [
+      {
+        translateX: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [layouts.screen.width, 0],
+        }),
+      },
+    ],
   },
 });
 
 const tabTransitionSpec = {
-  open: { animation: 'timing' as const, config: { duration: 250 } },
-  close: { animation: 'timing' as const, config: { duration: 250 } },
+  open: { animation: 'timing' as const, config: { duration: 200 } },
+  close: { animation: 'timing' as const, config: { duration: 200 } },
 };
 
 const tabScreenOptions = {
-  cardStyleInterpolator: forFadeTransition,
+  cardStyleInterpolator: forTabGlide,
   transitionSpec: tabTransitionSpec,
   gestureEnabled: false,
   cardOverlayEnabled: false,
-  cardStyle: { backgroundColor: 'transparent' },
 };
 
 const AppStack = () => (
