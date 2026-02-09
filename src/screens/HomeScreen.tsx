@@ -41,8 +41,6 @@ const MirrorCharRight = require('../../assets/images/home/MirrorCharRight.png');
 const SendIconImg = require('../../assets/images/home/SendIconPng.png');
 
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const TOTAL_BARS = 15;
@@ -55,6 +53,11 @@ const HomeScreen = ({ navigation }: any) => {
 
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
+
+  // Tab rise and label animations: Home=0, Journal=1, Profile=2
+  const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
+  const tabRiseValues = [useSharedValue(-20), useSharedValue(0), useSharedValue(0)];
+  const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
   // Eye blink animation
   const eyeOpacity = useSharedValue(1);
@@ -99,16 +102,48 @@ const HomeScreen = ({ navigation }: any) => {
   }, [filledBars]);
 
   const handleTabPress = useCallback((tab: TabName) => {
-    // Bounce up animation
+    // Bounce the whole bar
     tabTranslateY.value = withSpring(-8, { damping: 12, stiffness: 300 }, () => {
       tabTranslateY.value = withSpring(0, { damping: 10, stiffness: 200 });
     });
+
+    if (tab === 'Profile') {
+      navigation.navigate('Profile');
+      return;
+    }
+
+    const newIndex = TAB_POSITIONS[tab];
+    const oldIndex = TAB_POSITIONS[activeTab];
+
+    // Lower the old active tab, raise the new one
+    tabRiseValues[oldIndex].value = withSpring(0, { damping: 12, stiffness: 200 });
+    tabRiseValues[newIndex].value = withSpring(-20, { damping: 12, stiffness: 200 });
+
+    // Fade out old label, fade in new label
+    tabLabelOpacities[oldIndex].value = withTiming(0, { duration: 150 });
+    tabLabelOpacities[newIndex].value = withTiming(1, { duration: 250 });
+
     setActiveTab(tab);
-  }, []);
+  }, [activeTab, navigation]);
 
   const tabBarAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: tabTranslateY.value }],
   }));
+
+  // Per-tab animated styles
+  const tabAnimStyles = tabRiseValues.map((riseVal) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAnimatedStyle(() => ({
+      transform: [{ translateY: riseVal.value }],
+    }))
+  );
+
+  const labelAnimStyles = tabLabelOpacities.map((opVal) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAnimatedStyle(() => ({
+      opacity: opVal.value,
+    }))
+  );
 
   return (
     <LinearGradient
@@ -289,55 +324,46 @@ const HomeScreen = ({ navigation }: any) => {
       >
         <View style={styles.tabBarInner}>
           {/* Home Tab */}
-          <AnimatedPressable
-            style={activeTab === 'Home' ? styles.activeTabItem : styles.tabItem}
-            onPress={() => handleTabPress('Home')}
-          >
-            {activeTab === 'Home' ? (
-              <>
-                <View style={styles.activeTabBg}>
-                  <Image source={HomeIconImg} style={styles.tabIcon} resizeMode="contain" />
-                </View>
-                <Text style={styles.activeTabLabel}>Home</Text>
-              </>
-            ) : (
-              <Image source={HomeIconImg} style={styles.tabIconInactive} resizeMode="contain" />
-            )}
-          </AnimatedPressable>
+          <Animated.View style={[styles.tabItem, tabAnimStyles[0]]}>
+            <Pressable onPress={() => handleTabPress('Home')} style={styles.tabPressable}>
+              <View style={activeTab === 'Home' ? styles.activeTabBg : null}>
+                <Image
+                  source={HomeIconImg}
+                  style={activeTab === 'Home' ? styles.tabIcon : styles.tabIconInactive}
+                  resizeMode="contain"
+                />
+              </View>
+              <Animated.Text style={[styles.activeTabLabel, labelAnimStyles[0]]}>Home</Animated.Text>
+            </Pressable>
+          </Animated.View>
 
           {/* Journal Tab */}
-          <AnimatedPressable
-            style={activeTab === 'Journal' ? styles.activeTabItem : styles.tabItem}
-            onPress={() => handleTabPress('Journal')}
-          >
-            {activeTab === 'Journal' ? (
-              <>
-                <View style={styles.activeTabBg}>
-                  <Image source={JournalIconImg} style={styles.tabIcon} resizeMode="contain" />
-                </View>
-                <Text style={styles.activeTabLabel}>Journal</Text>
-              </>
-            ) : (
-              <Image source={JournalIconImg} style={styles.tabIconInactive} resizeMode="contain" />
-            )}
-          </AnimatedPressable>
+          <Animated.View style={[styles.tabItem, tabAnimStyles[1]]}>
+            <Pressable onPress={() => handleTabPress('Journal')} style={styles.tabPressable}>
+              <View style={activeTab === 'Journal' ? styles.activeTabBg : null}>
+                <Image
+                  source={JournalIconImg}
+                  style={activeTab === 'Journal' ? styles.tabIcon : styles.tabIconInactive}
+                  resizeMode="contain"
+                />
+              </View>
+              <Animated.Text style={[styles.activeTabLabel, labelAnimStyles[1]]}>Journal</Animated.Text>
+            </Pressable>
+          </Animated.View>
 
           {/* Profile Tab */}
-          <AnimatedPressable
-            style={activeTab === 'Profile' ? styles.activeTabItem : styles.tabItem}
-            onPress={() => handleTabPress('Profile')}
-          >
-            {activeTab === 'Profile' ? (
-              <>
-                <View style={styles.activeTabBg}>
-                  <Image source={ProfileIconImg} style={styles.tabIcon} resizeMode="contain" />
-                </View>
-                <Text style={styles.activeTabLabel}>Profile</Text>
-              </>
-            ) : (
-              <Image source={ProfileIconImg} style={styles.tabIconInactive} resizeMode="contain" />
-            )}
-          </AnimatedPressable>
+          <Animated.View style={[styles.tabItem, tabAnimStyles[2]]}>
+            <Pressable onPress={() => handleTabPress('Profile')} style={styles.tabPressable}>
+              <View style={activeTab === 'Profile' ? styles.activeTabBg : null}>
+                <Image
+                  source={ProfileIconImg}
+                  style={activeTab === 'Profile' ? styles.tabIcon : styles.tabIconInactive}
+                  resizeMode="contain"
+                />
+              </View>
+              <Animated.Text style={[styles.activeTabLabel, labelAnimStyles[2]]}>Profile</Animated.Text>
+            </Pressable>
+          </Animated.View>
         </View>
       </Animated.View>
     </LinearGradient>
@@ -650,17 +676,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     paddingHorizontal: 16,
+    paddingTop: 12,
   },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 50,
   },
-  activeTabItem: {
+  tabPressable: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 50,
-    marginTop: -28,
   },
   activeTabBg: {
     backgroundColor: '#59168B',
