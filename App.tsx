@@ -226,28 +226,17 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-// Horizontal glide for tab-like transitions (Home <-> Profile)
-const forTabGlide = ({ current, layouts }: any) => ({
-  cardStyle: {
-    transform: [
-      {
-        translateX: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [layouts.screen.width, 0],
-        }),
-      },
-    ],
-  },
+// Fast fade for tab screen swaps (pill glide handles the visual transition)
+const forFastFade = ({ current }: any) => ({
+  cardStyle: { opacity: current.progress },
 });
 
-const tabTransitionSpec = {
-  open: { animation: 'timing' as const, config: { duration: 200 } },
-  close: { animation: 'timing' as const, config: { duration: 200 } },
-};
-
 const tabScreenOptions = {
-  cardStyleInterpolator: forTabGlide,
-  transitionSpec: tabTransitionSpec,
+  cardStyleInterpolator: forFastFade,
+  transitionSpec: {
+    open: { animation: 'timing' as const, config: { duration: 100 } },
+    close: { animation: 'timing' as const, config: { duration: 100 } },
+  },
   gestureEnabled: false,
   cardOverlayEnabled: false,
 };

@@ -169,7 +169,7 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Two Column Layout */}
         <View style={styles.twoColumns}>
           {/* Left Column */}
-          <View style={styles.leftColumn}>
+          <View style={[styles.leftColumn, { justifyContent: 'space-between' }]}>
             {/* Personality Test Card */}
             <View style={styles.personalityCard}>
               <View style={styles.personalityHeader}>
@@ -195,20 +195,24 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
             </View>
 
-            {/* SoulPal Character + Dots */}
-            <View style={styles.soulPalCharRow}>
-              <Image source={ProfileSoulPalChar} style={styles.soulPalChar} resizeMode="contain" />
-              <View style={styles.dotsColumn}>
-                {[0, 1, 2, 3].map((i) => (
-                  <View key={i} style={styles.progressCircle} />
-                ))}
+            {/* Bottom section - aligns with achievement card bottom */}
+            <View>
+              {/* SoulPal Character + Dots + Vertical Bar */}
+              <View style={styles.soulPalCharRow}>
+                <Image source={ProfileSoulPalChar} style={styles.soulPalChar} resizeMode="contain" />
+                <View style={styles.dotsColumn}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <View key={i} style={styles.progressCircle} />
+                  ))}
+                </View>
+                <View style={styles.verticalBar} />
               </View>
-            </View>
 
-            {/* Soul Pal Label Card */}
-            <View style={styles.soulPalLabelCard}>
-              <Text style={styles.soulPalLabelText}>Soul Pal</Text>
-              <Image source={ThreeDots} style={styles.threeDots} resizeMode="contain" />
+              {/* Soul Pal Label Card */}
+              <View style={styles.soulPalLabelCard}>
+                <Text style={styles.soulPalLabelText}>Soul Pal</Text>
+                <Image source={ThreeDots} style={styles.threeDots} resizeMode="contain" />
+              </View>
             </View>
           </View>
 
@@ -530,6 +534,13 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: colors.white,
+  },
+  verticalBar: {
+    width: 15,
+    height: 132,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    marginLeft: 12,
   },
 
   // Soul Pal Label Card
