@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Image,
-  FlatList,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -23,10 +22,11 @@ import {
   MONTHS,
   YEARS,
   Mood,
-  JournalEntry,
 } from '../data/journalMockData';
 
-const JournalSoulPal = require('../../assets/images/journal/JournalSoulPal.png');
+const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.png');
+const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
+const SoulPalArmRight = require('../../assets/images/journal/SoulPalArmRight.png');
 const FilterIcon = require('../../assets/images/journal/FilterIcon.png');
 const MoodNormal = require('../../assets/images/journal/MoodNormal.png');
 const MoodHappy = require('../../assets/images/journal/MoodHappy.png');
@@ -107,35 +107,7 @@ const JournalScreen = ({ navigation }: any) => {
     });
   }, [selectedYear, selectedMonth]);
 
-  // Get available months for selected year
-  const availableMonths = useMemo(() => {
-    const months = new Set(
-      journalEntries
-        .filter((e) => e.year === selectedYear)
-        .map((e) => e.month)
-    );
-    return Array.from(months).sort((a, b) => b - a);
-  }, [selectedYear]);
-
-  const renderEntry = ({ item }: { item: JournalEntry }) => (
-    <View style={styles.entryCard}>
-      <View style={styles.entryHeader}>
-        <Text style={styles.entryDate}>{item.date}</Text>
-        <View style={styles.entryMoodRow}>
-          <View style={styles.moodPill}>
-            <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood] }]}>
-              {item.mood}
-            </Text>
-            <Image source={MOOD_ICONS[item.mood]} style={styles.moodIcon} resizeMode="contain" />
-          </View>
-          <Pressable>
-            <Image source={ThreeDotsImg} style={styles.threeDots} resizeMode="contain" />
-          </Pressable>
-        </View>
-      </View>
-      <Text style={styles.entryContent}>{item.content}</Text>
-    </View>
-  );
+  const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom - 6 : 8) + 20;
 
   return (
     <LinearGradient
@@ -143,12 +115,8 @@ const JournalScreen = ({ navigation }: any) => {
       locations={[0.1, 0.6, 1]}
       style={styles.container}
     >
-      <ScrollView
-        style={[styles.scrollView, { paddingTop: insets.top + 10 }]}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* SoulPal Header */}
+      <View style={[styles.mainContent, { paddingTop: insets.top + 10 }]}>
+        {/* SoulPal Header - body goes behind the card */}
         <View style={styles.headerSection}>
           <Image source={JournalSoulPal} style={styles.soulPalImage} resizeMode="contain" />
           <View style={styles.speechBubble}>
@@ -158,25 +126,27 @@ const JournalScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Journal Content Card */}
-        <View style={styles.journalCard}>
+        {/* Journal Content Card - sits on top of body */}
+        <View style={[styles.journalCard, { marginBottom: tabBarHeight }]}>
           {/* Year Pills */}
-          <View style={styles.yearRow}>
-            {YEARS.map((year) => (
-              <Pressable
-                key={year}
-                style={[styles.yearPill, selectedYear === year && styles.yearPillActive]}
-                onPress={() => { setSelectedYear(year); setSelectedMonth(null); }}
-              >
-                <Text style={[styles.yearText, selectedYear === year && styles.yearTextActive]}>
-                  {year}
-                </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
+            <View style={styles.yearRow}>
+              {YEARS.map((year) => (
+                <Pressable
+                  key={year}
+                  style={[styles.yearPill, selectedYear === year && styles.yearPillActive]}
+                  onPress={() => { setSelectedYear(year); setSelectedMonth(null); }}
+                >
+                  <Text style={[styles.yearText, selectedYear === year && styles.yearTextActive]}>
+                    {year}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable style={styles.yearPill}>
+                <Image source={ThreeDotsImg} style={styles.yearDots} resizeMode="contain" />
               </Pressable>
-            ))}
-            <Pressable style={styles.yearPill}>
-              <Image source={ThreeDotsImg} style={styles.yearDots} resizeMode="contain" />
-            </Pressable>
-          </View>
+            </View>
+          </ScrollView>
 
           {/* Purple Divider */}
           <View style={styles.divider} />
@@ -184,14 +154,14 @@ const JournalScreen = ({ navigation }: any) => {
           {/* Month Pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
             <View style={styles.monthRow}>
-              {availableMonths.map((monthIdx) => (
+              {MONTHS.map((month, idx) => (
                 <Pressable
-                  key={monthIdx}
-                  style={[styles.monthPill, selectedMonth === monthIdx && styles.monthPillActive]}
-                  onPress={() => setSelectedMonth(selectedMonth === monthIdx ? null : monthIdx)}
+                  key={idx}
+                  style={[styles.monthPill, selectedMonth === idx && styles.monthPillActive]}
+                  onPress={() => setSelectedMonth(selectedMonth === idx ? null : idx)}
                 >
-                  <Text style={[styles.monthText, selectedMonth === monthIdx && styles.monthTextActive]}>
-                    {MONTHS[monthIdx]}
+                  <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>
+                    {month}
                   </Text>
                 </Pressable>
               ))}
@@ -201,26 +171,47 @@ const JournalScreen = ({ navigation }: any) => {
           {/* Sort By Row */}
           <View style={styles.sortRow}>
             <View style={styles.sortBar}>
-              <Text style={styles.sortText}>Sort By:</Text>
+              <Text style={styles.sortText}>
+                Sort By:{selectedMonth !== null ? ` ${MONTHS[selectedMonth]}` : ''}
+              </Text>
             </View>
             <Pressable>
               <Image source={FilterIcon} style={styles.filterIcon} resizeMode="contain" />
             </Pressable>
           </View>
 
-          {/* Journal Entries */}
-          <FlatList
-            data={filteredEntries}
-            renderItem={renderEntry}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
+          {/* Journal Entries - internally scrollable */}
+          <ScrollView
+            style={styles.entriesScroll}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.entriesList}
-          />
+          >
+            {filteredEntries.map((item) => (
+              <View key={item.id} style={styles.entryCard}>
+                <View style={styles.entryHeader}>
+                  <Text style={styles.entryDate}>{item.date}</Text>
+                  <View style={styles.entryMoodRow}>
+                    <View style={styles.moodPill}>
+                      <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood] }]}>
+                        {item.mood}
+                      </Text>
+                      <Image source={MOOD_ICONS[item.mood]} style={styles.moodIcon} resizeMode="contain" />
+                    </View>
+                    <Pressable>
+                      <Image source={ThreeDotsImg} style={styles.threeDots} resizeMode="contain" />
+                    </Pressable>
+                  </View>
+                </View>
+                <Text style={styles.entryContent}>{item.content}</Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Bottom spacing for tab bar */}
-        <View style={{ height: 140 + (insets.bottom || 16) }} />
-      </ScrollView>
+        {/* Arms - absolutely positioned on top of the white card */}
+        <Image source={SoulPalArmLeft} style={styles.soulPalArmLeft} resizeMode="contain" />
+        <Image source={SoulPalArmRight} style={styles.soulPalArmRight} resizeMode="contain" />
+      </View>
 
       {/* Bottom Tab Bar */}
       <Animated.View
@@ -282,23 +273,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  mainContent: {
     flex: 1,
-  },
-  scrollContent: {
     paddingHorizontal: 20,
   },
 
   // Header
   headerSection: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    marginBottom: -50,
+    zIndex: 0,
   },
   soulPalImage: {
-    width: 155,
+    width: 156,
     height: 218,
     marginLeft: -10,
+  },
+  soulPalArmLeft: {
+    position: 'absolute',
+    width: 69,
+    height: 81,
+    left: 20,
+    top: 155,
+    zIndex: 2,
+  },
+  soulPalArmRight: {
+    position: 'absolute',
+    width: 74,
+    height: 78,
+    left: 43,
+    top: 157,
+    zIndex: 2,
   },
   speechBubble: {
     flex: 1,
@@ -306,7 +312,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginLeft: -10,
+    marginLeft: -20,
+    marginTop: 30,
   },
   speechText: {
     fontFamily: fonts.outfit.regular,
@@ -318,39 +325,49 @@ const styles = StyleSheet.create({
 
   // Journal Card
   journalCard: {
+    flex: 1,
     backgroundColor: colors.white,
     borderRadius: 10,
     paddingHorizontal: 17,
-    paddingTop: 16,
-    paddingBottom: 20,
+    paddingTop: 22,
+    paddingBottom: 18,
+    zIndex: 1,
+  },
+  entriesScroll: {
+    flex: 1,
   },
 
   // Year Pills
+  yearScroll: {
+    marginBottom: 12,
+    flexShrink: 0,
+    flexGrow: 0,
+  },
   yearRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    gap: 8,
   },
   yearPill: {
     backgroundColor: '#59168B',
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   yearPillActive: {
-    backgroundColor: '#59168B',
+    backgroundColor: '#3A0D5E',
   },
   yearText: {
-    fontFamily: fonts.outfit.medium,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 16 * 1.26,
     color: colors.white,
   },
   yearTextActive: {
     color: colors.white,
+    fontFamily: fonts.outfit.medium,
   },
   yearDots: {
     width: 14,
@@ -363,11 +380,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#59168B',
     marginBottom: 12,
+    flexShrink: 0,
   },
 
   // Month Pills
   monthScroll: {
     marginBottom: 8,
+    flexShrink: 0,
+    flexGrow: 0,
   },
   monthRow: {
     flexDirection: 'row',
@@ -400,6 +420,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    flexShrink: 0,
   },
   sortBar: {
     flex: 1,
@@ -454,27 +475,28 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 5,
+    height: 26,
   },
   moodText: {
-    fontFamily: fonts.outfit.regular,
+    fontFamily: fonts.outfit.medium,
     fontSize: 12,
     lineHeight: 12 * 1.26,
   },
   moodIcon: {
-    width: 16,
-    height: 16,
+    width: 18,
+    height: 18,
   },
   threeDots: {
     width: 14,
     height: 4,
   },
   entryContent: {
-    fontFamily: fonts.outfit.thin,
-    fontSize: 10,
-    lineHeight: 10 * 1.26,
+    fontFamily: fonts.outfit.light,
+    fontSize: 12,
+    lineHeight: 12 * 1.4,
     color: colors.white,
   },
 
