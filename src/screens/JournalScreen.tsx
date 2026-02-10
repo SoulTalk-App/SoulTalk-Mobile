@@ -49,8 +49,37 @@ type TabName = 'Home' | 'Journal' | 'Profile';
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
-  const [selectedYear, setSelectedYear] = useState(2025);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [appliedYears, setAppliedYears] = useState<number[]>([]);
+  const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
+
+  const toggleYear = (year: number) => {
+    setSelectedYears((prev) =>
+      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year]
+    );
+  };
+
+  const toggleMonth = (month: number) => {
+    setSelectedMonths((prev) =>
+      prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]
+    );
+  };
+
+  const applyFilters = () => {
+    setAppliedYears([...selectedYears]);
+    setAppliedMonths([...selectedMonths]);
+  };
+
+  const removePill = (type: 'year' | 'month', value: number) => {
+    if (type === 'year') {
+      setSelectedYears((prev) => prev.filter((y) => y !== value));
+      setAppliedYears((prev) => prev.filter((y) => y !== value));
+    } else {
+      setSelectedMonths((prev) => prev.filter((m) => m !== value));
+      setAppliedMonths((prev) => prev.filter((m) => m !== value));
+    }
+  };
 
   // Tab bar animations
   const tabTranslateY = useSharedValue(0);
@@ -98,14 +127,14 @@ const JournalScreen = ({ navigation }: any) => {
     }))
   );
 
-  // Filter entries by selected year and month
+  // Filter entries by applied filters
   const filteredEntries = useMemo(() => {
     return journalEntries.filter((entry) => {
-      if (entry.year !== selectedYear) return false;
-      if (selectedMonth !== null && entry.month !== selectedMonth) return false;
+      if (appliedYears.length > 0 && !appliedYears.includes(entry.year)) return false;
+      if (appliedMonths.length > 0 && !appliedMonths.includes(entry.month)) return false;
       return true;
     });
-  }, [selectedYear, selectedMonth]);
+  }, [appliedYears, appliedMonths]);
 
   const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom - 6 : 8) + 20;
 
@@ -134,10 +163,10 @@ const JournalScreen = ({ navigation }: any) => {
               {YEARS.map((year) => (
                 <Pressable
                   key={year}
-                  style={[styles.yearPill, selectedYear === year && styles.yearPillActive]}
-                  onPress={() => { setSelectedYear(year); setSelectedMonth(null); }}
+                  style={[styles.yearPill, selectedYears.includes(year) && styles.yearPillActive]}
+                  onPress={() => toggleYear(year)}
                 >
-                  <Text style={[styles.yearText, selectedYear === year && styles.yearTextActive]}>
+                  <Text style={[styles.yearText, selectedYears.includes(year) && styles.yearTextActive]}>
                     {year}
                   </Text>
                 </Pressable>
@@ -157,10 +186,10 @@ const JournalScreen = ({ navigation }: any) => {
               {MONTHS.map((month, idx) => (
                 <Pressable
                   key={idx}
-                  style={[styles.monthPill, selectedMonth === idx && styles.monthPillActive]}
-                  onPress={() => setSelectedMonth(selectedMonth === idx ? null : idx)}
+                  style={[styles.monthPill, selectedMonths.includes(idx) && styles.monthPillActive]}
+                  onPress={() => toggleMonth(idx)}
                 >
-                  <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>
+                  <Text style={[styles.monthText, selectedMonths.includes(idx) && styles.monthTextActive]}>
                     {month}
                   </Text>
                 </Pressable>
@@ -171,11 +200,29 @@ const JournalScreen = ({ navigation }: any) => {
           {/* Sort By Row */}
           <View style={styles.sortRow}>
             <View style={styles.sortBar}>
-              <Text style={styles.sortText}>
-                Sort By:{selectedMonth !== null ? ` ${MONTHS[selectedMonth]}` : ''}
-              </Text>
+              <Text style={styles.sortText}>Sort By:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortPillsScroll}>
+                <View style={styles.sortPillsRow}>
+                  {selectedYears.map((year) => (
+                    <View key={`y-${year}`} style={styles.sortPill}>
+                      <Text style={styles.sortPillText}>{year}</Text>
+                      <Pressable onPress={() => removePill('year', year)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                        <Text style={styles.sortPillX}>✕</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                  {selectedMonths.map((monthIdx) => (
+                    <View key={`m-${monthIdx}`} style={styles.sortPill}>
+                      <Text style={styles.sortPillText}>{MONTHS[monthIdx]}</Text>
+                      <Pressable onPress={() => removePill('month', monthIdx)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                        <Text style={styles.sortPillX}>✕</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
-            <Pressable>
+            <Pressable onPress={applyFilters}>
               <Image source={FilterIcon} style={styles.filterIcon} resizeMode="contain" />
             </Pressable>
           </View>
@@ -426,9 +473,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#59168B',
     borderRadius: 5,
-    height: 35,
-    justifyContent: 'center',
+    minHeight: 35,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
+    paddingVertical: 5,
     marginRight: 10,
   },
   sortText: {
@@ -436,6 +485,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 10 * 1.26,
     color: colors.white,
+    marginRight: 6,
+  },
+  sortPillsScroll: {
+    flex: 1,
+  },
+  sortPillsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  sortPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  sortPillText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 10,
+    color: '#59168B',
+  },
+  sortPillX: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 10,
+    color: '#59168B',
   },
   filterIcon: {
     width: 35,
