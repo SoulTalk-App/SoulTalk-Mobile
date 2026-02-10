@@ -11,8 +11,8 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,10 +63,6 @@ const ProfileScreen = ({ navigation }: any) => {
   const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
 
   const handleTabPress = useCallback((tab: TabName) => {
-    tabTranslateY.value = withSpring(-8, { damping: 12, stiffness: 300 }, () => {
-      tabTranslateY.value = withSpring(0, { damping: 10, stiffness: 200 });
-    });
-
     if (tab === 'Home') {
       navigation.navigate('Home');
       return;
@@ -79,8 +75,8 @@ const ProfileScreen = ({ navigation }: any) => {
     const newIndex = TAB_POSITIONS[tab];
     const oldIndex = TAB_POSITIONS[activeTab];
 
-    tabRiseValues[oldIndex].value = withSpring(0, { damping: 12, stiffness: 200 });
-    tabRiseValues[newIndex].value = withSpring(-20, { damping: 12, stiffness: 200 });
+    tabRiseValues[oldIndex].value = withTiming(0, { duration: 300, easing: Easing.out(Easing.ease) });
+    tabRiseValues[newIndex].value = withTiming(-20, { duration: 300, easing: Easing.out(Easing.ease) });
     tabLabelOpacities[oldIndex].value = withTiming(0, { duration: 150 });
     tabLabelOpacities[newIndex].value = withTiming(1, { duration: 250 });
 

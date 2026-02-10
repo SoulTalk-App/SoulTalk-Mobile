@@ -10,7 +10,6 @@ import {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   withSequence,
   withDelay,
@@ -102,11 +101,6 @@ const HomeScreen = ({ navigation }: any) => {
   }, [filledBars]);
 
   const handleTabPress = useCallback((tab: TabName) => {
-    // Bounce the whole bar
-    tabTranslateY.value = withSpring(-8, { damping: 12, stiffness: 300 }, () => {
-      tabTranslateY.value = withSpring(0, { damping: 10, stiffness: 200 });
-    });
-
     if (tab === 'Profile') {
       navigation.navigate('Profile');
       return;
@@ -115,9 +109,9 @@ const HomeScreen = ({ navigation }: any) => {
     const newIndex = TAB_POSITIONS[tab];
     const oldIndex = TAB_POSITIONS[activeTab];
 
-    // Lower the old active tab, raise the new one
-    tabRiseValues[oldIndex].value = withSpring(0, { damping: 12, stiffness: 200 });
-    tabRiseValues[newIndex].value = withSpring(-20, { damping: 12, stiffness: 200 });
+    // Smooth rise/lower
+    tabRiseValues[oldIndex].value = withTiming(0, { duration: 300, easing: Easing.out(Easing.ease) });
+    tabRiseValues[newIndex].value = withTiming(-20, { duration: 300, easing: Easing.out(Easing.ease) });
 
     // Fade out old label, fade in new label
     tabLabelOpacities[oldIndex].value = withTiming(0, { duration: 150 });

@@ -175,3 +175,5 @@ build
 
 # Figma MCP reference downloads
 .figma-references/
+assets/images/figma-ref/
+assets/images/profile/ProfileFrame.png
