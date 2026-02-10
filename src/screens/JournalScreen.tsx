@@ -234,7 +234,11 @@ const JournalScreen = ({ navigation }: any) => {
             contentContainerStyle={styles.entriesList}
           >
             {filteredEntries.map((item) => (
-              <View key={item.id} style={styles.entryCard}>
+              <Pressable
+                key={item.id}
+                style={styles.entryCard}
+                onPress={() => navigation.navigate('JournalEntry', { entry: item })}
+              >
                 <View style={styles.entryHeader}>
                   <Text style={styles.entryDate}>{item.date}</Text>
                   <View style={styles.entryMoodRow}>
@@ -250,7 +254,7 @@ const JournalScreen = ({ navigation }: any) => {
                   </View>
                 </View>
                 <Text style={styles.entryContent}>{item.content}</Text>
-              </View>
+              </Pressable>
             ))}
           </ScrollView>
         </View>
