@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,35 +9,37 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
-import { colors, fonts } from '../theme';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../contexts/AuthContext";
+import { colors, fonts } from "../theme";
 
 interface ForgotPasswordScreenProps {
   navigation: any;
 }
 
-const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({
+  navigation,
+}) => {
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [emailError, setEmailError] = useState("");
 
   const { resetPassword } = useAuth();
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!value) {
-      setEmailError('');
+      setEmailError("");
       return false;
     } else if (!emailRegex.test(value)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
       return false;
     } else {
-      setEmailError('');
+      setEmailError("");
       return true;
     }
   };
@@ -49,7 +51,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 
   const handleSendResetLink = async () => {
     if (!validateEmail(email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      Alert.alert("Invalid Email", "Please enter a valid email address");
       return;
     }
 
@@ -66,7 +68,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
   };
 
   const handleBackToLogin = () => {
-    navigation.navigate('Login');
+    navigation.navigate("Login");
   };
 
   if (emailSent) {
@@ -80,14 +82,19 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           <Text style={styles.title}>Check Your Email</Text>
 
           <Text style={styles.subtitle}>
-            If an account exists with{'\n'}
+            If an account exists with{"\n"}
             <Text style={styles.emailText}>{email}</Text>
-            {'\n\n'}
+            {"\n\n"}
             you will receive a password reset link shortly.
           </Text>
 
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.white} style={styles.infoIcon} />
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={colors.white}
+              style={styles.infoIcon}
+            />
             <Text style={styles.infoText}>
               If you don't see the email, check your spam folder
             </Text>
@@ -105,7 +112,11 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             style={styles.loginButton}
             onPress={handleBackToLogin}
           >
-            <Ionicons name="arrow-back-outline" size={20} color={colors.white} />
+            <Ionicons
+              name="arrow-back-outline"
+              size={20}
+              color={colors.white}
+            />
             <Text style={styles.loginButtonText}>Back to Login</Text>
           </TouchableOpacity>
         </View>
@@ -117,7 +128,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <TouchableOpacity style={styles.backButton} onPress={handleBackToLogin}>
           <Ionicons name="chevron-back" size={24} color={colors.white} />
@@ -131,10 +142,16 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           <Text style={styles.title}>Forgot Password?</Text>
 
           <Text style={styles.subtitle}>
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your
+            password.
           </Text>
 
-          <View style={[styles.inputContainer, emailFocused && styles.inputContainerFocused]}>
+          <View
+            style={[
+              styles.inputContainer,
+              emailFocused && styles.inputContainerFocused,
+            ]}
+          >
             <Ionicons
               name="mail-outline"
               size={20}
@@ -154,10 +171,15 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
               autoCorrect={false}
             />
           </View>
-          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          {emailError ? (
+            <Text style={styles.errorText}>{emailError}</Text>
+          ) : null}
 
           <TouchableOpacity
-            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+            style={[
+              styles.submitButton,
+              isLoading && styles.submitButtonDisabled,
+            ]}
             onPress={handleSendResetLink}
             disabled={isLoading || !email}
           >
@@ -186,8 +208,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 24,
     marginTop: -60,
   },
@@ -198,14 +220,14 @@ const styles = StyleSheet.create({
     fontFamily: fonts.edensor.bold,
     fontSize: 32,
     color: colors.white,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
     fontSize: 16,
     color: colors.white,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
     opacity: 0.9,
     marginBottom: 32,
@@ -215,9 +237,9 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   infoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
     borderRadius: 12,
     padding: 16,
     marginBottom: 32,
@@ -234,16 +256,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 12,
     height: 56,
     backgroundColor: colors.white,
-    width: '100%',
+    width: "100%",
   },
   inputContainerFocused: {
     borderColor: colors.white,
@@ -261,17 +283,17 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     marginBottom: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   submitButton: {
     backgroundColor: colors.white,
     borderRadius: 12,
     height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
     marginTop: 8,
   },
   submitButtonDisabled: {
@@ -283,15 +305,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   resendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.white,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
     marginBottom: 16,
-    width: '100%',
+    width: "100%",
   },
   resendButtonText: {
     fontFamily: fonts.outfit.semiBold,
@@ -300,16 +322,16 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: colors.white,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    width: '100%',
+    width: "100%",
   },
   loginButtonText: {
     fontFamily: fonts.outfit.semiBold,
