@@ -36,6 +36,8 @@ import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import ResetPasswordConfirmScreen from "./src/screens/ResetPasswordConfirmScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import JournalScreen from "./src/screens/JournalScreen";
+import JournalEntryScreen from "./src/screens/JournalEntryScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 
@@ -237,6 +239,8 @@ const AppStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
+    <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
+    <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
   </Stack.Navigator>

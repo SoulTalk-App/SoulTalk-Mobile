@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Image,
-  Alert,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -68,7 +67,7 @@ const ProfileScreen = ({ navigation }: any) => {
       return;
     }
     if (tab === 'Journal') {
-      Alert.alert('Coming Soon', 'Journal is under development.');
+      navigation.navigate('Journal');
       return;
     }
 

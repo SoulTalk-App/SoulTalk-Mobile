@@ -105,6 +105,10 @@ const HomeScreen = ({ navigation }: any) => {
       navigation.navigate('Profile');
       return;
     }
+    if (tab === 'Journal') {
+      navigation.navigate('Journal');
+      return;
+    }
 
     const newIndex = TAB_POSITIONS[tab];
     const oldIndex = TAB_POSITIONS[activeTab];
