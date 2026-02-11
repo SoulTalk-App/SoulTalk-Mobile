@@ -222,7 +222,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         await AsyncStorage.setItem('@soultalk_user_firstname', formData.firstName);
         await AsyncStorage.setItem('@soultalk_user_lastname', formData.lastName);
         // Navigate to verification flow (email verification)
-        navigation.navigate('VerificationSent', { email: formData.email });
+        navigation.navigate('OTPVerification', { email: formData.email });
       } else {
         // Backend mode
         await register({
@@ -233,7 +233,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         });
 
         // Navigate to verification sent screen with email
-        navigation.navigate('VerificationSent', { email: formData.email });
+        navigation.navigate('OTPVerification', { email: formData.email });
       }
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred during registration');

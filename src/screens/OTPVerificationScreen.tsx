@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,65 +6,93 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
 
 interface OTPVerificationScreenProps {
   navigation: any;
+  route: any;
 }
 
-// TODO: Remove before production - Test OTP code
-const TEST_OTP = '1234';
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 60;
 
-const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation }) => {
-  const [otp, setOtp] = useState(['', '', '', '']);
+const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation, route }) => {
+  const { email } = route.params;
+  const { verifyOTP, resendVerificationEmail } = useAuth();
+
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   const handleOtpChange = (value: string, index: number) => {
-    // Only allow digits
     if (value && !/^\d+$/.test(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+    setError('');
 
-    // Auto-focus next input
-    if (value && index < 3) {
+    if (value && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
-    // Handle backspace - move to previous input
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(async () => {
     const otpCode = otp.join('');
-    if (otpCode.length !== 4) {
-      Alert.alert('Error', 'Please enter a 4-digit code');
+    if (otpCode.length !== OTP_LENGTH) {
+      setError(`Please enter the ${OTP_LENGTH}-digit code`);
       return;
     }
 
-    // For testing - validate against test OTP
-    if (otpCode !== TEST_OTP) {
-      Alert.alert('Invalid Code', 'The verification code you entered is incorrect. Please try again.');
-      // Clear all fields
-      setOtp(['', '', '', '']);
-      // Focus first input
+    try {
+      setIsLoading(true);
+      setError('');
+      await verifyOTP(email, otpCode);
+      // Auto-login handled by context — navigate to main app
+      navigation.navigate('TransitionSplash');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
+      setOtp(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  }, [otp, email, verifyOTP, navigation]);
 
-    navigation.navigate('TransitionSplash');
-  };
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0) return;
 
-  const handleResend = () => {
-    Alert.alert('Code Resent', 'A new verification code has been sent to your email.');
-  };
+    try {
+      setIsLoading(true);
+      setError('');
+      await resendVerificationEmail(email);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      Alert.alert('Code Resent', 'A new verification code has been sent to your email.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [resendCooldown, email, resendVerificationEmail]);
 
   const isComplete = otp.every((digit) => digit !== '');
 
@@ -74,7 +102,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
         <Text style={styles.title}>Verify Your Email</Text>
 
         <Text style={styles.subtitle}>
-          A 4 digit verification code has been sent to your email.{'\n'}Please check your inbox.
+          A {OTP_LENGTH} digit verification code has been sent to{'\n'}{email}
         </Text>
 
         <View style={styles.otpContainer}>
@@ -94,16 +122,26 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
           ))}
         </View>
 
-        <TouchableOpacity onPress={handleResend}>
-          <Text style={styles.resendText}>Didn't receive the code? Resend</Text>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isLoading}>
+          <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+            {resendCooldown > 0
+              ? `Resend code in ${resendCooldown}s`
+              : "Didn't receive the code? Resend"}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, !isComplete && styles.buttonDisabled]}
+          style={[styles.button, (!isComplete || isLoading) && styles.buttonDisabled]}
           onPress={handleConfirm}
-          disabled={!isComplete}
+          disabled={!isComplete || isLoading}
         >
-          <Text style={styles.buttonText}>Confirm</Text>
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={styles.buttonText}>Confirm</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -139,11 +177,11 @@ const styles = StyleSheet.create({
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 16,
-    marginBottom: 30,
+    gap: 12,
+    marginBottom: 16,
   },
   otpInput: {
-    width: 60,
+    width: 50,
     height: 60,
     borderRadius: 12,
     backgroundColor: colors.white,
@@ -152,12 +190,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     textAlign: 'center',
   },
+  errorText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   resendText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
     color: colors.white,
     textDecorationLine: 'underline',
     marginBottom: 40,
+  },
+  resendTextDisabled: {
+    opacity: 0.5,
+    textDecorationLine: 'none',
   },
   button: {
     backgroundColor: colors.white,

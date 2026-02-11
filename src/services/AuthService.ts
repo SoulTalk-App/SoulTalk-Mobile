@@ -236,7 +236,7 @@ class AuthService {
   // Social Auth Methods
   async loginWithGoogle(idToken: string): Promise<TokenResponse> {
     try {
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/social/google', {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/google', {
         id_token: idToken
       });
 
@@ -251,7 +251,7 @@ class AuthService {
 
   async loginWithFacebook(accessToken: string): Promise<TokenResponse> {
     try {
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/social/facebook', {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', {
         id_token: accessToken
       });
 
@@ -266,7 +266,7 @@ class AuthService {
 
   async linkGoogleAccount(idToken: string): Promise<{ message: string }> {
     try {
-      const response = await this.axiosInstance.post('/social/link/google', {
+      const response = await this.axiosInstance.post('/auth/link/google', {
         id_token: idToken
       });
       return response.data;
@@ -277,7 +277,7 @@ class AuthService {
 
   async linkFacebookAccount(accessToken: string): Promise<{ message: string }> {
     try {
-      const response = await this.axiosInstance.post('/social/link/facebook', {
+      const response = await this.axiosInstance.post('/auth/link/facebook', {
         id_token: accessToken
       });
       return response.data;
@@ -288,7 +288,7 @@ class AuthService {
 
   async unlinkProvider(provider: 'google' | 'facebook'): Promise<{ message: string }> {
     try {
-      const response = await this.axiosInstance.delete(`/social/link/${provider}`);
+      const response = await this.axiosInstance.delete(`/auth/link/${provider}`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || `Failed to unlink ${provider} account`);
@@ -297,7 +297,7 @@ class AuthService {
 
   async getLinkedAccounts(): Promise<LinkedAccount[]> {
     try {
-      const response = await this.axiosInstance.get('/social/linked-accounts');
+      const response = await this.axiosInstance.get('/auth/linked-accounts');
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to get linked accounts');
@@ -305,10 +305,15 @@ class AuthService {
   }
 
   // Email Verification Methods
-  async verifyEmail(token: string): Promise<{ message: string }> {
+  async verifyOTP(email: string, code: string): Promise<TokenResponse> {
     try {
-      const response = await this.axiosInstance.get(`/auth/verify-email/${token}`);
-      return response.data;
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/verify-email', {
+        email,
+        code
+      });
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+      return tokenData;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Email verification failed');
     }

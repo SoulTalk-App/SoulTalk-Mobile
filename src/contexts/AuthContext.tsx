@@ -31,7 +31,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setLocalAuth: (value: boolean) => void;
   // Social auth methods
   loginWithGoogle: (idToken: string) => Promise<void>;
   loginWithFacebook: (accessToken: string) => Promise<void>;
@@ -41,7 +40,7 @@ interface AuthContextType {
   unlinkProvider: (provider: 'google' | 'facebook') => Promise<void>;
   getLinkedAccounts: () => Promise<LinkedAccount[]>;
   // Email verification
-  verifyEmail: (token: string) => Promise<void>;
+  verifyOTP: (email: string, code: string) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;
   // Password management
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
@@ -79,23 +78,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       initializingRef.current = true;
       setIsLoading(true);
 
-      // Check for local auth first (for testing without backend)
-      const localAuth = await AsyncStorage.getItem('@soultalk_local_auth');
-      if (localAuth === 'true') {
-        const username = await AsyncStorage.getItem('@soultalk_username');
-        setUser({
-          id: 'local-user',
-          email: 'local@test.com',
-          first_name: username || 'User',
-          last_name: '',
-          email_verified: true,
-          groups: [],
-        });
-        setIsAuthenticated(true);
-        setIsLoading(false);
-        initializingRef.current = false;
-        return;
-      }
+      // Clear any stale local auth data from dev testing
+      await AsyncStorage.multiRemove(['@soultalk_local_auth', '@soultalk_username']);
 
       const authenticated = await AuthService.isAuthenticated();
 
@@ -131,24 +115,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      setIsLoading(true);
       await AuthService.login(email, password);
-      
+
       // Get user info after successful login
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      
+
       // Store login state for offline check
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
-      console.error('Login failed:', error);
       // Ensure we clear any partial state on login failure
       setUser(null);
       setIsAuthenticated(false);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
@@ -159,14 +139,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     last_name: string;
   }) => {
     try {
-      setIsLoading(true);
       await AuthService.register(userData);
-      // Note: User will need to verify email before they can login
+      // Note: User will need to verify email via OTP before they can login
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
@@ -205,15 +182,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Password reset failed:', error);
       throw error;
-    }
-  }, []);
-
-  const setLocalAuth = useCallback((value: boolean) => {
-    if (value) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
     }
   }, []);
 
@@ -298,13 +266,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Email verification
-  const verifyEmail = useCallback(async (token: string) => {
+  // Email verification (OTP-based, auto-login on success)
+  const verifyOTP = useCallback(async (email: string, code: string) => {
     try {
-      await AuthService.verifyEmail(token);
+      setIsLoading(true);
+      await AuthService.verifyOTP(email, code);
+
+      // Auto-login: fetch user info and set authenticated state
+      const userInfo = await AuthService.getCurrentUser();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+      await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
       console.error('Email verification failed:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -360,14 +337,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     resetPassword,
-    setLocalAuth,
     loginWithGoogle,
     loginWithFacebook,
     linkGoogleAccount,
     linkFacebookAccount,
     unlinkProvider,
     getLinkedAccounts,
-    verifyEmail,
+    verifyOTP,
     resendVerificationEmail,
     confirmPasswordReset,
     setPassword,

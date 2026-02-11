@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { StyleSheet, View, Dimensions, Text } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, View, Dimensions } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEvent } from 'expo';
 import { colors } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Video with purple background baked in
 const IntroVideo = require('../../assets/videos/intro.mp4');
 
 interface SplashScreenProps {
@@ -13,61 +13,53 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
-  const videoRef = useRef<Video>(null);
-  const [error, setError] = useState<string | null>(null);
   const hasNavigated = useRef(false);
 
-  // Fallback timer in case video fails to load
+  const player = useVideoPlayer(IntroVideo, (p) => {
+    p.loop = false;
+    p.muted = false;
+    p.play();
+  });
+
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
+
+  useEffect(() => {
+    if (status === 'idle' && hasNavigated.current === false) {
+      // Player finished or hasn't started — check if it already played
+    }
+  }, [status]);
+
+  // Listen for playback end
+  useEffect(() => {
+    const subscription = player.addListener('playToEnd', () => {
+      if (!hasNavigated.current) {
+        hasNavigated.current = true;
+        navigation.replace('Onboarding');
+      }
+    });
+    return () => subscription.remove();
+  }, [player, navigation]);
+
+  // Fallback timer in case video fails
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       if (!hasNavigated.current) {
         hasNavigated.current = true;
         navigation.replace('Onboarding');
       }
-    }, 5000); // 5 second fallback
-
+    }, 5000);
     return () => clearTimeout(fallbackTimer);
   }, [navigation]);
 
-  const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (status.isLoaded && status.didJustFinish && !hasNavigated.current) {
-      hasNavigated.current = true;
-      navigation.replace('Onboarding');
-    }
-  };
-
-  const handleError = (errorMessage: string) => {
-    console.error('Video error:', errorMessage);
-    setError(errorMessage);
-    // Navigate anyway after error
-    if (!hasNavigated.current) {
-      hasNavigated.current = true;
-      setTimeout(() => navigation.replace('Onboarding'), 1000);
-    }
-  };
-
-  const handleLoad = () => {
-    console.log('Video loaded successfully');
-  };
-
   return (
     <View style={styles.container}>
-      <Video
-        ref={videoRef}
-        source={IntroVideo}
+      <VideoView
+        player={player}
         style={styles.video}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay={true}
-        isLooping={false}
-        isMuted={false}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onError={(e) => handleError(e)}
-        onLoad={handleLoad}
-        useNativeControls={false}
+        contentFit="cover"
+        nativeControls={false}
+        allowsPictureInPicture={false}
       />
-      {__DEV__ && error && (
-        <Text style={styles.errorText}>Error: {error}</Text>
-      )}
     </View>
   );
 };
@@ -83,12 +75,6 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     position: 'absolute',
-  },
-  errorText: {
-    color: 'white',
-    fontSize: 12,
-    position: 'absolute',
-    bottom: 50,
   },
 });
 

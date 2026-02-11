@@ -25,8 +25,7 @@ import { colors, fonts } from "../theme";
 const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
 const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
 
-// Local testing mode - bypass backend auth
-const USE_LOCAL_AUTH = true;
+const USE_LOCAL_AUTH = false;
 
 interface LoginScreenProps {
   navigation: any;
@@ -154,10 +153,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         // Navigation will be handled by the auth state change
       }
     } catch (error: any) {
-      Alert.alert(
-        "Login Failed",
-        error.message || "An error occurred during login",
-      );
+      const msg = error.message || "An error occurred during login";
+      if (msg.toLowerCase().includes("verify your email")) {
+        // Unverified account — send them to OTP screen
+        navigation.navigate('OTPVerification', { email });
+      } else {
+        Alert.alert("Login Failed", msg);
+      }
     } finally {
       setIsLoading(false);
     }

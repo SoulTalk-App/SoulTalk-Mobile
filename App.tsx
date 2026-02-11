@@ -31,18 +31,15 @@ import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
-import VerificationSentScreen from "./src/screens/VerificationSentScreen";
 import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import ResetPasswordConfirmScreen from "./src/screens/ResetPasswordConfirmScreen";
-import EmailVerifiedScreen from "./src/screens/EmailVerifiedScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 
-// DEV MODE: Set to true to skip directly to WelcomeSplash screen
-const DEV_SKIP_TO_WELCOME_SPLASH = true;
+const DEV_SKIP_TO_WELCOME_SPLASH = false;
 
 const Stack = createStackNavigator();
 
@@ -52,7 +49,6 @@ const linking: LinkingOptions<any> = {
   prefixes: [prefix, "soultalk://"],
   config: {
     screens: {
-      EmailVerified: "verify-email/:token",
       ResetPasswordConfirm: "reset-password/:token",
     },
   },
@@ -113,11 +109,9 @@ const OnboardingStack = () => (
     />
     <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
     <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
-    <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
-    <Stack.Screen name="EmailVerified" component={EmailVerifiedScreen} />
     <Stack.Screen
       name="Login"
       component={LoginScreen}
@@ -206,11 +200,9 @@ const AuthStack = () => (
         }),
       }}
     />
-    <Stack.Screen name="VerificationSent" component={VerificationSentScreen} />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
-    <Stack.Screen name="EmailVerified" component={EmailVerifiedScreen} />
     <Stack.Screen
       name="TransitionSplash"
       component={TransitionSplashScreen}
