@@ -42,7 +42,13 @@ interface UserInfo {
   first_name: string;
   last_name: string;
   email_verified: boolean;
-  groups: string[];
+  providers: string[];  // ['google', 'facebook', 'email']
+}
+
+interface LinkedAccount {
+  provider: string;
+  provider_email: string;
+  linked_at: string;
 }
 
 class AuthService {
@@ -224,6 +230,134 @@ class AuthService {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+
+  // Social Auth Methods
+  async loginWithGoogle(idToken: string): Promise<TokenResponse> {
+    try {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/google', {
+        id_token: idToken
+      });
+
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+
+      return tokenData;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Google login failed');
+    }
+  }
+
+  async loginWithFacebook(accessToken: string): Promise<TokenResponse> {
+    try {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', {
+        id_token: accessToken
+      });
+
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+
+      return tokenData;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Facebook login failed');
+    }
+  }
+
+  async linkGoogleAccount(idToken: string): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/link/google', {
+        id_token: idToken
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to link Google account');
+    }
+  }
+
+  async linkFacebookAccount(accessToken: string): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/link/facebook', {
+        id_token: accessToken
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to link Facebook account');
+    }
+  }
+
+  async unlinkProvider(provider: 'google' | 'facebook'): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.delete(`/auth/link/${provider}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || `Failed to unlink ${provider} account`);
+    }
+  }
+
+  async getLinkedAccounts(): Promise<LinkedAccount[]> {
+    try {
+      const response = await this.axiosInstance.get('/auth/linked-accounts');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get linked accounts');
+    }
+  }
+
+  // Email Verification Methods
+  async verifyOTP(email: string, code: string): Promise<TokenResponse> {
+    try {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/verify-email', {
+        email,
+        code
+      });
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+      return tokenData;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Email verification failed');
+    }
+  }
+
+  async resendVerificationEmail(email: string): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/resend-verification', { email });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to resend verification email');
+    }
+  }
+
+  // Password Reset Methods
+  async confirmPasswordReset(token: string, newPassword: string): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/reset-password/confirm', {
+        token,
+        new_password: newPassword
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Password reset failed');
+    }
+  }
+
+  async setPassword(password: string): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/set-password', { password });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to set password');
+    }
+  }
+
+  // Logout all devices
+  async logoutAllDevices(): Promise<{ message: string }> {
+    try {
+      const response = await this.axiosInstance.post('/auth/logout-all');
+      await this.clearStoredTokens();
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to logout from all devices');
     }
   }
 

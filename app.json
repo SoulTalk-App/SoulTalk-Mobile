@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "soultalk",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -30,6 +31,18 @@
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "soultalk"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -43,7 +56,13 @@
       },
       "apiConfig": {
         "baseUrl": "http://localhost:8000/api"
-      }
+      },
+      "googleClientId": {
+        "iosClientId": "YOUR_GOOGLE_IOS_CLIENT_ID",
+        "androidClientId": "YOUR_GOOGLE_ANDROID_CLIENT_ID",
+        "webClientId": "YOUR_GOOGLE_WEB_CLIENT_ID"
+      },
+      "facebookAppId": "YOUR_FACEBOOK_APP_ID"
     }
   }
 }
