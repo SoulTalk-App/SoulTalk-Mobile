@@ -7,15 +7,15 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
 
 interface SetupCompleteScreenProps {
   navigation: any;
 }
 
-const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = () => {
-  const { setLocalAuth } = useAuth();
+const ONBOARDING_COMPLETE_KEY = '@soultalk_onboarding_complete';
+
+const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation }) => {
 
   const titleOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
@@ -33,10 +33,10 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = () => {
       subtitleOpacity.value = withTiming(0, { duration: 500 });
     }, 2800);
 
-    // Swap stacks after fade-out completes
+    // Mark onboarding complete, then navigate to auth flow
     const navTimer = setTimeout(async () => {
-      await AsyncStorage.setItem('@soultalk_local_auth', 'true');
-      setLocalAuth(true);
+      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     }, 3500);
 
     return () => {

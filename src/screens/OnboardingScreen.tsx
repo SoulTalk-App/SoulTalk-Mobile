@@ -17,9 +17,8 @@ import Animated, {
   withRepeat,
   Easing,
   runOnJS,
-  useAnimatedGestureHandler,
 } from 'react-native-reanimated';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
@@ -605,19 +604,16 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   }, [activeIndex, transitionToSlide]);
 
   // Swipe gesture handler
-  const gestureHandler = useAnimatedGestureHandler<
-    PanGestureHandlerGestureEvent,
-    { startX: number }
-  >({
-    onStart: (_, ctx) => {
-      ctx.startX = gestureTranslateX.value;
-    },
-    onActive: (event, ctx) => {
-      // Visual feedback during swipe
+  const startX = useSharedValue(0);
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      startX.value = gestureTranslateX.value;
+    })
+    .onUpdate((event) => {
       const resistance = 0.3;
-      gestureTranslateX.value = ctx.startX + event.translationX * resistance;
-    },
-    onEnd: (event) => {
+      gestureTranslateX.value = startX.value + event.translationX * resistance;
+    })
+    .onEnd((event) => {
       const threshold = SCREEN_WIDTH * 0.15;
       const currentIndex = activeIndexShared.value;
 
@@ -628,8 +624,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       } else if (event.translationX > threshold && currentIndex > 0) {
         runOnJS(handlePrev)();
       }
-    },
-  });
+    });
 
   // Gesture feedback style
   const gestureStyle = useAnimatedStyle(() => ({
@@ -643,7 +638,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       {/* Main Content Area */}
       <View style={styles.contentArea}>
-        <PanGestureHandler onGestureEvent={gestureHandler}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View style={[styles.slideContainer, gestureStyle]}>
             {/* Render slides for crossfade effect */}
             {slidesToRender.map((slideIndex) => (
@@ -664,7 +659,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               />
             ))}
           </Animated.View>
-        </PanGestureHandler>
+        </GestureDetector>
       </View>
 
       {/* Purple Bottom Navigation Bar */}

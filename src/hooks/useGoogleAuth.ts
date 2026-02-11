@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+import { useState, useCallback } from 'react';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 
-WebBrowser.maybeCompleteAuthSession();
+const config = Constants.expoConfig?.extra?.googleClientId || {};
 
-interface GoogleAuthConfig {
-  iosClientId?: string;
-  androidClientId?: string;
-  webClientId?: string;
-}
+GoogleSignin.configure({
+  iosClientId: config.iosClientId,
+  webClientId: config.webClientId,
+  offlineAccess: false,
+});
 
 interface UseGoogleAuthReturn {
-  request: Google.GoogleAuthRequestConfig | null;
-  response: any;
+  response: { type: 'success'; idToken: string } | { type: 'error'; error?: { message: string } } | null;
   promptAsync: () => Promise<any>;
   getIdToken: () => string | null;
   isLoading: boolean;
@@ -23,48 +24,49 @@ interface UseGoogleAuthReturn {
 export const useGoogleAuth = (): UseGoogleAuthReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<UseGoogleAuthReturn['response']>(null);
 
-  const config: GoogleAuthConfig = Constants.expoConfig?.extra?.googleClientId || {};
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: config.iosClientId,
-    androidClientId: config.androidClientId,
-    webClientId: config.webClientId,
-  });
-
-  const getIdToken = (): string | null => {
+  const getIdToken = useCallback((): string | null => {
     if (response?.type === 'success') {
-      return response.params.id_token || null;
+      return response.idToken;
     }
     return null;
-  };
-
-  useEffect(() => {
-    if (response?.type === 'error') {
-      setError(response.error?.message || 'Google authentication failed');
-    } else {
-      setError(null);
-    }
   }, [response]);
 
-  const wrappedPromptAsync = async () => {
+  const promptAsync = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await promptAsync();
+      await GoogleSignin.hasPlayServices();
+      const result = await GoogleSignin.signIn();
+      const idToken = result.data?.idToken ?? null;
+
+      if (idToken) {
+        setResponse({ type: 'success', idToken });
+      } else {
+        setResponse({ type: 'error', error: { message: 'No ID token received' } });
+        setError('No ID token received');
+      }
       return result;
     } catch (err: any) {
-      setError(err.message || 'Failed to initiate Google sign-in');
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+        setResponse(null);
+      } else if (err.code === statusCodes.IN_PROGRESS) {
+        // Sign-in already in progress
+      } else {
+        const message = err.message || 'Failed to initiate Google sign-in';
+        setError(message);
+        setResponse({ type: 'error', error: { message } });
+      }
       throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
-    request,
     response,
-    promptAsync: wrappedPromptAsync,
+    promptAsync,
     getIdToken,
     isLoading,
     error,
