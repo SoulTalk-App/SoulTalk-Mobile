@@ -63,8 +63,7 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
 
         {/* Subtitle */}
         <Animated.Text style={[styles.subtitle, subtitleAnimatedStyle]}>
-          A verification code has been sent to your email{'\n'}
-          Please check your inbox.
+          Let's get started on your journey.
         </Animated.Text>
       </View>
     </View>

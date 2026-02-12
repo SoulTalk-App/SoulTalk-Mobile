@@ -205,6 +205,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       setPasswordError("");
     } else if (value.length < 8) {
       setPasswordError("Password must be at least 8 characters");
+    } else if (!/(?=.*[a-z])/.test(value)) {
+      setPasswordError("Password must include a lowercase letter");
+    } else if (!/(?=.*[A-Z])/.test(value)) {
+      setPasswordError("Password must include an uppercase letter");
+    } else if (!/(?=.*\d)/.test(value)) {
+      setPasswordError("Password must include a number");
+    } else if (!/(?=.*[!@#$%^&*])/.test(value)) {
+      setPasswordError("Password must include a special character");
     } else {
       setPasswordError("");
     }

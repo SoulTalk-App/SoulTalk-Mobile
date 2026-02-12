@@ -195,7 +195,7 @@ class AuthService {
 
       const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/refresh', {
         refresh_token: refreshToken
-      });
+      }, { _retry: true } as any);
 
       const tokenData = response.data;
       await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
