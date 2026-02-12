@@ -40,6 +40,7 @@ import JournalScreen from "./src/screens/JournalScreen";
 import JournalEntryScreen from "./src/screens/JournalEntryScreen";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
+const SETUP_COMPLETE_KEY = "@soultalk_setup_complete";
 
 const DEV_SKIP_TO_WELCOME_SPLASH = false;
 
@@ -235,8 +236,14 @@ const tabScreenOptions = {
   cardOverlayEnabled: false,
 };
 
-const AppStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+const AppStack = ({ setupComplete }: { setupComplete: boolean }) => (
+  <Stack.Navigator
+    screenOptions={{ headerShown: false }}
+    initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
+  >
+    <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
+    <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
+    <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
     <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
     <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
@@ -251,30 +258,35 @@ const Navigation = () => {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
+  const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
+    checkStatus();
+  }, [isAuthenticated]);
 
-  const checkOnboardingStatus = async () => {
+  const checkStatus = async () => {
     try {
-      const value = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
-      setOnboardingComplete(value === "true");
+      const onboarding = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+      setOnboardingComplete(onboarding === "true");
+
+      const setup = await AsyncStorage.getItem(SETUP_COMPLETE_KEY);
+      setSetupComplete(setup === "true");
     } catch (error) {
-      console.error("Error checking onboarding status:", error);
+      console.error("Error checking status:", error);
       setOnboardingComplete(false);
+      setSetupComplete(false);
     }
   };
 
   // Show loading while checking auth and onboarding status
-  if (isLoading || onboardingComplete === null) {
+  if (isLoading || onboardingComplete === null || setupComplete === null) {
     return <LoadingScreen />;
   }
 
   return (
     <NavigationContainer linking={linking}>
       {isAuthenticated ? (
-        <AppStack />
+        <AppStack setupComplete={setupComplete} />
       ) : onboardingComplete ? (
         <AuthStack />
       ) : (

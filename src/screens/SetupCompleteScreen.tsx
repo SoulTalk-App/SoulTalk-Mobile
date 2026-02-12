@@ -13,7 +13,7 @@ interface SetupCompleteScreenProps {
   navigation: any;
 }
 
-const ONBOARDING_COMPLETE_KEY = '@soultalk_onboarding_complete';
+const SETUP_COMPLETE_KEY = '@soultalk_setup_complete';
 
 const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation }) => {
 
@@ -33,10 +33,10 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
       subtitleOpacity.value = withTiming(0, { duration: 500 });
     }, 2800);
 
-    // Mark onboarding complete, then navigate to auth flow
+    // Mark setup complete, then navigate to Home
     const navTimer = setTimeout(async () => {
-      await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      await AsyncStorage.setItem(SETUP_COMPLETE_KEY, 'true');
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
     }, 3500);
 
     return () => {
