@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,6 @@ const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
 const SETTINGS_KEY = '@soultalk_settings';
 const BIO_MAX_LENGTH = 150;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PRONOUN_OPTIONS = [
   'He/Him',
@@ -53,50 +52,86 @@ const CustomToggle = ({
 
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const { user, logout, resetPassword } = useAuth();
+  const { user, logout, resetPassword, updateProfile } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
   const [bio, setBio] = useState('');
   const [bioError, setBioError] = useState('');
-  const [pronoun, setPronoun] = useState('He/Him');
+  const [pronoun, setPronoun] = useState('');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
 
-  // Load saved settings
+  // Track current values in a ref so beforeRemove always sees latest
+  const profileRef = useRef({ displayName, username, bio, pronoun });
+  useEffect(() => {
+    profileRef.current = { displayName, username, bio, pronoun };
+  }, [displayName, username, bio, pronoun]);
+
+  // Load settings: profile from user object, device prefs from AsyncStorage
   useEffect(() => {
     const load = async () => {
       try {
         const saved = await AsyncStorage.getItem(SETTINGS_KEY);
         if (saved) {
           const data = JSON.parse(saved);
-          if (data.displayName) setDisplayName(data.displayName);
-          if (data.username) setUsername(data.username);
-          if (data.bio) setBio(data.bio);
-          if (data.pronoun) setPronoun(data.pronoun);
           if (data.pushNotifications !== undefined) setPushNotifications(data.pushNotifications);
           if (data.darkMode !== undefined) setDarkMode(data.darkMode);
         }
       } catch {}
     };
     load();
+  }, []);
 
-    // Pre-fill from auth user
-    if (user?.first_name) setDisplayName((prev) => prev || user.first_name || '');
-    if (user?.email) setEmail(user.email);
+  // Pre-fill from user profile (backend data)
+  useEffect(() => {
+    if (!user) return;
+    setDisplayName(user.display_name || user.first_name || '');
+    setUsername(user.username || '');
+    setBio(user.bio || '');
+    setPronoun(user.pronoun || '');
   }, [user]);
 
-  // Auto-save on navigate away
+  // Save profile to backend + device prefs to AsyncStorage
   const saveSettings = useCallback(async () => {
+    const current = profileRef.current;
+
+    // Save device-only prefs to AsyncStorage
     try {
       await AsyncStorage.setItem(
         SETTINGS_KEY,
-        JSON.stringify({ displayName, username, bio, pronoun, pushNotifications, darkMode })
+        JSON.stringify({ pushNotifications, darkMode })
       );
     } catch {}
-  }, [displayName, username, bio, pronoun, pushNotifications, darkMode]);
+
+    // Save profile fields to backend
+    const updates: Record<string, string | null> = {};
+    const currentDisplayName = current.displayName || null;
+    const currentUsername = current.username || null;
+    const currentBio = current.bio || null;
+    const currentPronoun = current.pronoun || null;
+
+    if (currentDisplayName !== (user?.display_name || user?.first_name || null)) {
+      updates.display_name = currentDisplayName;
+    }
+    if (currentUsername !== (user?.username || null)) {
+      updates.username = currentUsername;
+    }
+    if (currentBio !== (user?.bio || null)) {
+      updates.bio = currentBio;
+    }
+    if (currentPronoun !== (user?.pronoun || null)) {
+      updates.pronoun = currentPronoun;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      try {
+        await updateProfile(updates);
+      } catch (error: any) {
+        Alert.alert('Save Failed', error.message || 'Could not save profile changes.');
+      }
+    }
+  }, [pushNotifications, darkMode, user, updateProfile]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', () => {
@@ -111,15 +146,6 @@ const SettingsScreen = ({ navigation }: any) => {
       setBioError(`Bio cannot exceed ${BIO_MAX_LENGTH} characters (${text.length}/${BIO_MAX_LENGTH})`);
     } else {
       setBioError('');
-    }
-  };
-
-  const handleEmailChange = (text: string) => {
-    setEmail(text);
-    if (text.length > 0 && !EMAIL_REGEX.test(text)) {
-      setEmailError('Please enter a valid email address');
-    } else {
-      setEmailError('');
     }
   };
 
@@ -188,16 +214,9 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* User Email */}
         <Text style={styles.emailLabel}>User Email</Text>
-        <TextInput
-          style={[styles.emailInput, email ? styles.fieldInputActive : null]}
-          value={email}
-          onChangeText={handleEmailChange}
-          placeholder="youremail@domain.com"
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        <Text style={[styles.emailInput, styles.fieldInputActive]}>
+          {user?.email || ''}
+        </Text>
         <View style={styles.separator} />
 
         {/* Reset Password */}

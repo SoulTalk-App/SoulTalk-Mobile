@@ -7,8 +7,21 @@ interface UserInfo {
   email: string;
   first_name: string;
   last_name: string;
+  display_name?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  pronoun?: string | null;
   email_verified: boolean;
   providers: string[];
+}
+
+interface ProfileUpdate {
+  first_name?: string;
+  last_name?: string;
+  display_name?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  pronoun?: string | null;
 }
 
 interface LinkedAccount {
@@ -30,6 +43,7 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: ProfileUpdate) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   // Social auth methods
   loginWithGoogle: (idToken: string) => Promise<void>;
@@ -175,6 +189,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.logout();
     }
   }, [isAuthenticated]);
+
+  const updateProfile = useCallback(async (data: ProfileUpdate) => {
+    try {
+      const updated = await AuthService.updateProfile(data);
+      setUser(updated);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw error;
+    }
+  }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     try {
@@ -336,6 +360,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     refreshUser,
+    updateProfile,
     resetPassword,
     loginWithGoogle,
     loginWithFacebook,

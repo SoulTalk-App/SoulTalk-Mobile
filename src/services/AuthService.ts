@@ -41,8 +41,21 @@ interface UserInfo {
   email: string;
   first_name: string;
   last_name: string;
+  display_name?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  pronoun?: string | null;
   email_verified: boolean;
   providers: string[];  // ['google', 'facebook', 'email']
+}
+
+interface ProfileUpdate {
+  first_name?: string;
+  last_name?: string;
+  display_name?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  pronoun?: string | null;
 }
 
 interface LinkedAccount {
@@ -213,6 +226,15 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to get user info');
+    }
+  }
+
+  async updateProfile(data: ProfileUpdate): Promise<UserInfo> {
+    try {
+      const response: AxiosResponse<UserInfo> = await this.axiosInstance.put('/auth/me', data);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to update profile');
     }
   }
 
