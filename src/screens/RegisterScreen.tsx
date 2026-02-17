@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -21,7 +20,6 @@ import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
 import { colors, fonts } from '../theme';
 
-const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
 const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
 
 // Backend mode enabled
@@ -57,9 +55,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     confirmPassword: '',
   });
 
-  // Animation for peeking image
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-
   const { register, loginWithGoogle, loginWithFacebook } = useAuth();
 
   // Social auth hooks
@@ -74,16 +69,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     promptAsync: promptFacebookAsync,
     getAccessToken: getFacebookAccessToken,
   } = useFacebookAuth();
-
-  useEffect(() => {
-    // Slide in animation
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      tension: 50,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   // Handle Google auth response
   useEffect(() => {
@@ -284,20 +269,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Peeking Auth Icon from left edge */}
-          <Animated.View
-            style={[
-              styles.peekingImageContainer,
-              { transform: [{ translateX: slideAnim }] }
-            ]}
-          >
-            <Image
-              source={AuthIcon}
-              style={styles.peekingImage}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
           <Text style={styles.title}>Sign Up</Text>
           <Text style={styles.subtitle}>Join SoulTalk today</Text>
 
@@ -531,19 +502,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    position: 'relative',
-    overflow: 'visible',
-  },
-  peekingImageContainer: {
-    position: 'absolute',
-    left: -30,
-    top: 12,
-    zIndex: 10,
-  },
-  peekingImage: {
-    width: 120,
-    height: 120,
-    transform: [{ rotate: '15deg' }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
@@ -552,7 +510,6 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     marginTop: 20,
     marginBottom: 4,
-    marginLeft: 55,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
@@ -560,7 +517,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'left',
     marginBottom: 30,
-    marginLeft: 55,
   },
   form: {
     marginBottom: 20,

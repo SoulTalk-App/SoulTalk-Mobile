@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
@@ -487,6 +488,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       )
     );
   }, []);
+
+  // Reset to first slide whenever this screen gains focus (e.g. navigating back)
+  useFocusEffect(
+    useCallback(() => {
+      setActiveIndex(0);
+      setDisplayIndices([0, -1]);
+      isTransitioning.current = false;
+      slideOpacity0.value = 1;
+      slideOpacity1.value = 0;
+      slideOpacity2.value = 0;
+      slideScale0.value = 0.9;
+      slideScale1.value = 1.5;
+      slideScale2.value = 0.9;
+      sideCharactersScale.value = 1;
+      sideCharactersOpacity.value = 1;
+      activeIndexShared.value = 0;
+    }, [])
+  );
 
   // Keep shared value in sync with state
   useEffect(() => {

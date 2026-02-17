@@ -68,7 +68,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
 
   const handleAccept = async () => {
     await completeOnboarding();
-    navigation.navigate("Register");
+    navigation.replace("Register");
   };
 
   const handleButtonPressIn = useCallback(() => {
