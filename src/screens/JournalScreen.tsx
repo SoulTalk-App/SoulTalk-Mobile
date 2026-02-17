@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Image,
+  RefreshControl,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,13 +17,22 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
-import {
-  journalEntries,
-  MOOD_COLORS,
-  MONTHS,
-  YEARS,
-  Mood,
-} from '../data/journalMockData';
+import { useJournal } from '../contexts/JournalContext';
+import { Mood } from '../services/JournalService';
+
+const MOOD_COLORS: Record<Mood, string> = {
+  Normal: '#59168B',
+  Happy: '#EFDE11',
+  Mad: '#F20F0F',
+  Sad: '#0F3BF2',
+};
+
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+const YEARS = [2026, 2025, 2024];
 
 const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.png');
 const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
@@ -48,11 +58,18 @@ type TabName = 'Home' | 'Journal' | 'Profile';
 
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { entries, isLoading, fetchEntries } = useJournal();
+
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [appliedYears, setAppliedYears] = useState<number[]>([]);
   const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
+
+  // Fetch entries on mount
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   const toggleYear = (year: number) => {
     setSelectedYears((prev) =>
@@ -69,6 +86,12 @@ const JournalScreen = ({ navigation }: any) => {
   const applyFilters = () => {
     setAppliedYears([...selectedYears]);
     setAppliedMonths([...selectedMonths]);
+
+    // Build API params — use first selected year/month if any
+    const params: any = {};
+    if (selectedYears.length === 1) params.year = selectedYears[0];
+    if (selectedMonths.length === 1) params.month = selectedMonths[0] + 1; // months are 0-indexed in UI, 1-indexed in API
+    fetchEntries(params);
   };
 
   const removePill = (type: 'year' | 'month', value: number) => {
@@ -127,14 +150,13 @@ const JournalScreen = ({ navigation }: any) => {
     }))
   );
 
-  // Filter entries by applied filters
-  const filteredEntries = useMemo(() => {
-    return journalEntries.filter((entry) => {
-      if (appliedYears.length > 0 && !appliedYears.includes(entry.year)) return false;
-      if (appliedMonths.length > 0 && !appliedMonths.includes(entry.month)) return false;
-      return true;
-    });
-  }, [appliedYears, appliedMonths]);
+  // Format date from ISO string
+  const formatDate = (isoDate: string) => {
+    const d = new Date(isoDate);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${month}/${day}`;
+  };
 
   const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom - 6 : 8) + 20;
 
@@ -145,7 +167,7 @@ const JournalScreen = ({ navigation }: any) => {
       style={styles.container}
     >
       <View style={[styles.mainContent, { paddingTop: insets.top + 10 }]}>
-        {/* SoulPal Header - body goes behind the card */}
+        {/* SoulPal Header */}
         <View style={styles.headerSection}>
           <Image source={JournalSoulPal} style={styles.soulPalImage} resizeMode="contain" />
           <View style={styles.speechBubble}>
@@ -155,7 +177,7 @@ const JournalScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Journal Content Card - sits on top of body */}
+        {/* Journal Content Card */}
         <View style={[styles.journalCard, { marginBottom: tabBarHeight }]}>
           {/* Year Pills */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
@@ -227,41 +249,70 @@ const JournalScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* Journal Entries - internally scrollable */}
+          {/* Journal Entries */}
           <ScrollView
             style={styles.entriesScroll}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.entriesList}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={() => fetchEntries()}
+                tintColor="#59168B"
+              />
+            }
           >
-            {filteredEntries.map((item) => (
-              <Pressable
-                key={item.id}
-                style={styles.entryCard}
-                onPress={() => navigation.navigate('JournalEntry', { entry: item })}
-              >
-                <View style={styles.entryHeader}>
-                  <Text style={styles.entryDate}>{item.date}</Text>
-                  <View style={styles.entryMoodRow}>
-                    <View style={styles.moodPill}>
-                      <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood] }]}>
-                        {item.mood}
-                      </Text>
-                      <Image source={MOOD_ICONS[item.mood]} style={styles.moodIcon} resizeMode="contain" />
+            {entries.length === 0 && !isLoading ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No journal entries yet.</Text>
+                <Text style={styles.emptySubtext}>Tap + to start writing!</Text>
+              </View>
+            ) : (
+              entries.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={styles.entryCard}
+                  onPress={() => navigation.navigate('JournalEntry', { entryId: item.id })}
+                >
+                  <View style={styles.entryHeader}>
+                    <Text style={styles.entryDate}>{formatDate(item.created_at)}</Text>
+                    <View style={styles.entryMoodRow}>
+                      {item.mood && (
+                        <View style={styles.moodPill}>
+                          <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood as Mood] || '#59168B' }]}>
+                            {item.mood}
+                          </Text>
+                          {MOOD_ICONS[item.mood as Mood] && (
+                            <Image source={MOOD_ICONS[item.mood as Mood]} style={styles.moodIcon} resizeMode="contain" />
+                          )}
+                        </View>
+                      )}
+                      {item.is_ai_processed && <View style={styles.aiDot} />}
+                      <Pressable>
+                        <Image source={ThreeDotsImg} style={styles.threeDots} resizeMode="contain" />
+                      </Pressable>
                     </View>
-                    <Pressable>
-                      <Image source={ThreeDotsImg} style={styles.threeDots} resizeMode="contain" />
-                    </Pressable>
                   </View>
-                </View>
-                <Text style={styles.entryContent}>{item.content}</Text>
-              </Pressable>
-            ))}
+                  <Text style={styles.entryContent} numberOfLines={3}>
+                    {item.raw_text}
+                  </Text>
+                </Pressable>
+              ))
+            )}
           </ScrollView>
         </View>
 
-        {/* Arms - absolutely positioned on top of the white card */}
+        {/* Arms */}
         <Image source={SoulPalArmLeft} style={styles.soulPalArmLeft} resizeMode="contain" />
         <Image source={SoulPalArmRight} style={styles.soulPalArmRight} resizeMode="contain" />
+
+        {/* FAB */}
+        <Pressable
+          style={[styles.fab, { bottom: tabBarHeight + 12 }]}
+          onPress={() => navigation.navigate('CreateJournal')}
+        >
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
       </View>
 
       {/* Bottom Tab Bar */}
@@ -573,11 +624,58 @@ const styles = StyleSheet.create({
     width: 14,
     height: 4,
   },
+  aiDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
   entryContent: {
     fontFamily: fonts.outfit.light,
     fontSize: 12,
     lineHeight: 12 * 1.4,
     color: colors.white,
+  },
+
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 16,
+    color: '#59168B',
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 14,
+    color: '#59168B',
+  },
+
+  // FAB
+  fab: {
+    position: 'absolute',
+    right: 4,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#59168B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  fabText: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 32,
+    color: colors.white,
+    marginTop: -2,
   },
 
   // Bottom Tab Bar

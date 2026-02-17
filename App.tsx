@@ -38,6 +38,9 @@ import SettingsScreen from "./src/screens/SettingsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import JournalScreen from "./src/screens/JournalScreen";
 import JournalEntryScreen from "./src/screens/JournalEntryScreen";
+import CreateJournalScreen from "./src/screens/CreateJournalScreen";
+import { JournalProvider } from "./src/contexts/JournalContext";
+import { WebSocketProvider } from "./src/contexts/WebSocketContext";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 const SETUP_COMPLETE_KEY = "@soultalk_setup_complete";
@@ -237,20 +240,23 @@ const tabScreenOptions = {
 };
 
 const AppStack = ({ setupComplete }: { setupComplete: boolean }) => (
-  <Stack.Navigator
-    screenOptions={{ headerShown: false }}
-    initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
-  >
-    <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
-    <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
-    <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
-    <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
-    <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
-    <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
-    <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
-    <Stack.Screen name="Settings" component={SettingsScreen} />
-    <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
-  </Stack.Navigator>
+  <JournalProvider>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
+    >
+      <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
+      <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
+      <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
+      <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
+      <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
+      <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
+    </Stack.Navigator>
+  </JournalProvider>
 );
 
 const Navigation = () => {
@@ -335,8 +341,10 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="light" />
-          <Navigation />
+          <WebSocketProvider>
+            <StatusBar style="light" />
+            <Navigation />
+          </WebSocketProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

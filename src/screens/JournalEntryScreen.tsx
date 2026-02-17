@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,14 @@ import {
   ScrollView,
   Pressable,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
+import { useJournal } from '../contexts/JournalContext';
+import JournalService, { JournalEntry } from '../services/JournalService';
 
 const SwirlIcon = require('../../assets/images/journal/SwirlIcon.png');
 const ExpandIcon = require('../../assets/images/journal/ExpandIcon.png');
@@ -19,7 +23,84 @@ const MicIcon = require('../../assets/images/journal/MicIcon.png');
 
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const entry = route.params?.entry;
+  const { deleteEntry, entries } = useJournal();
+  const entryId: string = route.params?.entryId;
+
+  const [entry, setEntry] = useState<JournalEntry | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Find entry from context state
+  useEffect(() => {
+    const found = entries.find((e) => e.id === entryId);
+    if (found) setEntry(found);
+  }, [entryId, entries]);
+
+  // Polling fallback: if AI hasn't arrived via WS after 5s, fetch from API
+  useEffect(() => {
+    if (!entry || entry.is_ai_processed) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const fresh = await JournalService.getEntry(entryId);
+        if (fresh.is_ai_processed) setEntry(fresh);
+      } catch {
+        // ignore — will retry on next interval
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [entry, entryId]);
+
+  const handleEdit = () => {
+    if (!entry) return;
+    navigation.navigate('CreateJournal', { entry });
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this journal entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await deleteEntry(entryId);
+              navigation.goBack();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to delete entry');
+              setIsDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (!entry) {
+    return (
+      <LinearGradient
+        colors={['#59168B', '#653495', '#59168B']}
+        locations={[0, 0.5, 1]}
+        style={styles.container}
+      >
+        <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+          <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
+            <View style={styles.swirlCircle}>
+              <Image source={SwirlIcon} style={styles.swirlIcon} resizeMode="contain" />
+            </View>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={colors.white} size="large" />
+          </View>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -38,10 +119,24 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
 
         {/* Title Row */}
         <View style={styles.titleRow}>
-          <Text style={styles.titleText}>Write your thoughts...</Text>
-          <Pressable style={styles.expandBtn}>
-            <Image source={ExpandIcon} style={styles.expandIcon} resizeMode="contain" />
-          </Pressable>
+          <Text style={styles.titleText}>
+            {entry.mood ? `Feeling ${entry.mood}` : 'Journal Entry'}
+          </Text>
+          <View style={styles.actionRow}>
+            <Pressable style={styles.actionBtn} onPress={handleEdit}>
+              <Text style={styles.actionBtnText}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.actionBtn} onPress={handleDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <Text style={[styles.actionBtnText, { color: '#FF6B6B' }]}>Delete</Text>
+              )}
+            </Pressable>
+            <Pressable style={styles.expandBtn}>
+              <Image source={ExpandIcon} style={styles.expandIcon} resizeMode="contain" />
+            </Pressable>
+          </View>
         </View>
 
         {/* SoulPal Meter Row */}
@@ -64,9 +159,32 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <Text style={styles.journalText}>
-              {entry?.content || 'Start writing your thoughts here...'}
-            </Text>
+            <Text style={styles.journalText}>{entry.raw_text}</Text>
+
+            {/* AI Response Section */}
+            <View style={styles.aiSection}>
+              <View style={styles.aiDivider} />
+              {entry.is_ai_processed ? (
+                <>
+                  <Text style={styles.aiLabel}>SoulPal's Reflection</Text>
+                  <Text style={styles.aiResponseText}>{entry.ai_response}</Text>
+                  {entry.topics && entry.topics.length > 0 && (
+                    <View style={styles.topicRow}>
+                      {entry.topics.map((topic, idx) => (
+                        <View key={idx} style={styles.topicPill}>
+                          <Text style={styles.topicPillText}>{topic}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.aiLoadingRow}>
+                  <ActivityIndicator color="#59168B" size="small" />
+                  <Text style={styles.aiLoadingText}>SoulPal is reflecting...</Text>
+                </View>
+              )}
+            </View>
           </ScrollView>
         </View>
 
@@ -88,6 +206,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 22,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Back Button
@@ -126,6 +249,23 @@ const styles = StyleSheet.create({
   titleText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 24,
+    color: colors.white,
+    flex: 1,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+  },
+  actionBtnText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 13,
     color: colors.white,
   },
   expandBtn: {
@@ -207,6 +347,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 14 * 1.6,
     color: '#333333',
+  },
+
+  // AI Section
+  aiSection: {
+    marginTop: 16,
+  },
+  aiDivider: {
+    height: 1,
+    backgroundColor: '#E0D4E8',
+    marginBottom: 14,
+  },
+  aiLabel: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 14,
+    color: '#59168B',
+    marginBottom: 8,
+  },
+  aiResponseText: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 14,
+    lineHeight: 14 * 1.6,
+    color: '#333333',
+    marginBottom: 12,
+  },
+  topicRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  topicPill: {
+    backgroundColor: '#F3ECFA',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  topicPillText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#59168B',
+  },
+  aiLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  aiLoadingText: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 13,
+    color: '#888',
+    fontStyle: 'italic',
   },
 
   // Mic Button

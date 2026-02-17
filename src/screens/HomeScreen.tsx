@@ -190,7 +190,10 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {/* I'm Feeling Bar */}
-          <View style={styles.feelingBar}>
+          <Pressable
+            style={styles.feelingBar}
+            onPress={() => navigation.navigate('CreateJournal')}
+          >
             <View style={styles.soulpalEyesContainer}>
               <Animated.Image
                 source={SoulpalEyes}
@@ -199,14 +202,14 @@ const HomeScreen = ({ navigation }: any) => {
               />
             </View>
             <Text style={styles.feelingText}>I'm Feeling........</Text>
-            <Pressable style={styles.sendButton}>
+            <View style={styles.sendButton}>
               <Image
                 source={SendIconImg}
                 style={styles.sendIcon}
                 resizeMode="contain"
               />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
 
           {/* Soul Sight Card */}
           <View style={styles.soulSightCard}>
