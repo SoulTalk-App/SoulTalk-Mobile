@@ -35,21 +35,24 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     if (found) setEntry(found);
   }, [entryId, entries]);
 
-  // Polling fallback: if AI hasn't arrived via WS after 5s, fetch from API
+  // Polling fallback: if AI hasn't arrived via WS, poll every 5s until processed
   useEffect(() => {
     if (!entry || entry.is_ai_processed) return;
 
-    const timer = setTimeout(async () => {
+    const interval = setInterval(async () => {
       try {
         const fresh = await JournalService.getEntry(entryId);
-        if (fresh.is_ai_processed) setEntry(fresh);
+        if (fresh.is_ai_processed) {
+          setEntry(fresh);
+          clearInterval(interval);
+        }
       } catch {
         // ignore — will retry on next interval
       }
     }, 5000);
 
-    return () => clearTimeout(timer);
-  }, [entry, entryId]);
+    return () => clearInterval(interval);
+  }, [entry?.is_ai_processed, entryId]);
 
   const handleEdit = () => {
     if (!entry) return;
