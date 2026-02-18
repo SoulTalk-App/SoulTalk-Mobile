@@ -209,7 +209,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         // Navigate to verification flow (email verification)
         navigation.navigate('OTPVerification', { email: formData.email });
       } else {
-        // Backend mode
+        // Backend mode — clear setup flag so new account sees welcome flow
+        await AsyncStorage.removeItem('@soultalk_setup_complete');
         await register({
           email: formData.email,
           password: formData.password,
@@ -341,6 +342,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -368,6 +370,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}

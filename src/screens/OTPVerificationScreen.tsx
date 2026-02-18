@@ -67,8 +67,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
       setIsLoading(true);
       setError('');
       await verifyOTP(email, otpCode);
-      // Auto-login handled by context — navigate to main app
-      navigation.navigate('TransitionSplash');
+      // Auth state change switches to AppStack automatically (WelcomeSplash for new users)
     } catch (err: any) {
       setError(err.message || 'Verification failed. Please try again.');
       setOtp(Array(OTP_LENGTH).fill(''));
