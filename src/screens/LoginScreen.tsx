@@ -23,7 +23,7 @@ import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { colors, fonts } from "../theme";
 
 const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
-const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
+
 
 const USE_LOCAL_AUTH = false;
 
@@ -237,8 +237,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
       await promptFacebookAsync();
-    } else if (provider === 'SSO') {
-      Alert.alert("Coming Soon", "SSO login will be available soon.");
     }
   };
 
@@ -320,6 +318,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="password"
+                textContentType="password"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -390,12 +390,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.socialButton, styles.ssoButton]}
-                onPress={() => handleSocialLogin("SSO")}
-              >
-                <Image source={SSOIcon} style={styles.ssoIcon} resizeMode="contain" />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -595,15 +589,6 @@ const styles = StyleSheet.create({
   },
   facebookButton: {
     backgroundColor: "#1877F2",
-  },
-  ssoButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ssoIcon: {
-    width: 40,
-    height: 40,
   },
   footer: {
     alignItems: "center",

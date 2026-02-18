@@ -32,6 +32,8 @@ export interface JournalListResponse {
 export interface ListEntriesParams {
   year?: number;
   month?: number;
+  mood?: string;
+  is_ai_processed?: boolean;
   page?: number;
   per_page?: number;
 }

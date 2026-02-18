@@ -13,7 +13,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import SecureStorage from '../utils/SecureStorage';
 import { colors, fonts } from '../theme';
 
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
@@ -61,6 +64,9 @@ const SettingsScreen = ({ navigation }: any) => {
   const [bioError, setBioError] = useState('');
   const [pronoun, setPronoun] = useState('');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track current values in a ref so beforeRemove always sees latest
   const profileRef = useRef({ displayName, username, bio, pronoun });
@@ -124,6 +130,11 @@ const SettingsScreen = ({ navigation }: any) => {
       updates.pronoun = currentPronoun;
     }
 
+    // Don't save if username is taken
+    if (usernameAvailable === false) {
+      delete updates.username;
+    }
+
     if (Object.keys(updates).length > 0) {
       try {
         await updateProfile(updates);
@@ -139,6 +150,44 @@ const SettingsScreen = ({ navigation }: any) => {
     });
     return unsubscribe;
   }, [navigation, saveSettings]);
+
+  const checkUsernameAvailability = useCallback((value: string) => {
+    if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+
+    // If username hasn't changed from server value, no need to check
+    if (!value || value === (user?.username || '')) {
+      setUsernameAvailable(null);
+      setUsernameChecking(false);
+      return;
+    }
+
+    setUsernameChecking(true);
+    usernameDebounceRef.current = setTimeout(async () => {
+      try {
+        const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'http://localhost:8000/api' };
+        const token = await SecureStorage.getItem('access_token');
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const resp = await fetch(
+          `${apiConfig.baseUrl}/auth/check-username?username=${encodeURIComponent(value)}`,
+          { headers },
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          setUsernameAvailable(data.available);
+        }
+      } catch {
+        setUsernameAvailable(null);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 500);
+  }, [user?.username]);
+
+  const handleUsernameChange = (text: string) => {
+    setUsername(text);
+    checkUsernameAvailability(text);
+  };
 
   const handleBioChange = (text: string) => {
     setBio(text);
@@ -202,14 +251,26 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.separator} />
 
         {/* @username */}
-        <TextInput
-          style={styles.fieldInput}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="@username"
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          autoCapitalize="none"
-        />
+        <View style={styles.usernameRow}>
+          <TextInput
+            style={[styles.fieldInput, { flex: 1 }]}
+            value={username}
+            onChangeText={handleUsernameChange}
+            placeholder="@username"
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            autoCapitalize="none"
+          />
+          {usernameChecking ? (
+            <Text style={styles.usernameChecking}>...</Text>
+          ) : usernameAvailable === true ? (
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+          ) : usernameAvailable === false ? (
+            <Ionicons name="close-circle" size={20} color="#FF5E5E" />
+          ) : null}
+        </View>
+        {usernameAvailable === false && (
+          <Text style={styles.usernameTaken}>Username is taken</Text>
+        )}
         <View style={styles.separator} />
 
         {/* User Email */}
@@ -425,6 +486,24 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.4)',
     textAlign: 'right',
     marginTop: 2,
+  },
+
+  // Username
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usernameChecking: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  usernameTaken: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 11,
+    color: '#FF5E5E',
+    marginTop: 2,
+    marginBottom: 4,
   },
 
   // Separator

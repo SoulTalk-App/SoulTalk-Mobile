@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { termsAndConditions } from "../mocks/content";
 import { colors, fonts } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
@@ -67,6 +68,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
   }, []);
 
   const handleAccept = async () => {
+    await AsyncStorage.setItem('@terms_accepted', 'true');
     await completeOnboarding();
     navigation.replace("Register");
   };

@@ -22,6 +22,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 
@@ -606,11 +607,16 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     }
   }, [activeIndex, isFirstSlide, transitionToSlide]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (isTransitioning.current) return;
 
     if (isLastSlide) {
-      navigation.navigate('Terms');
+      const termsAccepted = await AsyncStorage.getItem('@terms_accepted');
+      if (termsAccepted === 'true') {
+        navigation.navigate('Register');
+      } else {
+        navigation.navigate('Terms');
+      }
     } else {
       transitionToSlide(activeIndex + 1);
     }

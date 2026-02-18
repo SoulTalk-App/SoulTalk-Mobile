@@ -10,7 +10,6 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -20,7 +19,7 @@ import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
 import { colors, fonts } from '../theme';
 
-const SSOIcon = require("../../assets/images/authentication/SingleSignOnIcon.png");
+
 
 // Backend mode enabled
 const USE_LOCAL_AUTH = false;
@@ -245,8 +244,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
       await promptFacebookAsync();
-    } else if (provider === 'SSO') {
-      Alert.alert('Coming Soon', 'SSO login will be available soon.');
     }
   };
 
@@ -343,6 +340,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoCorrect={false}
                 textContentType="newPassword"
+                autoComplete="new-password"
+                passwordRules="minlength: 8;"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -371,6 +370,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 autoCapitalize="none"
                 autoCorrect={false}
                 textContentType="newPassword"
+                autoComplete="new-password"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -449,12 +449,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.socialButton, styles.ssoButton]}
-                onPress={() => handleSocialLogin('SSO')}
-              >
-                <Image source={SSOIcon} style={styles.ssoIcon} resizeMode="contain" />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -673,15 +667,6 @@ const styles = StyleSheet.create({
   },
   facebookButton: {
     backgroundColor: '#1877F2',
-  },
-  ssoButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ssoIcon: {
-    width: 40,
-    height: 40,
   },
   footer: {
     alignItems: 'center',

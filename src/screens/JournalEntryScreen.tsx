@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import SoulTalkLoader from '../components/SoulTalkLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
@@ -97,9 +98,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             </View>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={colors.white} size="large" />
-          </View>
+          <SoulTalkLoader />
         </View>
       </LinearGradient>
     );

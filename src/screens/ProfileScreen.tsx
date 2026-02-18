@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
 
+const LockIcon = require('../../assets/images/home/LockIcon.png');
 const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 const ProfileGearIcon = require('../../assets/images/profile/ProfileGearIcon.png');
 const ProfileAvatar = require('../../assets/images/profile/ProfileAvatar-f054e3.png');
@@ -159,6 +160,10 @@ const ProfileScreen = ({ navigation }: any) => {
               <View key={i} style={styles.badgeCircle} />
             ))}
           </View>
+          <View style={styles.comingSoonOverlay}>
+            <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
+            <Text style={styles.comingSoonLabel}>Coming Soon</Text>
+          </View>
         </View>
 
         {/* Two Column Layout */}
@@ -187,6 +192,10 @@ const ProfileScreen = ({ navigation }: any) => {
                   ))}
                 </View>
                 <Text style={styles.takeTestText}>Take the test</Text>
+              </View>
+              <View style={styles.comingSoonOverlayDark}>
+                <Image source={LockIcon} style={styles.comingSoonLockSmall} resizeMode="contain" />
+                <Text style={styles.comingSoonLabelLight}>Coming Soon</Text>
               </View>
             </View>
 
@@ -221,6 +230,10 @@ const ProfileScreen = ({ navigation }: any) => {
               </Text>
               <View style={styles.soulSightBar} />
               <View style={styles.soulSightBlock} />
+              <View style={styles.comingSoonOverlay}>
+                <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
+                <Text style={styles.comingSoonLabel}>Coming Soon</Text>
+              </View>
             </View>
 
             {/* Achievement Card */}
@@ -232,6 +245,10 @@ const ProfileScreen = ({ navigation }: any) => {
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <View key={i} style={styles.achievementItem} />
                 ))}
+              </View>
+              <View style={styles.comingSoonOverlay}>
+                <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
+                <Text style={styles.comingSoonLabel}>Coming Soon</Text>
               </View>
             </View>
           </View>
@@ -593,6 +610,44 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundColor: '#622C92',
+  },
+
+  // Coming Soon Overlays
+  comingSoonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  comingSoonOverlayDark: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(89, 22, 139, 0.7)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  comingSoonLock: {
+    width: 20,
+    height: 20,
+    tintColor: '#59168B',
+  },
+  comingSoonLockSmall: {
+    width: 20,
+    height: 20,
+    tintColor: colors.white,
+  },
+  comingSoonLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#59168B',
+  },
+  comingSoonLabelLight: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: colors.white,
   },
 
   // Bottom Tab Bar

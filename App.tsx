@@ -342,7 +342,7 @@ export default function App() {
       <SafeAreaProvider>
         <AuthProvider>
           <WebSocketProvider>
-            <StatusBar style="light" />
+            <StatusBar style="auto" />
             <Navigation />
           </WebSocketProvider>
         </AuthProvider>

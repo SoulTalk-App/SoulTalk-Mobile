@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Pressable,
   Image,
 } from 'react-native';
+import Constants from 'expo-constants';
+import SecureStorage from '../utils/SecureStorage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -62,12 +64,38 @@ const HomeScreen = ({ navigation }: any) => {
   const eyeOpacity = useSharedValue(1);
   const eyeTranslateX = useSharedValue(0);
 
+  // Debounce timer for mood PUT
+  const moodDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const getApiBase = () => {
+    const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'http://localhost:8000/api' };
+    return apiConfig.baseUrl;
+  };
+
+  const getAuthHeaders = async () => {
+    const token = await SecureStorage.getItem('access_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     const loadUsername = async () => {
       const stored = await AsyncStorage.getItem('@soultalk_username');
       if (stored) setUsername(stored);
     };
     loadUsername();
+
+    // Load today's mood from backend
+    const loadMood = async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const resp = await fetch(`${getApiBase()}/mood/today`, { headers });
+        if (resp.ok) {
+          const data = await resp.json();
+          setFilledBars(data.filled_count);
+        }
+      } catch {}
+    };
+    loadMood();
   }, []);
 
   // Blinking + looking animation loop
@@ -97,7 +125,21 @@ const HomeScreen = ({ navigation }: any) => {
   }));
 
   const handleBarPress = useCallback((index: number) => {
-    setFilledBars(index + 1 === filledBars ? 0 : index + 1);
+    const newCount = index + 1 === filledBars ? 0 : index + 1;
+    setFilledBars(newCount);
+
+    // Debounced PUT to backend
+    if (moodDebounceRef.current) clearTimeout(moodDebounceRef.current);
+    moodDebounceRef.current = setTimeout(async () => {
+      try {
+        const headers = await getAuthHeaders();
+        await fetch(`${getApiBase()}/mood/today`, {
+          method: 'PUT',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filled_count: newCount }),
+        });
+      } catch {}
+    }, 300);
   }, [filledBars]);
 
   const handleTabPress = useCallback((tab: TabName) => {
@@ -218,6 +260,10 @@ const HomeScreen = ({ navigation }: any) => {
               <Text style={styles.goalsText}>0/10 Goals Completed</Text>
             </View>
             <View style={styles.soulSightProgress} />
+            <View style={styles.comingSoonOverlay}>
+              <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
+              <Text style={styles.comingSoonText}>Coming Soon</Text>
+            </View>
           </View>
         </View>
 
@@ -267,6 +313,10 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.goalGardenSubtitle}>
               0/10 Goals Completed
             </Text>
+          </View>
+          <View style={styles.comingSoonOverlayFull}>
+            <Image source={LockIcon} style={styles.comingSoonLockLarge} resizeMode="contain" />
+            <Text style={styles.comingSoonTextLight}>Coming Soon</Text>
           </View>
         </View>
 
@@ -600,6 +650,45 @@ const styles = StyleSheet.create({
     lineHeight: 12 * 1.26,
     color: '#59168B',
     marginTop: 2,
+  },
+
+  // Coming Soon Overlays
+  comingSoonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  comingSoonLock: {
+    width: 16,
+    height: 16,
+    tintColor: '#59168B',
+  },
+  comingSoonText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#59168B',
+  },
+  comingSoonOverlayFull: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(89, 22, 139, 0.7)',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  comingSoonLockLarge: {
+    width: 32,
+    height: 32,
+    tintColor: colors.white,
+  },
+  comingSoonTextLight: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 14,
+    color: colors.white,
   },
 
   // Small Cards Row

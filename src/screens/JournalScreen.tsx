@@ -32,7 +32,7 @@ const MONTHS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-const YEARS = [2026, 2025, 2024];
+const YEARS = [new Date().getFullYear()];
 
 const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.png');
 const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
@@ -65,6 +65,8 @@ const JournalScreen = ({ navigation }: any) => {
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [appliedYears, setAppliedYears] = useState<number[]>([]);
   const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
+  const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
+  const [selectedReflected, setSelectedReflected] = useState<boolean | null>(null);
 
   // Fetch entries on mount
   useEffect(() => {
@@ -91,6 +93,8 @@ const JournalScreen = ({ navigation }: any) => {
     const params: any = {};
     if (selectedYears.length === 1) params.year = selectedYears[0];
     if (selectedMonths.length === 1) params.month = selectedMonths[0] + 1; // months are 0-indexed in UI, 1-indexed in API
+    if (selectedMood) params.mood = selectedMood;
+    if (selectedReflected !== null) params.is_ai_processed = selectedReflected;
     fetchEntries(params);
   };
 
@@ -216,6 +220,57 @@ const JournalScreen = ({ navigation }: any) => {
                   </Text>
                 </Pressable>
               ))}
+            </View>
+          </ScrollView>
+
+          {/* Mood & Reflected Filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+            <View style={styles.filterRow}>
+              {(['Normal', 'Happy', 'Mad', 'Sad'] as Mood[]).map((mood) => (
+                <Pressable
+                  key={mood}
+                  style={[
+                    styles.moodFilterPill,
+                    { borderColor: MOOD_COLORS[mood] },
+                    selectedMood === mood && { backgroundColor: MOOD_COLORS[mood] },
+                  ]}
+                  onPress={() => setSelectedMood(selectedMood === mood ? null : mood)}
+                >
+                  {MOOD_ICONS[mood] && (
+                    <Image source={MOOD_ICONS[mood]} style={styles.moodFilterIcon} resizeMode="contain" />
+                  )}
+                  <Text
+                    style={[
+                      styles.moodFilterText,
+                      { color: selectedMood === mood ? colors.white : MOOD_COLORS[mood] },
+                    ]}
+                  >
+                    {mood}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable
+                style={[
+                  styles.reflectedPill,
+                  selectedReflected === true && styles.reflectedPillActive,
+                ]}
+                onPress={() => setSelectedReflected(selectedReflected === true ? null : true)}
+              >
+                <Text style={[styles.reflectedText, selectedReflected === true && styles.reflectedTextActive]}>
+                  Reflected
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.reflectedPill,
+                  selectedReflected === false && styles.reflectedPillActive,
+                ]}
+                onPress={() => setSelectedReflected(selectedReflected === false ? null : false)}
+              >
+                <Text style={[styles.reflectedText, selectedReflected === false && styles.reflectedTextActive]}>
+                  Unreflected
+                </Text>
+              </Pressable>
             </View>
           </ScrollView>
 
@@ -515,6 +570,53 @@ const styles = StyleSheet.create({
   monthTextActive: {
     color: colors.white,
     fontFamily: fonts.outfit.medium,
+  },
+
+  // Mood & Reflected Filters
+  filterScroll: {
+    marginBottom: 8,
+    flexShrink: 0,
+    flexGrow: 0,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  moodFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  moodFilterIcon: {
+    width: 14,
+    height: 14,
+  },
+  moodFilterText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+  },
+  reflectedPill: {
+    borderWidth: 1.5,
+    borderColor: '#4CAF50',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  reflectedPillActive: {
+    backgroundColor: '#4CAF50',
+  },
+  reflectedText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  reflectedTextActive: {
+    color: colors.white,
   },
 
   // Sort Row
