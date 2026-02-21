@@ -35,6 +35,7 @@ import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import ResetPasswordConfirmScreen from "./src/screens/ResetPasswordConfirmScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
+import ChangePasswordScreen from "./src/screens/ChangePasswordScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import JournalScreen from "./src/screens/JournalScreen";
 import JournalEntryScreen from "./src/screens/JournalEntryScreen";
@@ -254,6 +255,7 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => (
       <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
       <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
     </Stack.Navigator>
   </JournalProvider>

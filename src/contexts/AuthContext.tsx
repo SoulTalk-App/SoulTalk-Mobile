@@ -58,6 +58,7 @@ interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<void>;
   // Password management
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   setPassword: (password: string) => Promise<void>;
   // Logout all devices
   logoutAllDevices: () => Promise<void>;
@@ -291,9 +292,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Email verification (OTP-based, auto-login on success)
+  // Note: no setIsLoading here — the OTP screen manages its own loading state.
+  // Setting isLoading on the auth context unmounts the entire nav tree via Navigation.
   const verifyOTP = useCallback(async (email: string, code: string) => {
     try {
-      setIsLoading(true);
       await AuthService.verifyOTP(email, code);
 
       // Auto-login: fetch user info and set authenticated state
@@ -304,8 +306,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Email verification failed:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
@@ -327,6 +327,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw error;
     }
   }, []);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    try {
+      await AuthService.changePassword(currentPassword, newPassword);
+      // Backend revokes all tokens — force logout
+      await logout();
+    } catch (error) {
+      console.error('Password change failed:', error);
+      throw error;
+    }
+  }, [logout]);
 
   const setPassword = useCallback(async (password: string) => {
     try {
@@ -371,6 +382,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     verifyOTP,
     resendVerificationEmail,
     confirmPasswordReset,
+    changePassword,
     setPassword,
     logoutAllDevices,
   };

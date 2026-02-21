@@ -55,7 +55,7 @@ const CustomToggle = ({
 
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const { user, logout, resetPassword, updateProfile } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -198,14 +198,8 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!user?.email) return;
-    try {
-      await resetPassword(user.email);
-      Alert.alert('Password Reset', 'Please check your email for reset instructions.');
-    } catch {
-      Alert.alert('Error', 'Failed to send reset email. Please try again.');
-    }
+  const handleChangePassword = () => {
+    navigation.navigate('ChangePassword');
   };
 
   const handleLogout = async () => {
@@ -280,10 +274,12 @@ const SettingsScreen = ({ navigation }: any) => {
         </Text>
         <View style={styles.separator} />
 
-        {/* Reset Password */}
-        <Pressable onPress={handleResetPassword} style={styles.resetButton}>
-          <Text style={styles.resetButtonText}>RESET PASSWORD</Text>
-        </Pressable>
+        {/* Change Password — only for email users */}
+        {user?.providers?.includes('email') && (
+          <Pressable onPress={handleChangePassword} style={styles.resetButton}>
+            <Text style={styles.resetButtonText}>CHANGE PASSWORD</Text>
+          </Pressable>
+        )}
 
         {/* Bio */}
         <TextInput

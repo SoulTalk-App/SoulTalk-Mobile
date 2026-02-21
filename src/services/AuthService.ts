@@ -179,7 +179,14 @@ class AuthService {
       const response = await this.axiosInstance.post('/auth/register', userData);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+      const detail = error.response?.data?.detail;
+      let message = 'Registration failed';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        message = detail.map((d: any) => d.msg).join(', ');
+      }
+      throw new Error(message);
     }
   }
 
@@ -243,6 +250,17 @@ class AuthService {
       await this.axiosInstance.post('/auth/reset-password', { email });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Password reset failed');
+    }
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      await this.axiosInstance.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Password change failed');
     }
   }
 

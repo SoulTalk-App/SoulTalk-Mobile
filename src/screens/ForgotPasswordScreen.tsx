@@ -58,8 +58,16 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
       await resetPassword(email);
       setEmailSent(true);
     } catch (error: any) {
-      // Still show success message for security (don't reveal if email exists)
-      setEmailSent(true);
+      const msg = error.message || '';
+      if (msg.includes('Google or Facebook')) {
+        Alert.alert(
+          'Social Account',
+          'This account was created using Google or Facebook. Please sign in using your original method.'
+        );
+      } else {
+        // Still show success message for security (don't reveal if email exists)
+        setEmailSent(true);
+      }
     } finally {
       setIsLoading(false);
     }

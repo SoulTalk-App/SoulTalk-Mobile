@@ -52,7 +52,7 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
     } else if (!/(?=.*\d)/.test(value)) {
       setPasswordError('Password must include a number');
       return false;
-    } else if (!/(?=.*[!@#$%^&*])/.test(value)) {
+    } else if (!/(?=.*[^a-zA-Z0-9])/.test(value)) {
       setPasswordError('Password must include a special character');
       return false;
     } else {
@@ -93,7 +93,7 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
       /(?=.*[a-z])/.test(password) &&
       /(?=.*[A-Z])/.test(password) &&
       /(?=.*\d)/.test(password) &&
-      /(?=.*[!@#$%^&*])/.test(password);
+      /(?=.*[^a-zA-Z0-9])/.test(password);
 
     return passwordValid && password === confirmPassword;
   }, [password, confirmPassword]);
@@ -215,6 +215,9 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="new-password"
+                passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -247,6 +250,8 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="newPassword"
+                autoComplete="new-password"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -268,7 +273,7 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
               <Text style={styles.requirement}>• One uppercase letter</Text>
               <Text style={styles.requirement}>• One lowercase letter</Text>
               <Text style={styles.requirement}>• One number</Text>
-              <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
+              <Text style={styles.requirement}>• One special character</Text>
             </View>
 
             <TouchableOpacity
