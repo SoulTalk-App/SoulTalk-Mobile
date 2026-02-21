@@ -3,6 +3,8 @@ import JournalService, {
   JournalEntry,
   Mood,
   ListEntriesParams,
+  StreakResponse,
+  SoulBarResponse,
 } from '../services/JournalService';
 import { useWS } from './WebSocketContext';
 
@@ -11,12 +13,18 @@ interface JournalContextType {
   isLoading: boolean;
   currentEntry: JournalEntry | null;
   total: number;
+  streak: StreakResponse | null;
+  soulBar: SoulBarResponse | null;
   fetchEntries: (params?: ListEntriesParams) => Promise<void>;
-  createEntry: (rawText: string, mood?: Mood) => Promise<JournalEntry>;
-  updateEntry: (id: string, data: { raw_text?: string; mood?: Mood }) => Promise<JournalEntry>;
+  createEntry: (rawText: string, mood?: Mood, isDraft?: boolean) => Promise<JournalEntry>;
+  updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
   deleteEntry: (id: string) => Promise<void>;
   setCurrentEntry: (entry: JournalEntry | null) => void;
   refreshEntries: () => Promise<void>;
+  fetchStreak: () => Promise<void>;
+  fetchSoulBar: () => Promise<void>;
+  saveDraft: (text: string, mood?: Mood, draftId?: string) => Promise<JournalEntry>;
+  finalizeDraft: (draftId: string, text: string, mood?: Mood) => Promise<JournalEntry>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
@@ -39,6 +47,8 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const [currentEntry, setCurrentEntry] = useState<JournalEntry | null>(null);
   const [total, setTotal] = useState(0);
   const [lastParams, setLastParams] = useState<ListEntriesParams | undefined>();
+  const [streak, setStreak] = useState<StreakResponse | null>(null);
+  const [soulBar, setSoulBar] = useState<SoulBarResponse | null>(null);
   const { subscribe } = useWS();
 
   // Subscribe to AI processing completion events
@@ -72,20 +82,60 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     await fetchEntries(lastParams);
   }, [fetchEntries, lastParams]);
 
-  const createEntry = useCallback(async (rawText: string, mood?: Mood) => {
-    const entry = await JournalService.createEntry(rawText, mood);
-    // Prepend to local state (newest first)
-    setEntries((prev) => [entry, ...prev]);
-    setTotal((prev) => prev + 1);
-    return entry;
+  const fetchStreak = useCallback(async () => {
+    try {
+      const data = await JournalService.getStreak();
+      setStreak(data);
+    } catch (error) {
+      console.error('Failed to fetch streak:', error);
+    }
   }, []);
 
-  const updateEntry = useCallback(async (id: string, data: { raw_text?: string; mood?: Mood }) => {
+  const fetchSoulBar = useCallback(async () => {
+    try {
+      const data = await JournalService.getSoulBar();
+      setSoulBar(data);
+    } catch (error) {
+      console.error('Failed to fetch soul bar:', error);
+    }
+  }, []);
+
+  // Fetch streak and soulBar on mount
+  useEffect(() => {
+    fetchStreak();
+    fetchSoulBar();
+  }, [fetchStreak, fetchSoulBar]);
+
+  const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false) => {
+    const entry = await JournalService.createEntry(rawText, mood, isDraft);
+    if (!isDraft) {
+      // Prepend to local state (newest first)
+      setEntries((prev) => [entry, ...prev]);
+      setTotal((prev) => prev + 1);
+      // Re-fetch streak and soulBar after non-draft creation
+      fetchStreak();
+      fetchSoulBar();
+    }
+    return entry;
+  }, [fetchStreak, fetchSoulBar]);
+
+  const updateEntry = useCallback(async (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => {
     const updated = await JournalService.updateEntry(id, data);
-    setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    // If draft was finalized, add to entries list and refresh gamification
+    if (data.is_draft === false) {
+      setEntries((prev) => {
+        const exists = prev.some((e) => e.id === id);
+        return exists ? prev.map((e) => (e.id === id ? updated : e)) : [updated, ...prev];
+      });
+      setTotal((prev) => prev + 1);
+      fetchStreak();
+      fetchSoulBar();
+    } else {
+      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    }
     if (currentEntry?.id === id) setCurrentEntry(updated);
     return updated;
-  }, [currentEntry]);
+  }, [currentEntry, fetchStreak, fetchSoulBar]);
 
   const deleteEntry = useCallback(async (id: string) => {
     await JournalService.deleteEntry(id);
@@ -94,17 +144,46 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     if (currentEntry?.id === id) setCurrentEntry(null);
   }, [currentEntry]);
 
+  const saveDraft = useCallback(async (text: string, mood?: Mood, draftId?: string) => {
+    if (draftId) {
+      return await JournalService.updateEntry(draftId, { raw_text: text, mood, is_draft: true });
+    }
+    return await JournalService.createEntry(text, mood, true);
+  }, []);
+
+  const finalizeDraft = useCallback(async (draftId: string, text: string, mood?: Mood) => {
+    const updated = await JournalService.updateEntry(draftId, {
+      raw_text: text,
+      mood,
+      is_draft: false,
+    });
+    setEntries((prev) => {
+      const exists = prev.some((e) => e.id === draftId);
+      return exists ? prev.map((e) => (e.id === draftId ? updated : e)) : [updated, ...prev];
+    });
+    setTotal((prev) => prev + 1);
+    fetchStreak();
+    fetchSoulBar();
+    return updated;
+  }, [fetchStreak, fetchSoulBar]);
+
   const value: JournalContextType = {
     entries,
     isLoading,
     currentEntry,
     total,
+    streak,
+    soulBar,
     fetchEntries,
     createEntry,
     updateEntry,
     deleteEntry,
     setCurrentEntry,
     refreshEntries,
+    fetchStreak,
+    fetchSoulBar,
+    saveDraft,
+    finalizeDraft,
   };
 
   return <JournalContext.Provider value={value}>{children}</JournalContext.Provider>;

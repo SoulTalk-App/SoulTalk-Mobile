@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,26 +10,51 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import { Mood } from '../services/JournalService';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { useVoiceRecording } from '../hooks/useVoiceRecording';
+import SaveAnimation from '../components/SaveAnimation';
+import InspirationDropdown from '../components/InspirationDropdown';
+import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 
 const SwirlIcon = require('../../assets/images/journal/SwirlIcon.png');
-const MicIcon = require('../../assets/images/journal/MicIcon.png');
+const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.png');
 
 const MOODS: { label: Mood; color: string }[] = [
   { label: 'Happy', color: '#EFDE11' },
   { label: 'Normal', color: '#59168B' },
   { label: 'Sad', color: '#0F3BF2' },
   { label: 'Mad', color: '#F20F0F' },
+  { label: 'Chill', color: '#5ECEFF' },
+  { label: 'Vibing', color: '#D35CFF' },
+  { label: 'Lost', color: '#8B7399' },
+  { label: 'Tired', color: '#70CACF' },
+  { label: 'Sexy', color: '#FF559E' },
+  { label: 'Fire', color: '#FF9E55' },
 ];
+
+const SOULPAL_REACTIONS: Record<Mood, string> = {
+  Happy: 'is beaming!',
+  Normal: 'is chillin with you.',
+  Sad: 'is here for you.',
+  Mad: 'feels the fire too.',
+  Chill: 'is vibing along.',
+  Vibing: 'is grooving!',
+  Lost: 'is searching with you.',
+  Tired: 'says rest is okay.',
+  Sexy: 'is feeling confident!',
+  Fire: 'is lit right now!',
+};
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const { createEntry, updateEntry } = useJournal();
+  const { createEntry, updateEntry, finalizeDraft } = useJournal();
 
   // Edit mode: entry passed via params
   const editEntry = route.params?.entry;
@@ -40,12 +65,57 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     isEdit ? editEntry.mood : route.params?.mood || null,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(
+    isEdit && editEntry.is_draft ? editEntry.id : null,
+  );
+  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+
+  // Auto-save hook (only for new entries, not edits of existing non-drafts)
+  useAutoSave({
+    text,
+    mood: selectedMood,
+    draftId,
+    setDraftId,
+    enabled: !isEdit || (isEdit && editEntry.is_draft),
+  });
+
+  // Voice recording
+  const {
+    isRecording,
+    isTranscribing,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useVoiceRecording();
+
+  const handleMicPress = useCallback(async () => {
+    if (isRecording) {
+      try {
+        const transcribedText = await stopRecording();
+        setText((prev: string) => {
+          const separator = prev.trim() ? ' ' : '';
+          return prev + separator + transcribedText;
+        });
+      } catch (error: any) {
+        Alert.alert('Transcription Error', error.message || 'Failed to transcribe audio');
+      }
+    } else {
+      try {
+        await startRecording();
+      } catch (error: any) {
+        Alert.alert('Recording Error', error.message || 'Failed to start recording');
+      }
+    }
+  }, [isRecording, startRecording, stopRecording]);
 
   const handleSave = async () => {
     if (!text.trim()) return;
     setIsSaving(true);
     try {
-      if (isEdit) {
+      if (draftId) {
+        // Finalize draft
+        await finalizeDraft(draftId, text.trim(), selectedMood || undefined);
+      } else if (isEdit) {
         await updateEntry(editEntry.id, {
           raw_text: text.trim(),
           mood: selectedMood || undefined,
@@ -53,12 +123,24 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       } else {
         await createEntry(text.trim(), selectedMood || undefined);
       }
-      navigation.goBack();
+      // Show save animation then navigate back
+      setShowSaveAnimation(true);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save entry');
-    } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveAnimationComplete = () => {
+    setShowSaveAnimation(false);
+    navigation.goBack();
+  };
+
+  const handleSelectPrompt = (prompt: string) => {
+    setText((prev: string) => {
+      if (!prev.trim()) return prompt;
+      return prev + '\n\n' + prompt;
+    });
   };
 
   return (
@@ -80,8 +162,25 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             <Text style={styles.backText}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
           </Pressable>
 
+          {/* SoulPal Reaction */}
+          {selectedMood && (
+            <View style={styles.soulPalRow}>
+              <Image source={JournalSoulPal} style={styles.soulPalMini} resizeMode="contain" />
+              <View style={styles.reactionBubble}>
+                <Text style={styles.reactionText}>
+                  SoulPal {SOULPAL_REACTIONS[selectedMood]}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Mood Selector */}
-          <View style={styles.moodRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.moodScroll}
+            contentContainerStyle={styles.moodRow}
+          >
             {MOODS.map((m) => (
               <Pressable
                 key={m.label}
@@ -101,7 +200,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
                 </Text>
               </Pressable>
             ))}
-          </View>
+          </ScrollView>
+
+          {/* Inspiration Dropdown */}
+          <InspirationDropdown onSelectPrompt={handleSelectPrompt} />
 
           {/* White Content Card with TextInput */}
           <View style={styles.contentCard}>
@@ -119,9 +221,11 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
 
           {/* Bottom Row: Mic + Save */}
           <View style={[styles.bottomRow, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
-            <Pressable style={styles.micButton}>
-              <Image source={MicIcon} style={styles.micIcon} resizeMode="contain" />
-            </Pressable>
+            <VoiceRecordingIndicator
+              isRecording={isRecording}
+              isTranscribing={isTranscribing}
+              onPress={handleMicPress}
+            />
             <Pressable
               style={[styles.saveButton, !text.trim() && styles.saveButtonDisabled]}
               onPress={handleSave}
@@ -136,6 +240,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Save Animation Overlay */}
+      <SaveAnimation visible={showSaveAnimation} onComplete={handleSaveAnimationComplete} />
     </LinearGradient>
   );
 };
@@ -157,7 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   swirlCircle: {
     width: 42,
@@ -178,21 +285,49 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 
+  // SoulPal Reaction
+  soulPalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  soulPalMini: {
+    width: 36,
+    height: 50,
+  },
+  reactionBubble: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  reactionText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: colors.white,
+  },
+
   // Mood Selector
+  moodScroll: {
+    flexShrink: 0,
+    flexGrow: 0,
+    marginBottom: 10,
+  },
   moodRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+    gap: 8,
+    paddingRight: 8,
   },
   moodPill: {
     backgroundColor: colors.white,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   moodPillText: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 14,
+    fontSize: 13,
     color: '#59168B',
   },
   moodPillTextActive: {
@@ -221,19 +356,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 16,
     gap: 16,
-  },
-  micButton: {
-    width: 56,
-    height: 56,
-    backgroundColor: colors.white,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  micIcon: {
-    width: 28,
-    height: 28,
-    tintColor: '#59168B',
   },
   saveButton: {
     flex: 1,

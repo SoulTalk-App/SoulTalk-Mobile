@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, fonts } from '../theme';
+import { useJournal } from '../contexts/JournalContext';
 
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
@@ -45,12 +46,14 @@ const SendIconImg = require('../../assets/images/home/SendIconPng.png');
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const TOTAL_BARS = 15;
+const SOUL_BAR_SEGMENTS = 6;
 
 const HomeScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [filledBars, setFilledBars] = useState(0);
+  const { soulBar } = useJournal();
 
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
@@ -252,6 +255,37 @@ const HomeScreen = ({ navigation }: any) => {
               />
             </View>
           </Pressable>
+
+          {/* SoulBar Section */}
+          <View style={styles.soulBarCard}>
+            <View style={styles.soulBarHeader}>
+              <Text style={styles.soulBarTitle}>SoulBar</Text>
+              <Text style={styles.soulBarCount}>
+                {soulBar?.points ?? 0}/{SOUL_BAR_SEGMENTS}
+              </Text>
+            </View>
+            <View style={styles.soulBarSegments}>
+              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.soulBarSegment,
+                    {
+                      backgroundColor:
+                        i < (soulBar?.points ?? 0)
+                          ? '#59168B'
+                          : 'rgba(89, 22, 139, 0.15)',
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+            {(soulBar?.total_filled ?? 0) > 0 && (
+              <Text style={styles.soulBarFilled}>
+                Filled {soulBar?.total_filled} time{(soulBar?.total_filled ?? 0) !== 1 ? 's' : ''}
+              </Text>
+            )}
+          </View>
 
           {/* Soul Sight Card */}
           <View style={styles.soulSightCard}>
@@ -528,6 +562,49 @@ const styles = StyleSheet.create({
   sendIcon: {
     width: 18,
     height: 18,
+  },
+
+  // SoulBar Card
+  soulBarCard: {
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  soulBarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  soulBarTitle: {
+    fontFamily: fonts.edensor.medium,
+    fontSize: 15,
+    lineHeight: 15 * 1.4,
+    color: '#59168B',
+  },
+  soulBarCount: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 13,
+    color: '#59168B',
+  },
+  soulBarSegments: {
+    flexDirection: 'row',
+    gap: 6,
+    height: 14,
+  },
+  soulBarSegment: {
+    flex: 1,
+    height: 12,
+    borderRadius: 3,
+  },
+  soulBarFilled: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 11,
+    color: '#59168B',
+    marginTop: 6,
+    textAlign: 'right',
   },
 
   // Soul Sight Card

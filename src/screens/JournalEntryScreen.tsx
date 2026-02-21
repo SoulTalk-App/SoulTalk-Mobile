@@ -18,13 +18,14 @@ import JournalService, { JournalEntry } from '../services/JournalService';
 
 const SwirlIcon = require('../../assets/images/journal/SwirlIcon.png');
 const ExpandIcon = require('../../assets/images/journal/ExpandIcon.png');
-const SoulPalMeterBar = require('../../assets/images/journal/SoulPalMeterBar.png');
 const MoodEyesIcon = require('../../assets/images/journal/MoodEyesIcon.png');
 const MicIcon = require('../../assets/images/journal/MicIcon.png');
 
+const SOUL_BAR_SEGMENTS = 6;
+
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const { deleteEntry, entries } = useJournal();
+  const { deleteEntry, entries, soulBar } = useJournal();
   const entryId: string = route.params?.entryId;
 
   const [entry, setEntry] = useState<JournalEntry | null>(null);
@@ -104,6 +105,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     );
   }
 
+  const soulBarPoints = soulBar?.points ?? 0;
+
   return (
     <LinearGradient
       colors={['#59168B', '#653495', '#59168B']}
@@ -141,14 +144,24 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           </View>
         </View>
 
-        {/* SoulPal Meter Row */}
+        {/* SoulPal Meter Row — Dynamic */}
         <View style={styles.meterRow}>
           <View style={styles.meterSwirlCircle}>
             <Image source={SwirlIcon} style={styles.meterSwirlIcon} resizeMode="contain" />
           </View>
           <View style={styles.meterBar}>
             <Text style={styles.meterLabel}>SoulPal Meter</Text>
-            <Image source={SoulPalMeterBar} style={styles.meterProgress} resizeMode="contain" />
+            <View style={styles.meterSegments}>
+              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.meterSegment,
+                    { backgroundColor: i < soulBarPoints ? '#59168B' : 'rgba(89, 22, 139, 0.15)' },
+                  ]}
+                />
+              ))}
+            </View>
           </View>
           <View style={styles.moodEyesCircle}>
             <Image source={MoodEyesIcon} style={styles.moodEyesIcon} resizeMode="contain" />
@@ -170,13 +183,70 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                 <>
                   <Text style={styles.aiLabel}>SoulPal's Reflection</Text>
                   <Text style={styles.aiResponseText}>{entry.ai_response}</Text>
+
+                  {/* Topics */}
                   {entry.topics && entry.topics.length > 0 && (
-                    <View style={styles.topicRow}>
+                    <View style={styles.pillRow}>
                       {entry.topics.map((topic, idx) => (
                         <View key={idx} style={styles.topicPill}>
                           <Text style={styles.topicPillText}>{topic}</Text>
                         </View>
                       ))}
+                    </View>
+                  )}
+
+                  {/* Emotion with Intensity Bar */}
+                  {entry.emotion_primary && (
+                    <View style={styles.aiFieldRow}>
+                      <Text style={styles.aiFieldLabel}>Emotion</Text>
+                      <View style={styles.emotionRow}>
+                        <Text style={styles.aiFieldValue}>{entry.emotion_primary}</Text>
+                        {entry.emotion_intensity != null && (
+                          <View style={styles.intensityBar}>
+                            <View
+                              style={[
+                                styles.intensityFill,
+                                { width: `${(entry.emotion_intensity / 10) * 100}%` },
+                              ]}
+                            />
+                          </View>
+                        )}
+                        {entry.emotion_intensity != null && (
+                          <Text style={styles.intensityLabel}>{entry.emotion_intensity}/10</Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Nervous System */}
+                  {entry.nervous_system_state && (
+                    <View style={styles.aiFieldRow}>
+                      <Text style={styles.aiFieldLabel}>Nervous System</Text>
+                      <Text style={styles.aiFieldValue}>{entry.nervous_system_state}</Text>
+                    </View>
+                  )}
+
+                  {/* Self-Talk / Time Focus */}
+                  {(entry.self_talk_style || entry.time_focus) && (
+                    <View style={styles.aiFieldRow}>
+                      <Text style={styles.aiFieldLabel}>Self-Talk / Focus</Text>
+                      <Text style={styles.aiFieldValue}>
+                        {[entry.self_talk_style, entry.time_focus].filter(Boolean).join(' | ')}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Coping Mechanisms */}
+                  {entry.coping_mechanisms && entry.coping_mechanisms.length > 0 && (
+                    <View style={styles.aiFieldRow}>
+                      <Text style={styles.aiFieldLabel}>Coping</Text>
+                      <View style={styles.pillRow}>
+                        {entry.coping_mechanisms.map((mech, idx) => (
+                          <View key={idx} style={styles.copingPill}>
+                            <Text style={styles.copingPillText}>{mech}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
                   )}
                 </>
@@ -279,7 +349,7 @@ const styles = StyleSheet.create({
     tintColor: colors.white,
   },
 
-  // SoulPal Meter
+  // SoulPal Meter — Dynamic segments
   meterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,9 +384,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#59168B',
   },
-  meterProgress: {
+  meterSegments: {
     flex: 1,
-    height: 21,
+    flexDirection: 'row',
+    gap: 4,
+    height: 16,
+    alignItems: 'center',
+  },
+  meterSegment: {
+    flex: 1,
+    height: 12,
+    borderRadius: 3,
   },
   moodEyesCircle: {
     width: 30,
@@ -373,10 +451,11 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 12,
   },
-  topicRow: {
+  pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginBottom: 10,
   },
   topicPill: {
     backgroundColor: '#F3ECFA',
@@ -389,6 +468,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#59168B',
   },
+
+  // AI Analysis Fields
+  aiFieldRow: {
+    marginBottom: 10,
+  },
+  aiFieldLabel: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 12,
+    color: '#59168B',
+    marginBottom: 4,
+  },
+  aiFieldValue: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: '#333333',
+  },
+  emotionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  intensityBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: 'rgba(89, 22, 139, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  intensityFill: {
+    height: '100%',
+    backgroundColor: '#59168B',
+    borderRadius: 4,
+  },
+  intensityLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    color: '#59168B',
+  },
+  copingPill: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  copingPillText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#2E7D32',
+  },
+
   aiLoadingRow: {
     flexDirection: 'row',
     alignItems: 'center',

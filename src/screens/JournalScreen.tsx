@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,12 @@ const MOOD_COLORS: Record<Mood, string> = {
   Happy: '#EFDE11',
   Mad: '#F20F0F',
   Sad: '#0F3BF2',
+  Chill: '#5ECEFF',
+  Vibing: '#D35CFF',
+  Lost: '#8B7399',
+  Tired: '#70CACF',
+  Sexy: '#FF559E',
+  Fire: '#FF9E55',
 };
 
 const MONTHS = [
@@ -47,18 +53,22 @@ const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
 const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
 
-const MOOD_ICONS: Record<Mood, any> = {
+const MOOD_ICONS: Partial<Record<Mood, any>> = {
   Normal: MoodNormal,
   Happy: MoodHappy,
   Mad: MoodMad,
   Sad: MoodSad,
 };
 
+const ALL_MOODS: Mood[] = [
+  'Normal', 'Happy', 'Mad', 'Sad', 'Chill', 'Vibing', 'Lost', 'Tired', 'Sexy', 'Fire',
+];
+
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const { entries, isLoading, fetchEntries } = useJournal();
+  const { entries, isLoading, fetchEntries, streak } = useJournal();
 
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
@@ -162,6 +172,19 @@ const JournalScreen = ({ navigation }: any) => {
     return `${month}/${day}`;
   };
 
+  // Build streak text for speech bubble
+  const currentStreak = streak?.current_streak ?? 0;
+  const streakText = currentStreak > 0
+    ? `${currentStreak}-day streak! Keep it up!`
+    : 'Welcome to your journal!\nYour personal space\nto write and reflect';
+
+  // Build streak stars (up to 7)
+  const streakStars = currentStreak > 0
+    ? currentStreak <= 7
+      ? '\u2B50'.repeat(currentStreak)
+      : '\u2B50'.repeat(7) + '+'
+    : '';
+
   const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom - 6 : 8) + 20;
 
   return (
@@ -175,9 +198,10 @@ const JournalScreen = ({ navigation }: any) => {
         <View style={styles.headerSection}>
           <Image source={JournalSoulPal} style={styles.soulPalImage} resizeMode="contain" />
           <View style={styles.speechBubble}>
-            <Text style={styles.speechText}>
-              Welcome to your journal!{'\n'}Your personal space{'\n'}to write and reflect
-            </Text>
+            <Text style={styles.speechText}>{streakText}</Text>
+            {streakStars.length > 0 && (
+              <Text style={styles.streakStars}>{streakStars}</Text>
+            )}
           </View>
         </View>
 
@@ -223,10 +247,10 @@ const JournalScreen = ({ navigation }: any) => {
             </View>
           </ScrollView>
 
-          {/* Mood & Reflected Filters */}
+          {/* Mood & Reflected Filters — All 10 moods */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             <View style={styles.filterRow}>
-              {(['Normal', 'Happy', 'Mad', 'Sad'] as Mood[]).map((mood) => (
+              {ALL_MOODS.map((mood) => (
                 <Pressable
                   key={mood}
                   style={[
@@ -236,8 +260,10 @@ const JournalScreen = ({ navigation }: any) => {
                   ]}
                   onPress={() => setSelectedMood(selectedMood === mood ? null : mood)}
                 >
-                  {MOOD_ICONS[mood] && (
+                  {MOOD_ICONS[mood] ? (
                     <Image source={MOOD_ICONS[mood]} style={styles.moodFilterIcon} resizeMode="contain" />
+                  ) : (
+                    <View style={[styles.moodDot, { backgroundColor: MOOD_COLORS[mood] }]} />
                   )}
                   <Text
                     style={[
@@ -284,7 +310,7 @@ const JournalScreen = ({ navigation }: any) => {
                     <View key={`y-${year}`} style={styles.sortPill}>
                       <Text style={styles.sortPillText}>{year}</Text>
                       <Pressable onPress={() => removePill('year', year)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                        <Text style={styles.sortPillX}>✕</Text>
+                        <Text style={styles.sortPillX}>{'\u2715'}</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -292,7 +318,7 @@ const JournalScreen = ({ navigation }: any) => {
                     <View key={`m-${monthIdx}`} style={styles.sortPill}>
                       <Text style={styles.sortPillText}>{MONTHS[monthIdx]}</Text>
                       <Pressable onPress={() => removePill('month', monthIdx)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                        <Text style={styles.sortPillX}>✕</Text>
+                        <Text style={styles.sortPillX}>{'\u2715'}</Text>
                       </Pressable>
                     </View>
                   ))}
@@ -337,8 +363,10 @@ const JournalScreen = ({ navigation }: any) => {
                           <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood as Mood] || '#59168B' }]}>
                             {item.mood}
                           </Text>
-                          {MOOD_ICONS[item.mood as Mood] && (
+                          {MOOD_ICONS[item.mood as Mood] ? (
                             <Image source={MOOD_ICONS[item.mood as Mood]} style={styles.moodIcon} resizeMode="contain" />
+                          ) : (
+                            <View style={[styles.moodDotSmall, { backgroundColor: MOOD_COLORS[item.mood as Mood] || '#59168B' }]} />
                           )}
                         </View>
                       )}
@@ -479,6 +507,11 @@ const styles = StyleSheet.create({
     color: '#59168B',
     textAlign: 'center',
   },
+  streakStars: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 4,
+  },
 
   // Journal Card
   journalCard: {
@@ -595,6 +628,11 @@ const styles = StyleSheet.create({
   moodFilterIcon: {
     width: 14,
     height: 14,
+  },
+  moodDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   moodFilterText: {
     fontFamily: fonts.outfit.medium,
@@ -721,6 +759,11 @@ const styles = StyleSheet.create({
   moodIcon: {
     width: 18,
     height: 18,
+  },
+  moodDotSmall: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   threeDots: {
     width: 14,
