@@ -1,3 +1,9 @@
+# Deploy scripts (contain credentials)
+scripts/
+
+# Build output
+build/
+
 # Dependencies
 node_modules/
 npm-debug.log*

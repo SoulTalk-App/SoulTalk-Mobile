@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Ref to track latest password for cross-field validation during rapid autofill
+  const passwordRef = useRef('');
 
   // Focus states
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -147,13 +150,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             error = 'Password must include an uppercase letter';
           } else if (!/(?=.*\d)/.test(value)) {
             error = 'Password must include a number';
-          } else if (!/(?=.*[!@#$%^&*])/.test(value)) {
+          } else if (!/(?=.*[^a-zA-Z0-9])/.test(value)) {
             error = 'Password must include a special character';
           }
         }
         break;
       case 'confirmPassword':
-        if (value && value !== formData.password) {
+        if (value && value !== passwordRef.current) {
           error = 'Passwords do not match';
         }
         break;
@@ -163,16 +166,25 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
+    // Keep ref in sync so cross-field validation always has the latest password
+    if (field === 'password') {
+      passwordRef.current = value;
+    }
+
+    // Use functional update to avoid stale state when iOS autofills both fields rapidly
+    setFormData(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
 
-    // Also validate confirmPassword when password changes
-    if (field === 'password' && formData.confirmPassword) {
-      if (value !== formData.confirmPassword) {
-        setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
-      } else {
-        setErrors(prev => ({ ...prev, confirmPassword: '' }));
-      }
+    // Cross-validate confirmPassword whenever password changes
+    if (field === 'password') {
+      setFormData(prev => {
+        if (prev.confirmPassword && value !== prev.confirmPassword) {
+          setErrors(errs => ({ ...errs, confirmPassword: 'Passwords do not match' }));
+        } else if (prev.confirmPassword) {
+          setErrors(errs => ({ ...errs, confirmPassword: '' }));
+        }
+        return prev;
+      });
     }
   };
 
@@ -184,7 +196,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       /(?=.*[a-z])/.test(password) &&
       /(?=.*[A-Z])/.test(password) &&
       /(?=.*\d)/.test(password) &&
-      /(?=.*[!@#$%^&*])/.test(password);
+      /(?=.*[^a-zA-Z0-9])/.test(password);
 
     return (
       firstName.trim() !== '' &&
@@ -285,6 +297,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onBlur={() => setFocusedField(null)}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    textContentType="givenName"
+                    autoComplete="given-name"
                   />
                 </View>
                 {errors.firstName ? <Text style={styles.errorText}>{errors.firstName}</Text> : null}
@@ -303,6 +317,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onBlur={() => setFocusedField(null)}
                     autoCapitalize="words"
                     autoCorrect={false}
+                    textContentType="familyName"
+                    autoComplete="family-name"
                   />
                 </View>
                 {errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
@@ -322,6 +338,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
               />
             </View>
             {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
@@ -341,7 +359,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 autoCorrect={false}
                 textContentType="newPassword"
                 autoComplete="new-password"
-                passwordRules="minlength: 8;"
+                passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}

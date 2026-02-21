@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,6 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-  Image,
-  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
@@ -21,9 +19,6 @@ import AuthService from "../services/AuthService";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { colors, fonts } from "../theme";
-
-const AuthIcon = require("../../assets/images/authentication/AutheticationIcon.png");
-
 
 const USE_LOCAL_AUTH = false;
 
@@ -48,9 +43,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  // Animation for peeking image
-  const slideAnim = useRef(new Animated.Value(-100)).current;
-
   const { login, loginWithGoogle, loginWithFacebook } = useAuth();
 
   // Social auth hooks
@@ -70,13 +62,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   useEffect(() => {
     checkBiometricStatus();
-    // Slide in animation
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      tension: 50,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
   }, []);
 
   // Handle Google auth response
@@ -260,20 +245,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Peeking Auth Icon from left edge */}
-          <Animated.View
-            style={[
-              styles.peekingImageContainer,
-              { transform: [{ translateX: slideAnim }] }
-            ]}
-          >
-            <Image
-              source={AuthIcon}
-              style={styles.peekingImage}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
           <Text style={styles.title}>Sign In</Text>
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
 
@@ -440,19 +411,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    position: "relative",
-    overflow: "visible",
-  },
-  peekingImageContainer: {
-    position: "absolute",
-    left: -30,
-    top: 12,
-    zIndex: 10,
-  },
-  peekingImage: {
-    width: 120,
-    height: 120,
-    transform: [{ rotate: "15deg" }],
   },
   title: {
     fontFamily: fonts.edensor.bold,
@@ -461,7 +419,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
     marginTop: 20,
     marginBottom: 4,
-    marginLeft: 55,
   },
   subtitle: {
     fontFamily: fonts.outfit.regular,
@@ -469,7 +426,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     textAlign: "left",
     marginBottom: 30,
-    marginLeft: 55,
   },
   form: {
     marginBottom: 20,

@@ -1,28 +1,48 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, fonts } from '../theme';
 
-const SoulTalkLoader: React.FC = () => {
-  const [displayedText, setDisplayedText] = useState('');
-  const fullText = 'SoulTalk';
-  const indexRef = useRef(0);
+interface SoulTalkLoaderProps {
+  /** When false, plays once then calls onComplete. Default true (loops). */
+  loop?: boolean;
+  /** Called after the animation finishes (only when loop=false). */
+  onComplete?: () => void;
+}
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (indexRef.current < fullText.length) {
-        indexRef.current++;
-        setDisplayedText(fullText.substring(0, indexRef.current));
-      } else {
-        // Pause then reset to loop
-        setTimeout(() => {
+const FULL_TEXT = 'SoulTalk';
+const CHAR_DELAY = 150;
+const PAUSE_AFTER = 500;
+
+const SoulTalkLoader: React.FC<SoulTalkLoaderProps> = ({ loop = true, onComplete }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const indexRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const tick = useCallback(() => {
+    if (indexRef.current < FULL_TEXT.length) {
+      indexRef.current++;
+      setDisplayedText(FULL_TEXT.substring(0, indexRef.current));
+      timerRef.current = setTimeout(tick, CHAR_DELAY);
+    } else {
+      // Finished typing — pause, then either loop or complete
+      timerRef.current = setTimeout(() => {
+        if (loop) {
           indexRef.current = 0;
           setDisplayedText('');
-        }, 500);
-      }
-    }, 150);
+          timerRef.current = setTimeout(tick, CHAR_DELAY);
+        } else {
+          onComplete?.();
+        }
+      }, PAUSE_AFTER);
+    }
+  }, [loop, onComplete]);
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    timerRef.current = setTimeout(tick, CHAR_DELAY);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [tick]);
 
   return (
     <View style={styles.container}>
