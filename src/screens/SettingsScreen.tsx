@@ -89,10 +89,12 @@ const SettingsScreen = ({ navigation }: any) => {
     load();
   }, []);
 
+  const usernameIsLocked = Boolean(user?.username);
+
   // Pre-fill from user profile (backend data)
   useEffect(() => {
     if (!user) return;
-    setDisplayName(user.display_name || user.first_name || '');
+    setDisplayName(user.display_first_name || user.first_name || '');
     setUsername(user.username || '');
     setBio(user.bio || '');
     setPronoun(user.pronoun || '');
@@ -117,8 +119,8 @@ const SettingsScreen = ({ navigation }: any) => {
     const currentBio = current.bio || null;
     const currentPronoun = current.pronoun || null;
 
-    if (currentDisplayName !== (user?.display_name || user?.first_name || null)) {
-      updates.display_name = currentDisplayName;
+    if (currentDisplayName !== (user?.display_first_name || user?.first_name || null)) {
+      updates.display_first_name = currentDisplayName;
     }
     if (currentUsername !== (user?.username || null)) {
       updates.username = currentUsername;
@@ -130,8 +132,8 @@ const SettingsScreen = ({ navigation }: any) => {
       updates.pronoun = currentPronoun;
     }
 
-    // Don't save if username is taken
-    if (usernameAvailable === false) {
+    // Don't save if username is taken or already locked
+    if (usernameAvailable === false || usernameIsLocked) {
       delete updates.username;
     }
 
@@ -247,14 +249,17 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* @username */}
         <View style={styles.usernameRow}>
           <TextInput
-            style={[styles.fieldInput, { flex: 1 }]}
+            style={[styles.fieldInput, { flex: 1, opacity: usernameIsLocked ? 0.6 : 1 }]}
             value={username}
             onChangeText={handleUsernameChange}
             placeholder="@username"
             placeholderTextColor="rgba(255, 255, 255, 0.5)"
             autoCapitalize="none"
+            editable={!usernameIsLocked}
           />
-          {usernameChecking ? (
+          {usernameIsLocked ? (
+            <Ionicons name="lock-closed" size={18} color="rgba(255,255,255,0.5)" />
+          ) : usernameChecking ? (
             <Text style={styles.usernameChecking}>...</Text>
           ) : usernameAvailable === true ? (
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -262,7 +267,7 @@ const SettingsScreen = ({ navigation }: any) => {
             <Ionicons name="close-circle" size={20} color="#FF5E5E" />
           ) : null}
         </View>
-        {usernameAvailable === false && (
+        {usernameAvailable === false && !usernameIsLocked && (
           <Text style={styles.usernameTaken}>Username is taken</Text>
         )}
         <View style={styles.separator} />

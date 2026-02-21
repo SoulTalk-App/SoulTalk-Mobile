@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Constants from 'expo-constants';
 import SecureStorage from '../utils/SecureStorage';
+import { useAuth } from '../contexts/AuthContext';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -50,7 +51,8 @@ const SOUL_BAR_SEGMENTS = 6;
 
 const HomeScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const [username, setUsername] = useState('User');
+  const { user } = useAuth();
+  const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [filledBars, setFilledBars] = useState(0);
   const { soulBar } = useJournal();
@@ -81,11 +83,11 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    const loadUsername = async () => {
+    const loadLocalName = async () => {
       const stored = await AsyncStorage.getItem('@soultalk_username');
-      if (stored) setUsername(stored);
+      if (stored) setLocalName(stored);
     };
-    loadUsername();
+    loadLocalName();
 
     // Load today's mood from backend
     const loadMood = async () => {
@@ -209,7 +211,7 @@ const HomeScreen = ({ navigation }: any) => {
             />
             <View style={styles.headerTextSection}>
               <Text style={styles.welcomeText}>
-                Welcome Back, {username}!
+                Welcome Back, {user?.display_first_name || user?.first_name || localName}!
               </Text>
               <View style={styles.progressBarContainer}>
                 {Array.from({ length: TOTAL_BARS }).map((_, i) => (

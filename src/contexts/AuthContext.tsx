@@ -7,6 +7,7 @@ interface UserInfo {
   email: string;
   first_name: string;
   last_name: string;
+  display_first_name?: string | null;
   display_name?: string | null;
   username?: string | null;
   bio?: string | null;
