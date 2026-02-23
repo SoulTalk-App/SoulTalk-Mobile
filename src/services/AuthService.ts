@@ -73,13 +73,13 @@ class AuthService {
 
   constructor() {
     this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
-      url: 'http://localhost:8080',
+      url: 'https://soultalkapp.com',
       realm: 'soultalk',
       clientId: 'soultalk-mobile'
     };
 
     this.apiConfig = Constants.expoConfig?.extra?.apiConfig || {
-      baseUrl: 'http://localhost:8000/api'
+      baseUrl: 'https://soultalkapp.com/api'
     };
 
     this.axiosInstance = axios.create({

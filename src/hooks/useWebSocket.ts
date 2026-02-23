@@ -9,7 +9,7 @@ const AUTH_FAILURE_CODE = 4001;
 
 const getWsUrl = (): string => {
   const apiBaseUrl =
-    Constants.expoConfig?.extra?.apiConfig?.baseUrl || 'http://localhost:8000/api';
+    Constants.expoConfig?.extra?.apiConfig?.baseUrl || 'https://soultalkapp.com/api';
   // Convert http(s)://host:port/api -> ws(s)://host:port/ws
   return apiBaseUrl
     .replace(/^http/, 'ws')
@@ -17,7 +17,7 @@ const getWsUrl = (): string => {
 };
 
 const getApiBaseUrl = (): string =>
-  Constants.expoConfig?.extra?.apiConfig?.baseUrl || 'http://localhost:8000/api';
+  Constants.expoConfig?.extra?.apiConfig?.baseUrl || 'https://soultalkapp.com/api';
 
 const refreshAccessToken = async (): Promise<string | null> => {
   try {

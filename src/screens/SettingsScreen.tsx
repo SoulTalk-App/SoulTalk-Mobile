@@ -123,7 +123,7 @@ const SettingsScreen = ({ navigation }: any) => {
     setUsernameChecking(true);
     usernameDebounceRef.current = setTimeout(async () => {
       try {
-        const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'http://localhost:8000/api' };
+        const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'https://soultalkapp.com/api' };
         const token = await SecureStorage.getItem('access_token');
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;

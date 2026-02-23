@@ -1,4 +1,5 @@
-const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:8000/api";
+const PROD_API_URL = "https://soultalkapp.com/api";
+const apiBaseUrl = process.env.API_BASE_URL || PROD_API_URL;
 
 const appJson = require("./app.json");
 

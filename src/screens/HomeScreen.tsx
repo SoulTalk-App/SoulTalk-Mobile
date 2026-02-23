@@ -73,7 +73,7 @@ const HomeScreen = ({ navigation }: any) => {
   const moodDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getApiBase = () => {
-    const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'http://localhost:8000/api' };
+    const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'https://soultalkapp.com/api' };
     return apiConfig.baseUrl;
   };
 

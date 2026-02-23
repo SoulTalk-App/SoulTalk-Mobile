@@ -68,7 +68,7 @@ class JournalService {
 
   constructor() {
     const apiConfig = Constants.expoConfig?.extra?.apiConfig || {
-      baseUrl: 'http://localhost:8000/api',
+      baseUrl: 'https://soultalkapp.com/api',
     };
 
     this.axiosInstance = axios.create({
