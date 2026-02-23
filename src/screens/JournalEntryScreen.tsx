@@ -16,16 +16,11 @@ import { colors, fonts } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
 
-const SwirlIcon = require('../../assets/images/journal/SwirlIcon.png');
-const ExpandIcon = require('../../assets/images/journal/ExpandIcon.png');
-const MoodEyesIcon = require('../../assets/images/journal/MoodEyesIcon.png');
-const MicIcon = require('../../assets/images/journal/MicIcon.png');
-
-const SOUL_BAR_SEGMENTS = 6;
+const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const { deleteEntry, entries, soulBar } = useJournal();
+  const { deleteEntry, entries } = useJournal();
   const entryId: string = route.params?.entryId;
 
   const [entry, setEntry] = useState<JournalEntry | null>(null);
@@ -94,9 +89,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       >
         <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-            <View style={styles.swirlCircle}>
-              <Image source={SwirlIcon} style={styles.swirlIcon} resizeMode="contain" />
-            </View>
+            <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
           <SoulTalkLoader />
@@ -104,8 +97,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       </LinearGradient>
     );
   }
-
-  const soulBarPoints = soulBar?.points ?? 0;
 
   return (
     <LinearGradient
@@ -116,17 +107,13 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
         {/* Back Button */}
         <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-          <View style={styles.swirlCircle}>
-            <Image source={SwirlIcon} style={styles.swirlIcon} resizeMode="contain" />
-          </View>
+          <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
         {/* Title Row */}
         <View style={styles.titleRow}>
-          <Text style={styles.titleText}>
-            {entry.mood ? `Feeling ${entry.mood}` : 'Journal Entry'}
-          </Text>
+          <Text style={styles.titleText}>Journal Entry</Text>
           <View style={styles.actionRow}>
             <Pressable style={styles.actionBtn} onPress={handleEdit}>
               <Text style={styles.actionBtnText}>Edit</Text>
@@ -138,33 +125,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                 <Text style={[styles.actionBtnText, { color: '#FF6B6B' }]}>Delete</Text>
               )}
             </Pressable>
-            <Pressable style={styles.expandBtn}>
-              <Image source={ExpandIcon} style={styles.expandIcon} resizeMode="contain" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* SoulPal Meter Row — Dynamic */}
-        <View style={styles.meterRow}>
-          <View style={styles.meterSwirlCircle}>
-            <Image source={SwirlIcon} style={styles.meterSwirlIcon} resizeMode="contain" />
-          </View>
-          <View style={styles.meterBar}>
-            <Text style={styles.meterLabel}>SoulPal Meter</Text>
-            <View style={styles.meterSegments}>
-              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.meterSegment,
-                    { backgroundColor: i < soulBarPoints ? '#59168B' : 'rgba(89, 22, 139, 0.15)' },
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-          <View style={styles.moodEyesCircle}>
-            <Image source={MoodEyesIcon} style={styles.moodEyesIcon} resizeMode="contain" />
           </View>
         </View>
 
@@ -195,51 +155,10 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                     </View>
                   )}
 
-                  {/* Emotion with Intensity Bar */}
-                  {entry.emotion_primary && (
-                    <View style={styles.aiFieldRow}>
-                      <Text style={styles.aiFieldLabel}>Emotion</Text>
-                      <View style={styles.emotionRow}>
-                        <Text style={styles.aiFieldValue}>{entry.emotion_primary}</Text>
-                        {entry.emotion_intensity != null && (
-                          <View style={styles.intensityBar}>
-                            <View
-                              style={[
-                                styles.intensityFill,
-                                { width: `${(entry.emotion_intensity / 10) * 100}%` },
-                              ]}
-                            />
-                          </View>
-                        )}
-                        {entry.emotion_intensity != null && (
-                          <Text style={styles.intensityLabel}>{entry.emotion_intensity}/10</Text>
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Nervous System */}
-                  {entry.nervous_system_state && (
-                    <View style={styles.aiFieldRow}>
-                      <Text style={styles.aiFieldLabel}>Nervous System</Text>
-                      <Text style={styles.aiFieldValue}>{entry.nervous_system_state}</Text>
-                    </View>
-                  )}
-
-                  {/* Self-Talk / Time Focus */}
-                  {(entry.self_talk_style || entry.time_focus) && (
-                    <View style={styles.aiFieldRow}>
-                      <Text style={styles.aiFieldLabel}>Self-Talk / Focus</Text>
-                      <Text style={styles.aiFieldValue}>
-                        {[entry.self_talk_style, entry.time_focus].filter(Boolean).join(' | ')}
-                      </Text>
-                    </View>
-                  )}
-
                   {/* Coping Mechanisms */}
                   {entry.coping_mechanisms && entry.coping_mechanisms.length > 0 && (
-                    <View style={styles.aiFieldRow}>
-                      <Text style={styles.aiFieldLabel}>Coping</Text>
+                    <View>
+                      <Text style={styles.copingLabel}>Coping</Text>
                       <View style={styles.pillRow}>
                         {entry.coping_mechanisms.map((mech, idx) => (
                           <View key={idx} style={styles.copingPill}>
@@ -260,12 +179,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           </ScrollView>
         </View>
 
-        {/* Mic Button */}
-        <View style={[styles.micContainer, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
-          <Pressable style={styles.micButton}>
-            <Image source={MicIcon} style={styles.micIcon} resizeMode="contain" />
-          </Pressable>
-        </View>
+        <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }} />
       </View>
     </LinearGradient>
   );
@@ -292,18 +206,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  swirlCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  swirlIcon: {
-    width: 24,
-    height: 22,
-    tintColor: colors.white,
+  backIcon: {
+    width: 36,
+    height: 36,
   },
   backText: {
     fontFamily: fonts.outfit.semiBold,
@@ -339,77 +244,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
     color: colors.white,
-  },
-  expandBtn: {
-    padding: 4,
-  },
-  expandIcon: {
-    width: 28,
-    height: 20,
-    tintColor: colors.white,
-  },
-
-  // SoulPal Meter — Dynamic segments
-  meterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  meterSwirlCircle: {
-    width: 42,
-    height: 37,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  meterSwirlIcon: {
-    width: 22,
-    height: 20,
-    tintColor: colors.white,
-  },
-  meterBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 10,
-  },
-  meterLabel: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: '#59168B',
-  },
-  meterSegments: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 4,
-    height: 16,
-    alignItems: 'center',
-  },
-  meterSegment: {
-    flex: 1,
-    height: 12,
-    borderRadius: 3,
-  },
-  moodEyesCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#59168B',
-    borderWidth: 2,
-    borderColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  moodEyesIcon: {
-    width: 18,
-    height: 18,
-    tintColor: colors.white,
   },
 
   // Content Card
@@ -469,42 +303,12 @@ const styles = StyleSheet.create({
     color: '#59168B',
   },
 
-  // AI Analysis Fields
-  aiFieldRow: {
-    marginBottom: 10,
-  },
-  aiFieldLabel: {
+  // Coping
+  copingLabel: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
     color: '#59168B',
     marginBottom: 4,
-  },
-  aiFieldValue: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: '#333333',
-  },
-  emotionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  intensityBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: 'rgba(89, 22, 139, 0.1)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  intensityFill: {
-    height: '100%',
-    backgroundColor: '#59168B',
-    borderRadius: 4,
-  },
-  intensityLabel: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: '#59168B',
   },
   copingPill: {
     backgroundColor: '#E8F5E9',
@@ -530,24 +334,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Mic Button
-  micContainer: {
-    alignItems: 'center',
-    paddingTop: 16,
-  },
-  micButton: {
-    width: 103,
-    height: 61,
-    backgroundColor: colors.white,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  micIcon: {
-    width: 32,
-    height: 32,
-    tintColor: '#59168B',
-  },
 });
 
 export default JournalEntryScreen;

@@ -12,7 +12,6 @@ import {
   FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,8 +21,7 @@ import { colors, fonts } from '../theme';
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
-const SETTINGS_KEY = '@soultalk_settings';
-const BIO_MAX_LENGTH = 150;
+const BIO_MAX_LENGTH = 200;
 
 const PRONOUN_OPTIONS = [
   'He/Him',
@@ -36,28 +34,9 @@ const PRONOUN_OPTIONS = [
   'Prefer not to say',
 ];
 
-const CustomToggle = ({
-  value,
-  onToggle,
-}: {
-  value: boolean;
-  onToggle: () => void;
-}) => (
-  <Pressable onPress={onToggle} style={[styles.toggleTrack, value ? styles.toggleTrackOn : null]}>
-    <View
-      style={[
-        styles.toggleThumb,
-        value ? styles.toggleThumbOn : styles.toggleThumbOff,
-      ]}
-    />
-  </Pressable>
-);
-
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user, logout, updateProfile } = useAuth();
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -74,20 +53,6 @@ const SettingsScreen = ({ navigation }: any) => {
     profileRef.current = { displayName, username, bio, pronoun };
   }, [displayName, username, bio, pronoun]);
 
-  // Load settings: profile from user object, device prefs from AsyncStorage
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(SETTINGS_KEY);
-        if (saved) {
-          const data = JSON.parse(saved);
-          if (data.pushNotifications !== undefined) setPushNotifications(data.pushNotifications);
-          if (data.darkMode !== undefined) setDarkMode(data.darkMode);
-        }
-      } catch {}
-    };
-    load();
-  }, []);
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -103,14 +68,6 @@ const SettingsScreen = ({ navigation }: any) => {
   // Save profile to backend + device prefs to AsyncStorage
   const saveSettings = useCallback(async () => {
     const current = profileRef.current;
-
-    // Save device-only prefs to AsyncStorage
-    try {
-      await AsyncStorage.setItem(
-        SETTINGS_KEY,
-        JSON.stringify({ pushNotifications, darkMode })
-      );
-    } catch {}
 
     // Save profile fields to backend
     const updates: Record<string, string | null> = {};
@@ -144,7 +101,7 @@ const SettingsScreen = ({ navigation }: any) => {
         Alert.alert('Save Failed', error.message || 'Could not save profile changes.');
       }
     }
-  }, [pushNotifications, darkMode, user, updateProfile]);
+  }, [user, updateProfile]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', () => {
@@ -274,9 +231,12 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* User Email */}
         <Text style={styles.emailLabel}>User Email</Text>
-        <Text style={[styles.emailInput, styles.fieldInputActive]}>
-          {user?.email || ''}
-        </Text>
+        <View style={styles.usernameRow}>
+          <Text style={[styles.emailInput, styles.fieldInputActive, { flex: 1 }]}>
+            {user?.email || ''}
+          </Text>
+          <Ionicons name="lock-closed" size={18} color="rgba(255,255,255,0.5)" />
+        </View>
         <View style={styles.separator} />
 
         {/* Change Password — only for email users */}
@@ -297,9 +257,7 @@ const SettingsScreen = ({ navigation }: any) => {
           maxLength={BIO_MAX_LENGTH + 10}
         />
         {bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
-        {bio.length > 0 && !bioError ? (
-          <Text style={styles.charCount}>{bio.length}/{BIO_MAX_LENGTH}</Text>
-        ) : null}
+        <Text style={styles.charCount}>{bio.length}/{BIO_MAX_LENGTH}</Text>
         <View style={styles.separator} />
 
         {/* Pronouns */}
@@ -312,19 +270,13 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* Push Notification */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Push Notification</Text>
-          <CustomToggle
-            value={pushNotifications}
-            onToggle={() => setPushNotifications(!pushNotifications)}
-          />
+          <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
         {/* Dark/Light Mode */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Dark/Light Mode</Text>
-          <CustomToggle
-            value={darkMode}
-            onToggle={() => setDarkMode(!darkMode)}
-          />
+          <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
         {/* Log Out */}
@@ -544,31 +496,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.5)',
   },
 
-  // Toggle
-  toggleTrack: {
-    width: 34,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleTrackOn: {
-    backgroundColor: '#5ECFFF',
-  },
-  toggleThumb: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#000000',
-  },
-  toggleThumbOff: {
-    alignSelf: 'flex-start',
-  },
-  toggleThumbOn: {
-    alignSelf: 'flex-end',
-  },
-
   // Toggle rows
   toggleRow: {
     flexDirection: 'row',
@@ -581,6 +508,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 46,
     color: colors.white,
+  },
+  comingSoonTag: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
 
   // Logout

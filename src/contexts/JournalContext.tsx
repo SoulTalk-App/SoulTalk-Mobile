@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import JournalService, {
   JournalEntry,
   Mood,
@@ -15,6 +15,7 @@ interface JournalContextType {
   total: number;
   streak: StreakResponse | null;
   soulBar: SoulBarResponse | null;
+  hasEntryToday: boolean;
   fetchEntries: (params?: ListEntriesParams) => Promise<void>;
   createEntry: (rawText: string, mood?: Mood, isDraft?: boolean) => Promise<JournalEntry>;
   updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
@@ -167,6 +168,14 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     return updated;
   }, [fetchStreak, fetchSoulBar]);
 
+  // Check if user already has a non-draft entry today
+  const hasEntryToday = useMemo(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return entries.some(
+      (e) => !e.is_draft && e.created_at.slice(0, 10) === todayStr,
+    );
+  }, [entries]);
+
   const value: JournalContextType = {
     entries,
     isLoading,
@@ -174,6 +183,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     total,
     streak,
     soulBar,
+    hasEntryToday,
     fetchEntries,
     createEntry,
     updateEntry,

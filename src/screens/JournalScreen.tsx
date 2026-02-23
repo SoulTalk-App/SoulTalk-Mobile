@@ -18,20 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
-import { Mood } from '../services/JournalService';
+import JournalLoader from '../components/JournalLoader';
 
-const MOOD_COLORS: Record<Mood, string> = {
-  Normal: '#59168B',
-  Happy: '#EFDE11',
-  Mad: '#F20F0F',
-  Sad: '#0F3BF2',
-  Chill: '#5ECEFF',
-  Vibing: '#D35CFF',
-  Lost: '#8B7399',
-  Tired: '#70CACF',
-  Sexy: '#FF559E',
-  Fire: '#FF9E55',
-};
 
 const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -44,38 +32,22 @@ const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.p
 const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
 const SoulPalArmRight = require('../../assets/images/journal/SoulPalArmRight.png');
 const FilterIcon = require('../../assets/images/journal/FilterIcon.png');
-const MoodNormal = require('../../assets/images/journal/MoodNormal.png');
-const MoodHappy = require('../../assets/images/journal/MoodHappy.png');
-const MoodMad = require('../../assets/images/journal/MoodMad.png');
-const MoodSad = require('../../assets/images/journal/MoodSad.png');
 const ThreeDotsImg = require('../../assets/images/journal/ThreeDotsJournal.png');
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
 const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
 
-const MOOD_ICONS: Partial<Record<Mood, any>> = {
-  Normal: MoodNormal,
-  Happy: MoodHappy,
-  Mad: MoodMad,
-  Sad: MoodSad,
-};
-
-const ALL_MOODS: Mood[] = [
-  'Normal', 'Happy', 'Mad', 'Sad', 'Chill', 'Vibing', 'Lost', 'Tired', 'Sexy', 'Fire',
-];
-
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const { entries, isLoading, fetchEntries, streak } = useJournal();
+  const { entries, isLoading, fetchEntries, streak, hasEntryToday } = useJournal();
 
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [appliedYears, setAppliedYears] = useState<number[]>([]);
   const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
-  const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
   const [selectedReflected, setSelectedReflected] = useState<boolean | null>(null);
 
   // Fetch entries on mount
@@ -103,7 +75,6 @@ const JournalScreen = ({ navigation }: any) => {
     const params: any = {};
     if (selectedYears.length === 1) params.year = selectedYears[0];
     if (selectedMonths.length === 1) params.month = selectedMonths[0] + 1; // months are 0-indexed in UI, 1-indexed in API
-    if (selectedMood) params.mood = selectedMood;
     if (selectedReflected !== null) params.is_ai_processed = selectedReflected;
     fetchEntries(params);
   };
@@ -174,9 +145,11 @@ const JournalScreen = ({ navigation }: any) => {
 
   // Build streak text for speech bubble
   const currentStreak = streak?.current_streak ?? 0;
-  const streakText = currentStreak > 0
-    ? `${currentStreak}-day streak! Keep it up!`
-    : 'Welcome to your journal!\nYour personal space\nto write and reflect';
+  const streakText = hasEntryToday
+    ? "You've already journaled today!\nCome back tomorrow"
+    : currentStreak > 0
+      ? `${currentStreak}-day streak! Keep it up!`
+      : 'Welcome to your journal!\nYour personal space\nto write and reflect';
 
   // Build streak stars (up to 7)
   const streakStars = currentStreak > 0
@@ -247,34 +220,9 @@ const JournalScreen = ({ navigation }: any) => {
             </View>
           </ScrollView>
 
-          {/* Mood & Reflected Filters — All 10 moods */}
+          {/* Reflected Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
             <View style={styles.filterRow}>
-              {ALL_MOODS.map((mood) => (
-                <Pressable
-                  key={mood}
-                  style={[
-                    styles.moodFilterPill,
-                    { borderColor: MOOD_COLORS[mood] },
-                    selectedMood === mood && { backgroundColor: MOOD_COLORS[mood] },
-                  ]}
-                  onPress={() => setSelectedMood(selectedMood === mood ? null : mood)}
-                >
-                  {MOOD_ICONS[mood] ? (
-                    <Image source={MOOD_ICONS[mood]} style={styles.moodFilterIcon} resizeMode="contain" />
-                  ) : (
-                    <View style={[styles.moodDot, { backgroundColor: MOOD_COLORS[mood] }]} />
-                  )}
-                  <Text
-                    style={[
-                      styles.moodFilterText,
-                      { color: selectedMood === mood ? colors.white : MOOD_COLORS[mood] },
-                    ]}
-                  >
-                    {mood}
-                  </Text>
-                </Pressable>
-              ))}
               <Pressable
                 style={[
                   styles.reflectedPill,
@@ -343,7 +291,9 @@ const JournalScreen = ({ navigation }: any) => {
               />
             }
           >
-            {entries.length === 0 && !isLoading ? (
+            {isLoading && entries.length === 0 ? (
+              <JournalLoader />
+            ) : entries.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>No journal entries yet.</Text>
                 <Text style={styles.emptySubtext}>Tap + to start writing!</Text>
@@ -357,24 +307,7 @@ const JournalScreen = ({ navigation }: any) => {
                 >
                   <View style={styles.entryHeader}>
                     <Text style={styles.entryDate}>{formatDate(item.created_at)}</Text>
-                    <View style={styles.entryMoodRow}>
-                      {item.mood && (
-                        <View style={styles.moodPill}>
-                          <Text style={[styles.moodText, { color: MOOD_COLORS[item.mood as Mood] || '#59168B' }]}>
-                            {item.mood}
-                          </Text>
-                          {MOOD_ICONS[item.mood as Mood] ? (
-                            <Image source={MOOD_ICONS[item.mood as Mood]} style={styles.moodIcon} resizeMode="contain" />
-                          ) : (
-                            <View style={[styles.moodDotSmall, { backgroundColor: MOOD_COLORS[item.mood as Mood] || '#59168B' }]} />
-                          )}
-                        </View>
-                      )}
-                      {item.is_ai_processed && <View style={styles.aiDot} />}
-                      <Pressable>
-                        <Image source={ThreeDotsImg} style={styles.threeDots} resizeMode="contain" />
-                      </Pressable>
-                    </View>
+                    {item.is_ai_processed && <View style={styles.aiDot} />}
                   </View>
                   <Text style={styles.entryContent} numberOfLines={3}>
                     {item.raw_text}
@@ -391,8 +324,13 @@ const JournalScreen = ({ navigation }: any) => {
 
         {/* FAB */}
         <Pressable
-          style={[styles.fab, { bottom: tabBarHeight + 12 }]}
-          onPress={() => navigation.navigate('CreateJournal')}
+          style={[styles.fab, { bottom: tabBarHeight + 12 }, hasEntryToday && styles.fabDisabled]}
+          onPress={() => {
+            if (hasEntryToday) {
+              return;
+            }
+            navigation.navigate('CreateJournal');
+          }}
         >
           <Text style={styles.fabText}>+</Text>
         </Pressable>
@@ -467,50 +405,50 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: -35,
+    marginBottom: -20,
     zIndex: 0,
   },
   soulPalImage: {
-    width: 115,
-    height: 161,
-    marginLeft: -10,
+    width: 70,
+    height: 98,
+    marginLeft: -6,
   },
   soulPalArmLeft: {
     position: 'absolute',
-    width: 46,
-    height: 54,
-    left: 32,
-    top: 142,
+    width: 28,
+    height: 33,
+    left: 26,
+    top: 98,
     zIndex: 2,
   },
   soulPalArmRight: {
     position: 'absolute',
-    width: 50,
-    height: 52,
-    left: 52,
-    top: 144,
+    width: 30,
+    height: 32,
+    left: 40,
+    top: 99,
     zIndex: 2,
   },
   speechBubble: {
     flex: 1,
     backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginLeft: -15,
-    marginTop: 20,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginLeft: -8,
+    marginTop: 10,
   },
   speechText: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    lineHeight: 16 * 1.26,
+    fontSize: 11,
+    lineHeight: 11 * 1.3,
     color: '#59168B',
     textAlign: 'center',
   },
   streakStars: {
-    fontSize: 14,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
 
   // Journal Card
@@ -616,28 +554,6 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: 'center',
   },
-  moodFilterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  moodFilterIcon: {
-    width: 14,
-    height: 14,
-  },
-  moodDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  moodFilterText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-  },
   reflectedPill: {
     borderWidth: 1.5,
     borderColor: '#4CAF50',
@@ -736,39 +652,6 @@ const styles = StyleSheet.create({
     lineHeight: 12 * 1.26,
     color: colors.white,
   },
-  entryMoodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  moodPill: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 5,
-    height: 26,
-  },
-  moodText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-  },
-  moodIcon: {
-    width: 18,
-    height: 18,
-  },
-  moodDotSmall: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  threeDots: {
-    width: 14,
-    height: 4,
-  },
   aiDot: {
     width: 8,
     height: 8,
@@ -815,6 +698,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  fabDisabled: {
+    opacity: 0.4,
   },
   fabText: {
     fontFamily: fonts.outfit.light,

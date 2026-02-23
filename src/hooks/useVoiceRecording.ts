@@ -1,91 +1,102 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  useAudioRecorder,
-  RecordingPresets,
-  AudioModule,
-} from 'expo-audio';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import JournalService from '../services/JournalService';
-
-export type VoiceProvider = 'on-device' | 'whisper';
-
-const PROVIDER_STORAGE_KEY = '@soultalk_voice_provider';
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 
 export const useVoiceRecording = () => {
+  const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [provider, setProviderState] = useState<VoiceProvider>('whisper');
 
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // We use a promise-based approach: startRecording begins recognition,
+  // stopRecording stops it and waits for the final transcript via a stored resolver.
+  const resolveRef = useRef<((text: string) => void) | null>(null);
+  const rejectRef = useRef<((err: Error) => void) | null>(null);
+  const transcriptRef = useRef('');
 
-  // Load saved provider preference
-  useEffect(() => {
-    AsyncStorage.getItem(PROVIDER_STORAGE_KEY).then((saved) => {
-      if (saved === 'on-device' || saved === 'whisper') {
-        setProviderState(saved);
-      }
-    });
-  }, []);
+  // Accumulate interim/final results
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results[0]?.transcript ?? '';
+    transcriptRef.current = transcript;
 
-  const setProvider = useCallback(async (p: VoiceProvider) => {
-    setProviderState(p);
-    await AsyncStorage.setItem(PROVIDER_STORAGE_KEY, p);
-  }, []);
+    if (event.isFinal && resolveRef.current) {
+      resolveRef.current(transcript);
+      resolveRef.current = null;
+      rejectRef.current = null;
+      setIsTranscribing(false);
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    console.warn('Speech recognition error:', event.error, event.message);
+    if (rejectRef.current) {
+      rejectRef.current(new Error(event.message || event.error));
+      resolveRef.current = null;
+      rejectRef.current = null;
+    }
+    setIsRecording(false);
+    setIsTranscribing(false);
+  });
+
+  useSpeechRecognitionEvent('end', () => {
+    // If recognition ended without a final result (e.g. no-speech timeout),
+    // resolve with whatever we have so far.
+    if (resolveRef.current) {
+      resolveRef.current(transcriptRef.current || '');
+      resolveRef.current = null;
+      rejectRef.current = null;
+    }
+    setIsRecording(false);
+    setIsTranscribing(false);
+  });
 
   const startRecording = useCallback(async () => {
-    try {
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      if (!status.granted) {
-        throw new Error('Microphone permission not granted');
-      }
-
-      await audioRecorder.prepareToRecordAsync();
-      audioRecorder.record();
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      throw error;
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) {
+      throw new Error('Speech recognition permission not granted');
     }
-  }, [audioRecorder]);
 
-  const stopRecording = useCallback(async (): Promise<string> => {
-    if (!audioRecorder.isRecording) {
-      throw new Error('No active recording');
+    transcriptRef.current = '';
+
+    ExpoSpeechRecognitionModule.start({
+      lang: 'en-US',
+      interimResults: true,
+      requiresOnDeviceRecognition: true,
+      addsPunctuation: true,
+      continuous: true,
+    });
+
+    setIsRecording(true);
+  }, []);
+
+  const stopRecording = useCallback((): Promise<string> => {
+    if (!isRecording) {
+      return Promise.reject(new Error('No active recording'));
     }
 
     setIsTranscribing(true);
 
-    try {
-      await audioRecorder.stop();
-      const uri = audioRecorder.uri;
+    return new Promise<string>((resolve, reject) => {
+      resolveRef.current = resolve;
+      rejectRef.current = reject;
 
-      if (!uri) throw new Error('No recording URI');
+      ExpoSpeechRecognitionModule.stop();
+      setIsRecording(false);
+    });
+  }, [isRecording]);
 
-      // Both providers currently route through Whisper API
-      // On-device path will be added when @react-native-voice/voice is integrated
-      const result = await JournalService.transcribeAudio(uri);
-      return result.text;
-    } catch (error) {
-      console.error('Transcription failed:', error);
-      throw error;
-    } finally {
-      setIsTranscribing(false);
-    }
-  }, [audioRecorder]);
-
-  const cancelRecording = useCallback(async () => {
-    if (audioRecorder.isRecording) {
-      try {
-        await audioRecorder.stop();
-      } catch {
-        // ignore cleanup errors
-      }
-    }
-  }, [audioRecorder]);
+  const cancelRecording = useCallback(() => {
+    resolveRef.current = null;
+    rejectRef.current = null;
+    transcriptRef.current = '';
+    ExpoSpeechRecognitionModule.abort();
+    setIsRecording(false);
+    setIsTranscribing(false);
+  }, []);
 
   return {
-    isRecording: audioRecorder.isRecording,
+    isRecording,
     isTranscribing,
-    provider,
-    setProvider,
     startRecording,
     stopRecording,
     cancelRecording,

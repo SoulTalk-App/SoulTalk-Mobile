@@ -55,7 +55,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [filledBars, setFilledBars] = useState(0);
-  const { soulBar } = useJournal();
+  const { soulBar, fetchSoulBar } = useJournal();
 
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
@@ -129,11 +129,7 @@ const HomeScreen = ({ navigation }: any) => {
     transform: [{ translateX: eyeTranslateX.value }],
   }));
 
-  const handleBarPress = useCallback((index: number) => {
-    const newCount = index + 1 === filledBars ? 0 : index + 1;
-    setFilledBars(newCount);
-
-    // Debounced PUT to backend
+  const persistMood = useCallback((newCount: number) => {
     if (moodDebounceRef.current) clearTimeout(moodDebounceRef.current);
     moodDebounceRef.current = setTimeout(async () => {
       try {
@@ -143,9 +139,26 @@ const HomeScreen = ({ navigation }: any) => {
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({ filled_count: newCount }),
         });
+        // Refresh SoulBar in case points were awarded
+        fetchSoulBar();
       } catch {}
     }, 300);
-  }, [filledBars]);
+  }, [fetchSoulBar]);
+
+  const handleBarPress = useCallback((index: number) => {
+    const newCount = index + 1 === filledBars ? 0 : index + 1;
+    setFilledBars(newCount);
+    persistMood(newCount);
+  }, [filledBars, persistMood]);
+
+  const handleBarAreaPress = useCallback((event: any) => {
+    const { locationX } = event.nativeEvent;
+    const paddingLeft = 10;
+    const segmentPitch = 6 + 5; // segment width + gap
+    let index = Math.floor((locationX - paddingLeft) / segmentPitch);
+    index = Math.max(0, Math.min(index, TOTAL_BARS - 1));
+    handleBarPress(index);
+  }, [handleBarPress]);
 
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Profile') {
@@ -213,18 +226,22 @@ const HomeScreen = ({ navigation }: any) => {
               <Text style={styles.welcomeText}>
                 Welcome Back, {user?.display_first_name || user?.first_name || localName}!
               </Text>
-              <View style={styles.progressBarContainer}>
-                {Array.from({ length: TOTAL_BARS }).map((_, i) => (
-                  <Pressable
-                    key={i}
-                    onPress={() => handleBarPress(i)}
-                    style={[
-                      styles.progressBarSegment,
-                      { backgroundColor: i < filledBars ? '#A47DCB' : 'rgba(164, 125, 203, 0.3)' },
-                    ]}
-                  />
-                ))}
-              </View>
+              <Pressable
+                onPress={handleBarAreaPress}
+                hitSlop={{ top: 10, bottom: 28, left: 10, right: 10 }}
+              >
+                <View style={styles.progressBarContainer}>
+                  {Array.from({ length: TOTAL_BARS }).map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.progressBarSegment,
+                        { backgroundColor: i < filledBars ? '#A47DCB' : 'rgba(164, 125, 203, 0.3)' },
+                      ]}
+                    />
+                  ))}
+                </View>
+              </Pressable>
               <Text style={styles.dayText}>How's your day today?</Text>
             </View>
             <Pressable style={styles.gearButton} onPress={() => navigation.navigate('Settings')}>
@@ -267,20 +284,26 @@ const HomeScreen = ({ navigation }: any) => {
               </Text>
             </View>
             <View style={styles.soulBarSegments}>
-              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.soulBarSegment,
-                    {
-                      backgroundColor:
-                        i < (soulBar?.points ?? 0)
+              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => {
+                const pts = soulBar?.points ?? 0;
+                const isFull = pts >= i + 1;
+                const isHalf = !isFull && pts > i;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.soulBarSegment,
+                      {
+                        backgroundColor: isFull
                           ? '#59168B'
-                          : 'rgba(89, 22, 139, 0.15)',
-                    },
-                  ]}
-                />
-              ))}
+                          : isHalf
+                            ? 'rgba(89, 22, 139, 0.5)'
+                            : 'rgba(89, 22, 139, 0.15)',
+                      },
+                    ]}
+                  />
+                );
+              })}
             </View>
             {(soulBar?.total_filled ?? 0) > 0 && (
               <Text style={styles.soulBarFilled}>
@@ -390,6 +413,10 @@ const HomeScreen = ({ navigation }: any) => {
                 style={styles.mirrorCharRight}
                 resizeMode="contain"
               />
+              <View style={styles.comingSoonOverlay}>
+                <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
+                <Text style={styles.comingSoonText}>Coming Soon</Text>
+              </View>
             </View>
             <View style={styles.cardLabel}>
               <Text style={styles.cardLabelText}>Affirmation Mirror</Text>

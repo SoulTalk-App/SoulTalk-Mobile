@@ -1,7 +1,7 @@
 import SecureStorage from '../utils/SecureStorage';
 import Constants from 'expo-constants';
 import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 
 export type Mood =
   | 'Normal'
@@ -167,8 +167,8 @@ class JournalService {
   }
 
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {
-    const fileInfo = await FileSystem.getInfoAsync(audioUri);
-    if (!fileInfo.exists) throw new Error('Audio file not found');
+    const file = new File(audioUri);
+    if (!file.exists) throw new Error('Audio file not found');
 
     const filename = audioUri.split('/').pop() || 'recording.m4a';
     const formData = new FormData();

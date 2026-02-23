@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
 
 const LockIcon = require('../../assets/images/home/LockIcon.png');
@@ -30,31 +30,16 @@ const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
 
 type TabName = 'Home' | 'Journal' | 'Profile';
 
-const SETTINGS_KEY = '@soultalk_settings';
-
 const ProfileScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabName>('Profile');
-  const [username, setUsername] = useState('');
   const [filledBars, setFilledBars] = useState(0);
 
   // Tab bar animations
   const tabTranslateY = useSharedValue(0);
   const tabRiseValues = [useSharedValue(0), useSharedValue(0), useSharedValue(-20)];
   const tabLabelOpacities = [useSharedValue(0), useSharedValue(0), useSharedValue(1)];
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(SETTINGS_KEY);
-        if (saved) {
-          const data = JSON.parse(saved);
-          if (data.username) setUsername(data.username);
-        }
-      } catch {}
-    };
-    loadProfile();
-  }, []);
 
   const handleBarPress = useCallback((index: number) => {
     setFilledBars(index + 1 === filledBars ? 0 : index + 1);
@@ -132,9 +117,14 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Display Name */}
+        <Text style={styles.displayNameText}>
+          {user?.display_first_name || user?.first_name || 'User'}
+        </Text>
+
         {/* @username */}
         <Text style={styles.usernameText}>
-          {username ? `@${username}` : '@username'}
+          {user?.username ? `@${user.username}` : '@username'}
         </Text>
 
         {/* Edit Profile Button */}
@@ -200,7 +190,7 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
 
             {/* Bottom section - aligns with achievement card bottom */}
-            <View>
+            <View style={styles.soulPalSection}>
               {/* SoulPal Character + Dots + Vertical Bar */}
               <View style={styles.soulPalCharRow}>
                 <Image source={ProfileSoulPalChar} style={styles.soulPalChar} resizeMode="contain" />
@@ -216,6 +206,12 @@ const ProfileScreen = ({ navigation }: any) => {
               <View style={styles.soulPalLabelCard}>
                 <Text style={styles.soulPalLabelText}>Soul Pal</Text>
                 <Image source={ThreeDots} style={styles.threeDots} resizeMode="contain" />
+              </View>
+
+              {/* Coming Soon Overlay */}
+              <View style={styles.comingSoonOverlayDark}>
+                <Image source={LockIcon} style={styles.comingSoonLockSmall} resizeMode="contain" />
+                <Text style={styles.comingSoonLabelLight}>Coming Soon</Text>
               </View>
             </View>
           </View>
@@ -356,12 +352,22 @@ const styles = StyleSheet.create({
     height: 109,
   },
 
-  // Username
-  usernameText: {
+  // Display Name
+  displayNameText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 24,
     lineHeight: 24 * 1.4,
     color: colors.white,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+
+  // Username
+  usernameText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    lineHeight: 14 * 1.4,
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -525,6 +531,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     marginTop: 8,
     marginBottom: 12,
+  },
+
+  // SoulPal Section
+  soulPalSection: {
+    borderRadius: 10,
+    overflow: 'hidden',
   },
 
   // SoulPal Character + Dots

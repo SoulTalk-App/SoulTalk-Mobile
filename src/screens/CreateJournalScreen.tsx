@@ -10,47 +10,19 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
-import { Mood } from '../services/JournalService';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 
-const SwirlIcon = require('../../assets/images/journal/SwirlIcon.png');
-const JournalSoulPal = require('../../assets/images/journal/JournalSoulPalChar.png');
+const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
-const MOODS: { label: Mood; color: string }[] = [
-  { label: 'Happy', color: '#EFDE11' },
-  { label: 'Normal', color: '#59168B' },
-  { label: 'Sad', color: '#0F3BF2' },
-  { label: 'Mad', color: '#F20F0F' },
-  { label: 'Chill', color: '#5ECEFF' },
-  { label: 'Vibing', color: '#D35CFF' },
-  { label: 'Lost', color: '#8B7399' },
-  { label: 'Tired', color: '#70CACF' },
-  { label: 'Sexy', color: '#FF559E' },
-  { label: 'Fire', color: '#FF9E55' },
-];
-
-const SOULPAL_REACTIONS: Record<Mood, string> = {
-  Happy: 'is beaming!',
-  Normal: 'is chillin with you.',
-  Sad: 'is here for you.',
-  Mad: 'feels the fire too.',
-  Chill: 'is vibing along.',
-  Vibing: 'is grooving!',
-  Lost: 'is searching with you.',
-  Tired: 'says rest is okay.',
-  Sexy: 'is feeling confident!',
-  Fire: 'is lit right now!',
-};
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -61,9 +33,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const isEdit = !!editEntry;
 
   const [text, setText] = useState(isEdit ? editEntry.raw_text : '');
-  const [selectedMood, setSelectedMood] = useState<Mood | null>(
-    isEdit ? editEntry.mood : route.params?.mood || null,
-  );
   const [isSaving, setIsSaving] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(
     isEdit && editEntry.is_draft ? editEntry.id : null,
@@ -73,7 +42,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // Auto-save hook (only for new entries, not edits of existing non-drafts)
   useAutoSave({
     text,
-    mood: selectedMood,
+    mood: undefined,
     draftId,
     setDraftId,
     enabled: !isEdit || (isEdit && editEntry.is_draft),
@@ -114,19 +83,24 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     try {
       if (draftId) {
         // Finalize draft
-        await finalizeDraft(draftId, text.trim(), selectedMood || undefined);
+        await finalizeDraft(draftId, text.trim());
       } else if (isEdit) {
         await updateEntry(editEntry.id, {
           raw_text: text.trim(),
-          mood: selectedMood || undefined,
         });
       } else {
-        await createEntry(text.trim(), selectedMood || undefined);
+        await createEntry(text.trim());
       }
       // Show save animation then navigate back
       setShowSaveAnimation(true);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save entry');
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      if (status === 409) {
+        Alert.alert('Daily Limit', detail || "You've already journaled today. Come back tomorrow!");
+      } else {
+        Alert.alert('Error', detail || error.message || 'Failed to save entry');
+      }
       setIsSaving(false);
     }
   };
@@ -156,51 +130,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
           {/* Back Button */}
           <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-            <View style={styles.swirlCircle}>
-              <Image source={SwirlIcon} style={styles.swirlIcon} resizeMode="contain" />
-            </View>
+            <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
             <Text style={styles.backText}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
           </Pressable>
-
-          {/* SoulPal Reaction */}
-          {selectedMood && (
-            <View style={styles.soulPalRow}>
-              <Image source={JournalSoulPal} style={styles.soulPalMini} resizeMode="contain" />
-              <View style={styles.reactionBubble}>
-                <Text style={styles.reactionText}>
-                  SoulPal {SOULPAL_REACTIONS[selectedMood]}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Mood Selector */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.moodScroll}
-            contentContainerStyle={styles.moodRow}
-          >
-            {MOODS.map((m) => (
-              <Pressable
-                key={m.label}
-                style={[
-                  styles.moodPill,
-                  selectedMood === m.label && { backgroundColor: m.color },
-                ]}
-                onPress={() => setSelectedMood(selectedMood === m.label ? null : m.label)}
-              >
-                <Text
-                  style={[
-                    styles.moodPillText,
-                    selectedMood === m.label && styles.moodPillTextActive,
-                  ]}
-                >
-                  {m.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
 
           {/* Inspiration Dropdown */}
           <InspirationDropdown onSelectPrompt={handleSelectPrompt} />
@@ -266,71 +198,13 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  swirlCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  swirlIcon: {
-    width: 24,
-    height: 22,
-    tintColor: colors.white,
+  backIcon: {
+    width: 36,
+    height: 36,
   },
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
-    color: colors.white,
-  },
-
-  // SoulPal Reaction
-  soulPalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  soulPalMini: {
-    width: 36,
-    height: 50,
-  },
-  reactionBubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  reactionText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    color: colors.white,
-  },
-
-  // Mood Selector
-  moodScroll: {
-    flexShrink: 0,
-    flexGrow: 0,
-    marginBottom: 10,
-  },
-  moodRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingRight: 8,
-  },
-  moodPill: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  moodPillText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: '#59168B',
-  },
-  moodPillTextActive: {
     color: colors.white,
   },
 
