@@ -52,6 +52,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const {
     isRecording,
     isTranscribing,
+    volume,
     startRecording,
     stopRecording,
     cancelRecording,
@@ -156,6 +157,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             <VoiceRecordingIndicator
               isRecording={isRecording}
               isTranscribing={isTranscribing}
+              volume={volume}
               onPress={handleMicPress}
             />
             <Pressable

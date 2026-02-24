@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
@@ -7,58 +7,69 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
+  withSpring,
+  SharedValue,
 } from 'react-native-reanimated';
-import { colors } from '../theme';
 
 const MicIcon = require('../../assets/images/journal/MicIcon.png');
+
+const BAR_WIDTH = 3;
+const BAR_GAP = 3;
+const BAR_MIN_HEIGHT = 4;
+const BAR_MAX_HEIGHT = 28;
+const BAR_COLOR = '#FF3B30';
+
+// Stagger offsets so bars don't all move in unison
+const BAR_OFFSETS = [-1.5, 1.0, -0.5, 1.5, -1.0];
 
 interface VoiceRecordingIndicatorProps {
   isRecording: boolean;
   isTranscribing: boolean;
+  volume: SharedValue<number>;
   onPress: () => void;
 }
+
+const WaveBar: React.FC<{ volume: SharedValue<number>; offset: number }> = ({
+  volume,
+  offset,
+}) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    // volume range: -2 to 10. Normalize to 0–1.
+    const normalized = Math.max(0, Math.min(1, (volume.value + offset + 2) / 12));
+    const height = BAR_MIN_HEIGHT + normalized * (BAR_MAX_HEIGHT - BAR_MIN_HEIGHT);
+
+    return {
+      height: withSpring(height, {
+        damping: 12,
+        stiffness: 180,
+        mass: 0.4,
+      }),
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width: BAR_WIDTH,
+          borderRadius: BAR_WIDTH / 2,
+          backgroundColor: BAR_COLOR,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+};
 
 const VoiceRecordingIndicator: React.FC<VoiceRecordingIndicatorProps> = ({
   isRecording,
   isTranscribing,
+  volume,
   onPress,
 }) => {
-  const pulseScale = useSharedValue(1);
-  const pulseOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (isRecording) {
-      pulseScale.value = withRepeat(
-        withTiming(1.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      );
-      pulseOpacity.value = withRepeat(
-        withTiming(0.6, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      );
-    } else {
-      pulseScale.value = withTiming(1, { duration: 200 });
-      pulseOpacity.value = withTiming(0, { duration: 200 });
-    }
-  }, [isRecording]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: pulseOpacity.value,
-  }));
-
   return (
     <View style={styles.container}>
-      {isRecording && (
-        <Animated.View style={[styles.pulse, pulseStyle]} />
-      )}
       <Pressable
         style={[
           styles.micButton,
@@ -69,15 +80,21 @@ const VoiceRecordingIndicator: React.FC<VoiceRecordingIndicatorProps> = ({
       >
         {isTranscribing ? (
           <ActivityIndicator color="#59168B" size="small" />
-        ) : (
+        ) : isRecording ? (
           <>
-            {isRecording && <View style={styles.redDot} />}
-            <Image
-              source={MicIcon}
-              style={[styles.micIcon, isRecording && styles.micIconRecording]}
-              resizeMode="contain"
-            />
+            <View style={styles.redDot} />
+            <View style={styles.waveBars}>
+              {BAR_OFFSETS.map((offset, i) => (
+                <WaveBar key={i} volume={volume} offset={offset} />
+              ))}
+            </View>
           </>
+        ) : (
+          <Image
+            source={MicIcon}
+            style={styles.micIcon}
+            resizeMode="contain"
+          />
         )}
       </Pressable>
     </View>
@@ -89,17 +106,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  pulse: {
-    position: 'absolute',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FF3B30',
-  },
   micButton: {
     width: 56,
     height: 56,
-    backgroundColor: colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -116,13 +126,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#FF3B30',
   },
+  waveBars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: BAR_GAP,
+  },
   micIcon: {
     width: 28,
     height: 28,
     tintColor: '#59168B',
-  },
-  micIconRecording: {
-    tintColor: '#FF3B30',
   },
 });
 
