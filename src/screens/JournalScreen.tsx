@@ -319,8 +319,8 @@ const JournalScreen = ({ navigation }: any) => {
         </View>
 
         {/* Arms */}
-        <Image source={SoulPalArmLeft} style={styles.soulPalArmLeft} resizeMode="contain" />
-        <Image source={SoulPalArmRight} style={styles.soulPalArmRight} resizeMode="contain" />
+        <Image source={SoulPalArmLeft} style={[styles.soulPalArmLeft, { top: insets.top + 10 + 55 }]} resizeMode="contain" />
+        <Image source={SoulPalArmRight} style={[styles.soulPalArmRight, { top: insets.top + 10 + 55 }]} resizeMode="contain" />
 
         {/* FAB */}
         <Pressable
@@ -418,7 +418,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 33,
     left: 26,
-    top: 98,
     zIndex: 2,
   },
   soulPalArmRight: {
@@ -426,7 +425,6 @@ const styles = StyleSheet.create({
     width: 30,
     height: 32,
     left: 40,
-    top: 99,
     zIndex: 2,
   },
   speechBubble: {
