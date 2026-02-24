@@ -7,8 +7,6 @@ import {
   Pressable,
   Image,
 } from 'react-native';
-import Constants from 'expo-constants';
-import SecureStorage from '../utils/SecureStorage';
 import { useAuth } from '../contexts/AuthContext';
 import Animated, {
   useSharedValue,
@@ -22,8 +20,10 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
+import JournalService from '../services/JournalService';
 
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
@@ -57,6 +57,16 @@ const HomeScreen = ({ navigation }: any) => {
   const [filledBars, setFilledBars] = useState(0);
   const { soulBar, fetchSoulBar } = useJournal();
 
+  // Refresh soul bar and mood whenever Home screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchSoulBar();
+      JournalService.getTodayMood()
+        .then((data) => setFilledBars(data.filled_count))
+        .catch(() => {});
+    }, [fetchSoulBar])
+  );
+
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
 
@@ -72,35 +82,12 @@ const HomeScreen = ({ navigation }: any) => {
   // Debounce timer for mood PUT
   const moodDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getApiBase = () => {
-    const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'https://soultalkapp.com/api' };
-    return apiConfig.baseUrl;
-  };
-
-  const getAuthHeaders = async () => {
-    const token = await SecureStorage.getItem('access_token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
   useEffect(() => {
     const loadLocalName = async () => {
       const stored = await AsyncStorage.getItem('@soultalk_username');
       if (stored) setLocalName(stored);
     };
     loadLocalName();
-
-    // Load today's mood from backend
-    const loadMood = async () => {
-      try {
-        const headers = await getAuthHeaders();
-        const resp = await fetch(`${getApiBase()}/mood/today`, { headers });
-        if (resp.ok) {
-          const data = await resp.json();
-          setFilledBars(data.filled_count);
-        }
-      } catch {}
-    };
-    loadMood();
   }, []);
 
   // Blinking + looking animation loop
@@ -133,15 +120,12 @@ const HomeScreen = ({ navigation }: any) => {
     if (moodDebounceRef.current) clearTimeout(moodDebounceRef.current);
     moodDebounceRef.current = setTimeout(async () => {
       try {
-        const headers = await getAuthHeaders();
-        await fetch(`${getApiBase()}/mood/today`, {
-          method: 'PUT',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filled_count: newCount }),
-        });
+        await JournalService.upsertTodayMood(newCount);
         // Refresh SoulBar in case points were awarded
         fetchSoulBar();
-      } catch {}
+      } catch (e) {
+        console.warn('[Mood] Failed to persist mood:', e);
+      }
     }, 300);
   }, [fetchSoulBar]);
 
