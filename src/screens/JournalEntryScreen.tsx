@@ -26,11 +26,24 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Find entry from context state
+  // Always fetch the full entry from the detail endpoint (list endpoint omits tags/ai_response)
+  useEffect(() => {
+    JournalService.getEntry(entryId).then(setEntry).catch(() => {
+      const found = entries.find((e) => e.id === entryId);
+      if (found) setEntry(found);
+    });
+  }, [entryId]);
+
+  // Update from context when WS pushes changes
   useEffect(() => {
     const found = entries.find((e) => e.id === entryId);
-    if (found) setEntry(found);
-  }, [entryId, entries]);
+    if (found && found.ai_processing_status === 'complete' && !entry?.ai_response) {
+      // WS updated status but we need the full detail
+      JournalService.getEntry(entryId).then(setEntry).catch(() => {});
+    } else if (found) {
+      setEntry(found);
+    }
+  }, [entries]);
 
   // Polling fallback: if AI hasn't completed via WS, poll every 5s
   useEffect(() => {
