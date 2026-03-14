@@ -15,10 +15,7 @@ export type Mood =
   | 'Sexy'
   | 'Fire';
 
-export interface JournalEntry {
-  id: string;
-  raw_text: string;
-  mood: Mood | null;
+export interface TagsSummary {
   emotion_primary: string | null;
   emotion_secondary: string | null;
   emotion_intensity: number | null;
@@ -26,12 +23,24 @@ export interface JournalEntry {
   topics: string[] | null;
   coping_mechanisms: string[] | null;
   self_talk_style: string | null;
-  time_focus: string | null;
-  ai_response: string | null;
-  is_ai_processed: boolean;
+  crisis_flag: boolean;
+}
+
+export interface AIResponseSummary {
+  text: string | null;
+  mode: string | null;
+}
+
+export interface JournalEntry {
+  id: string;
+  raw_text: string;
+  mood: Mood | null;
+  ai_processing_status: 'none' | 'pending' | 'tagged' | 'complete' | 'failed';
   is_draft: boolean;
   created_at: string;
   updated_at: string;
+  tags: TagsSummary | null;
+  ai_response: AIResponseSummary | null;
 }
 
 export interface JournalListResponse {
@@ -45,7 +54,7 @@ export interface ListEntriesParams {
   year?: number;
   month?: number;
   mood?: string;
-  is_ai_processed?: boolean;
+  ai_processing_status?: string;
   is_draft?: boolean;
   page?: number;
   per_page?: number;
@@ -179,6 +188,25 @@ class JournalService {
   async getPrompts(): Promise<string[]> {
     const response = await this.axiosInstance.get('/prompts/');
     return response.data.prompts;
+  }
+
+  async getAIPreferences(): Promise<{
+    main_focus: string | null;
+    tone_preference: string;
+    spiritual_metadata: Record<string, any> | null;
+    soulpal_name: string | null;
+  }> {
+    const response = await this.axiosInstance.get('/profile/ai-preferences/');
+    return response.data;
+  }
+
+  async updateAIPreferences(data: {
+    main_focus?: string | null;
+    tone_preference?: string;
+    spiritual_metadata?: Record<string, any> | null;
+    soulpal_name?: string | null;
+  }): Promise<void> {
+    await this.axiosInstance.put('/profile/ai-preferences/', data);
   }
 
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {

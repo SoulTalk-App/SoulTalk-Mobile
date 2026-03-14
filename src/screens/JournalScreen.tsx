@@ -75,7 +75,7 @@ const JournalScreen = ({ navigation }: any) => {
     const params: any = {};
     if (selectedYears.length === 1) params.year = selectedYears[0];
     if (selectedMonths.length === 1) params.month = selectedMonths[0] + 1; // months are 0-indexed in UI, 1-indexed in API
-    if (selectedReflected !== null) params.is_ai_processed = selectedReflected;
+    if (selectedReflected !== null) params.ai_processing_status = selectedReflected ? 'complete' : 'pending';
     fetchEntries(params);
   };
 
@@ -307,7 +307,7 @@ const JournalScreen = ({ navigation }: any) => {
                 >
                   <View style={styles.entryHeader}>
                     <Text style={styles.entryDate}>{formatDate(item.created_at)}</Text>
-                    {item.is_ai_processed && <View style={styles.aiDot} />}
+                    {item.ai_processing_status === 'complete' && <View style={styles.aiDot} />}
                   </View>
                   <Text style={styles.entryContent} numberOfLines={3}>
                     {item.raw_text}

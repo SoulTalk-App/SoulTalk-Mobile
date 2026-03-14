@@ -32,14 +32,14 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     if (found) setEntry(found);
   }, [entryId, entries]);
 
-  // Polling fallback: if AI hasn't arrived via WS, poll every 5s until processed
+  // Polling fallback: if AI hasn't completed via WS, poll every 5s
   useEffect(() => {
-    if (!entry || entry.is_ai_processed) return;
+    if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.is_draft) return;
 
     const interval = setInterval(async () => {
       try {
         const fresh = await JournalService.getEntry(entryId);
-        if (fresh.is_ai_processed) {
+        if (fresh.ai_processing_status === 'complete' || fresh.ai_processing_status === 'failed') {
           setEntry(fresh);
           clearInterval(interval);
         }
@@ -49,7 +49,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [entry?.is_ai_processed, entryId]);
+  }, [entry?.ai_processing_status, entryId]);
 
   const handleEdit = () => {
     if (!entry) return;
@@ -139,15 +139,15 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             {/* AI Response Section */}
             <View style={styles.aiSection}>
               <View style={styles.aiDivider} />
-              {entry.is_ai_processed ? (
+              {entry.ai_processing_status === 'complete' ? (
                 <>
                   <Text style={styles.aiLabel}>SoulPal's Reflection</Text>
-                  <Text style={styles.aiResponseText}>{entry.ai_response}</Text>
+                  <Text style={styles.aiResponseText}>{entry.ai_response?.text}</Text>
 
                   {/* Topics */}
-                  {entry.topics && entry.topics.length > 0 && (
+                  {entry.tags?.topics && entry.tags.topics.length > 0 && (
                     <View style={styles.pillRow}>
-                      {entry.topics.map((topic, idx) => (
+                      {entry.tags.topics.map((topic, idx) => (
                         <View key={idx} style={styles.topicPill}>
                           <Text style={styles.topicPillText}>{topic}</Text>
                         </View>
@@ -156,11 +156,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                   )}
 
                   {/* Coping Mechanisms */}
-                  {entry.coping_mechanisms && entry.coping_mechanisms.length > 0 && (
+                  {entry.tags?.coping_mechanisms && entry.tags.coping_mechanisms.length > 0 && (
                     <View>
                       <Text style={styles.copingLabel}>Coping</Text>
                       <View style={styles.pillRow}>
-                        {entry.coping_mechanisms.map((mech, idx) => (
+                        {entry.tags.coping_mechanisms.map((mech, idx) => (
                           <View key={idx} style={styles.copingPill}>
                             <Text style={styles.copingPillText}>{mech}</Text>
                           </View>
@@ -169,6 +169,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                     </View>
                   )}
                 </>
+              ) : entry.ai_processing_status === 'failed' ? (
+                <Text style={styles.aiLoadingText}>AI processing failed. Tap to retry.</Text>
               ) : (
                 <View style={styles.aiLoadingRow}>
                   <ActivityIndicator color="#59168B" size="small" />

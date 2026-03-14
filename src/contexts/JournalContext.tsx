@@ -55,9 +55,21 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   // Subscribe to AI processing completion events
   useEffect(() => {
     const unsubscribe = subscribe('journal_ai_complete', (data: any) => {
-      const { entry_id, event, ...aiFields } = data;
-      const update = (entry: JournalEntry): JournalEntry =>
-        entry.id === entry_id ? { ...entry, ...aiFields } : entry;
+      const { entry_id, ai_processing_status, response_text, mode, tags_summary } = data;
+      const update = (entry: JournalEntry): JournalEntry => {
+        if (entry.id !== entry_id) return entry;
+        return {
+          ...entry,
+          ai_processing_status: ai_processing_status ?? entry.ai_processing_status,
+          ai_response: response_text ? { text: response_text, mode: mode ?? null } : entry.ai_response,
+          tags: tags_summary ? {
+            ...entry.tags,
+            emotion_primary: tags_summary.emotion_primary ?? null,
+            nervous_system_state: tags_summary.nervous_system_state ?? null,
+            crisis_flag: tags_summary.crisis_flag ?? false,
+          } as any : entry.tags,
+        };
+      };
 
       setEntries((prev) => prev.map(update));
       setCurrentEntry((prev) => (prev && prev.id === entry_id ? update(prev) : prev));

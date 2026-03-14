@@ -79,6 +79,13 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   const handleContinue = async () => {
     if (soulPalName.trim()) {
       await AsyncStorage.setItem('@soultalk_soulpal_name', soulPalName.trim());
+      // Sync SoulPal name to backend AI profile
+      try {
+        const JournalService = (await import('../services/JournalService')).default;
+        await JournalService.updateAIPreferences({ soulpal_name: soulPalName.trim() });
+      } catch {
+        // Best-effort sync — name is already saved locally
+      }
       navigation.navigate('SetupComplete');
     }
   };
