@@ -262,7 +262,7 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => (
 );
 
 const Navigation = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
@@ -275,10 +275,23 @@ const Navigation = () => {
   const checkStatus = async () => {
     try {
       const onboarding = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
-      setOnboardingComplete(onboarding === "true");
-
       const setup = await AsyncStorage.getItem(SETUP_COMPLETE_KEY);
-      setSetupComplete(setup === "true");
+
+      // Returning user on a new device: if authenticated and user has a username,
+      // they've already completed onboarding and setup — skip those screens.
+      if (isAuthenticated && user?.username) {
+        if (onboarding !== "true") {
+          await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
+        }
+        if (setup !== "true") {
+          await AsyncStorage.setItem(SETUP_COMPLETE_KEY, "true");
+        }
+        setOnboardingComplete(true);
+        setSetupComplete(true);
+      } else {
+        setOnboardingComplete(onboarding === "true");
+        setSetupComplete(setup === "true");
+      }
     } catch (error) {
       console.error("Error checking status:", error);
       setOnboardingComplete(false);

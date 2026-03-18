@@ -210,23 +210,7 @@ const HomeScreen = ({ navigation }: any) => {
               <Text style={styles.welcomeText}>
                 Welcome Back, {user?.display_first_name || user?.first_name || localName}!
               </Text>
-              <Pressable
-                onPress={handleBarAreaPress}
-                hitSlop={{ top: 10, bottom: 28, left: 10, right: 10 }}
-              >
-                <View style={styles.progressBarContainer}>
-                  {Array.from({ length: TOTAL_BARS }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.progressBarSegment,
-                        { backgroundColor: i < filledBars ? '#A47DCB' : 'rgba(164, 125, 203, 0.3)' },
-                      ]}
-                    />
-                  ))}
-                </View>
-              </Pressable>
-              <Text style={styles.dayText}>How's your day today?</Text>
+              <Text style={styles.dayText}>Ready to learn more about yourself?</Text>
             </View>
             <Pressable style={styles.gearButton} onPress={() => navigation.navigate('Settings')}>
               <Image
@@ -249,7 +233,7 @@ const HomeScreen = ({ navigation }: any) => {
                 resizeMode="cover"
               />
             </View>
-            <Text style={styles.feelingText}>I'm Feeling........</Text>
+            <Text style={styles.feelingText}>Guess what happened today....</Text>
             <View style={styles.sendButton}>
               <Image
                 source={SendIconImg}
@@ -262,7 +246,7 @@ const HomeScreen = ({ navigation }: any) => {
           {/* SoulBar Section */}
           <View style={styles.soulBarCard}>
             <View style={styles.soulBarHeader}>
-              <Text style={styles.soulBarTitle}>SoulBar</Text>
+              <Text style={styles.soulBarTitle}>SoulSight</Text>
               <Text style={styles.soulBarCount}>
                 {soulBar?.points ?? 0}/{SOUL_BAR_SEGMENTS}
               </Text>
@@ -296,22 +280,7 @@ const HomeScreen = ({ navigation }: any) => {
             )}
           </View>
 
-          {/* Soul Sight Card */}
-          <View style={styles.soulSightCard}>
-            <View style={styles.soulSightTextSection}>
-              <Text style={styles.soulSightTitle}>Soul Sight</Text>
-              <Text style={styles.goalsText}>0/10 Goals Completed</Text>
-            </View>
-            <View style={styles.soulSightProgress} />
-            <View style={styles.comingSoonOverlay}>
-              <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
-              <Text style={styles.comingSoonText}>Coming Soon</Text>
-            </View>
-          </View>
         </View>
-
-        {/* Charge Up Section */}
-        <Text style={styles.chargeUpTitle}>Charge Up</Text>
 
         {/* Goal Garden Card */}
         <View style={styles.goalGardenCard}>
