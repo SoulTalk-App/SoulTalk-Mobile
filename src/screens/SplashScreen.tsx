@@ -40,16 +40,26 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
     return () => subscription.remove();
   }, [player, navigation]);
 
-  // Fallback timer in case video fails
+  // Fallback timer in case video fails to load or play
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       if (!hasNavigated.current) {
         hasNavigated.current = true;
         navigation.replace('Onboarding');
       }
-    }, 5000);
+    }, 10000);
     return () => clearTimeout(fallbackTimer);
   }, [navigation]);
+
+  // If video errors out or fails to load, navigate immediately
+  useEffect(() => {
+    if (status === 'error') {
+      if (!hasNavigated.current) {
+        hasNavigated.current = true;
+        navigation.replace('Onboarding');
+      }
+    }
+  }, [status, navigation]);
 
   return (
     <View style={styles.container}>

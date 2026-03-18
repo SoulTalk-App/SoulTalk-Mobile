@@ -146,7 +146,7 @@ const JournalScreen = ({ navigation }: any) => {
   // Build streak text for speech bubble
   const currentStreak = streak?.current_streak ?? 0;
   const streakText = hasEntryToday
-    ? "You've already journaled today!\nCome back tomorrow"
+    ? "One journal a day, keeps\nawareness at bay!\nCome back tomorrow"
     : currentStreak > 0
       ? `${currentStreak}-day streak! Keep it up!`
       : 'Welcome to your journal!\nYour personal space\nto write and reflect';

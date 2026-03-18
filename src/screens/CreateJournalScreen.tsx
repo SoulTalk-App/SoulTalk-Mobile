@@ -33,11 +33,14 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const isEdit = !!editEntry;
 
   const [text, setText] = useState(isEdit ? editEntry.raw_text : '');
+  const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
+  const textBeforeRecordingRef = React.useRef('');
   const [isSaving, setIsSaving] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(
     isEdit && editEntry.is_draft ? editEntry.id : null,
   );
   const [showSaveAnimation, setShowSaveAnimation] = useState(false);
+  const savedEntryIdRef = React.useRef<string | null>(null);
 
   // Auto-save hook (only for new entries, not edits of existing non-drafts)
   useAutoSave({
@@ -48,7 +51,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     enabled: !isEdit || (isEdit && editEntry.is_draft),
   });
 
-  // Voice recording
+  // Voice recording with live transcription
   const {
     isRecording,
     isTranscribing,
@@ -56,49 +59,60 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     startRecording,
     stopRecording,
     cancelRecording,
-  } = useVoiceRecording();
+  } = useVoiceRecording({
+    onInterimResult: (interimText) => {
+      setLiveTranscript(interimText);
+    },
+  });
 
   const handleMicPress = useCallback(async () => {
     if (isRecording) {
       try {
         const transcribedText = await stopRecording();
-        setText((prev: string) => {
-          const separator = prev.trim() ? ' ' : '';
-          return prev + separator + transcribedText;
-        });
+        const base = textBeforeRecordingRef.current;
+        const separator = base.trim() ? ' ' : '';
+        setText(base + separator + transcribedText);
+        setLiveTranscript(null);
       } catch (error: any) {
+        setLiveTranscript(null);
         Alert.alert('Transcription Error', error.message || 'Failed to transcribe audio');
       }
     } else {
       try {
+        textBeforeRecordingRef.current = text;
         await startRecording();
       } catch (error: any) {
         Alert.alert('Recording Error', error.message || 'Failed to start recording');
       }
     }
-  }, [isRecording, startRecording, stopRecording]);
+  }, [isRecording, startRecording, stopRecording, text]);
 
   const handleSave = async () => {
     if (!text.trim()) return;
     setIsSaving(true);
     try {
+      let entryId: string | null = null;
       if (draftId) {
         // Finalize draft
-        await finalizeDraft(draftId, text.trim());
+        const result = await finalizeDraft(draftId, text.trim());
+        entryId = result?.id || draftId;
       } else if (isEdit) {
         await updateEntry(editEntry.id, {
           raw_text: text.trim(),
         });
+        entryId = editEntry.id;
       } else {
-        await createEntry(text.trim());
+        const result = await createEntry(text.trim());
+        entryId = result?.id || null;
       }
-      // Show save animation then navigate back
+      // Show save animation then navigate to analysis
+      savedEntryIdRef.current = entryId;
       setShowSaveAnimation(true);
     } catch (error: any) {
       const status = error?.response?.status;
       const detail = error?.response?.data?.detail;
       if (status === 409) {
-        Alert.alert('Daily Limit', detail || "You've already journaled today. Come back tomorrow!");
+        Alert.alert('Daily Limit', detail || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
       } else {
         Alert.alert('Error', detail || error.message || 'Failed to save entry');
       }
@@ -108,15 +122,14 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
 
   const handleSaveAnimationComplete = () => {
     setShowSaveAnimation(false);
-    navigation.goBack();
+    if (savedEntryIdRef.current && !isEdit) {
+      // Navigate to analysis screen for new entries
+      navigation.replace('JournalEntry', { entryId: savedEntryIdRef.current });
+    } else {
+      navigation.goBack();
+    }
   };
 
-  const handleSelectPrompt = (prompt: string) => {
-    setText((prev: string) => {
-      if (!prev.trim()) return prompt;
-      return prev + '\n\n' + prompt;
-    });
-  };
 
   return (
     <LinearGradient
@@ -136,7 +149,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </Pressable>
 
           {/* Inspiration Dropdown */}
-          <InspirationDropdown onSelectPrompt={handleSelectPrompt} />
+          <InspirationDropdown />
 
           {/* White Content Card with TextInput */}
           <View style={styles.contentCard}>
@@ -146,9 +159,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               placeholderTextColor="rgba(51, 51, 51, 0.4)"
               multiline
               textAlignVertical="top"
-              value={text}
+              value={isRecording && liveTranscript
+                ? (textBeforeRecordingRef.current.trim() ? textBeforeRecordingRef.current + ' ' : '') + liveTranscript
+                : text}
               onChangeText={setText}
               autoFocus={!isEdit}
+              editable={!isRecording}
             />
           </View>
 
@@ -220,8 +236,8 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontFamily: fonts.outfit.light,
-    fontSize: 14,
-    lineHeight: 14 * 1.6,
+    fontSize: 16,
+    lineHeight: 16 * 1.6,
     color: '#333333',
   },
 

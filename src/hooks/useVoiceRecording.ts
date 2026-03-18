@@ -20,7 +20,13 @@ const recognitionOptions = {
   },
 };
 
-export const useVoiceRecording = () => {
+interface VoiceRecordingOptions {
+  onInterimResult?: (text: string) => void;
+}
+
+export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
+  const onInterimResultRef = useRef(options?.onInterimResult);
+  onInterimResultRef.current = options?.onInterimResult;
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
@@ -115,6 +121,14 @@ export const useVoiceRecording = () => {
   useSpeechRecognitionEvent('result', (event) => {
     const transcript = event.results[0]?.transcript ?? '';
     transcriptRef.current = transcript;
+
+    // Fire live callback for interim display
+    if (!event.isFinal && onInterimResultRef.current) {
+      const liveText = fullTranscriptRef.current
+        ? fullTranscriptRef.current + ' ' + transcript
+        : transcript;
+      onInterimResultRef.current(liveText);
+    }
 
     if (event.isFinal) {
       if (stoppingRef.current) {
