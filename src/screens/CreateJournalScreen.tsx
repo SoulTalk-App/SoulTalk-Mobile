@@ -184,7 +184,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               {isSaving ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <Text style={styles.saveText}>{isEdit ? 'Update' : 'Save'}</Text>
+                <Text style={styles.saveText}>{isEdit ? 'Update' : 'Submit'}</Text>
               )}
             </Pressable>
           </View>

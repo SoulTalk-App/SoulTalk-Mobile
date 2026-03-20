@@ -154,8 +154,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
               <View style={styles.aiDivider} />
               {entry.ai_processing_status === 'complete' ? (
                 <>
-                  <Text style={styles.aiLabel}>SoulPal's Reflection</Text>
-                  <Text style={styles.aiResponseText}>{entry.ai_response?.text}</Text>
+                  <Text style={styles.aiLabel}>SoulTalk Reflection</Text>
+                  <Text style={styles.aiResponseText}>{entry.ai_response?.text?.replace(/\*+/g, '')}</Text>
 
                   {/* Topics */}
                   {entry.tags?.topics && entry.tags.topics.length > 0 && (
@@ -187,7 +187,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
               ) : (
                 <View style={styles.aiLoadingRow}>
                   <ActivityIndicator color="#59168B" size="small" />
-                  <Text style={styles.aiLoadingText}>SoulPal is reflecting...</Text>
+                  <Text style={styles.aiLoadingText}>Preparing your reflection...</Text>
                 </View>
               )}
             </View>
