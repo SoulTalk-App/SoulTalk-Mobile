@@ -209,6 +209,11 @@ class JournalService {
     await this.axiosInstance.put('/profile/ai-preferences/', data);
   }
 
+  async getTodayAffirmation(): Promise<{ affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }> {
+    const response = await this.axiosInstance.get('/affirmation-mirror/today');
+    return response.data;
+  }
+
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {
     const file = new File(audioUri);
     if (!file.exists) throw new Error('Audio file not found');

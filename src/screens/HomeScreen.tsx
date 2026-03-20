@@ -349,7 +349,7 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {/* Affirmation Mirror Card */}
-          <View style={styles.smallCardWrapper}>
+          <Pressable style={styles.smallCardWrapper} onPress={() => navigation.navigate('AffirmationMirror')}>
             <View style={styles.smallCard}>
               <Image
                 source={MirrorCharLeft}
@@ -366,15 +366,11 @@ const HomeScreen = ({ navigation }: any) => {
                 style={styles.mirrorCharRight}
                 resizeMode="contain"
               />
-              <View style={styles.comingSoonOverlay}>
-                <Image source={LockIcon} style={styles.comingSoonLock} resizeMode="contain" />
-                <Text style={styles.comingSoonText}>Coming Soon</Text>
-              </View>
             </View>
             <View style={styles.cardLabel}>
               <Text style={styles.cardLabelText}>Affirmation Mirror</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
 
         {/* Bottom spacing for tab bar */}
