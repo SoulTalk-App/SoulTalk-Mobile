@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthService from '../services/AuthService';
+import NotificationService from '../services/NotificationService';
 
 interface UserInfo {
   id: string;
@@ -166,6 +167,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       setIsLoading(true);
+      // Deactivate push token before logout so backend stops sending notifications
+      await NotificationService.unregisterPushToken();
       await AuthService.logout();
     } catch (error) {
       console.error('Logout error:', error);
