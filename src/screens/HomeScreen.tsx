@@ -37,9 +37,7 @@ const PalmTree2 = require('../../assets/images/home/PalmTree2.png');
 const PalmTree3 = require('../../assets/images/home/PalmTree3.png');
 const SoulpalEyes = require('../../assets/images/home/SoulpalIcon-f02c98.png');
 const LockIcon = require('../../assets/images/home/LockIcon.png');
-const AffirmationMirrorFull = require('../../assets/images/home/AffirmationMirrorFull.png');
-const MirrorCharLeft = require('../../assets/images/home/MirrorCharLeft.png');
-const MirrorCharRight = require('../../assets/images/home/MirrorCharRight.png');
+const AffirmationMirrorCard = require('../../assets/images/home/AffirmationMirrorCard.png');
 
 const SendIconImg = require('../../assets/images/home/SendIconPng.png');
 
@@ -352,19 +350,9 @@ const HomeScreen = ({ navigation }: any) => {
           <Pressable style={styles.smallCardWrapper} onPress={() => navigation.navigate('AffirmationMirror')}>
             <View style={styles.smallCard}>
               <Image
-                source={MirrorCharLeft}
-                style={styles.mirrorCharLeft}
-                resizeMode="contain"
-              />
-              <Image
-                source={AffirmationMirrorFull}
-                style={styles.affirmationImage}
-                resizeMode="contain"
-              />
-              <Image
-                source={MirrorCharRight}
-                style={styles.mirrorCharRight}
-                resizeMode="contain"
+                source={AffirmationMirrorCard}
+                style={styles.affirmationCardImage}
+                resizeMode="cover"
               />
             </View>
             <View style={styles.cardLabel}>
@@ -760,7 +748,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 155,
     backgroundColor: colors.white,
-    borderRadius: 10,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -769,25 +757,10 @@ const styles = StyleSheet.create({
     width: '110%',
     height: '110%',
   },
-  affirmationImage: {
-    width: 155,
-    height: 155,
-  },
-  mirrorCharLeft: {
-    position: 'absolute',
-    left: -1,
-    bottom: 52,
-    width: 48,
-    height: 55,
-    opacity: 0.5,
-  },
-  mirrorCharRight: {
-    position: 'absolute',
-    right: -1,
-    bottom: 52,
-    width: 48,
-    height: 55,
-    opacity: 0.5,
+  affirmationCardImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   cardLabel: {
     backgroundColor: colors.white,
