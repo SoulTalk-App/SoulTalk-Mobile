@@ -26,7 +26,7 @@ export const colors = {
 
   // Accent colors (from Figma)
   accent: {
-    pink: '#EA3678',       // Decorative pink elements
+    pink: '#E93678',       // Decorative pink elements
     cyan: '#5ECEFF',       // Links, Terms & Privacy
     teal: '#70CACF',       // Character accent
     orange: '#FF9E55',     // Character accent
