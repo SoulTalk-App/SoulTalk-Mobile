@@ -16,17 +16,22 @@ export function useNotifications() {
   const navigation = useNavigation<any>();
   const notificationListener = useRef<Notifications.EventSubscription>();
   const responseListener = useRef<Notifications.EventSubscription>();
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
+
     // Register for push notifications
-    NotificationService.registerForPushNotifications();
+    NotificationService.registerForPushNotifications().catch((err) => {
+      console.log('[Push] Registration error:', err);
+    });
 
     // Handle notification taps (app in background or killed)
     responseListener.current = NotificationService.addNotificationResponseListener(
       (response) => {
+        if (!isMounted.current) return;
         const data = response.notification.request.content.data;
         if (data?.type === 'journal_ai_complete' && data?.entry_id) {
-          // Navigate to the journal entry screen
           navigation.navigate('JournalEntry', { entryId: data.entry_id });
         }
       },
@@ -41,6 +46,7 @@ export function useNotifications() {
 
     // Check if the app was opened by tapping a notification (cold start)
     NotificationService.getLastNotificationResponse().then((response) => {
+      if (!isMounted.current) return;
       if (response) {
         const data = response.notification.request.content.data;
         if (data?.type === 'journal_ai_complete' && data?.entry_id) {
@@ -50,11 +56,12 @@ export function useNotifications() {
     });
 
     return () => {
+      isMounted.current = false;
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, [navigation]);

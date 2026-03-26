@@ -166,17 +166,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      setIsLoading(true);
-      // Deactivate push token before logout so backend stops sending notifications
-      await NotificationService.unregisterPushToken();
-      await AuthService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      // Deactivate push token before logout (best-effort, don't block logout)
+      try {
+        await NotificationService.unregisterPushToken();
+      } catch (_e) {
+        console.log('Push token unregister failed, continuing logout');
+      }
       setUser(null);
       setIsAuthenticated(false);
       await AsyncStorage.removeItem('user_logged_in');
-      setIsLoading(false);
+      await AuthService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      await AsyncStorage.removeItem('user_logged_in');
     }
   }, []);
 

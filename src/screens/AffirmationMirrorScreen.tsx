@@ -36,7 +36,6 @@ const RevealedVideo = require('../../assets/videos/affirmationMirrorLookingUp.mp
 const AffirmationMirrorScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const [affirmation, setAffirmation] = useState<string | null>(null);
-  const [source, setSource] = useState<string>('fallback');
   const [dateKey, setDateKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -65,7 +64,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const textScale = useSharedValue(0.92);
   const buttonOpacity = useSharedValue(0);
   const buttonScale = useSharedValue(1);
-  const badgeOpacity = useSharedValue(0);
+  // badgeOpacity removed — badge no longer shown
   const cloudsOpacity = useSharedValue(1);
   const backButtonOpacity = useSharedValue(0);
   const idleVideoOpacity = useSharedValue(1);
@@ -96,7 +95,6 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
 
         const data = await JournalService.getTodayAffirmation();
         setAffirmation(data.affirmation_text);
-        setSource(data.source);
         setDateKey(data.date_key);
 
         const revealedDate = await AsyncStorage.getItem(REVEALED_DATE_KEY);
@@ -112,9 +110,6 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
           revealedVideoOpacity.value = 1;
           idlePlayer.pause();
           revealedPlayer.play();
-          if (data.source === 'ai') {
-            badgeOpacity.value = 1;
-          }
         }
       } catch (_e: any) {
         setError('Unable to load your affirmation right now.');
@@ -176,11 +171,6 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       withTiming(1, { duration: 400 }),
     );
 
-    // 6. Personalization badge
-    if (source === 'ai') {
-      badgeOpacity.value = withDelay(1200, withTiming(1, { duration: 500 }));
-    }
-
     // Stop idle video after crossfade completes
     setTimeout(() => {
       idlePlayer.pause();
@@ -196,10 +186,6 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const buttonAnimStyle = useAnimatedStyle(() => ({
     opacity: buttonOpacity.value,
     transform: [{ scale: buttonScale.value }],
-  }));
-
-  const badgeAnimStyle = useAnimatedStyle(() => ({
-    opacity: badgeOpacity.value,
   }));
 
   const cloudsAnimStyle = useAnimatedStyle(() => ({
@@ -305,20 +291,18 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
 
       {/* ---- Affirmation text (shown after reveal) ---- */}
       {isRevealed && (
-        <View style={[styles.textArea, { paddingTop: insets.top + 80 }]}>
+        <View style={[styles.textArea, { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH }]}>
           {error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : (
-            <>
-              <Animated.Text style={[styles.affirmationText, textAnimStyle]}>
-                {affirmation}
-              </Animated.Text>
-              {source === 'ai' && (
-                <Animated.View style={[styles.badge, badgeAnimStyle]}>
-                  <Text style={styles.badgeText}>Personalized for you</Text>
-                </Animated.View>
-              )}
-            </>
+            <Animated.Text
+              style={[styles.affirmationText, textAnimStyle]}
+              adjustsFontSizeToFit
+              numberOfLines={10}
+              minimumFontScale={0.5}
+            >
+              {affirmation}
+            </Animated.Text>
           )}
         </View>
       )}
@@ -402,8 +386,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingHorizontal: 28,
     zIndex: 5,
   },
   affirmationText: {
@@ -418,20 +403,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
-  },
-
-  // Badge
-  badge: {
-    marginTop: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  badgeText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
   },
 
   // Loading
@@ -453,20 +424,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 20,
-    paddingHorizontal: 28,
-    paddingVertical: 8,
+    borderRadius: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   revealButtonGradient: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 20,
+    borderRadius: 24,
   },
   revealButtonText: {
-    fontFamily: fonts.edensor.regular,
-    fontSize: 13,
+    fontFamily: fonts.edensor.semiBold,
+    fontSize: 16,
     color: colors.white,
     textAlign: 'center',
   },

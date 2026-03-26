@@ -43,6 +43,7 @@ import CreateJournalScreen from "./src/screens/CreateJournalScreen";
 import AffirmationMirrorScreen from "./src/screens/AffirmationMirrorScreen";
 import { JournalProvider } from "./src/contexts/JournalContext";
 import { WebSocketProvider } from "./src/contexts/WebSocketContext";
+import { useNotifications } from "./src/hooks";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 const SETUP_COMPLETE_KEY = "@soultalk_setup_complete";
@@ -241,27 +242,31 @@ const tabScreenOptions = {
   cardOverlayEnabled: false,
 };
 
-const AppStack = ({ setupComplete }: { setupComplete: boolean }) => (
-  <JournalProvider>
-    <Stack.Navigator
-      screenOptions={{ headerShown: false }}
-      initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
-    >
-      <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
-      <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
-      <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
-      <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
-      <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
-      <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
-      <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
-      <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
-    </Stack.Navigator>
-  </JournalProvider>
-);
+const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
+  useNotifications();
+
+  return (
+    <JournalProvider>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
+      >
+        <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
+        <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
+        <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
+        <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
+        <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
+        <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
+        <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
+      </Stack.Navigator>
+    </JournalProvider>
+  );
+};
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -269,6 +274,9 @@ const Navigation = () => {
     null
   );
   const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
+  const [showLoading, setShowLoading] = useState(true);
+
+  const dataReady = !isLoading && onboardingComplete !== null && setupComplete !== null;
 
   useEffect(() => {
     checkStatus();
@@ -301,9 +309,14 @@ const Navigation = () => {
     }
   };
 
-  // Show loading while checking auth and onboarding status
-  if (isLoading || onboardingComplete === null || setupComplete === null) {
-    return <LoadingScreen />;
+  // Show loading screen until data is ready AND the current video loop finishes
+  if (showLoading) {
+    return (
+      <LoadingScreen
+        readyToDismiss={dataReady}
+        onDismiss={() => setShowLoading(false)}
+      />
+    );
   }
 
   return (

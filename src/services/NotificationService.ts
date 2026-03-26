@@ -31,12 +31,6 @@ class NotificationService {
    * and register it with the backend.
    */
   async registerForPushNotifications(): Promise<string | null> {
-    // Only works on physical devices
-    if (!Constants.isDevice) {
-      console.log('[Push] Must use physical device for push notifications');
-      return null;
-    }
-
     // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
