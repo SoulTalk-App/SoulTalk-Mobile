@@ -242,7 +242,7 @@ const HomeScreen = ({ navigation }: any) => {
           </Pressable>
 
           {/* SoulBar Section */}
-          <View style={styles.soulBarCard}>
+          <Pressable style={styles.soulBarCard} onPress={() => navigation.navigate('SoulSight')}>
             <View style={styles.soulBarHeader}>
               <Text style={styles.soulBarTitle}>SoulSight</Text>
               <Text style={styles.soulBarCount}>
@@ -276,7 +276,7 @@ const HomeScreen = ({ navigation }: any) => {
                 Filled {soulBar?.total_filled} time{(soulBar?.total_filled ?? 0) !== 1 ? 's' : ''}
               </Text>
             )}
-          </View>
+          </Pressable>
 
         </View>
 

@@ -41,6 +41,8 @@ import JournalScreen from "./src/screens/JournalScreen";
 import JournalEntryScreen from "./src/screens/JournalEntryScreen";
 import CreateJournalScreen from "./src/screens/CreateJournalScreen";
 import AffirmationMirrorScreen from "./src/screens/AffirmationMirrorScreen";
+import SoulSightScreen from "./src/screens/SoulSightScreen";
+import SoulSightDetailScreen from "./src/screens/SoulSightDetailScreen";
 import { JournalProvider } from "./src/contexts/JournalContext";
 import { WebSocketProvider } from "./src/contexts/WebSocketContext";
 import { useNotifications } from "./src/hooks";
@@ -260,6 +262,8 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
         <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
         <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
         <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
+        <Stack.Screen name="SoulSight" component={SoulSightScreen} />
+        <Stack.Screen name="SoulSightDetail" component={SoulSightDetailScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />

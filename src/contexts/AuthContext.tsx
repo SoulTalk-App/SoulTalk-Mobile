@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
 import NotificationService from '../services/NotificationService';
 
@@ -13,6 +14,7 @@ interface UserInfo {
   username?: string | null;
   bio?: string | null;
   pronoun?: string | null;
+  country_code?: string | null;
   email_verified: boolean;
   providers: string[];
 }
@@ -24,6 +26,7 @@ interface ProfileUpdate {
   username?: string | null;
   bio?: string | null;
   pronoun?: string | null;
+  country_code?: string | null;
 }
 
 interface LinkedAccount {
@@ -86,6 +89,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initializingRef = useRef(false);
 
+  const ensureCountryCode = useCallback(async (userInfo: UserInfo) => {
+    if (!userInfo.country_code) {
+      try {
+        const locales = getLocales();
+        const region = locales?.[0]?.regionCode;
+        if (region) {
+          const updated = await AuthService.updateProfile({ country_code: region });
+          setUser(updated);
+        }
+      } catch (_e) {
+        // Silent — don't block auth flow for country detection
+      }
+    }
+  }, []);
+
   const checkAuthState = useCallback(async () => {
     if (initializingRef.current) {
       return; // Prevent multiple simultaneous auth checks
@@ -105,6 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userInfo = await AuthService.getCurrentUser();
           setUser(userInfo);
           setIsAuthenticated(true);
+          ensureCountryCode(userInfo);
         } catch (userError) {
           console.error('Failed to get user info:', userError);
           // If we can't get user info, clear auth state
@@ -138,6 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
+      ensureCountryCode(userInfo);
 
       // Store login state for offline check
       await AsyncStorage.setItem('user_logged_in', 'true');
@@ -227,6 +247,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
+      ensureCountryCode(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -247,6 +268,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
+      ensureCountryCode(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -310,6 +332,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
+      ensureCountryCode(userInfo);
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
       console.error('Email verification failed:', error);

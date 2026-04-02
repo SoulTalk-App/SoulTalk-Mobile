@@ -45,6 +45,7 @@ interface UserInfo {
   username?: string | null;
   bio?: string | null;
   pronoun?: string | null;
+  country_code?: string | null;
   email_verified: boolean;
   providers: string[];  // ['google', 'facebook', 'email']
 }
@@ -56,6 +57,7 @@ interface ProfileUpdate {
   username?: string | null;
   bio?: string | null;
   pronoun?: string | null;
+  country_code?: string | null;
 }
 
 interface LinkedAccount {

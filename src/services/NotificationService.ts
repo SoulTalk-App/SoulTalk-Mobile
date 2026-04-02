@@ -49,35 +49,56 @@ class NotificationService {
     // Get the Expo push token
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        console.error('[Push] No EAS projectId configured');
+        return null;
+      }
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId,
       });
       this.pushToken = tokenData.data;
-
-      // Register with backend
-      await this.sendTokenToBackend(this.pushToken);
-
-      console.log('[Push] Registered token:', this.pushToken);
-      return this.pushToken;
+      console.log('[Push] Got Expo token:', this.pushToken);
     } catch (error) {
       console.error('[Push] Failed to get push token:', error);
       return null;
     }
+
+    // Register with backend (retry up to 3 times with delay)
+    await this.sendTokenToBackend(this.pushToken);
+
+    return this.pushToken;
   }
 
   /**
    * Send the push token to the backend for storage.
+   * Retries up to 3 times with increasing delay to handle
+   * race conditions where auth token isn't ready yet.
    */
   private async sendTokenToBackend(token: string): Promise<void> {
-    try {
-      const axiosInstance = (AuthService as any).axiosInstance;
-      await axiosInstance.put('/notifications/token', {
-        push_token: token,
-        platform: Platform.OS as 'ios' | 'android',
-      });
-    } catch (error) {
-      console.error('[Push] Failed to register token with backend:', error);
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const axiosInstance = (AuthService as any).axiosInstance;
+        await axiosInstance.put('/notifications/token', {
+          push_token: token,
+          platform: Platform.OS as 'ios' | 'android',
+        });
+        console.log('[Push] Token registered with backend');
+        return;
+      } catch (error: any) {
+        const status = error?.response?.status;
+        console.warn(`[Push] Backend registration attempt ${attempt}/${maxRetries} failed (status: ${status})`);
+        // Don't retry on 403 (email not verified) — it won't help
+        if (status === 403) {
+          console.log('[Push] User email not verified, skipping token registration');
+          return;
+        }
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, attempt * 2000));
+        }
+      }
     }
+    console.error('[Push] Failed to register token with backend after retries');
   }
 
   /**
