@@ -36,6 +36,7 @@ export interface JournalEntry {
   raw_text: string;
   mood: Mood | null;
   ai_processing_status: 'none' | 'pending' | 'tagged' | 'complete' | 'failed';
+  edit_count: number;
   is_draft: boolean;
   created_at: string;
   updated_at: string;

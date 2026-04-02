@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Image,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,11 +18,10 @@ const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const { deleteEntry, entries } = useJournal();
+  const { entries } = useJournal();
   const entryId: string = route.params?.entryId;
 
   const [entry, setEntry] = useState<JournalEntry | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Always fetch the full entry from the detail endpoint (list endpoint omits tags/ai_response)
   useEffect(() => {
@@ -63,33 +61,12 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     return () => clearInterval(interval);
   }, [entry?.ai_processing_status, entryId]);
 
-  const handleEdit = () => {
-    if (!entry) return;
-    navigation.navigate('CreateJournal', { entry });
-  };
+  const editCount = entry?.edit_count ?? 0;
+  const canEdit = editCount < 3;
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this journal entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await deleteEntry(entryId);
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete entry');
-              setIsDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleEdit = () => {
+    if (!entry || !canEdit) return;
+    navigation.navigate('CreateJournal', { entry });
   };
 
   if (!entry) {
@@ -126,18 +103,15 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         {/* Title Row */}
         <View style={styles.titleRow}>
           <Text style={styles.titleText}>Journal Entry</Text>
-          <View style={styles.actionRow}>
-            <Pressable style={styles.actionBtn} onPress={handleEdit}>
-              <Text style={styles.actionBtnText}>Edit</Text>
-            </Pressable>
-            <Pressable style={styles.actionBtn} onPress={handleDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <Text style={[styles.actionBtnText, { color: '#FF6B6B' }]}>Delete</Text>
-              )}
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.actionBtn, !canEdit && styles.actionBtnDisabled]}
+            onPress={handleEdit}
+            disabled={!canEdit}
+          >
+            <Text style={[styles.actionBtnText, !canEdit && { opacity: 0.5 }]}>
+              Edit {editCount}/3
+            </Text>
+          </Pressable>
         </View>
 
         {/* White Content Card */}
@@ -245,11 +219,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     flex: 1,
   },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   actionBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -260,6 +229,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
     color: colors.white,
+  },
+  actionBtnDisabled: {
+    opacity: 0.5,
   },
 
   // Content Card
