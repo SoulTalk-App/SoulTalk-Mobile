@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import SoulTalkLoader from '../components/SoulTalkLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
@@ -105,7 +104,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <SoulTalkLoader />
+          <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
       </LinearGradient>
     );
@@ -147,11 +146,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <Text style={styles.journalText}>{entry.raw_text}</Text>
-
-            {/* AI Response Section */}
+            {/* AI Response Section — above the fold */}
             <View style={styles.aiSection}>
-              <View style={styles.aiDivider} />
               {entry.ai_processing_status === 'complete' ? (
                 <>
                   <Text style={styles.aiLabel}>SoulTalk Reflection</Text>
@@ -191,6 +187,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
                 </View>
               )}
             </View>
+
+            {/* Journal text — below the analysis */}
+            <View style={styles.aiDivider} />
+            <Text style={styles.journalLabel}>Your Entry</Text>
+            <Text style={styles.journalText}>{entry.raw_text}</Text>
           </ScrollView>
         </View>
 
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
 
   // AI Section
   aiSection: {
-    marginTop: 16,
+    marginBottom: 16,
   },
   aiDivider: {
     height: 1,
@@ -347,6 +348,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#888',
     fontStyle: 'italic',
+  },
+  journalLabel: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 14,
+    color: '#59168B',
+    marginTop: 14,
+    marginBottom: 8,
   },
 
 });

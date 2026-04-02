@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts } from '../theme';
-import SoulTalkLoader from '../components/SoulTalkLoader';
 import AnimatedButton from '../components/AnimatedButton';
 import SoulSightService, {
   EligibilityResponse,
@@ -146,7 +145,7 @@ const SoulSightScreen = ({ navigation }: any) => {
             <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <SoulTalkLoader />
+          <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
       </LinearGradient>
     );
@@ -171,7 +170,7 @@ const SoulSightScreen = ({ navigation }: any) => {
         <View style={styles.eligibilityCard}>
           {isGenerating ? (
             <View style={styles.generatingContainer}>
-              <SoulTalkLoader />
+              <ActivityIndicator color="#59168B" size="large" style={{ marginBottom: 16 }} />
               <Text style={styles.generatingText}>Generating your insight...</Text>
               <Text style={styles.generatingSubtext}>This may take a minute</Text>
             </View>

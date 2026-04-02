@@ -6,11 +6,11 @@ import {
   ScrollView,
   Pressable,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../theme';
-import SoulTalkLoader from '../components/SoulTalkLoader';
 import SoulSightService, { SoulsightDetail, AggregateStats } from '../services/SoulSightService';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
@@ -127,7 +127,7 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
             <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <SoulTalkLoader />
+          <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
       </LinearGradient>
     );

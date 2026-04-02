@@ -21,8 +21,6 @@ import { colors, fonts } from '../theme';
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
-const BIO_MAX_LENGTH = 200;
-
 const PRONOUN_OPTIONS = [
   'He/Him',
   'She/Her',
@@ -39,8 +37,6 @@ const SettingsScreen = ({ navigation }: any) => {
   const { user, logout, updateProfile } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
-  const [bioError, setBioError] = useState('');
   const [pronoun, setPronoun] = useState('');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
@@ -48,10 +44,10 @@ const SettingsScreen = ({ navigation }: any) => {
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track current values in a ref so beforeRemove always sees latest
-  const profileRef = useRef({ displayName, username, bio, pronoun });
+  const profileRef = useRef({ displayName, username, pronoun });
   useEffect(() => {
-    profileRef.current = { displayName, username, bio, pronoun };
-  }, [displayName, username, bio, pronoun]);
+    profileRef.current = { displayName, username, pronoun };
+  }, [displayName, username, pronoun]);
 
 
   const usernameIsLocked = Boolean(user?.username);
@@ -61,7 +57,6 @@ const SettingsScreen = ({ navigation }: any) => {
     if (!user) return;
     setDisplayName(user.display_first_name || user.first_name || '');
     setUsername(user.username || '');
-    setBio(user.bio || '');
     setPronoun(user.pronoun || '');
   }, [user]);
 
@@ -73,7 +68,6 @@ const SettingsScreen = ({ navigation }: any) => {
     const updates: Record<string, string | null> = {};
     const currentDisplayName = current.displayName || null;
     const currentUsername = current.username || null;
-    const currentBio = current.bio || null;
     const currentPronoun = current.pronoun || null;
 
     if (currentDisplayName !== (user?.display_first_name || user?.first_name || null)) {
@@ -81,9 +75,6 @@ const SettingsScreen = ({ navigation }: any) => {
     }
     if (currentUsername !== (user?.username || null)) {
       updates.username = currentUsername;
-    }
-    if (currentBio !== (user?.bio || null)) {
-      updates.bio = currentBio;
     }
     if (currentPronoun !== (user?.pronoun || null)) {
       updates.pronoun = currentPronoun;
@@ -146,15 +137,6 @@ const SettingsScreen = ({ navigation }: any) => {
   const handleUsernameChange = (text: string) => {
     setUsername(text);
     checkUsernameAvailability(text);
-  };
-
-  const handleBioChange = (text: string) => {
-    setBio(text);
-    if (text.length > BIO_MAX_LENGTH) {
-      setBioError(`Bio cannot exceed ${BIO_MAX_LENGTH} characters (${text.length}/${BIO_MAX_LENGTH})`);
-    } else {
-      setBioError('');
-    }
   };
 
   const handleChangePassword = () => {
@@ -245,20 +227,6 @@ const SettingsScreen = ({ navigation }: any) => {
             <Text style={styles.resetButtonText}>CHANGE PASSWORD</Text>
           </Pressable>
         )}
-
-        {/* Bio */}
-        <TextInput
-          style={styles.bioInput}
-          value={bio}
-          onChangeText={handleBioChange}
-          placeholder="Bio"
-          placeholderTextColor={colors.white}
-          multiline
-          maxLength={BIO_MAX_LENGTH + 10}
-        />
-        {bioError ? <Text style={styles.errorText}>{bioError}</Text> : null}
-        <Text style={styles.charCount}>{bio.length}/{BIO_MAX_LENGTH}</Text>
-        <View style={styles.separator} />
 
         {/* Pronouns */}
         <Text style={styles.fieldLabel}>Pronouns</Text>
@@ -425,22 +393,6 @@ const styles = StyleSheet.create({
     height: 36,
   },
 
-  // Error text
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 11,
-    color: '#FF5E5E',
-    marginTop: 2,
-    marginBottom: 4,
-  },
-  charCount: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.4)',
-    textAlign: 'right',
-    marginTop: 2,
-  },
-
   // Username
   usernameRow: {
     flexDirection: 'row',
@@ -475,16 +427,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 46,
     color: colors.white,
-  },
-
-  // Bio
-  bioInput: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 20,
-    color: colors.white,
-    paddingVertical: 12,
-    minHeight: 46,
   },
 
   // Pronouns
