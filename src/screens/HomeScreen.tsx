@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import Animated, {
@@ -53,6 +54,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [filledBars, setFilledBars] = useState(0);
+  const [affirmationLoading, setAffirmationLoading] = useState(false);
   const { soulBar, fetchSoulBar } = useJournal();
 
   // Refresh soul bar and mood whenever Home screen gains focus
@@ -304,6 +306,8 @@ const HomeScreen = ({ navigation }: any) => {
 
           {/* Affirmation Mirror Card */}
           <Pressable style={styles.smallCardWrapper} onPress={async () => {
+            if (affirmationLoading) return;
+            setAffirmationLoading(true);
             try {
               const data = await JournalService.getTodayAffirmation();
               if (data?.affirmation_text) {
@@ -312,14 +316,20 @@ const HomeScreen = ({ navigation }: any) => {
                   date_key: data.date_key,
                 });
               }
-            } catch {}
+            } catch {} finally {
+              setAffirmationLoading(false);
+            }
           }}>
             <View style={styles.smallCard}>
-              <Image
-                source={AffirmationMirrorCard}
-                style={styles.affirmationCardImage}
-                resizeMode="cover"
-              />
+              {affirmationLoading ? (
+                <ActivityIndicator size="large" color="#59168B" />
+              ) : (
+                <Image
+                  source={AffirmationMirrorCard}
+                  style={styles.affirmationCardImage}
+                  resizeMode="cover"
+                />
+              )}
             </View>
             <View style={styles.cardLabel}>
               <Text style={styles.cardLabelText}>Affirmation Mirror</Text>
