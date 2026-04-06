@@ -1,0 +1,116 @@
+{
+  "expo": {
+    "name": "SoulTalk",
+    "slug": "soultalk-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "soultalk",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soultalk.mobile",
+      "buildNumber": "4",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to authenticate with SoulTalk",
+        "NSMicrophoneUsageDescription": "SoulTalk needs microphone access for voice-to-text journaling",
+        "NSSpeechRecognitionUsageDescription": "SoulTalk uses speech recognition to transcribe your voice into journal entries",
+        "NSPhotoLibraryUsageDescription": "SoulTalk needs access to your photo library to set a profile picture",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "soultalk"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "fb737013615945942"
+            ]
+          }
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.soultalk.mobile",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "soultalk"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "keycloakConfig": {
+        "url": "http://localhost:8080",
+        "realm": "soultalk",
+        "clientId": "soultalk-mobile"
+      },
+      "apiConfig": {
+        "baseUrl": "https://soultalkapp.com/api"
+      },
+      "googleClientId": {
+        "iosClientId": "1088933779088-on4goklfoshonroqaclb57q2o6k9ri9f.apps.googleusercontent.com",
+        "androidClientId": "1088933779088-s026v5utehouijkcg29eptn7ev9pa1jo.apps.googleusercontent.com",
+        "webClientId": "1088933779088-a51svr2ehbgb9lfkrfhi70ibt1mo7ii8.apps.googleusercontent.com"
+      },
+      "facebookAppId": "737013615945942",
+      "eas": {
+        "projectId": "f0ab959d-7dde-41f6-8716-767bd41b656e"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1088933779088-on4goklfoshonroqaclb57q2o6k9ri9f"
+        }
+      ],
+      "expo-video",
+      "expo-audio",
+      "expo-speech-recognition",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#59168B"
+        }
+      ],
+      "expo-localization"
+    ]
+  }
+}
