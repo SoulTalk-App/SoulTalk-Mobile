@@ -282,52 +282,8 @@ const HomeScreen = ({ navigation }: any) => {
 
         {/* Goal Garden Card */}
         <View style={styles.goalGardenCard}>
-          <LinearGradient
-            colors={['#59168B', '#3A0D5E']}
-            style={styles.goalGardenGradient}
-          >
-            {/* Sunset background */}
-            <Image
-              source={GoalGardenBg}
-              style={styles.goalGardenBgImage}
-              resizeMode="cover"
-            />
-            {/* Palm tree silhouettes */}
-            <Image
-              source={PalmTree3}
-              style={styles.palmTree3}
-              resizeMode="contain"
-            />
-            <Image
-              source={PalmTree2}
-              style={styles.palmTree2}
-              resizeMode="contain"
-            />
-            <Image
-              source={PalmTree1}
-              style={styles.palmTree1}
-              resizeMode="contain"
-            />
-            {/* SoulPal character */}
-            <View style={styles.goalGardenCharacter}>
-              <Image
-                source={GoalGardenCharacterImg}
-                style={styles.goalGardenCharImg}
-                resizeMode="contain"
-              />
-            </View>
-          </LinearGradient>
-          {/* White overlay bar at bottom */}
-          <View style={styles.goalGardenOverlay}>
-            <Text style={styles.goalGardenTitle}>Goal Garden</Text>
-            <Text style={styles.goalGardenSubtitle}>
-              0/10 Goals Completed
-            </Text>
-          </View>
-          <View style={styles.comingSoonOverlayFull}>
-            <Image source={LockIcon} style={styles.comingSoonLockLarge} resizeMode="contain" />
-            <Text style={styles.comingSoonTextLight}>Coming Soon</Text>
-          </View>
+          <Image source={LockIcon} style={styles.comingSoonLockLarge} resizeMode="contain" />
+          <Text style={styles.comingSoonText}>Coming Soon</Text>
         </View>
 
         {/* Two Cards Row - Smaller */}
@@ -347,7 +303,17 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {/* Affirmation Mirror Card */}
-          <Pressable style={styles.smallCardWrapper} onPress={() => navigation.navigate('AffirmationMirror')}>
+          <Pressable style={styles.smallCardWrapper} onPress={async () => {
+            try {
+              const data = await JournalService.getTodayAffirmation();
+              if (data?.affirmation_text) {
+                navigation.navigate('AffirmationMirror', {
+                  affirmation_text: data.affirmation_text,
+                  date_key: data.date_key,
+                });
+              }
+            } catch {}
+          }}>
             <View style={styles.smallCard}>
               <Image
                 source={AffirmationMirrorCard}
@@ -446,7 +412,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   soulpalAvatar: {
     width: 48,
@@ -455,14 +421,12 @@ const styles = StyleSheet.create({
   headerTextSection: {
     flex: 1,
     marginLeft: 12,
-    marginTop: 2,
   },
   welcomeText: {
     fontFamily: fonts.edensor.light,
     fontSize: 24,
-    lineHeight: 24 * 1.4,
+    lineHeight: 24 * 1.3,
     color: colors.white,
-    marginBottom: 6,
   },
   progressBarContainer: {
     width: 178,
@@ -483,15 +447,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.light,
     fontSize: 12,
     lineHeight: 12 * 1.26,
-    color: colors.white,
-    marginTop: 6,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
   },
   gearButton: {
-    marginTop: 2,
+    padding: 4,
   },
   gearIcon: {
-    width: 44,
-    height: 43,
+    width: 32,
+    height: 32,
   },
 
   // Feeling Bar
@@ -508,7 +472,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    overflow: 'hidden',
   },
   soulpalEyes: {
     width: 28,
@@ -620,10 +583,12 @@ const styles = StyleSheet.create({
 
   // Goal Garden Card
   goalGardenCard: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 85, 158, 0.2)',
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    marginTop: 16,
+    height: 174,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   goalGardenGradient: {
     height: 174,
@@ -698,12 +663,10 @@ const styles = StyleSheet.create({
   // Coming Soon Overlays
   comingSoonOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.white,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
   },
   comingSoonLock: {
     width: 16,
@@ -712,8 +675,9 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 12,
+    fontSize: 14,
     color: '#59168B',
+    marginTop: 8,
   },
   comingSoonOverlayFull: {
     ...StyleSheet.absoluteFillObject,
@@ -724,9 +688,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   comingSoonLockLarge: {
-    width: 32,
-    height: 32,
-    tintColor: colors.white,
+    width: 80,
+    height: 80,
   },
   comingSoonTextLight: {
     fontFamily: fonts.outfit.medium,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   Image,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import Animated, {
@@ -21,7 +20,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path, G } from 'react-native-svg';
 import { colors, fonts } from '../theme';
-import JournalService from '../services/JournalService';
 
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -33,14 +31,11 @@ const CloudsRight = require('../../assets/images/home/CloudsRight.png');
 const IdleVideo = require('../../assets/videos/affirmationIdle.mp4');
 const RevealedVideo = require('../../assets/videos/affirmationMirrorLookingUp.mp4');
 
-const AffirmationMirrorScreen = ({ navigation }: any) => {
+const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
-  const [affirmation, setAffirmation] = useState<string | null>(null);
-  const [dateKey, setDateKey] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const affirmation = route.params?.affirmation_text ?? null;
+  const dateKey = route.params?.date_key ?? null;
   const [isRevealed, setIsRevealed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasFetched = useRef(false);
 
   // Video players
   const idlePlayer = useVideoPlayer(IdleVideo, (p) => {
@@ -70,6 +65,8 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const idleVideoOpacity = useSharedValue(1);
   const revealedVideoOpacity = useSharedValue(0);
 
+  const isRevealedRef = useRef(false);
+
   // --- Entry animation: slide video in from right ---
   useEffect(() => {
     videoSlideX.value = withTiming(0, {
@@ -83,23 +80,13 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     );
   }, []);
 
-  // --- Data fetch ---
+  // --- Check if already revealed today ---
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
-    const fetchAffirmation = async () => {
+    const checkRevealed = async () => {
       try {
-        // TODO: Remove this line after testing idle state
-        await AsyncStorage.removeItem(REVEALED_DATE_KEY);
-
-        const data = await JournalService.getTodayAffirmation();
-        setAffirmation(data.affirmation_text);
-        setDateKey(data.date_key);
-
         const revealedDate = await AsyncStorage.getItem(REVEALED_DATE_KEY);
-        if (revealedDate === data.date_key) {
-          // Already revealed today — show revealed state directly
+        if (revealedDate === dateKey) {
+          isRevealedRef.current = true;
           setIsRevealed(true);
           textOpacity.value = 1;
           textScale.value = 1;
@@ -111,19 +98,15 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
           idlePlayer.pause();
           revealedPlayer.play();
         }
-      } catch (_e: any) {
-        setError('Unable to load your affirmation right now.');
-      } finally {
-        setIsLoading(false);
-      }
+      } catch {}
     };
-
-    fetchAffirmation();
+    if (dateKey) checkRevealed();
   }, []);
 
   // --- Reveal handler ---
   const handleReveal = async () => {
     if (!affirmation) return;
+    isRevealedRef.current = true;
     setIsRevealed(true);
 
     if (dateKey) {
@@ -292,30 +275,19 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       {/* ---- Affirmation text (shown after reveal) ---- */}
       {isRevealed && (
         <View style={[styles.textArea, { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH }]}>
-          {error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : (
-            <Animated.Text
-              style={[styles.affirmationText, textAnimStyle]}
-              adjustsFontSizeToFit
-              numberOfLines={10}
-              minimumFontScale={0.5}
-            >
-              {affirmation}
-            </Animated.Text>
-          )}
-        </View>
-      )}
-
-      {/* ---- Loading indicator ---- */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color={colors.white} size="large" />
+          <Animated.Text
+            style={[styles.affirmationText, textAnimStyle]}
+            adjustsFontSizeToFit
+            numberOfLines={10}
+            minimumFontScale={0.5}
+          >
+            {affirmation}
+          </Animated.Text>
         </View>
       )}
 
       {/* ---- "Click to Reveal" button (idle state only) ---- */}
-      {!isRevealed && !isLoading && !error && (
+      {!isRevealed && (
         <Animated.View style={[styles.revealButtonContainer, buttonAnimStyle]}>
           <Pressable onPress={handleReveal} style={styles.revealButton}>
             <LinearGradient
@@ -398,25 +370,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 42 * 1.4,
   },
-  errorText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-
-  // Loading
-  loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 5,
-  },
-
   // Reveal button
   revealButtonContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.58,
+    top: SCREEN_HEIGHT * 0.53,
     alignSelf: 'center',
     zIndex: 10,
   },
@@ -424,20 +381,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 30,
-    paddingHorizontal: 48,
-    paddingVertical: 18,
+    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   revealButtonGradient: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
+    borderRadius: 24,
   },
   revealButtonText: {
     fontFamily: fonts.edensor.semiBold,
-    fontSize: 20,
+    fontSize: 22,
     color: colors.white,
     textAlign: 'center',
   },
