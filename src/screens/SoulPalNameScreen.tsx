@@ -23,7 +23,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, fonts } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fonts, surfaces } from '../theme';
 
 const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
 const SubmitIcon = require('../../assets/images/common/SubmitIcon.png');
@@ -138,7 +139,12 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   }));
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={[...surfaces.profileGradient]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={styles.container}
+    >
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -174,7 +180,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
                   <TextInput
                     style={styles.input}
                     placeholder="SoulPal"
-                    placeholderTextColor="#D3C5E1"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
                     value={soulPalName}
                     onChangeText={setSoulPalName}
                     onFocus={() => setInputFocused(true)}
@@ -205,14 +211,13 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           </View>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#59168B',
   },
   keyboardView: {
     flex: 1,
@@ -258,28 +263,32 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputContainer: {
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 10,
     height: 44,
     justifyContent: 'center',
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   inputContainerFocused: {
     borderWidth: 2,
-    borderColor: '#4F1786',
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   input: {
     fontFamily: fonts.outfit.regular,
     fontSize: 18,
-    color: colors.text.dark,
+    color: colors.white,
   },
   iconButton: {
     width: 55,
     height: 38,
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   submitIcon: {
     width: 22,

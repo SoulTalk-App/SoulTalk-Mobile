@@ -10,16 +10,42 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Switch,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withRepeat,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import SecureStorage from '../utils/SecureStorage';
-import { colors, fonts } from '../theme';
+import { colors, fonts, surfaces } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
+
+// Rich star field
+const SETTINGS_STARS = Array.from({ length: 50 }, (_, i) => ({
+  left: ((i * 47 + 13) % 100),
+  top: ((i * 53 + 17) % 100),
+  size: i < 3 ? 2.8 : i < 7 ? 2 : (i % 4 === 0) ? 1.5 : 0.8,
+  opacity: i < 3 ? 0.55 : i < 7 ? 0.35 : (0.08 + (i % 5) * 0.06),
+}));
+
+// Shooting stars
+const SETTINGS_METEORS = [
+  { startLeft: 20, startTop: 5, length: 40, angle: 32 },
+  { startLeft: 65, startTop: 8, length: 35, angle: 38 },
+];
 
 const PRONOUN_OPTIONS = [
   'He/Him',
@@ -35,6 +61,7 @@ const PRONOUN_OPTIONS = [
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user, logout, updateProfile } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [pronoun, setPronoun] = useState('');
@@ -151,8 +178,207 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
+  // ── Space backdrop animations (dark mode) ──
+  const planet1Y = useSharedValue(0);
+  const planet2Y = useSharedValue(0);
+  const planet3Y = useSharedValue(0);
+  const nebulaScale = useSharedValue(1);
+  const galaxyRotation = useSharedValue(0);
+  const meteor0Opacity = useSharedValue(0);
+  const meteor0TX = useSharedValue(0);
+  const meteor0TY = useSharedValue(0);
+  const meteor1Opacity = useSharedValue(0);
+  const meteor1TX = useSharedValue(0);
+  const meteor1TY = useSharedValue(0);
+
+  useEffect(() => {
+    if (!isDarkMode) return;
+
+    planet1Y.value = withRepeat(
+      withSequence(
+        withTiming(-16, { duration: 4200, easing: Easing.inOut(Easing.sin) }),
+        withTiming(16, { duration: 4200, easing: Easing.inOut(Easing.sin) }),
+      ), -1, true,
+    );
+    planet2Y.value = withRepeat(
+      withSequence(
+        withTiming(12, { duration: 3600, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-12, { duration: 3600, easing: Easing.inOut(Easing.sin) }),
+      ), -1, true,
+    );
+    planet3Y.value = withRepeat(
+      withSequence(
+        withTiming(-9, { duration: 5200, easing: Easing.inOut(Easing.sin) }),
+        withTiming(9, { duration: 5200, easing: Easing.inOut(Easing.sin) }),
+      ), -1, true,
+    );
+    nebulaScale.value = withRepeat(
+      withSequence(
+        withTiming(1.06, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
+      ), -1, true,
+    );
+    galaxyRotation.value = withRepeat(
+      withTiming(360, { duration: 55000, easing: Easing.linear }), -1,
+    );
+
+    // Shooting stars
+    const animateMeteor = (opVal: any, txVal: any, tyVal: any, m: typeof SETTINGS_METEORS[0], delay: number) => {
+      const rad = (m.angle * Math.PI) / 180;
+      const dx = Math.cos(rad) * m.length * 3;
+      const dy = Math.sin(rad) * m.length * 3;
+      const fire = () => {
+        opVal.value = 0; txVal.value = 0; tyVal.value = 0;
+        opVal.value = withDelay(delay, withSequence(
+          withTiming(1, { duration: 100 }), withTiming(1, { duration: 500 }), withTiming(0, { duration: 300 }),
+        ));
+        txVal.value = withDelay(delay, withTiming(dx, { duration: 900, easing: Easing.out(Easing.quad) }));
+        tyVal.value = withDelay(delay, withTiming(dy, { duration: 900, easing: Easing.out(Easing.quad) }));
+      };
+      fire();
+      return setInterval(fire, 14000);
+    };
+
+    const i0 = animateMeteor(meteor0Opacity, meteor0TX, meteor0TY, SETTINGS_METEORS[0], 0);
+    const i1 = animateMeteor(meteor1Opacity, meteor1TX, meteor1TY, SETTINGS_METEORS[1], 5000);
+    return () => { clearInterval(i0); clearInterval(i1); };
+  }, [isDarkMode]);
+
+  const planet1Style = useAnimatedStyle(() => ({ transform: [{ translateY: planet1Y.value }] }));
+  const planet2Style = useAnimatedStyle(() => ({ transform: [{ translateY: planet2Y.value }] }));
+  const planet3Style = useAnimatedStyle(() => ({ transform: [{ translateY: planet3Y.value }] }));
+  const nebulaAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: nebulaScale.value }] }));
+  const galaxyAnimStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${galaxyRotation.value}deg` }] }));
+  const meteor0Style = useAnimatedStyle(() => ({
+    opacity: meteor0Opacity.value, transform: [{ translateX: meteor0TX.value }, { translateY: meteor0TY.value }],
+  }));
+  const meteor1Style = useAnimatedStyle(() => ({
+    opacity: meteor1Opacity.value, transform: [{ translateX: meteor1TX.value }, { translateY: meteor1TY.value }],
+  }));
+
+  const Wrapper = isDarkMode ? LinearGradient : View;
+  const wrapperProps = isDarkMode
+    ? { colors: [...surfaces.profileGradient], locations: [0, 0.3, 0.65, 1] as number[], style: [styles.container, { paddingTop: insets.top + 10 }] }
+    : { style: [styles.container, { paddingTop: insets.top + 10 }] };
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+    <Wrapper {...(wrapperProps as any)}>
+      {/* ═══ Rich space backdrop (dark mode) ═══ */}
+      {isDarkMode && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          {/* Nebula glow */}
+          <Animated.View style={[dkS.nebula, nebulaAnimStyle]}>
+            <LinearGradient
+              colors={['rgba(155, 89, 182, 0.16)', 'rgba(123, 104, 238, 0.07)', 'transparent']}
+              start={{ x: 0.5, y: 0.5 }}
+              end={{ x: 0, y: 0 }}
+              style={dkS.nebulaFill}
+            />
+          </Animated.View>
+          <Animated.View style={[dkS.nebula2, nebulaAnimStyle]}>
+            <LinearGradient
+              colors={['rgba(196, 122, 219, 0.10)', 'rgba(79, 23, 134, 0.05)', 'transparent']}
+              start={{ x: 0.5, y: 0.5 }}
+              end={{ x: 1, y: 1 }}
+              style={dkS.nebulaFill}
+            />
+          </Animated.View>
+
+          {/* Galaxy swirl */}
+          <Animated.View style={[dkS.galaxy, galaxyAnimStyle]}>
+            <View style={dkS.galaxyCore} />
+            <View style={[dkS.galaxyArm, { width: 55, transform: [{ rotate: '0deg' }] }]} />
+            <View style={[dkS.galaxyArm, { width: 45, transform: [{ rotate: '60deg' }], opacity: 0.7 }]} />
+            <View style={[dkS.galaxyArm, { width: 50, transform: [{ rotate: '120deg' }], opacity: 0.8 }]} />
+          </Animated.View>
+
+          {/* Stars */}
+          {SETTINGS_STARS.map((s, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                left: `${s.left}%` as any,
+                top: `${s.top}%` as any,
+                width: s.size,
+                height: s.size,
+                borderRadius: s.size,
+                backgroundColor: '#FFFFFF',
+                opacity: s.opacity,
+              }}
+            />
+          ))}
+
+          {/* Planet 1 — large purple, top right */}
+          <Animated.View style={[dkS.planet, dkS.planet1, planet1Style]}>
+            <LinearGradient
+              colors={['rgba(155, 89, 182, 0.28)', 'rgba(155, 89, 182, 0.07)', 'rgba(0, 0, 0, 0.18)']}
+              start={{ x: 0.2, y: 0.15 }}
+              end={{ x: 0.9, y: 0.85 }}
+              style={dkS.planetFill}
+            />
+            <View style={[dkS.planetHighlight, { top: '16%', left: '20%', width: 14, height: 14 }]} />
+          </Animated.View>
+
+          {/* Planet 2 — ringed indigo, mid left */}
+          <Animated.View style={[dkS.planet, dkS.planet2, planet2Style]}>
+            <LinearGradient
+              colors={['rgba(123, 104, 238, 0.24)', 'rgba(123, 104, 238, 0.05)', 'rgba(0, 0, 0, 0.18)']}
+              start={{ x: 0.25, y: 0.1 }}
+              end={{ x: 0.85, y: 0.9 }}
+              style={dkS.planetFill}
+            />
+            <View style={[dkS.planetHighlight, { top: '15%', left: '25%', width: 10, height: 10 }]} />
+            <View style={dkS.planetRing} />
+          </Animated.View>
+
+          {/* Planet 3 — tiny teal moon, bottom right */}
+          <Animated.View style={[dkS.planet, dkS.planet3, planet3Style]}>
+            <LinearGradient
+              colors={['rgba(77, 232, 212, 0.18)', 'rgba(77, 232, 212, 0.04)', 'rgba(0, 0, 0, 0.10)']}
+              start={{ x: 0.3, y: 0.2 }}
+              end={{ x: 0.8, y: 0.85 }}
+              style={dkS.planetFill}
+            />
+            <View style={[dkS.planetHighlight, { top: '20%', left: '28%', width: 5, height: 5 }]} />
+          </Animated.View>
+
+          {/* Shooting stars */}
+          {SETTINGS_METEORS.map((m, idx) => (
+            <Animated.View
+              key={idx}
+              style={[
+                dkS.meteor,
+                { left: `${m.startLeft}%` as any, top: `${m.startTop}%` as any, width: m.length, transform: [{ rotate: `${m.angle}deg` }] },
+                idx === 0 ? meteor0Style : meteor1Style,
+              ]}
+            >
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.8)', 'rgba(255, 255, 255, 0.3)', 'transparent']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={dkS.meteorTrail}
+              />
+            </Animated.View>
+          ))}
+
+          {/* Asteroids */}
+          <View style={[dkS.asteroid, { top: '30%', left: '7%', width: 4, height: 3 }]} />
+          <View style={[dkS.asteroid, { top: '31%', left: '10%', width: 3, height: 2 }]} />
+          <View style={[dkS.asteroid, { bottom: '25%', right: '5%', width: 4, height: 3 }]} />
+
+          {/* Dust lane */}
+          <View style={dkS.dustLane}>
+            <LinearGradient
+              colors={['transparent', 'rgba(155, 89, 182, 0.04)', 'rgba(123, 104, 238, 0.05)', 'rgba(155, 89, 182, 0.04)', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
@@ -173,7 +399,7 @@ const SettingsScreen = ({ navigation }: any) => {
         </Text>
 
         {/* Dashed separator */}
-        <View style={styles.dashedLine} />
+        <View style={[styles.dashedLine, isDarkMode && styles.dashedLineDark]} />
 
         {/* Display Name */}
         <TextInput
@@ -183,7 +409,7 @@ const SettingsScreen = ({ navigation }: any) => {
           placeholder="user"
           placeholderTextColor="rgba(255, 255, 255, 0.5)"
         />
-        <View style={styles.separator} />
+        <View style={[styles.separator, isDarkMode && styles.separatorDark]} />
 
         {/* @username */}
         <View style={styles.usernameRow}>
@@ -209,7 +435,7 @@ const SettingsScreen = ({ navigation }: any) => {
         {usernameAvailable === false && !usernameIsLocked && (
           <Text style={styles.usernameTaken}>Username is taken</Text>
         )}
-        <View style={styles.separator} />
+        <View style={[styles.separator, isDarkMode && styles.separatorDark]} />
 
         {/* User Email */}
         <Text style={styles.emailLabel}>User Email</Text>
@@ -219,7 +445,7 @@ const SettingsScreen = ({ navigation }: any) => {
           </Text>
           <Ionicons name="lock-closed" size={18} color="rgba(255,255,255,0.5)" />
         </View>
-        <View style={styles.separator} />
+        <View style={[styles.separator, isDarkMode && styles.separatorDark]} />
 
         {/* Change Password — only for email users */}
         {user?.providers?.includes('email') && (
@@ -233,7 +459,7 @@ const SettingsScreen = ({ navigation }: any) => {
         <Pressable onPress={() => setShowPronounPicker(true)}>
           <Text style={styles.pronounText}>{pronoun}</Text>
         </Pressable>
-        <View style={styles.separator} />
+        <View style={[styles.separator, isDarkMode && styles.separatorDark]} />
 
         {/* Push Notification */}
         <View style={styles.toggleRow}>
@@ -243,8 +469,13 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* Dark/Light Mode */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Dark/Light Mode</Text>
-          <Text style={styles.comingSoonTag}>Coming Soon</Text>
+          <Text style={styles.toggleLabel}>Dark Mode</Text>
+          <Switch
+            value={isDarkMode}
+            onValueChange={toggleTheme}
+            trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#4DE8D4' }}
+            thumbColor={colors.white}
+          />
         </View>
 
         {/* Log Out */}
@@ -264,7 +495,7 @@ const SettingsScreen = ({ navigation }: any) => {
             <Text style={styles.footerLink}>Help</Text>
           </Pressable>
         </View>
-        <View style={styles.footerSeparator} />
+        <View style={[styles.footerSeparator, isDarkMode && styles.separatorDark]} />
         <View style={styles.logoContainer}>
           <Image source={SoulTalkLogo} style={styles.logo} resizeMode="contain" />
         </View>
@@ -273,7 +504,7 @@ const SettingsScreen = ({ navigation }: any) => {
       {/* Pronoun Picker Modal */}
       <Modal visible={showPronounPicker} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setShowPronounPicker(false)}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, isDarkMode && styles.modalContentDark]}>
             <Text style={styles.modalTitle}>Select Pronouns</Text>
             <FlatList
               data={PRONOUN_OPTIONS}
@@ -282,7 +513,7 @@ const SettingsScreen = ({ navigation }: any) => {
                 <Pressable
                   style={[
                     styles.modalOption,
-                    pronoun === item && styles.modalOptionActive,
+                    pronoun === item && (isDarkMode ? styles.modalOptionActiveDark : styles.modalOptionActive),
                   ]}
                   onPress={() => {
                     setPronoun(item);
@@ -303,7 +534,7 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
         </Pressable>
       </Modal>
-    </View>
+    </Wrapper>
   );
 };
 
@@ -415,6 +646,12 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: colors.white,
+  },
+  separatorDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  dashedLineDark: {
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
 
   // Reset Password
@@ -530,6 +767,13 @@ const styles = StyleSheet.create({
   modalOptionActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
+  modalContentDark: {
+    backgroundColor: '#1E1540',
+    borderColor: 'rgba(155, 89, 182, 0.3)',
+  },
+  modalOptionActiveDark: {
+    backgroundColor: 'rgba(77, 232, 212, 0.12)',
+  },
   modalOptionText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
@@ -538,6 +782,130 @@ const styles = StyleSheet.create({
   modalOptionTextActive: {
     color: colors.white,
     fontFamily: fonts.outfit.medium,
+  },
+});
+
+// ── Dark mode space backdrop styles ──
+const dkS = StyleSheet.create({
+  nebula: {
+    position: 'absolute',
+    width: 280,
+    height: 280,
+    top: -40,
+    right: -70,
+    borderRadius: 140,
+  },
+  nebula2: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    bottom: 120,
+    left: -50,
+    borderRadius: 110,
+  },
+  nebulaFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 140,
+  },
+  galaxy: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    top: '55%',
+    right: '15%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galaxyCore: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(196, 122, 219, 0.22)',
+    shadowColor: 'rgba(196, 122, 219, 0.4)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+  },
+  galaxyArm: {
+    position: 'absolute',
+    height: 1,
+    backgroundColor: 'rgba(155, 89, 182, 0.07)',
+    borderRadius: 1,
+  },
+  planet: {
+    position: 'absolute',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  planet1: {
+    width: 120,
+    height: 120,
+    top: 50,
+    right: -30,
+    borderWidth: 1,
+    borderColor: 'rgba(155, 89, 182, 0.10)',
+  },
+  planet2: {
+    width: 85,
+    height: 85,
+    top: '45%',
+    left: -22,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 104, 238, 0.08)',
+  },
+  planet3: {
+    width: 30,
+    height: 30,
+    bottom: '18%',
+    right: '10%',
+    borderWidth: 1,
+    borderColor: 'rgba(77, 232, 212, 0.08)',
+  },
+  planetFill: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+  },
+  planetHighlight: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  planetRing: {
+    position: 'absolute',
+    width: '175%',
+    height: 14,
+    top: '44%',
+    left: '-37%',
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(123, 104, 238, 0.18)',
+    transform: [{ rotate: '-20deg' }],
+  },
+  meteor: {
+    position: 'absolute',
+    height: 2,
+    borderRadius: 1,
+  },
+  meteorTrail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1,
+  },
+  asteroid: {
+    position: 'absolute',
+    backgroundColor: 'rgba(180, 170, 200, 0.14)',
+    borderRadius: 1.5,
+    transform: [{ rotate: '25deg' }],
+  },
+  dustLane: {
+    position: 'absolute',
+    width: '150%',
+    height: 70,
+    top: '60%',
+    left: '-25%',
+    transform: [{ rotate: '-18deg' }],
+    opacity: 0.5,
   },
 });
 

@@ -49,7 +49,7 @@ const InspirationDropdown: React.FC = () => {
               Tip from Chey: I use the voice to text feature the most so that I can just talk out loud, uninterrupted. I call it word vomit, but think of this like your stream of consciousness that you finally get feedback on, customized just to you.
             </Text>
             {isLoading ? (
-              <ActivityIndicator color="#59168B" size="small" style={styles.loader} />
+              <ActivityIndicator color="#4DE8D4" size="small" style={styles.loader} />
             ) : (
               prompts?.map((prompt, idx) => (
                 <View key={idx} style={styles.promptItem}>
@@ -74,23 +74,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: 6,
   },
   headerText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   chevron: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   dropdown: {
     marginTop: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     paddingVertical: 4,
     maxHeight: 250,
   },
@@ -101,14 +105,14 @@ const styles = StyleSheet.create({
   guidanceText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
-    color: '#333333',
+    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 13 * 1.6,
     marginBottom: 12,
   },
   tipText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: '#59168B',
+    color: '#4DE8D4',
     lineHeight: 13 * 1.6,
     marginBottom: 14,
     fontStyle: 'italic',
@@ -119,12 +123,12 @@ const styles = StyleSheet.create({
   promptItem: {
     paddingVertical: 8,
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(89, 22, 139, 0.1)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   promptText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
-    color: '#59168B',
+    color: 'rgba(255, 255, 255, 0.85)',
     lineHeight: 13 * 1.4,
   },
 });

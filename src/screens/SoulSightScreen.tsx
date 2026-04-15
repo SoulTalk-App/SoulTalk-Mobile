@@ -12,8 +12,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, fonts } from '../theme';
+import { colors, fonts, surfaces } from '../theme';
 import AnimatedButton from '../components/AnimatedButton';
+import GlassCard from '../components/GlassCard';
 import SoulSightService, {
   EligibilityResponse,
   SoulsightSummary,
@@ -117,7 +118,8 @@ const SoulSightScreen = ({ navigation }: any) => {
   };
 
   const renderSoulsightCard = ({ item }: { item: SoulsightSummary }) => (
-    <Pressable
+    <GlassCard
+      intensity="medium"
       style={styles.historyCard}
       onPress={() => navigation.navigate('SoulSightDetail', { soulsightId: item.id })}
     >
@@ -130,14 +132,14 @@ const SoulSightScreen = ({ navigation }: any) => {
       {item.created_at && (
         <Text style={styles.historyCreated}>{formatCreatedDate(item.created_at)}</Text>
       )}
-    </Pressable>
+    </GlassCard>
   );
 
   if (isLoading) {
     return (
       <LinearGradient
-        colors={['#59168B', '#653495', '#59168B']}
-        locations={[0, 0.5, 1]}
+        colors={[...surfaces.soulsightGradient]}
+        locations={[0, 0.3, 0.65, 1]}
         style={styles.container}
       >
         <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -153,8 +155,8 @@ const SoulSightScreen = ({ navigation }: any) => {
 
   return (
     <LinearGradient
-      colors={['#59168B', '#653495', '#59168B']}
-      locations={[0, 0.5, 1]}
+      colors={[...surfaces.soulsightGradient]}
+      locations={[0, 0.3, 0.65, 1]}
       style={styles.container}
     >
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -167,10 +169,10 @@ const SoulSightScreen = ({ navigation }: any) => {
         <Text style={styles.titleText}>SoulSight</Text>
 
         {/* Eligibility Card */}
-        <View style={styles.eligibilityCard}>
+        <GlassCard intensity="heavy" style={styles.eligibilityCard}>
           {isGenerating ? (
             <View style={styles.generatingContainer}>
-              <ActivityIndicator color="#59168B" size="large" style={{ marginBottom: 16 }} />
+              <ActivityIndicator color="#FFFFFF" size="large" style={{ marginBottom: 16 }} />
               <Text style={styles.generatingText}>Generating your insight...</Text>
               <Text style={styles.generatingSubtext}>This may take a minute</Text>
             </View>
@@ -209,7 +211,7 @@ const SoulSightScreen = ({ navigation }: any) => {
               )}
             </>
           )}
-        </View>
+        </GlassCard>
 
         {/* Past Insights */}
         <Text style={styles.sectionHeader}>Past Insights</Text>
@@ -265,23 +267,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Eligibility Card
+  // Eligibility Card (GlassCard heavy)
   eligibilityCard: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
     padding: 20,
     marginBottom: 24,
   },
   eligibleTitle: {
     fontFamily: fonts.edensor.medium,
     fontSize: 20,
-    color: '#59168B',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   eligibleWindow: {
     fontFamily: fonts.outfit.light,
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 12,
   },
   statRow: {
@@ -290,15 +290,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statPill: {
-    backgroundColor: '#F3ECFA',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   statPillText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#59168B',
+    color: '#FFFFFF',
   },
   generateButton: {
     width: '100%',
@@ -307,14 +309,14 @@ const styles = StyleSheet.create({
   notEligibleText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    color: '#59168B',
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     lineHeight: 22,
   },
   progressText: {
     fontFamily: fonts.outfit.light,
     fontSize: 13,
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -327,13 +329,13 @@ const styles = StyleSheet.create({
   generatingText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 16,
-    color: '#59168B',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   generatingSubtext: {
     fontFamily: fonts.outfit.light,
     fontSize: 13,
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 4,
   },
 
@@ -345,31 +347,29 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // History Cards
+  // History Cards (GlassCard medium)
   listContent: {
     gap: 10,
     paddingBottom: 20,
   },
   historyCard: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
     padding: 16,
   },
   historyDateRange: {
     fontFamily: fonts.outfit.medium,
     fontSize: 15,
-    color: '#59168B',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   historySubtitle: {
     fontFamily: fonts.outfit.light,
     fontSize: 13,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   historyCreated: {
     fontFamily: fonts.outfit.light,
     fontSize: 12,
-    color: '#999',
+    color: 'rgba(255, 255, 255, 0.4)',
     marginTop: 6,
   },
 
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: fonts.outfit.light,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
     marginTop: 20,
   },

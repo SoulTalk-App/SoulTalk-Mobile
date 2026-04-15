@@ -17,13 +17,15 @@ import Animated, {
   withRepeat,
   Easing,
   runOnJS,
+  SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, fonts } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fonts, surfaces } from '../theme';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
@@ -176,17 +178,17 @@ const NavArrow: React.FC<{
 // ============================================
 interface SlideContentProps {
   slide: typeof slides[0];
-  opacity: Animated.SharedValue<number>;
-  scale: Animated.SharedValue<number>;
-  floatY: Animated.SharedValue<number>;
-  rotation: Animated.SharedValue<number>;
-  decorOpacity: Animated.SharedValue<number>;
-  starFloat: Animated.SharedValue<number>;
-  heartLargeFloat: Animated.SharedValue<number>;
-  heartMediumFloat: Animated.SharedValue<number>;
-  heartSmallFloat: Animated.SharedValue<number>;
-  sideCharactersScale: Animated.SharedValue<number>;
-  sideCharactersOpacity: Animated.SharedValue<number>;
+  opacity: SharedValue<number>;
+  scale: SharedValue<number>;
+  floatY: SharedValue<number>;
+  rotation: SharedValue<number>;
+  decorOpacity: SharedValue<number>;
+  starFloat: SharedValue<number>;
+  heartLargeFloat: SharedValue<number>;
+  heartMediumFloat: SharedValue<number>;
+  heartSmallFloat: SharedValue<number>;
+  sideCharactersScale: SharedValue<number>;
+  sideCharactersOpacity: SharedValue<number>;
 }
 
 const SlideContent: React.FC<SlideContentProps> = ({
@@ -660,7 +662,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slidesToRender = displayIndices.filter(i => i >= 0);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#1A0A2E', '#2D1050', '#4F1786']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={styles.container}
+    >
       {/* Main Content Area */}
       <View style={styles.contentArea}>
         <GestureDetector gesture={panGesture}>
@@ -705,7 +712,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           <NavArrow direction="right" onPress={handleNext} />
         </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -715,7 +722,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   contentArea: {
     flex: 1,
@@ -742,12 +748,12 @@ const styles = StyleSheet.create({
   titleStart: {
     fontFamily: fonts.edensor.medium,
     fontSize: 30,
-    color: colors.text.dark,
+    color: colors.white,
   },
   titleHighlight: {
     fontFamily: fonts.edensor.medium,
     fontSize: 30,
-    color: colors.primary,
+    color: '#C47ADB',
   },
   characterWrapper: {
     flex: 1,
@@ -859,7 +865,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontFamily: fonts.outfit.light,
     fontSize: 16,
-    color: colors.primary,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 10,
@@ -871,6 +877,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     paddingTop: 18,
     paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
   },
   navigationRow: {
     flexDirection: 'row',
@@ -887,7 +895,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',

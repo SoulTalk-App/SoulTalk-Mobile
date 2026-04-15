@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../theme';
+import { colors, fonts, surfaces } from '../theme';
+import GlassCard from '../components/GlassCard';
 import SoulSightService, { SoulsightDetail, AggregateStats } from '../services/SoulSightService';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
@@ -20,26 +21,13 @@ interface ParsedSection {
   body: string;
 }
 
-// Section names we look for (case-insensitive, with or without markdown headings)
-const SECTION_NAMES = [
-  'Big picture snapshot',
-  'Hidden narrative',
-  'Unspoken fear',
-  'Patterns and loops',
-  '80/20 focus',
-  'Micro experiments',
-  'Closing reflection',
-];
-
-/** Strip markdown formatting: headings (#), bold (**), italic (*), hr (---), em dashes */
+/** Strip markdown formatting from body text: bold (**), italic (*), hr (---), em dashes */
 const stripMarkdown = (text: string): string => {
   return text
-    .replace(/^#{1,6}\s+/gm, '')       // # headings
     .replace(/^---+$/gm, '')           // --- horizontal rules
     .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold**
     .replace(/\*(.+?)\*/g, '$1')       // *italic*
-    .replace(/\u2014/g, '-')           // em dash to regular dash
-    .replace(/\u2013/g, '-')           // en dash to regular dash
+    .replace(/\u2014/g, '\u2014')      // keep em dashes
     .replace(/^\s*\n/gm, '\n')         // collapse blank lines
     .trim();
 };
@@ -47,42 +35,43 @@ const stripMarkdown = (text: string): string => {
 const parseSoulsightContent = (content: string): ParsedSection[] => {
   const sections: ParsedSection[] = [];
 
-  // Extract title: first line that looks like "# Something" or first non-empty line before sections
-  const titleMatch = content.match(/^#\s+(.+)$/m);
-  if (titleMatch) {
-    sections.push({ heading: 'Title', body: titleMatch[1].trim() });
+  // Split content by any markdown heading (# or ##)
+  // Captures: heading level doesn't matter, we just split on them
+  const headingRegex = /^(#{1,6})\s+(.+)$/gm;
+  const headings: { level: number; title: string; index: number; matchLength: number }[] = [];
+
+  let match;
+  while ((match = headingRegex.exec(content)) !== null) {
+    headings.push({
+      level: match[1].length,
+      title: match[2].trim(),
+      index: match.index,
+      matchLength: match[0].length,
+    });
   }
 
-  // Build regex to split by section headings (handles ## Heading, Heading:, etc.)
-  for (let i = 0; i < SECTION_NAMES.length; i++) {
-    const name = SECTION_NAMES[i];
-    // Match "## Big picture snapshot", "Big picture snapshot:", etc.
-    const pattern = new RegExp(
-      `(?:^|\\n)(?:#{1,6}\\s+)?${name.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')}[:\\s]*\\n`,
-      'i',
-    );
-    const match = content.match(pattern);
-    if (!match || match.index === undefined) continue;
+  if (headings.length === 0) {
+    // No markdown headings found — return empty so fallback renders
+    return [];
+  }
 
-    const startIdx = match.index + match[0].length;
+  // First heading with level 1 (# Title) is the title
+  const titleIdx = headings.findIndex((h) => h.level === 1);
+  if (titleIdx !== -1) {
+    sections.push({ heading: 'Title', body: headings[titleIdx].title });
+  }
 
-    // Find where this section ends (next section heading or end of content)
-    let endIdx = content.length;
-    for (let j = i + 1; j < SECTION_NAMES.length; j++) {
-      const nextPattern = new RegExp(
-        `(?:^|\\n)(?:#{1,6}\\s+)?${SECTION_NAMES[j].replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')}[:\\s]*\\n`,
-        'i',
-      );
-      const nextMatch = content.substring(startIdx).match(nextPattern);
-      if (nextMatch && nextMatch.index !== undefined) {
-        endIdx = startIdx + nextMatch.index;
-        break;
-      }
-    }
+  // All other headings become body sections
+  for (let i = 0; i < headings.length; i++) {
+    const h = headings[i];
+    if (h.level === 1 && i === titleIdx) continue; // skip the title
 
-    const body = stripMarkdown(content.substring(startIdx, endIdx));
+    const bodyStart = h.index + h.matchLength;
+    const bodyEnd = i + 1 < headings.length ? headings[i + 1].index : content.length;
+    const body = stripMarkdown(content.substring(bodyStart, bodyEnd));
+
     if (body) {
-      sections.push({ heading: name, body });
+      sections.push({ heading: h.title, body });
     }
   }
 
@@ -118,8 +107,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
   if (isLoading || !soulsight) {
     return (
       <LinearGradient
-        colors={['#59168B', '#653495', '#59168B']}
-        locations={[0, 0.5, 1]}
+        colors={[...surfaces.soulsightGradient]}
+        locations={[0, 0.3, 0.65, 1]}
         style={styles.container}
       >
         <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -143,8 +132,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
 
   return (
     <LinearGradient
-      colors={['#59168B', '#653495', '#59168B']}
-      locations={[0, 0.5, 1]}
+      colors={[...surfaces.soulsightGradient]}
+      locations={[0, 0.3, 0.65, 1]}
       style={styles.container}
     >
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -154,8 +143,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
-        {/* White Content Card */}
-        <View style={styles.contentCard}>
+        {/* Glass Content Card */}
+        <GlassCard intensity="heavy" style={styles.contentCard}>
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
@@ -209,7 +198,7 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
               </>
             )}
           </ScrollView>
-        </View>
+        </GlassCard>
 
         <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }} />
       </View>
@@ -319,11 +308,10 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 
-  // Content Card
+  // Content Card (GlassCard provides the glass bg/blur/border)
   contentCard: {
     flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 20,
   },
   scrollContent: {
@@ -335,19 +323,19 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontFamily: fonts.edensor.bold,
     fontSize: 24,
-    color: '#59168B',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
   },
   dateSubtitle: {
     fontFamily: fonts.outfit.light,
     fontSize: 13,
-    color: '#888',
+    color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
     marginBottom: 12,
   },
 
-  // Stat Pills
+  // Stat Pills — glass style
   statRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -355,21 +343,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statPill: {
-    backgroundColor: '#F3ECFA',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   statPillText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#59168B',
+    color: '#FFFFFF',
   },
 
   // Divider
   divider: {
     height: 1,
-    backgroundColor: '#E0D4E8',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     marginVertical: 16,
   },
 
@@ -380,14 +370,14 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 15,
-    color: '#59168B',
+    color: '#FFFFFF',
     marginBottom: 6,
   },
   sectionBody: {
     fontFamily: fonts.outfit.light,
     fontSize: 14,
     lineHeight: 14 * 1.6,
-    color: '#333333',
+    color: 'rgba(255,255,255,0.85)',
   },
 
   // Safety Redirect
@@ -395,7 +385,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
-    color: '#333333',
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
     paddingVertical: 20,
   },
@@ -404,7 +394,7 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
-    color: '#59168B',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   statsGroup: {
@@ -413,7 +403,7 @@ const styles = StyleSheet.create({
   statsLabel: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: '#59168B',
+    color: 'rgba(255,255,255,0.8)',
     marginBottom: 8,
   },
 
@@ -426,57 +416,61 @@ const styles = StyleSheet.create({
   barLabel: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(255,255,255,0.6)',
     width: 80,
   },
   barTrack: {
     flex: 1,
     height: 10,
-    backgroundColor: '#F3ECFA',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 5,
     marginHorizontal: 8,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: '#59168B',
+    backgroundColor: 'rgba(42,85,112,0.8)',
     borderRadius: 5,
   },
   barCount: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#888',
+    color: 'rgba(255,255,255,0.5)',
     width: 24,
     textAlign: 'right',
   },
 
-  // Pill Tags
+  // Pill Tags — glass style
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
   topicPill: {
-    backgroundColor: '#F3ECFA',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   topicPillText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#59168B',
+    color: '#FFFFFF',
   },
   copingPill: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(76,175,80,0.15)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(76,175,80,0.3)',
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   copingPillText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#2E7D32',
+    color: '#FFFFFF',
   },
 });
 
