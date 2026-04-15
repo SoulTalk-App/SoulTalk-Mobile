@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -16,10 +16,12 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { termsAndConditions } from "../mocks/content";
+import { privacyPolicy, termsOfService } from "../mocks/content";
 import { colors, fonts } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
+
+type LegalTab = 'privacy' | 'terms';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -29,6 +31,8 @@ interface TermsScreenProps {
 
 const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<LegalTab>('privacy');
+  const scrollRef = useRef<ScrollView>(null);
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -54,6 +58,11 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
     buttonOpacity.value = withDelay(400, withTiming(1, TimingConfigs.entrance));
     buttonTranslateY.value = withDelay(400, withSpring(0, SpringConfigs.subtle));
   }, []);
+
+  const handleTabSwitch = (tab: LegalTab) => {
+    setActiveTab(tab);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
 
   const handleBack = () => {
     navigation.goBack();
@@ -105,6 +114,8 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
     transform: [{ scale: backButtonScale.value }],
   }));
 
+  const currentDoc = activeTab === 'privacy' ? privacyPolicy : termsOfService;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Animated.View style={[styles.header, headerStyle]}>
@@ -118,19 +129,38 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
             <Ionicons name="chevron-back" size={20} color={colors.primary} />
           </View>
         </AnimatedPressable>
-        <Text style={styles.title}>{termsAndConditions.title}</Text>
+        <Text style={styles.title}>Terms and Privacy</Text>
         <Text style={styles.lastUpdated}>
-          Last updated: {termsAndConditions.lastUpdated}
+          Effective: {currentDoc.effectiveDate}
         </Text>
+        <View style={styles.tabRow}>
+          <Pressable
+            style={[styles.tab, activeTab === 'privacy' && styles.tabActive]}
+            onPress={() => handleTabSwitch('privacy')}
+          >
+            <Text style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
+              Privacy Policy
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, activeTab === 'terms' && styles.tabActive]}
+            onPress={() => handleTabSwitch('terms')}
+          >
+            <Text style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
+              Terms of Service
+            </Text>
+          </Pressable>
+        </View>
       </Animated.View>
 
       <Animated.View style={[styles.scrollContainer, contentStyle]}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={true}
           bounces={true}
         >
-          <Text style={styles.content}>{termsAndConditions.content}</Text>
+          <Text style={styles.content}>{currentDoc.content}</Text>
         </ScrollView>
       </Animated.View>
 
@@ -192,6 +222,29 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 14,
     color: colors.text.light,
+    marginBottom: 12,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: colors.primary,
+  },
+  tabText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 14,
+    color: colors.text.light,
+  },
+  tabTextActive: {
+    color: colors.white,
   },
   scrollContainer: {
     flex: 1,
