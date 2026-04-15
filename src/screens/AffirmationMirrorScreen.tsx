@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,17 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Path, G } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+
+// Star field for dark mode
+const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
+  left: ((i * 39 + 23) % 100),
+  top: ((i * 57 + 13) % 100),
+  size: i < 3 ? 2.5 : (i % 3 === 0) ? 2 : 1,
+  opacity: i < 3 ? 0.5 : (0.1 + (i % 5) * 0.09),
+}));
 
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -30,21 +39,27 @@ const CloudsLeft = require('../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../assets/images/home/CloudsRight.png');
 const IdleVideo = require('../../assets/videos/affirmationIdle.mp4');
 const RevealedVideo = require('../../assets/videos/affirmationMirrorLookingUp.mp4');
+const IdleVideoDark = require('../../assets/videos/dark/affirmationIdle.mp4');
+const RevealedVideoDark = require('../../assets/videos/dark/affirmationMirrorLookingUp.mp4');
 
 const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
+  const { isDarkMode } = useTheme();
   const affirmation = route.params?.affirmation_text ?? null;
   const dateKey = route.params?.date_key ?? null;
   const [isRevealed, setIsRevealed] = useState(false);
 
-  // Video players
-  const idlePlayer = useVideoPlayer(IdleVideo, (p) => {
+  // Video players — pick dark or light video based on theme
+  const idleSource = isDarkMode ? IdleVideoDark : IdleVideo;
+  const revealedSource = isDarkMode ? RevealedVideoDark : RevealedVideo;
+
+  const idlePlayer = useVideoPlayer(idleSource, (p) => {
     p.loop = true;
     p.muted = true;
     p.play();
   });
 
-  const revealedPlayer = useVideoPlayer(RevealedVideo, (p) => {
+  const revealedPlayer = useVideoPlayer(revealedSource, (p) => {
     p.loop = true;
     p.muted = true;
     // Don't auto-play — starts on reveal
@@ -52,30 +67,36 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
 
   // --- Animation values ---
 
-  // Entry animation: video slides in from right
-  const videoSlideX = useSharedValue(SCREEN_WIDTH);
-
   const textOpacity = useSharedValue(0);
   const textScale = useSharedValue(0.92);
   const buttonOpacity = useSharedValue(0);
   const buttonScale = useSharedValue(1);
-  // badgeOpacity removed — badge no longer shown
-  const cloudsOpacity = useSharedValue(1);
+  const cloudsBgOpacity = useSharedValue(1);
+  const cloudsLeftX = useSharedValue(0);
+  const cloudsLeftOpacity = useSharedValue(1);
+  const cloudsRightX = useSharedValue(0);
+  const cloudsRightOpacity = useSharedValue(1);
   const backButtonOpacity = useSharedValue(0);
   const idleVideoOpacity = useSharedValue(1);
   const revealedVideoOpacity = useSharedValue(0);
+  const videoZoom = useSharedValue(1);
 
   const isRevealedRef = useRef(false);
 
-  // --- Entry animation: slide video in from right ---
+  // Dynamic font sizing based on affirmation length
+  const { fontSize, lineHeight } = useMemo(() => {
+    const len = affirmation?.length ?? 0;
+    if (len <= 60) return { fontSize: 42, lineHeight: 56 };
+    if (len <= 100) return { fontSize: 36, lineHeight: 48 };
+    if (len <= 160) return { fontSize: 30, lineHeight: 42 };
+    if (len <= 220) return { fontSize: 26, lineHeight: 37 };
+    return { fontSize: 22, lineHeight: 32 };
+  }, [affirmation]);
+
+  // --- Entry animation: show button ---
   useEffect(() => {
-    videoSlideX.value = withTiming(0, {
-      duration: 600,
-      easing: Easing.out(Easing.cubic),
-    });
-    // Show button after video slides in
     buttonOpacity.value = withDelay(
-      500,
+      200,
       withTiming(1, { duration: 400 }),
     );
   }, []);
@@ -91,16 +112,22 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           textOpacity.value = 1;
           textScale.value = 1;
           buttonOpacity.value = 0;
-          cloudsOpacity.value = 0;
+          cloudsBgOpacity.value = 0;
+          cloudsLeftX.value = -SCREEN_WIDTH;
+          cloudsLeftOpacity.value = 0;
+          cloudsRightX.value = SCREEN_WIDTH;
+          cloudsRightOpacity.value = 0;
           backButtonOpacity.value = 1;
           idleVideoOpacity.value = 0;
           revealedVideoOpacity.value = 1;
+          videoZoom.value = 1.08;
           idlePlayer.pause();
           revealedPlayer.play();
         }
       } catch {}
     };
-    if (dateKey) checkRevealed();
+    // TODO: remove this bypass after testing animations
+    // if (dateKey) checkRevealed();
   }, []);
 
   // --- Reveal handler ---
@@ -119,10 +146,30 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     buttonOpacity.value = withTiming(0, { duration: 250 });
     buttonScale.value = withTiming(0.9, { duration: 250 });
 
-    // 2. Clouds fade away
-    cloudsOpacity.value = withTiming(0, {
-      duration: 600,
+    // 2. Clouds blow apart like a breeze + video zooms in
+    cloudsBgOpacity.value = withTiming(0, {
+      duration: 700,
       easing: Easing.out(Easing.ease),
+    });
+    cloudsLeftX.value = withTiming(-SCREEN_WIDTH, {
+      duration: 800,
+      easing: Easing.in(Easing.cubic),
+    });
+    cloudsLeftOpacity.value = withDelay(
+      300,
+      withTiming(0, { duration: 500 }),
+    );
+    cloudsRightX.value = withTiming(SCREEN_WIDTH, {
+      duration: 800,
+      easing: Easing.in(Easing.cubic),
+    });
+    cloudsRightOpacity.value = withDelay(
+      300,
+      withTiming(0, { duration: 500 }),
+    );
+    videoZoom.value = withTiming(1.15, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
     });
 
     // 3. Crossfade videos: idle out, revealed in
@@ -171,16 +218,26 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     transform: [{ scale: buttonScale.value }],
   }));
 
-  const cloudsAnimStyle = useAnimatedStyle(() => ({
-    opacity: cloudsOpacity.value,
+  const cloudsBgAnimStyle = useAnimatedStyle(() => ({
+    opacity: cloudsBgOpacity.value,
+  }));
+
+  const cloudsLeftAnimStyle = useAnimatedStyle(() => ({
+    opacity: cloudsLeftOpacity.value,
+    transform: [{ translateX: cloudsLeftX.value }],
+  }));
+
+  const cloudsRightAnimStyle = useAnimatedStyle(() => ({
+    opacity: cloudsRightOpacity.value,
+    transform: [{ translateX: cloudsRightX.value }],
   }));
 
   const backButtonAnimStyle = useAnimatedStyle(() => ({
     opacity: backButtonOpacity.value,
   }));
 
-  const videoEntryStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: videoSlideX.value }],
+  const videoZoomStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: videoZoom.value }],
   }));
 
   const idleVideoAnimStyle = useAnimatedStyle(() => ({
@@ -191,10 +248,23 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     opacity: revealedVideoOpacity.value,
   }));
 
+  const containerBg = isDarkMode ? '#3B495D' : colors.accent.pink;
+  const backBtnFill = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.2)';
+  const backIconColor = isDarkMode ? '#4DE8D4' : colors.accent.pink;
+
   return (
-    <View style={styles.container}>
-      {/* ---- Video backgrounds (slide in from right on entry) ---- */}
-      <Animated.View style={[styles.videoSlideWrapper, videoEntryStyle]}>
+    <View style={[styles.container, { backgroundColor: containerBg }]}>
+      {/* ---- Dark mode: gradient background ---- */}
+      {isDarkMode && (
+        <LinearGradient
+          colors={['#333F55', '#3B495D', '#444E6B', '#3B495D']}
+          locations={[0, 0.35, 0.65, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+
+      {/* ---- Video backgrounds ---- */}
+      <Animated.View style={[styles.videoWrapper, videoZoomStyle]}>
         <Animated.View style={[styles.videoContainer, idleVideoAnimStyle]}>
           <VideoView
             player={idlePlayer}
@@ -216,70 +286,67 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         </Animated.View>
       </Animated.View>
 
-      {/* ---- Clouds overlay (three layers, fades on reveal) ---- */}
-      <Animated.View style={[styles.cloudsContainer, cloudsAnimStyle]}>
-        <Image
-          source={CloudsBg}
-          style={styles.cloudsImage}
-          resizeMode="cover"
-        />
-        <Image
-          source={CloudsLeft}
-          style={styles.cloudsImage}
-          resizeMode="cover"
-        />
-        <Image
-          source={CloudsRight}
-          style={styles.cloudsImage}
-          resizeMode="cover"
-        />
-      </Animated.View>
+      {/* ---- Dark mode: single heavy purple wash matching homescreen card ---- */}
+      {isDarkMode && (
+        <View style={styles.videoTintOverlay} pointerEvents="none">
+          <View style={styles.videoTint} />
+        </View>
+      )}
+
+      {/* ---- Stars over everything (dark mode) ---- */}
+      {isDarkMode && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          {AFFIRM_STARS.map((s, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                left: `${s.left}%` as any,
+                top: `${s.top}%` as any,
+                width: s.size,
+                height: s.size,
+                borderRadius: s.size,
+                backgroundColor: '#FFFFFF',
+                opacity: s.opacity,
+              }}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* ---- Clouds overlay (light mode only — blow apart on reveal) ---- */}
+      {!isDarkMode && (
+        <View style={styles.cloudsContainer} pointerEvents="none">
+          <Animated.View style={[styles.cloudsLayer, cloudsBgAnimStyle]}>
+            <Image source={CloudsBg} style={styles.cloudsImage} resizeMode="cover" />
+          </Animated.View>
+          <Animated.View style={[styles.cloudsLayer, cloudsLeftAnimStyle]}>
+            <Image source={CloudsLeft} style={styles.cloudsImage} resizeMode="cover" />
+          </Animated.View>
+          <Animated.View style={[styles.cloudsLayer, cloudsRightAnimStyle]}>
+            <Image source={CloudsRight} style={styles.cloudsImage} resizeMode="cover" />
+          </Animated.View>
+        </View>
+      )}
 
       {/* ---- Back button (appears after reveal) ---- */}
       <Animated.View
-        style={[
-          styles.backButtonContainer,
-          { top: insets.top + 12 },
-          backButtonAnimStyle,
-        ]}
+        style={[styles.backButtonContainer, { top: insets.top + 12 }, backButtonAnimStyle]}
       >
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Svg width={36} height={36} viewBox="0 0 36 36" fill="none">
-            <Circle cx={18} cy={18} r={18} fill="white" />
-            <G transform="translate(9, 9)">
-              <Path
-                d="M11.4854 1.2334C17.258 -1.65785 19.6276 0.711733 16.7363 6.48438L15.8623 8.23145C15.6114 8.74338 15.6114 9.33573 15.8623 9.84766L16.7363 11.585C19.6274 17.3574 17.2681 19.7263 11.4854 16.835L2.8916 12.5381C-0.963636 10.6105 -0.963636 7.45789 2.8916 5.53027L11.4854 1.2334Z"
-                fill={colors.accent.pink}
-              />
-              <Path
-                d="M10.8368 8.5188L9.89712 9.20406L10.2581 10.2548L9.3175 9.62805L8.37864 10.313L8.73552 9.24058L7.79496 8.6138L8.95656 8.57728L9.31344 7.50483L9.67438 8.55561L10.8368 8.5188Z"
-                fill={colors.accent.pink}
-                stroke={colors.accent.pink}
-                strokeWidth={1.6757}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <Path
-                d="M12.0385 8.10603L10.2776 9.3902L10.954 11.3593L9.19137 10.1848L7.43196 11.4684L8.10075 9.45864L6.33817 8.28405L8.51498 8.21561L9.18378 6.20587L9.86016 8.17501L12.0385 8.10603Z"
-                fill={colors.accent.pink}
-                stroke="white"
-                strokeWidth={3.14024}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </G>
-          </Svg>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={12}
+          style={[styles.backBtn, { backgroundColor: backBtnFill }]}
+        >
+          <Ionicons name="chevron-back" size={22} color={isDarkMode ? '#fff' : '#fff'} />
         </Pressable>
       </Animated.View>
 
       {/* ---- Affirmation text (shown after reveal) ---- */}
       {isRevealed && (
-        <View style={[styles.textArea, { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH }]}>
+        <View style={[styles.textArea, { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH + 40 }]}>
           <Animated.Text
-            style={[styles.affirmationText, textAnimStyle]}
-            adjustsFontSizeToFit
-            numberOfLines={10}
-            minimumFontScale={0.5}
+            style={[styles.affirmationText, { fontSize, lineHeight }, textAnimStyle]}
           >
             {affirmation}
           </Animated.Text>
@@ -289,14 +356,16 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
       {/* ---- "Click to Reveal" button (idle state only) ---- */}
       {!isRevealed && (
         <Animated.View style={[styles.revealButtonContainer, buttonAnimStyle]}>
-          <Pressable onPress={handleReveal} style={styles.revealButton}>
+          <Pressable onPress={handleReveal} style={[styles.revealButton, isDarkMode && styles.revealButtonDark]}>
             <LinearGradient
-              colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
+              colors={isDarkMode
+                ? ['rgba(77, 232, 212, 0.15)', 'rgba(77, 232, 212, 0.05)']
+                : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={styles.revealButtonGradient}
             />
-            <Text style={styles.revealButtonText}>Click to Reveal</Text>
+            <Text style={[styles.revealButtonText, isDarkMode && styles.revealButtonTextDark]}>Click to Reveal</Text>
           </Pressable>
         </Animated.View>
       )}
@@ -307,11 +376,20 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.accent.pink,
+  },
+
+  // Video tint overlay (dark mode — heavy purple wash matching homescreen card)
+  videoTintOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+  videoTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(72, 62, 101, 0.85)',
   },
 
   // Video backgrounds
-  videoSlideWrapper: {
+  videoWrapper: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
   },
@@ -322,13 +400,13 @@ const styles = StyleSheet.create({
   },
   video: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH, // square video
+    height: SCREEN_WIDTH,
     position: 'absolute',
     bottom: 0,
     left: 0,
   },
 
-  // Clouds overlay
+  // Clouds overlay (light mode)
   cloudsContainer: {
     position: 'absolute',
     top: 0,
@@ -336,6 +414,9 @@ const styles = StyleSheet.create({
     right: 0,
     height: SCREEN_HEIGHT,
     zIndex: 2,
+  },
+  cloudsLayer: {
+    ...StyleSheet.absoluteFillObject,
   },
   cloudsImage: {
     position: 'absolute',
@@ -351,6 +432,15 @@ const styles = StyleSheet.create({
     left: 22,
     zIndex: 10,
   },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
 
   // Affirmation text area
   textArea: {
@@ -364,12 +454,11 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   affirmationText: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 42,
+    fontFamily: fonts.outfit.light,
     color: colors.white,
     textAlign: 'center',
-    lineHeight: 42 * 1.4,
   },
+
   // Reveal button
   revealButtonContainer: {
     position: 'absolute',
@@ -380,13 +469,21 @@ const styles = StyleSheet.create({
   revealButton: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 24,
     paddingHorizontal: 28,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  revealButtonDark: {
+    borderColor: 'rgba(77, 232, 212, 0.3)',
+    backgroundColor: 'rgba(77, 232, 212, 0.08)',
+    shadowColor: '#4DE8D4',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
   },
   revealButtonGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -397,6 +494,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: colors.white,
     textAlign: 'center',
+  },
+  revealButtonTextDark: {
+    color: '#4DE8D4',
   },
 });
 
