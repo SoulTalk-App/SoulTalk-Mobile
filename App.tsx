@@ -4,6 +4,8 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ThemeProvider } from "./src/contexts/ThemeContext";
+import { SoulPalProvider } from "./src/contexts/SoulPalContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoSplashScreen from "expo-splash-screen";
 import * as Linking from "expo-linking";
@@ -374,12 +376,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <WebSocketProvider>
-            <StatusBar style="auto" />
-            <Navigation />
-          </WebSocketProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <SoulPalProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              <StatusBar style="auto" />
+              <Navigation />
+            </WebSocketProvider>
+          </AuthProvider>
+          </SoulPalProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
