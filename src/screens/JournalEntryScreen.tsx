@@ -8,22 +8,53 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withRepeat,
+  withSequence,
+  Easing,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, fonts, surfaces } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
+import { useTheme } from '../contexts/ThemeContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
+import SoulPalAnimated from '../components/SoulPalAnimated';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
+
+// Rich star field
+const ENTRY_STARS = Array.from({ length: 45 }, (_, i) => ({
+  left: ((i * 43 + 17) % 100),
+  top: ((i * 61 + 9) % 100),
+  size: i < 3 ? 2.5 : i < 6 ? 1.8 : (i % 4 === 0) ? 1.4 : 0.8,
+  opacity: i < 3 ? 0.5 : i < 6 ? 0.3 : (0.07 + (i % 5) * 0.05),
+}));
+
+// Shooting star
+const ENTRY_METEOR = { startLeft: 25, startTop: 5, length: 38, angle: 35 };
 
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { entries } = useJournal();
+  const { isDarkMode } = useTheme();
   const entryId: string = route.params?.entryId;
+  const isLatest: boolean = route.params?.isLatest ?? false;
 
   const [entry, setEntry] = useState<JournalEntry | null>(null);
+  const [soulPalName, setSoulPalName] = useState('SoulTalk Reflection');
 
-  // Always fetch the full entry from the detail endpoint (list endpoint omits tags/ai_response)
+  useEffect(() => {
+    AsyncStorage.getItem('@soultalk_soulpal_name').then((name) => {
+      if (name) setSoulPalName(`${name}'s Reflection`);
+    });
+  }, []);
+
   useEffect(() => {
     JournalService.getEntry(entryId).then(setEntry).catch(() => {
       const found = entries.find((e) => e.id === entryId);
@@ -31,21 +62,19 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     });
   }, [entryId]);
 
-  // Update from context when WS pushes changes
   useEffect(() => {
     const found = entries.find((e) => e.id === entryId);
-    if (found && found.ai_processing_status === 'complete' && !entry?.ai_response) {
-      // WS updated status but we need the full detail
+    if (!found) return;
+    // List endpoint doesn't include ai_response/tags — fetch detail if needed
+    if (found.ai_processing_status === 'complete' && !entry?.ai_response) {
       JournalService.getEntry(entryId).then(setEntry).catch(() => {});
-    } else if (found) {
+    } else if (found.ai_response) {
       setEntry(found);
     }
   }, [entries]);
 
-  // Polling fallback: if AI hasn't completed via WS, poll every 5s
   useEffect(() => {
     if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.is_draft) return;
-
     const interval = setInterval(async () => {
       try {
         const fresh = await JournalService.getEntry(entryId);
@@ -53,33 +82,206 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           setEntry(fresh);
           clearInterval(interval);
         }
-      } catch {
-        // ignore — will retry on next interval
-      }
+      } catch {}
     }, 5000);
-
     return () => clearInterval(interval);
   }, [entry?.ai_processing_status, entryId]);
 
+  // Space backdrop animations (dark mode only)
+  const planet1Y = useSharedValue(0);
+  const planet2Y = useSharedValue(0);
+  const nebulaScale = useSharedValue(1);
+  const meteorOp = useSharedValue(0);
+  const meteorTX = useSharedValue(0);
+  const meteorTY = useSharedValue(0);
+
+  useEffect(() => {
+    if (!isDarkMode) return;
+
+    planet1Y.value = withRepeat(withSequence(
+      withTiming(-14, { duration: 4500, easing: Easing.inOut(Easing.sin) }),
+      withTiming(14, { duration: 4500, easing: Easing.inOut(Easing.sin) }),
+    ), -1, true);
+    planet2Y.value = withRepeat(withSequence(
+      withTiming(10, { duration: 3800, easing: Easing.inOut(Easing.sin) }),
+      withTiming(-10, { duration: 3800, easing: Easing.inOut(Easing.sin) }),
+    ), -1, true);
+    nebulaScale.value = withRepeat(withSequence(
+      withTiming(1.06, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
+      withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
+    ), -1, true);
+
+    const rad = (ENTRY_METEOR.angle * Math.PI) / 180;
+    const dx = Math.cos(rad) * ENTRY_METEOR.length * 3;
+    const dy = Math.sin(rad) * ENTRY_METEOR.length * 3;
+    const fire = () => {
+      meteorOp.value = 0; meteorTX.value = 0; meteorTY.value = 0;
+      meteorOp.value = withDelay(0, withSequence(
+        withTiming(1, { duration: 100 }), withTiming(1, { duration: 500 }), withTiming(0, { duration: 300 }),
+      ));
+      meteorTX.value = withDelay(0, withTiming(dx, { duration: 900, easing: Easing.out(Easing.quad) }));
+      meteorTY.value = withDelay(0, withTiming(dy, { duration: 900, easing: Easing.out(Easing.quad) }));
+    };
+    fire();
+    const interval = setInterval(fire, 15000);
+    return () => clearInterval(interval);
+  }, [isDarkMode]);
+
+  const planet1Style = useAnimatedStyle(() => ({ transform: [{ translateY: planet1Y.value }] }));
+  const planet2Style = useAnimatedStyle(() => ({ transform: [{ translateY: planet2Y.value }] }));
+  const nebulaAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: nebulaScale.value }] }));
+  const meteorStyle = useAnimatedStyle(() => ({
+    opacity: meteorOp.value, transform: [{ translateX: meteorTX.value }, { translateY: meteorTY.value }],
+  }));
+
   const editCount = entry?.edit_count ?? 0;
-  const canEdit = editCount < 3;
+  const canEdit = isLatest && editCount < 3;
 
   const handleEdit = () => {
     if (!entry || !canEdit) return;
     navigation.navigate('CreateJournal', { entry });
   };
 
-  if (!entry) {
-    return (
-      <LinearGradient
-        colors={['#59168B', '#653495', '#59168B']}
-        locations={[0, 0.5, 1]}
-        style={styles.container}
+  const renderDarkBackdrop = () => (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View style={[dk.nebula, nebulaAnimStyle]}>
+        <LinearGradient
+          colors={['rgba(77, 67, 104, 0.18)', 'rgba(61, 51, 85, 0.08)', 'transparent']}
+          start={{ x: 0.5, y: 0.5 }}
+          end={{ x: 0, y: 0 }}
+          style={dk.nebulaFill}
+        />
+      </Animated.View>
+      {ENTRY_STARS.map((st, i) => (
+        <View
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${st.left}%` as any,
+            top: `${st.top}%` as any,
+            width: st.size,
+            height: st.size,
+            borderRadius: st.size,
+            backgroundColor: '#FFFFFF',
+            opacity: st.opacity,
+          }}
+        />
+      ))}
+      <Animated.View style={[dk.planet, dk.planet1, planet1Style]}>
+        <LinearGradient
+          colors={['rgba(77, 67, 104, 0.28)', 'rgba(77, 67, 104, 0.07)', 'rgba(0, 0, 0, 0.18)']}
+          start={{ x: 0.2, y: 0.15 }}
+          end={{ x: 0.9, y: 0.85 }}
+          style={dk.planetFill}
+        />
+        <View style={[dk.planetHighlight, { top: '16%', left: '20%', width: 12, height: 12 }]} />
+      </Animated.View>
+      <Animated.View style={[dk.planet, dk.planet2, planet2Style]}>
+        <LinearGradient
+          colors={['rgba(112, 202, 207, 0.20)', 'rgba(112, 202, 207, 0.04)', 'rgba(0, 0, 0, 0.12)']}
+          start={{ x: 0.25, y: 0.1 }}
+          end={{ x: 0.85, y: 0.9 }}
+          style={dk.planetFill}
+        />
+        <View style={[dk.planetHighlight, { top: '15%', left: '25%', width: 7, height: 7 }]} />
+        <View style={dk.planetRing} />
+      </Animated.View>
+      <Animated.View
+        style={[
+          dk.meteor,
+          { left: `${ENTRY_METEOR.startLeft}%` as any, top: `${ENTRY_METEOR.startTop}%` as any, width: ENTRY_METEOR.length, transform: [{ rotate: `${ENTRY_METEOR.angle}deg` }] },
+          meteorStyle,
+        ]}
       >
-        <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
-            <Text style={styles.backText}>Back</Text>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.3)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={dk.meteorTrail}
+        />
+      </Animated.View>
+      <View style={[dk.asteroid, { top: '18%', right: '8%', width: 4, height: 3 }]} />
+      <View style={[dk.asteroid, { bottom: '25%', left: '5%', width: 3, height: 2 }]} />
+    </View>
+  );
+
+  // ── Shared content helpers ──
+  const renderAiSection = () => {
+    if (entry!.ai_processing_status === 'complete') {
+      return (
+        <>
+          <View style={isDarkMode ? dk.aiLabelRow : lt.aiLabelRow}>
+            {isDarkMode && <SoulPalAnimated size={32} animate={false} />}
+            <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
+          </View>
+          {entry!.ai_response?.text ? (
+            <Text style={isDarkMode ? dk.aiText : lt.aiText}>
+              {entry!.ai_response.text.replace(/\*+/g, '')}
+            </Text>
+          ) : (
+            <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>No reflection available.</Text>
+          )}
+          {!entry!.tags?.crisis_flag && entry!.ai_response?.mode !== 'CRISIS_OVERRIDE' &&
+            entry!.tags?.topics && entry!.tags.topics.length > 0 && (
+            <View style={isDarkMode ? dk.pillRow : lt.pillRow}>
+              {entry!.tags.topics.map((topic, idx) => (
+                <View key={idx} style={isDarkMode ? dk.topicPill : lt.topicPill}>
+                  <Text style={isDarkMode ? dk.pillText : lt.pillText}>{topic}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {!entry!.tags?.crisis_flag && entry!.ai_response?.mode !== 'CRISIS_OVERRIDE' &&
+            entry!.tags?.coping_mechanisms && entry!.tags.coping_mechanisms.length > 0 && (
+            <View>
+              <Text style={isDarkMode ? dk.copingLabel : lt.copingLabel}>Coping</Text>
+              <View style={isDarkMode ? dk.pillRow : lt.pillRow}>
+                {entry!.tags.coping_mechanisms.map((mech, idx) => (
+                  <View key={idx} style={isDarkMode ? dk.copingPill : lt.copingPill}>
+                    <Text style={isDarkMode ? dk.pillText : lt.copingPillText}>{mech}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </>
+      );
+    }
+    if (entry!.ai_processing_status === 'failed') {
+      return <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>AI processing failed.</Text>;
+    }
+    return (
+      <View style={isDarkMode ? dk.aiLoadingRow : lt.aiLoadingRow}>
+        <ActivityIndicator color={isDarkMode ? '#4DE8D4' : '#59168B'} size="small" />
+        <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>Preparing your reflection...</Text>
+      </View>
+    );
+  };
+
+  // ════════════════════════════════════════
+  // LOADING STATE
+  // ════════════════════════════════════════
+  if (!entry) {
+    if (isDarkMode) {
+      return (
+        <LinearGradient colors={[...surfaces.entryGradient]} locations={[0, 0.3, 0.65, 1]} style={dk.container}>
+          {renderDarkBackdrop()}
+          <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
+            <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
+              <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+              <Text style={dk.backText}>Back</Text>
+            </Pressable>
+            <ActivityIndicator color="#4DE8D4" size="large" style={{ flex: 1 }} />
+          </View>
+        </LinearGradient>
+      );
+    }
+    return (
+      <LinearGradient colors={['#59168B', '#653495', '#59168B']} locations={[0, 0.5, 1]} style={lt.container}>
+        <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
+          <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
+            <Image source={BackIcon} style={lt.backIcon} resizeMode="contain" />
+            <Text style={lt.backText}>Back</Text>
           </Pressable>
           <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
@@ -87,248 +289,155 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     );
   }
 
-  return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#59168B']}
-      locations={[0, 0.5, 1]}
-      style={styles.container}
-    >
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
-        {/* Back Button */}
-        <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-          <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-
-        {/* Title Row */}
-        <View style={styles.titleRow}>
-          <Text style={styles.titleText}>Journal Entry</Text>
-          <Pressable
-            style={[styles.actionBtn, !canEdit && styles.actionBtnDisabled]}
-            onPress={handleEdit}
-            disabled={!canEdit}
-          >
-            <Text style={[styles.actionBtnText, !canEdit && { opacity: 0.5 }]}>
-              Edit {editCount}/3
-            </Text>
+  // ════════════════════════════════════════
+  // DARK MODE
+  // ════════════════════════════════════════
+  if (isDarkMode) {
+    return (
+      <LinearGradient colors={[...surfaces.entryGradient]} locations={[0, 0.3, 0.65, 1]} style={dk.container}>
+        {renderDarkBackdrop()}
+        <ScrollView
+          style={[dk.content, { paddingTop: insets.top + 16 }]}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
+            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+            <Text style={dk.backText}>Back</Text>
           </Pressable>
-        </View>
+          <View style={dk.titleRow}>
+            <Text style={dk.titleText}>Journal Entry</Text>
+            {isLatest && (
+              <Pressable
+                style={[dk.editBtn, !canEdit && dk.editBtnDisabled]}
+                onPress={handleEdit}
+                disabled={!canEdit}
+              >
+                <Text style={[dk.editBtnText, !canEdit && { opacity: 0.5 }]}>Edit {editCount}/3</Text>
+              </Pressable>
+            )}
+          </View>
+          <View style={dk.aiCard}>{renderAiSection()}</View>
+          <View style={dk.entryCard}>
+            <Text style={dk.entryLabel}>Your Entry</Text>
+            <Text style={dk.entryText}>{entry.raw_text}</Text>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    );
+  }
 
-        {/* White Content Card */}
-        <View style={styles.contentCard}>
+  // ════════════════════════════════════════
+  // LIGHT MODE
+  // ════════════════════════════════════════
+  return (
+    <LinearGradient colors={['#59168B', '#653495', '#59168B']} locations={[0, 0.5, 1]} style={lt.container}>
+      <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
+        <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
+          <Image source={BackIcon} style={lt.backIcon} resizeMode="contain" />
+          <Text style={lt.backText}>Back</Text>
+        </Pressable>
+        <View style={lt.titleRow}>
+          <Text style={lt.titleText}>Journal Entry</Text>
+          {isLatest && (
+            <Pressable
+              style={[lt.actionBtn, !canEdit && lt.actionBtnDisabled]}
+              onPress={handleEdit}
+              disabled={!canEdit}
+            >
+              <Text style={[lt.actionBtnText, !canEdit && { opacity: 0.5 }]}>Edit {editCount}/3</Text>
+            </Pressable>
+          )}
+        </View>
+        <View style={lt.contentCard}>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={lt.scrollContent}
           >
-            {/* AI Response Section — above the fold */}
-            <View style={styles.aiSection}>
-              {entry.ai_processing_status === 'complete' ? (
-                <>
-                  <Text style={styles.aiLabel}>SoulTalk Reflection</Text>
-                  <Text style={styles.aiResponseText}>{entry.ai_response?.text?.replace(/\*+/g, '')}</Text>
-
-                  {/* Topics */}
-                  {entry.tags?.topics && entry.tags.topics.length > 0 && (
-                    <View style={styles.pillRow}>
-                      {entry.tags.topics.map((topic, idx) => (
-                        <View key={idx} style={styles.topicPill}>
-                          <Text style={styles.topicPillText}>{topic}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {/* Coping Mechanisms */}
-                  {entry.tags?.coping_mechanisms && entry.tags.coping_mechanisms.length > 0 && (
-                    <View>
-                      <Text style={styles.copingLabel}>Coping</Text>
-                      <View style={styles.pillRow}>
-                        {entry.tags.coping_mechanisms.map((mech, idx) => (
-                          <View key={idx} style={styles.copingPill}>
-                            <Text style={styles.copingPillText}>{mech}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                </>
-              ) : entry.ai_processing_status === 'failed' ? (
-                <Text style={styles.aiLoadingText}>AI processing failed. Tap to retry.</Text>
-              ) : (
-                <View style={styles.aiLoadingRow}>
-                  <ActivityIndicator color="#59168B" size="small" />
-                  <Text style={styles.aiLoadingText}>Preparing your reflection...</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Journal text — below the analysis */}
-            <View style={styles.aiDivider} />
-            <Text style={styles.journalLabel}>Your Entry</Text>
-            <Text style={styles.journalText}>{entry.raw_text}</Text>
+            <View style={lt.aiSection}>{renderAiSection()}</View>
+            <View style={lt.aiDivider} />
+            <Text style={lt.journalLabel}>Your Entry</Text>
+            <Text style={lt.journalText}>{entry.raw_text}</Text>
           </ScrollView>
         </View>
-
         <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }} />
       </View>
     </LinearGradient>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 22,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+// ═══════════════════════════════════════════
+// DARK MODE STYLES
+// ═══════════════════════════════════════════
+const dk = StyleSheet.create({
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 22 },
+  nebula: { position: 'absolute', width: 260, height: 260, top: -30, right: -60, borderRadius: 130 },
+  nebulaFill: { width: '100%', height: '100%', borderRadius: 130 },
+  planet: { position: 'absolute', borderRadius: 999, overflow: 'hidden' },
+  planet1: { width: 110, height: 110, top: 50, right: -28, borderWidth: 1, borderColor: 'rgba(77, 67, 104, 0.12)' },
+  planet2: { width: 45, height: 45, bottom: '20%', left: -12, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.10)' },
+  planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
+  planetHighlight: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.18)' },
+  planetRing: { position: 'absolute', width: '180%', height: 10, top: '44%', left: '-40%', borderRadius: 999, borderWidth: 1.2, borderColor: 'rgba(112, 202, 207, 0.16)', transform: [{ rotate: '-22deg' }] },
+  meteor: { position: 'absolute', height: 2, borderRadius: 1 },
+  meteorTrail: { width: '100%', height: '100%', borderRadius: 1 },
+  asteroid: { position: 'absolute', backgroundColor: 'rgba(160, 155, 180, 0.12)', borderRadius: 1.5, transform: [{ rotate: '20deg' }] },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  backIcon: { width: 36, height: 36 },
+  backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
+  editBtn: { paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'rgba(77, 232, 212, 0.10)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.25)' },
+  editBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: '#4DE8D4' },
+  editBtnDisabled: { opacity: 0.4 },
+  aiCard: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.20)', padding: 18, marginBottom: 16 },
+  aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  aiLabel: { fontFamily: fonts.edensor.bold, fontSize: 16, color: '#4DE8D4' },
+  aiText: { fontFamily: fonts.outfit.light, fontSize: 15, lineHeight: 15 * 1.65, color: 'rgba(255, 255, 255, 0.88)', marginBottom: 14 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  topicPill: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
+  pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: 'rgba(255, 255, 255, 0.8)' },
+  copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
+  copingPill: { backgroundColor: 'rgba(77, 232, 212, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.20)' },
+  aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 14, color: 'rgba(255, 255, 255, 0.45)', fontStyle: 'italic' },
+  entryCard: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)', padding: 20 },
+  entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
+  entryText: { fontFamily: fonts.edensor.medium, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
+});
 
-  // Back Button
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
-  },
-
-  // Title Row
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  titleText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 24,
-    color: colors.white,
-    flex: 1,
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 16,
-  },
-  actionBtnText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: colors.white,
-  },
-  actionBtnDisabled: {
-    opacity: 0.5,
-  },
-
-  // Content Card
-  contentCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    padding: 20,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  journalText: {
-    fontFamily: fonts.outfit.thin,
-    fontSize: 14,
-    lineHeight: 14 * 1.6,
-    color: '#333333',
-  },
-
-  // AI Section
-  aiSection: {
-    marginBottom: 16,
-  },
-  aiDivider: {
-    height: 1,
-    backgroundColor: '#E0D4E8',
-    marginBottom: 14,
-  },
-  aiLabel: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 14,
-    color: '#59168B',
-    marginBottom: 8,
-  },
-  aiResponseText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 14,
-    lineHeight: 14 * 1.6,
-    color: '#333333',
-    marginBottom: 12,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  topicPill: {
-    backgroundColor: '#F3ECFA',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  topicPillText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    color: '#59168B',
-  },
-
-  // Coping
-  copingLabel: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 12,
-    color: '#59168B',
-    marginBottom: 4,
-  },
-  copingPill: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  copingPillText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    color: '#2E7D32',
-  },
-
-  aiLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  aiLoadingText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: '#888',
-    fontStyle: 'italic',
-  },
-  journalLabel: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 14,
-    color: '#59168B',
-    marginTop: 14,
-    marginBottom: 8,
-  },
-
+// ═══════════════════════════════════════════
+// LIGHT MODE STYLES
+// ═══════════════════════════════════════════
+const lt = StyleSheet.create({
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 22 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  backIcon: { width: 36, height: 36 },
+  backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  titleText: { fontFamily: fonts.outfit.regular, fontSize: 24, color: colors.white, flex: 1 },
+  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 16 },
+  actionBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: colors.white },
+  actionBtnDisabled: { opacity: 0.5 },
+  contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
+  scrollContent: { flexGrow: 1 },
+  aiSection: { marginBottom: 16 },
+  aiDivider: { height: 1, backgroundColor: '#E0D4E8', marginBottom: 14 },
+  aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  aiLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B' },
+  aiText: { fontFamily: fonts.outfit.light, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333', marginBottom: 12 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  topicPill: { backgroundColor: '#F3ECFA', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#59168B' },
+  copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: '#59168B', marginBottom: 4 },
+  copingPill: { backgroundColor: '#E8F5E9', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  copingPillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#2E7D32' },
+  aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 13, color: '#888', fontStyle: 'italic' },
+  journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B', marginTop: 14, marginBottom: 8 },
+  journalText: { fontFamily: fonts.outfit.thin, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333' },
 });
 
 export default JournalEntryScreen;
