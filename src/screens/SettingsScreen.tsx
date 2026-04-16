@@ -10,7 +10,6 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Switch,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -66,6 +65,8 @@ const SettingsScreen = ({ navigation }: any) => {
   const [username, setUsername] = useState('');
   const [pronoun, setPronoun] = useState('');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
+  const darkModeTapCount = useRef(0);
+  const darkModeTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -467,16 +468,22 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
-        {/* Dark/Light Mode */}
-        <View style={styles.toggleRow}>
+        {/* Dark/Light Mode — hidden behind Coming Soon */}
+        <Pressable
+          style={styles.toggleRow}
+          onPress={() => {
+            darkModeTapCount.current += 1;
+            if (darkModeTapTimer.current) clearTimeout(darkModeTapTimer.current);
+            darkModeTapTimer.current = setTimeout(() => { darkModeTapCount.current = 0; }, 2000);
+            if (darkModeTapCount.current >= 4) {
+              darkModeTapCount.current = 0;
+              toggleTheme();
+            }
+          }}
+        >
           <Text style={styles.toggleLabel}>Dark Mode</Text>
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleTheme}
-            trackColor={{ false: 'rgba(255,255,255,0.3)', true: '#4DE8D4' }}
-            thumbColor={colors.white}
-          />
-        </View>
+          <Text style={styles.comingSoonTag}>Coming Soon</Text>
+        </Pressable>
 
         {/* Log Out */}
         <Pressable onPress={handleLogout}>
