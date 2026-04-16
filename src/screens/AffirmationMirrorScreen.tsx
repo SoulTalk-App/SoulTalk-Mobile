@@ -18,7 +18,6 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -33,7 +32,8 @@ const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Back button rendered as inline SVG (pink version from Figma)
+const BackIconDark = require('../../assets/images/settings/BackButtonIcon.png');
+const BackIconLight = require('../../assets/images/common/BackIconPink.png');
 const CloudsBg = require('../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../assets/images/home/CloudsRight.png');
@@ -76,7 +76,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   const cloudsLeftOpacity = useSharedValue(1);
   const cloudsRightX = useSharedValue(0);
   const cloudsRightOpacity = useSharedValue(1);
-  const backButtonOpacity = useSharedValue(0);
+  const backButtonOpacity = useSharedValue(1);
   const idleVideoOpacity = useSharedValue(1);
   const revealedVideoOpacity = useSharedValue(0);
   const videoZoom = useSharedValue(1);
@@ -126,7 +126,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         }
       } catch {}
     };
-    // TODO: remove this bypass after testing animations
+    // TODO: remove this bypass after testing animations — forces initial "Click to Reveal" state every time
     // if (dateKey) checkRevealed();
   }, []);
 
@@ -249,8 +249,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   }));
 
   const containerBg = isDarkMode ? '#3B495D' : colors.accent.pink;
-  const backBtnFill = isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.2)';
-  const backIconColor = isDarkMode ? '#4DE8D4' : colors.accent.pink;
+  const backIcon = isDarkMode ? BackIconDark : BackIconLight;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
@@ -329,16 +328,14 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         </View>
       )}
 
-      {/* ---- Back button (appears after reveal) ---- */}
+      {/* ---- Back button ---- */}
       <Animated.View
-        style={[styles.backButtonContainer, { top: insets.top + 12 }, backButtonAnimStyle]}
+        style={[styles.backButtonContainer, { top: insets.top + 16 }, backButtonAnimStyle]}
       >
-        <Pressable
-          onPress={() => navigation.goBack()}
-          hitSlop={12}
-          style={[styles.backBtn, { backgroundColor: backBtnFill }]}
-        >
-          <Ionicons name="chevron-back" size={22} color={isDarkMode ? '#fff' : '#fff'} />
+        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+          <View style={styles.backIconCircle}>
+            <Image source={backIcon} style={styles.backIcon} resizeMode="contain" />
+          </View>
         </Pressable>
       </Animated.View>
 
@@ -432,14 +429,17 @@ const styles = StyleSheet.create({
     left: 22,
     zIndex: 10,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  backIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  backIcon: {
+    width: 32,
+    height: 32,
   },
 
   // Affirmation text area
