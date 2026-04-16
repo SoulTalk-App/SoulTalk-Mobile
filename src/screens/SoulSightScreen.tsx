@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, fonts, surfaces } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import AnimatedButton from '../components/AnimatedButton';
 import GlassCard from '../components/GlassCard';
 import SoulSightService, {
@@ -21,6 +22,7 @@ import SoulSightService, {
 } from '../services/SoulSightService';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
+const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 
 const formatDateRange = (start: string, end: string): string => {
   const s = new Date(start + 'T00:00:00');
@@ -37,6 +39,7 @@ const formatCreatedDate = (dateStr: string | null): string => {
 
 const SoulSightScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const { isDarkMode } = useTheme();
   const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
   const [soulsights, setSoulsights] = useState<SoulsightSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +69,6 @@ const SoulSightScreen = ({ navigation }: any) => {
     }, [fetchData]),
   );
 
-  // Polling for generation status
   useEffect(() => {
     if (!generatingId) return;
 
@@ -117,37 +119,161 @@ const SoulSightScreen = ({ navigation }: any) => {
     }
   };
 
-  const renderSoulsightCard = ({ item }: { item: SoulsightSummary }) => (
-    <GlassCard
-      intensity="medium"
-      style={styles.historyCard}
+  // ==============================
+  // DARK MODE
+  // ==============================
+  if (isDarkMode) {
+    const renderDarkCard = ({ item }: { item: SoulsightSummary }) => (
+      <GlassCard
+        intensity="medium"
+        style={dk.historyCard}
+        onPress={() => navigation.navigate('SoulSightDetail', { soulsightId: item.id })}
+      >
+        <Text style={dk.historyDateRange}>
+          {formatDateRange(item.window_start, item.window_end)}
+        </Text>
+        <Text style={dk.historySubtitle}>
+          {item.entry_count} entries {'\u00B7'} {item.active_days} active days
+        </Text>
+        {item.created_at && (
+          <Text style={dk.historyCreated}>{formatCreatedDate(item.created_at)}</Text>
+        )}
+      </GlassCard>
+    );
+
+    if (isLoading) {
+      return (
+        <LinearGradient
+          colors={[...surfaces.soulsightGradient]}
+          locations={[0, 0.3, 0.65, 1]}
+          style={dk.container}
+        >
+          <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
+            <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
+              <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+              <Text style={dk.backText}>Back</Text>
+            </Pressable>
+            <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
+          </View>
+        </LinearGradient>
+      );
+    }
+
+    return (
+      <LinearGradient
+        colors={[...surfaces.soulsightGradient]}
+        locations={[0, 0.3, 0.65, 1]}
+        style={dk.container}
+      >
+        <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
+          <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
+            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+            <Text style={dk.backText}>Back</Text>
+          </Pressable>
+
+          <Text style={dk.titleText}>SoulSight</Text>
+
+          <GlassCard intensity="heavy" style={dk.eligibilityCard}>
+            {isGenerating ? (
+              <View style={dk.generatingContainer}>
+                <ActivityIndicator color="#FFFFFF" size="large" style={{ marginBottom: 16 }} />
+                <Text style={dk.generatingText}>Generating your insight...</Text>
+                <Text style={dk.generatingSubtext}>This may take a minute</Text>
+              </View>
+            ) : eligibility?.eligible ? (
+              <>
+                <Text style={dk.eligibleTitle}>Your SoulSight is ready</Text>
+                {eligibility.window_start && eligibility.window_end && (
+                  <Text style={dk.eligibleWindow}>
+                    {formatDateRange(eligibility.window_start, eligibility.window_end)}
+                  </Text>
+                )}
+                <View style={dk.statRow}>
+                  <View style={dk.statPill}>
+                    <Text style={dk.statPillText}>{eligibility.entry_count} entries</Text>
+                  </View>
+                  <View style={dk.statPill}>
+                    <Text style={dk.statPillText}>{eligibility.active_days} active days</Text>
+                  </View>
+                </View>
+                <AnimatedButton
+                  title="Generate SoulSight"
+                  onPress={handleGenerate}
+                  variant="secondary"
+                  style={dk.generateButton}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={dk.notEligibleText}>
+                  {eligibility?.reason || 'Fill your SoulBar to unlock a SoulSight report.'}
+                </Text>
+                {(eligibility?.total_filled ?? 0) > 0 && (
+                  <Text style={dk.progressText}>
+                    {eligibility?.soulsights_used} of {eligibility?.total_filled} SoulSights generated
+                  </Text>
+                )}
+              </>
+            )}
+          </GlassCard>
+
+          <Text style={dk.sectionHeader}>Past Insights</Text>
+
+          {soulsights.length === 0 ? (
+            <Text style={dk.emptyText}>No insights yet</Text>
+          ) : (
+            <FlatList
+              data={soulsights}
+              keyExtractor={(item) => item.id}
+              renderItem={renderDarkCard}
+              contentContainerStyle={dk.listContent}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }} />
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  // ==============================
+  // LIGHT MODE
+  // ==============================
+  const renderLightCard = ({ item }: { item: SoulsightSummary }) => (
+    <Pressable
+      style={lt.historyCard}
       onPress={() => navigation.navigate('SoulSightDetail', { soulsightId: item.id })}
     >
-      <Text style={styles.historyDateRange}>
-        {formatDateRange(item.window_start, item.window_end)}
-      </Text>
-      <Text style={styles.historySubtitle}>
-        {item.entry_count} entries {'\u00B7'} {item.active_days} active days
-      </Text>
-      {item.created_at && (
-        <Text style={styles.historyCreated}>{formatCreatedDate(item.created_at)}</Text>
-      )}
-    </GlassCard>
+      <View style={lt.historyHeaderBand}>
+        <Text style={lt.historyDateRange}>
+          {formatDateRange(item.window_start, item.window_end)}
+        </Text>
+      </View>
+      <View style={lt.historyBody}>
+        <Text style={lt.historySubtitle}>
+          {item.entry_count} entries {'\u00B7'} {item.active_days} active days
+        </Text>
+        {item.created_at && (
+          <Text style={lt.historyCreated}>{formatCreatedDate(item.created_at)}</Text>
+        )}
+      </View>
+    </Pressable>
   );
 
   if (isLoading) {
     return (
       <LinearGradient
-        colors={[...surfaces.soulsightGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={styles.container}
+        colors={['#59168B', '#653495', '#F5F2F9']}
+        locations={[0.1, 0.6, 1]}
+        style={lt.container}
       >
-        <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
-            <Text style={styles.backText}>Back</Text>
+        <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
+          <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
+            <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
+            <Text style={lt.backText}>Back</Text>
           </Pressable>
-          <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
+          <ActivityIndicator color={colors.white} size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
       </LinearGradient>
     );
@@ -155,75 +281,73 @@ const SoulSightScreen = ({ navigation }: any) => {
 
   return (
     <LinearGradient
-      colors={[...surfaces.soulsightGradient]}
-      locations={[0, 0.3, 0.65, 1]}
-      style={styles.container}
+      colors={['#59168B', '#653495', '#F5F2F9']}
+      locations={[0.1, 0.6, 1]}
+      style={lt.container}
     >
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
-        {/* Back Button */}
-        <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
-          <Image source={BackIcon} style={styles.backIcon} resizeMode="contain" />
-          <Text style={styles.backText}>Back</Text>
+      <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
+        <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
+          <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
+          <Text style={lt.backText}>Back</Text>
         </Pressable>
 
-        <Text style={styles.titleText}>SoulSight</Text>
+        <Text style={lt.titleText}>SoulSight</Text>
 
-        {/* Eligibility Card */}
-        <GlassCard intensity="heavy" style={styles.eligibilityCard}>
+        <View style={lt.eligibilityCard}>
           {isGenerating ? (
-            <View style={styles.generatingContainer}>
-              <ActivityIndicator color="#FFFFFF" size="large" style={{ marginBottom: 16 }} />
-              <Text style={styles.generatingText}>Generating your insight...</Text>
-              <Text style={styles.generatingSubtext}>This may take a minute</Text>
+            <View style={lt.generatingContainer}>
+              <ActivityIndicator color="#59168B" size="large" style={{ marginBottom: 16 }} />
+              <Text style={lt.generatingText}>Generating your insight...</Text>
+              <Text style={lt.generatingSubtext}>This may take a minute</Text>
             </View>
           ) : eligibility?.eligible ? (
             <>
-              <Text style={styles.eligibleTitle}>Your SoulSight is ready</Text>
-              {eligibility.window_start && eligibility.window_end && (
-                <Text style={styles.eligibleWindow}>
-                  {formatDateRange(eligibility.window_start, eligibility.window_end)}
-                </Text>
-              )}
-              <View style={styles.statRow}>
-                <View style={styles.statPill}>
-                  <Text style={styles.statPillText}>{eligibility.entry_count} entries</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.statPillText}>{eligibility.active_days} active days</Text>
-                </View>
+              <View style={lt.eligibleHeaderBand}>
+                <Text style={lt.eligibleTitle}>Your SoulSight is ready</Text>
               </View>
-              <AnimatedButton
-                title="Generate SoulSight"
-                onPress={handleGenerate}
-                variant="secondary"
-                style={styles.generateButton}
-              />
+              <View style={lt.eligibleBody}>
+                {eligibility.window_start && eligibility.window_end && (
+                  <Text style={lt.eligibleWindow}>
+                    {formatDateRange(eligibility.window_start, eligibility.window_end)}
+                  </Text>
+                )}
+                <View style={lt.statRow}>
+                  <View style={lt.statPill}>
+                    <Text style={lt.statPillText}>{eligibility.entry_count} entries</Text>
+                  </View>
+                  <View style={lt.statPill}>
+                    <Text style={lt.statPillText}>{eligibility.active_days} active days</Text>
+                  </View>
+                </View>
+                <Pressable style={lt.generateButton} onPress={handleGenerate}>
+                  <Text style={lt.generateButtonText}>Generate SoulSight</Text>
+                </Pressable>
+              </View>
             </>
           ) : (
-            <>
-              <Text style={styles.notEligibleText}>
+            <View style={lt.notEligibleWrap}>
+              <Text style={lt.notEligibleText}>
                 {eligibility?.reason || 'Fill your SoulBar to unlock a SoulSight report.'}
               </Text>
               {(eligibility?.total_filled ?? 0) > 0 && (
-                <Text style={styles.progressText}>
+                <Text style={lt.progressText}>
                   {eligibility?.soulsights_used} of {eligibility?.total_filled} SoulSights generated
                 </Text>
               )}
-            </>
+            </View>
           )}
-        </GlassCard>
+        </View>
 
-        {/* Past Insights */}
-        <Text style={styles.sectionHeader}>Past Insights</Text>
+        <Text style={lt.sectionHeader}>Past Insights</Text>
 
         {soulsights.length === 0 ? (
-          <Text style={styles.emptyText}>No insights yet</Text>
+          <Text style={lt.emptyText}>No insights yet</Text>
         ) : (
           <FlatList
             data={soulsights}
             keyExtractor={(item) => item.id}
-            renderItem={renderSoulsightCard}
-            contentContainerStyle={styles.listContent}
+            renderItem={renderLightCard}
+            contentContainerStyle={lt.listContent}
             showsVerticalScrollIndicator={false}
           />
         )}
@@ -234,26 +358,20 @@ const SoulSightScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 22,
-  },
+// ==============================
+// DARK MODE STYLES
+// ==============================
+const dk = StyleSheet.create({
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 22 },
 
-  // Back Button
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginBottom: 20,
   },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
+  backIcon: { width: 36, height: 36 },
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
@@ -267,7 +385,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Eligibility Card (GlassCard heavy)
   eligibilityCard: {
     padding: 20,
     marginBottom: 24,
@@ -321,7 +438,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // Generating
   generatingContainer: {
     alignItems: 'center',
     paddingVertical: 20,
@@ -339,7 +455,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Section Header
   sectionHeader: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
@@ -347,7 +462,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // History Cards (GlassCard medium)
   listContent: {
     gap: 10,
     paddingBottom: 20,
@@ -373,11 +487,179 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // Empty state
   emptyText: {
     fontFamily: fonts.outfit.light,
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+});
+
+// ==============================
+// LIGHT MODE STYLES
+// ==============================
+const lt = StyleSheet.create({
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 22 },
+
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  backIcon: { width: 36, height: 36 },
+  backText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 24,
+    color: colors.white,
+  },
+
+  titleText: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 28,
+    color: colors.white,
+    marginBottom: 16,
+  },
+
+  eligibilityCard: {
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  eligibleHeaderBand: {
+    backgroundColor: 'rgba(89, 22, 139, 0.08)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  eligibleBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  notEligibleWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+  },
+  eligibleTitle: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 16,
+    color: '#59168B',
+  },
+  eligibleWindow: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: 'rgba(89, 22, 139, 0.7)',
+    marginBottom: 12,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  statPill: {
+    backgroundColor: 'rgba(89, 22, 139, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statPillText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 12,
+    color: '#59168B',
+  },
+  generateButton: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#59168B',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generateButtonText: {
+    fontFamily: fonts.outfit.bold,
+    fontSize: 15,
+    color: colors.white,
+  },
+  notEligibleText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    color: '#59168B',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  progressText: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 13,
+    color: 'rgba(89, 22, 139, 0.7)',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  generatingContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  generatingText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 15,
+    color: '#59168B',
+    marginTop: 16,
+  },
+  generatingSubtext: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 13,
+    color: 'rgba(89, 22, 139, 0.7)',
+    marginTop: 4,
+  },
+
+  sectionHeader: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 16,
+    color: colors.white,
+    marginBottom: 12,
+  },
+
+  listContent: {
+    gap: 10,
+    paddingBottom: 20,
+  },
+  historyCard: {
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  historyHeaderBand: {
+    backgroundColor: 'rgba(89, 22, 139, 0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  historyBody: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  historyDateRange: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 14,
+    color: '#59168B',
+  },
+  historySubtitle: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: '#59168B',
+  },
+  historyCreated: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 11,
+    color: 'rgba(89, 22, 139, 0.6)',
+    marginTop: 4,
+  },
+
+  emptyText: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     marginTop: 20,
   },
