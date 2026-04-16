@@ -91,6 +91,10 @@ export const surfaces = {
   soulsightGradient: ['#0D1F2D', '#153040', '#1E4258', '#2A5570'] as const,
   soulsightGlow: 'rgba(42, 85, 112, 0.3)',
 
+  // Personality — deep indigo / violet (sibling of profile gradient)
+  personalityGradient: ['#0A0818', '#15102E', '#241645', '#3A1F5F'] as const,
+  personalityGlow: 'rgba(167, 139, 250, 0.2)',
+
   // Glass card base
   glass: {
     light: 'rgba(255, 255, 255, 0.12)',

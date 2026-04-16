@@ -45,7 +45,12 @@ import CreateJournalScreen from "./src/screens/CreateJournalScreen";
 import AffirmationMirrorScreen from "./src/screens/AffirmationMirrorScreen";
 import SoulSightScreen from "./src/screens/SoulSightScreen";
 import SoulSightDetailScreen from "./src/screens/SoulSightDetailScreen";
+import PersonalityHubScreen from "./src/screens/personality/PersonalityHubScreen";
+import PersonalityIntroScreen from "./src/screens/personality/PersonalityIntroScreen";
+import PersonalityQuestionScreen from "./src/screens/personality/PersonalityQuestionScreen";
+import PersonalityResultScreen from "./src/screens/personality/PersonalityResultScreen";
 import { JournalProvider } from "./src/contexts/JournalContext";
+import { PersonalityProvider } from "./src/contexts/PersonalityContext";
 import { WebSocketProvider } from "./src/contexts/WebSocketContext";
 import { useNotifications } from "./src/hooks";
 
@@ -251,25 +256,31 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 
   return (
     <JournalProvider>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-        initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
-      >
-        <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
-        <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
-        <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
-        <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
-        <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
-        <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
-        <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
-        <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
-        <Stack.Screen name="SoulSight" component={SoulSightScreen} />
-        <Stack.Screen name="SoulSightDetail" component={SoulSightDetailScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-        <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
-      </Stack.Navigator>
+      <PersonalityProvider>
+        <Stack.Navigator
+          screenOptions={{ headerShown: false }}
+          initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
+        >
+          <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
+          <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
+          <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} options={tabScreenOptions} />
+          <Stack.Screen name="Profile" component={ProfileScreen} options={tabScreenOptions} />
+          <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
+          <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
+          <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
+          <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
+          <Stack.Screen name="SoulSight" component={SoulSightScreen} />
+          <Stack.Screen name="SoulSightDetail" component={SoulSightDetailScreen} />
+          <Stack.Screen name="PersonalityHub" component={PersonalityHubScreen} />
+          <Stack.Screen name="PersonalityIntro" component={PersonalityIntroScreen} />
+          <Stack.Screen name="PersonalityQuestion" component={PersonalityQuestionScreen} options={{ gestureEnabled: false }} />
+          <Stack.Screen name="PersonalityResult" component={PersonalityResultScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen name="Terms" component={TermsScreen} options={{ gestureEnabled: false }} />
+        </Stack.Navigator>
+      </PersonalityProvider>
     </JournalProvider>
   );
 };

@@ -24,6 +24,7 @@ import { colors, fonts, surfaces } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
+import { usePersonality } from '../contexts/PersonalityContext';
 
 // Assets — light mode
 const LockIcon = require('../../assets/images/home/LockIcon.png');
@@ -61,17 +62,22 @@ const ProfileScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const { colorId, setColorId } = useSoulPal();
+  const { latestByType } = usePersonality();
+  const innerLensResult = latestByType.inner_lens;
+  const personalityDominant = innerLensResult?.dominant_type;
+  const handlePersonalityPress = useCallback(() => {
+    if (innerLensResult) {
+      navigation.navigate('PersonalityResult', { resultId: innerLensResult.id });
+    } else {
+      navigation.navigate('PersonalityHub');
+    }
+  }, [innerLensResult, navigation]);
   const [activeTab, setActiveTab] = useState<TabName>('Profile');
-  const [filledBars, setFilledBars] = useState(0);
 
   // Tab bar animations
   const tabTranslateY = useSharedValue(0);
   const tabRiseValues = [useSharedValue(0), useSharedValue(0), useSharedValue(-20)];
   const tabLabelOpacities = [useSharedValue(0), useSharedValue(0), useSharedValue(1)];
-
-  const handleBarPress = useCallback((index: number) => {
-    setFilledBars(index + 1 === filledBars ? 0 : index + 1);
-  }, [filledBars]);
 
   const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
 
@@ -458,31 +464,36 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Two Column Layout — Personality Test + Achievement */}
           <View style={dk.twoColumns}>
-            <GlassCard style={dk.personalityCard}>
+            <GlassCard style={dk.personalityCard} onPress={handlePersonalityPress}>
               <View style={dk.personalityHeader}>
                 <Text style={dk.personalityTitle}>Personality Test</Text>
               </View>
               <Text style={dk.personalityLoremText}>
-                Lorem Ipsum Dolor Res{'\n'}Lorem...
+                {personalityDominant
+                  ? `Discover how your\nInner Lens shapes you.`
+                  : `Uncover the lens\nyou see through.`}
               </Text>
               <View style={dk.personalityFooter}>
                 <View style={dk.personalityProgressRow}>
                   {Array.from({ length: 15 }).map((_, i) => (
-                    <Pressable key={i} onPress={() => handleBarPress(i)}>
-                      <View
-                        style={[
-                          dk.progressDot,
-                          { backgroundColor: i < filledBars ? 'rgba(112, 202, 207, 0.8)' : 'rgba(112, 202, 207, 0.15)' },
-                        ]}
-                      />
-                    </Pressable>
+                    <View
+                      key={i}
+                      style={[
+                        dk.progressDot,
+                        {
+                          backgroundColor: personalityDominant
+                            ? 'rgba(167, 139, 250, 0.8)'
+                            : 'rgba(112, 202, 207, 0.15)',
+                        },
+                      ]}
+                    />
                   ))}
                 </View>
-                <Text style={dk.takeTestText}>Take the test</Text>
-              </View>
-              <View style={dk.comingSoonOverlay}>
-                <Image source={LockIconDark} style={dk.comingSoonLock} resizeMode="contain" />
-                <Text style={dk.comingSoonLabel}>Coming Soon</Text>
+                <Text style={dk.takeTestText}>
+                  {personalityDominant
+                    ? `You are ${personalityDominant}`
+                    : 'Take the test'}
+                </Text>
               </View>
             </GlassCard>
 
@@ -655,47 +666,66 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Two Column Layout */}
+        {/* Two Column Layout — Personality Test + Achievement */}
         <View style={lt.twoColumns}>
-          {/* Left Column */}
-          <View style={lt.leftColumn}>
-            {/* Personality Test Card */}
-            <View style={lt.personalityCard}>
-              <View style={lt.personalityHeader}>
-                <Text style={lt.personalityTitle}>Personality Test</Text>
-              </View>
-              <Text style={lt.personalityLoremText}>
-                Lorem Ipsum Dolor Res{'\n'}Lorem...
-              </Text>
-              <View style={lt.personalityFooter}>
-                <View style={lt.personalityProgressRow}>
-                  {Array.from({ length: 15 }).map((_, i) => (
-                    <Pressable key={i} onPress={() => handleBarPress(i)}>
-                      <View
-                        style={[
-                          lt.progressDot,
-                          { backgroundColor: i < filledBars ? '#59168B' : 'rgba(89, 22, 139, 0.2)' },
-                        ]}
-                      />
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={lt.takeTestText}>Take the test</Text>
-              </View>
-              <View style={lt.comingSoonOverlayDark}>
-                <Image source={LockIcon} style={lt.comingSoonLockSmall} resizeMode="contain" />
-                <Text style={lt.comingSoonLabelLight}>Coming Soon</Text>
-              </View>
+          <Pressable style={lt.personalityCard} onPress={handlePersonalityPress}>
+            <View style={lt.personalityHeader}>
+              <Text style={lt.personalityTitle}>Personality Test</Text>
             </View>
-
-            {/* Bottom section — SoulPal Customization */}
-            <View style={lt.soulPalSection}>
-              <View style={lt.soulPalCharRow}>
-                <SoulPalAnimated pose="profile" size={55} animate={true} />
+            <Text style={lt.personalityLoremText}>
+              {personalityDominant
+                ? `Discover how your\nInner Lens shapes you.`
+                : `Uncover the lens\nyou see through.`}
+            </Text>
+            <View style={lt.personalityFooter}>
+              <View style={lt.personalityProgressRow}>
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      lt.progressDot,
+                      {
+                        backgroundColor: personalityDominant
+                          ? '#59168B'
+                          : 'rgba(89, 22, 139, 0.2)',
+                      },
+                    ]}
+                  />
+                ))}
               </View>
+              <Text style={lt.takeTestText}>
+                {personalityDominant
+                  ? `You are ${personalityDominant}`
+                  : 'Take the test'}
+              </Text>
+            </View>
+          </Pressable>
 
-              {/* Color Picker */}
-              <View style={lt.colorPickerRow}>
+          <View style={lt.achievementCard}>
+            <View style={lt.achievementHeader}>
+              <Text style={lt.achievementHeaderText}>Achievement</Text>
+            </View>
+            <View style={lt.achievementGrid}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <View key={i} style={lt.achievementItem} />
+              ))}
+            </View>
+            <View style={lt.comingSoonOverlay}>
+              <Image source={LockIcon} style={lt.comingSoonLock} resizeMode="contain" />
+              <Text style={lt.comingSoonLabel}>Coming Soon</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Soul Pal Customization Card */}
+        <View style={lt.soulPalCard}>
+          <View style={lt.soulPalCardInner}>
+            <View style={lt.soulPalCharArea}>
+              <SoulPalAnimated pose="profile" size={65} animate={true} />
+            </View>
+            <View style={lt.soulPalRight}>
+              <Text style={lt.soulPalLabel}>Soul Pal</Text>
+              <View style={lt.colorPickerGrid}>
                 {SOULPAL_COLORS.map((c) => (
                   <Pressable
                     key={c.id}
@@ -707,47 +737,6 @@ const ProfileScreen = ({ navigation }: any) => {
                     ]}
                   />
                 ))}
-              </View>
-
-              {/* Soul Pal Label Card */}
-              <View style={lt.soulPalLabelCard}>
-                <View style={lt.soulPalLabelInner}>
-                  <Text style={lt.soulPalLabelText}>Soul Pal</Text>
-                  <Image source={ThreeDots} style={lt.threeDots} resizeMode="contain" />
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Right Column */}
-          <View style={lt.rightColumn}>
-            {/* Soul Sight Card */}
-            <View style={lt.soulSightCard}>
-              <Text style={lt.soulSightTitle}>Soul Sight</Text>
-              <Text style={lt.soulSightDesc}>
-                Lorem Ipsum Dolor Res{'\n'}Lorem...
-              </Text>
-              <View style={lt.soulSightBar} />
-              <View style={lt.soulSightBlock} />
-              <View style={lt.comingSoonOverlay}>
-                <Image source={LockIcon} style={lt.comingSoonLock} resizeMode="contain" />
-                <Text style={lt.comingSoonLabel}>Coming Soon</Text>
-              </View>
-            </View>
-
-            {/* Achievement Card */}
-            <View style={lt.achievementCard}>
-              <View style={lt.achievementHeader}>
-                <Text style={lt.achievementHeaderText}>Achievement</Text>
-              </View>
-              <View style={lt.achievementGrid}>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <View key={i} style={lt.achievementItem} />
-                ))}
-              </View>
-              <View style={lt.comingSoonOverlay}>
-                <Image source={LockIcon} style={lt.comingSoonLock} resizeMode="contain" />
-                <Text style={lt.comingSoonLabel}>Coming Soon</Text>
               </View>
             </View>
           </View>
@@ -1455,21 +1444,16 @@ const lt = StyleSheet.create({
   twoColumns: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  leftColumn: {
-    width: 149,
-  },
-  rightColumn: {
-    width: 148,
+    marginBottom: 16,
   },
 
   // Personality Test Card — plain white card
   personalityCard: {
-    width: 149,
+    flex: 1,
     height: 156,
     borderRadius: 10,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginRight: 10,
     backgroundColor: colors.white,
   },
   personalityHeader: {
@@ -1518,104 +1502,11 @@ const lt = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Soul Sight Card — plain white card
-  soulSightCard: {
-    width: 148,
-    height: 238,
-    borderRadius: 10,
-    paddingTop: 4,
-    paddingHorizontal: 8,
-    marginBottom: 22,
-    backgroundColor: colors.white,
-  },
-  soulSightTitle: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 15,
-    lineHeight: 15 * 1.4,
-    color: '#59168B',
-    textAlign: 'left',
-  },
-  soulSightDesc: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    color: 'rgba(89, 22, 139, 0.6)',
-    marginTop: 4,
-  },
-  soulSightBar: {
-    height: 23,
-    backgroundColor: 'rgba(89, 22, 139, 0.08)',
-    marginHorizontal: 2,
-    marginTop: 12,
-  },
-  soulSightBlock: {
-    flex: 1,
-    backgroundColor: 'rgba(89, 22, 139, 0.08)',
-    marginHorizontal: 2,
-    marginTop: 8,
-    marginBottom: 12,
-  },
-
-  // SoulPal Section
-  soulPalSection: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-
-  // SoulPal Character
-  soulPalCharRow: {
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-
-  // Color Picker
-  colorPickerRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 6,
-    marginBottom: 8,
-    paddingHorizontal: 2,
-  },
-  colorCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorCircleActive: {
-    borderColor: '#59168B',
-    borderWidth: 2.5,
-  },
-
-  // Soul Pal Label Card — plain white card
-  soulPalLabelCard: {
-    borderRadius: 10,
-    width: '100%' as any,
-    backgroundColor: colors.white,
-  },
-  soulPalLabelInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  soulPalLabelText: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 15,
-    lineHeight: 15 * 1.4,
-    color: '#59168B',
-  },
-
   // Achievement Card — plain white card
   achievementCard: {
+    flex: 1,
+    height: 156,
     borderRadius: 10,
-    width: 148,
-    height: 104,
     overflow: 'hidden',
     backgroundColor: colors.white,
   },
@@ -1648,6 +1539,50 @@ const lt = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundColor: 'rgba(89, 22, 139, 0.08)',
+  },
+
+  // Soul Pal Customization Card — plain white card
+  soulPalCard: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: colors.white,
+  },
+  soulPalCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  soulPalCharArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  soulPalRight: {
+    flex: 1,
+  },
+  soulPalLabel: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 16,
+    lineHeight: 16 * 1.4,
+    color: '#59168B',
+    marginBottom: 10,
+  },
+  colorPickerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  colorCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorCircleActive: {
+    borderColor: '#59168B',
+    borderWidth: 2.5,
   },
 
   // Coming Soon Overlays
