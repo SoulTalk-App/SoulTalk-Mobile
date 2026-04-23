@@ -3,31 +3,27 @@ import { StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import { colors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const IntroVideo = require('../../assets/videos/intro.mp4');
+const IntroVideoDark = require('../../assets/videos/dark/intro.mp4');
 
 interface SplashScreenProps {
   navigation: any;
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
+const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> = ({ navigation, isDarkMode }) => {
   const hasNavigated = useRef(false);
 
-  const player = useVideoPlayer(IntroVideo, (p) => {
+  const player = useVideoPlayer(isDarkMode ? IntroVideoDark : IntroVideo, (p) => {
     p.loop = false;
     p.muted = false;
     p.play();
   });
 
   const { status } = useEvent(player, 'statusChange', { status: player.status });
-
-  useEffect(() => {
-    if (status === 'idle' && hasNavigated.current === false) {
-      // Player finished or hasn't started — check if it already played
-    }
-  }, [status]);
 
   // Listen for playback end
   useEffect(() => {
@@ -62,7 +58,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
   }, [status, navigation]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDarkMode && { backgroundColor: '#0A0818' }]}>
       <VideoView
         player={player}
         style={styles.video}
@@ -72,6 +68,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
       />
     </View>
   );
+};
+
+const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
+  const { isDarkMode, themeLoaded } = useTheme();
+
+  if (!themeLoaded) {
+    return <View style={styles.container} />;
+  }
+
+  return <SplashScreenInner navigation={navigation} isDarkMode={isDarkMode} />;
 };
 
 const styles = StyleSheet.create({
