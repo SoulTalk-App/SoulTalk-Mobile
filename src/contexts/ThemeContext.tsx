@@ -5,20 +5,24 @@ const THEME_KEY = '@soultalk_dark_mode';
 
 interface ThemeContextValue {
   isDarkMode: boolean;
+  themeLoaded: boolean;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   isDarkMode: false,
+  themeLoaded: false,
   toggleTheme: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(THEME_KEY).then((val) => {
       if (val === 'true') setIsDarkMode(true);
+      setThemeLoaded(true);
     });
   }, []);
 
@@ -31,7 +35,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+    <ThemeContext.Provider value={{ isDarkMode, themeLoaded, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
