@@ -8,6 +8,7 @@ import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { SoulPalProvider } from "./src/contexts/SoulPalContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoSplashScreen from "expo-splash-screen";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import * as Linking from "expo-linking";
 import { useFonts } from "expo-font";
 import {
@@ -351,6 +352,15 @@ const Navigation = () => {
 
 // Keep splash screen visible while loading fonts
 ExpoSplashScreen.preventAutoHideAsync();
+
+// Don't interrupt external audio (Spotify, Apple Music, etc.) when playing videos
+Audio.setAudioModeAsync({
+  playsInSilentModeOnIOS: false,
+  staysActiveInBackground: false,
+  interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+  shouldDuckAndroid: true,
+  interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+});
 
 export default function App() {
   const [fontsLoaded] = useFonts({
