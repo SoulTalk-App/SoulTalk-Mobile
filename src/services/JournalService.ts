@@ -75,7 +75,7 @@ export interface SoulBarResponse {
 
 export interface DailyMoodResponse {
   date: string;
-  filled_count: number;
+  mood_word: string | null;
 }
 
 class JournalService {
@@ -181,8 +181,8 @@ class JournalService {
     return response.data;
   }
 
-  async upsertTodayMood(filledCount: number): Promise<DailyMoodResponse> {
-    const response = await this.axiosInstance.put('/mood/today', { filled_count: filledCount });
+  async upsertTodayMood(moodWord: string): Promise<DailyMoodResponse> {
+    const response = await this.axiosInstance.put('/mood/today', { mood_word: moodWord });
     return response.data;
   }
 
