@@ -498,7 +498,7 @@ const SettingsScreen = ({ navigation }: any) => {
           <Pressable onPress={() => navigation.navigate('Terms')}>
             <Text style={styles.footerLink}>Terms & Privacy</Text>
           </Pressable>
-          <Pressable onPress={() => Alert.alert('Coming Soon', 'Help page is under development.')}>
+          <Pressable onPress={() => navigation.navigate('Help')}>
             <Text style={styles.footerLink}>Help</Text>
           </Pressable>
         </View>

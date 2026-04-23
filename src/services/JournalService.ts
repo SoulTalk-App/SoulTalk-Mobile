@@ -186,6 +186,23 @@ class JournalService {
     return response.data;
   }
 
+  async getCrisisResources(): Promise<{
+    country_code: string;
+    resources: Array<{
+      id: string;
+      country_code: string;
+      country_name: string;
+      resource_name: string;
+      contact_type: string;
+      contact_value: string;
+      description: string;
+      display_order: number;
+    }>;
+  }> {
+    const response = await this.axiosInstance.get('/crisis-resources');
+    return response.data;
+  }
+
   async getPrompts(): Promise<string[]> {
     const response = await this.axiosInstance.get('/prompts/');
     return response.data.prompts;
