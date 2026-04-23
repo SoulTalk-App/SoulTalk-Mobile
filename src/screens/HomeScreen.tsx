@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Image,
+  TextInput,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -30,6 +31,9 @@ import JournalService from '../services/JournalService';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
+import LottieView from 'lottie-react-native';
+
+const SoulpalLottie = require('../../assets/animations/Soulpal.json');
 
 // Star field — deterministic positions seeded once
 const STARS = Array.from({ length: 45 }, (_, i) => ({
@@ -63,7 +67,6 @@ const AffirmationMirrorCardDark = require('../../assets/images/home/dark/Affirma
 
 type TabName = 'Home' | 'Journal' | 'Profile';
 
-const TOTAL_BARS = 15;
 const SOUL_BAR_SEGMENTS = 6;
 
 const HomeScreen = ({ navigation }: any) => {
@@ -74,19 +77,31 @@ const HomeScreen = ({ navigation }: any) => {
   const soulPalHex = SOULPAL_COLORS.find(c => c.id === colorId)?.hex ?? '#70CACF';
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
-  const [filledBars, setFilledBars] = useState(0);
+  const [moodWord, setMoodWord] = useState('');
+  const [moodSaved, setMoodSaved] = useState(false);
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   const { soulBar, fetchSoulBar } = useJournal();
+  const lottieRef = useRef<LottieView>(null);
 
   // Refresh soul bar and mood whenever Home screen gains focus
   useFocusEffect(
     useCallback(() => {
       fetchSoulBar();
       JournalService.getTodayMood()
-        .then((data) => setFilledBars(data.filled_count))
+        .then((data) => {
+          if (data.mood_word) {
+            setMoodWord(data.mood_word);
+            setMoodSaved(true);
+          }
+        })
         .catch(() => {});
     }, [fetchSoulBar])
   );
+
+  // Play only the bounce+wink segment (skip the wave intro)
+  useEffect(() => {
+    lottieRef.current?.play(0, 162);
+  }, []);
 
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
@@ -96,12 +111,11 @@ const HomeScreen = ({ navigation }: any) => {
   const tabRiseValues = [useSharedValue(-20), useSharedValue(0), useSharedValue(0)];
   const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
-  // Eye blink animation for feeling bar
-  const eyeOpacity = useSharedValue(1);
-  const eyeTranslateX = useSharedValue(0);
+  // SoulPal avatar animation
+  const palFloatY = useSharedValue(0);
+  const palRotate = useSharedValue(0);
+  const palScale = useSharedValue(1);
 
-  // Debounce timer for mood PUT
-  const moodDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Floating orb animations (dark mode only, but hooks must always run)
   const orb1Y = useSharedValue(0);
@@ -115,24 +129,35 @@ const HomeScreen = ({ navigation }: any) => {
     loadLocalName();
   }, []);
 
-  // Blinking + looking animation loop for feeling bar eyes
+  // SoulPal float + wiggle + breathe
   useEffect(() => {
-    eyeOpacity.value = withRepeat(
+    // Gentle float
+    palFloatY.value = withRepeat(
       withSequence(
-        withDelay(2000, withTiming(0, { duration: 80 })),
-        withTiming(1, { duration: 80 }),
-        withDelay(3000, withTiming(0, { duration: 80 })),
-        withTiming(1, { duration: 80 }),
+        withTiming(-5, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(5, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+    // Periodic wiggle wave
+    palRotate.value = withRepeat(
+      withSequence(
+        withDelay(3000, withTiming(6, { duration: 200, easing: Easing.inOut(Easing.ease) })),
+        withTiming(-6, { duration: 200, easing: Easing.inOut(Easing.ease) }),
+        withTiming(4, { duration: 150, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 150, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
     );
-    eyeTranslateX.value = withRepeat(
+    // Subtle breathing scale
+    palScale.value = withRepeat(
       withSequence(
-        withDelay(1500, withTiming(3, { duration: 400, easing: Easing.inOut(Easing.ease) })),
-        withDelay(1000, withTiming(-3, { duration: 400, easing: Easing.inOut(Easing.ease) })),
-        withDelay(800, withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) })),
+        withTiming(1.04, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
+      true,
     );
 
     // Floating orbs
@@ -154,9 +179,12 @@ const HomeScreen = ({ navigation }: any) => {
     );
   }, []);
 
-  const eyeAnimStyle = useAnimatedStyle(() => ({
-    opacity: eyeOpacity.value,
-    transform: [{ translateX: eyeTranslateX.value }],
+  const palAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: palFloatY.value },
+      { rotate: `${palRotate.value}deg` },
+      { scale: palScale.value },
+    ],
   }));
 
   const orb1Style = useAnimatedStyle(() => ({
@@ -167,32 +195,23 @@ const HomeScreen = ({ navigation }: any) => {
     transform: [{ translateY: orb2Y.value }],
   }));
 
-  const persistMood = useCallback((newCount: number) => {
-    if (moodDebounceRef.current) clearTimeout(moodDebounceRef.current);
-    moodDebounceRef.current = setTimeout(async () => {
-      try {
-        await JournalService.upsertTodayMood(newCount);
-        fetchSoulBar();
-      } catch (e) {
-        console.warn('[Mood] Failed to persist mood:', e);
-      }
-    }, 300);
+  const handleMoodChange = useCallback((text: string) => {
+    // Allow only alphabetic characters, no spaces or special chars
+    const sanitized = text.replace(/[^a-zA-Z]/g, '');
+    setMoodWord(sanitized);
+  }, []);
+
+  const submitMoodWord = useCallback(async () => {
+    const word = moodWord.trim();
+    if (!word) return;
+    try {
+      await JournalService.upsertTodayMood(word);
+      setMoodSaved(true);
+      fetchSoulBar();
+    } catch (e) {
+      console.warn('[Mood] Failed to persist mood:', e);
+    }
   }, [fetchSoulBar]);
-
-  const handleBarPress = useCallback((index: number) => {
-    const newCount = index + 1 === filledBars ? 0 : index + 1;
-    setFilledBars(newCount);
-    persistMood(newCount);
-  }, [filledBars, persistMood]);
-
-  const handleBarAreaPress = useCallback((event: any) => {
-    const { locationX } = event.nativeEvent;
-    const paddingLeft = 10;
-    const segmentPitch = 6 + 5;
-    let index = Math.floor((locationX - paddingLeft) / segmentPitch);
-    index = Math.max(0, Math.min(index, TOTAL_BARS - 1));
-    handleBarPress(index);
-  }, [handleBarPress]);
 
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Profile') {
@@ -322,19 +341,19 @@ const HomeScreen = ({ navigation }: any) => {
           <GlassCard intensity="medium" glowColor={surfaces.homeGlow} style={dk.welcomeCard}>
             <View style={dk.welcomeInner}>
               <View style={dk.headerRow}>
-                <View style={dk.soulpalAvatarWrap}>
+                <Animated.View style={[dk.soulpalAvatarWrap, palAnimStyle]}>
                   <View style={[dk.soulpalGlow, { backgroundColor: soulPalHex }]} />
-                  <Image
-                    source={homeImage}
+                  <LottieView
+                    ref={lottieRef}
+                    source={SoulpalLottie}
+                    loop
                     style={dk.soulpalAvatar}
-                    resizeMode="contain"
                   />
-                </View>
+                </Animated.View>
                 <View style={dk.headerTextSection}>
                   <Text style={dk.welcomeText}>
                     Welcome Back, {displayName}!
                   </Text>
-                  <Text style={dk.dayText}>Ready to learn more about yourself?</Text>
                 </View>
                 <Pressable style={dk.gearButton} onPress={() => navigation.navigate('Settings')}>
                   <Image
@@ -345,34 +364,43 @@ const HomeScreen = ({ navigation }: any) => {
                 </Pressable>
               </View>
 
-              {/* Mood Bar */}
+              {/* Mood Word Input */}
               <View style={dk.moodBarSection}>
                 <Text style={dk.moodBarLabel}>I'm Feeling</Text>
-                <Pressable onPress={handleBarAreaPress} style={dk.moodBarTrack}>
-                  {Array.from({ length: TOTAL_BARS }).map((_, i) => {
-                    const filled = i < filledBars;
-                    return (
-                      <Pressable key={i} onPress={() => handleBarPress(i)} style={{ flex: 1 }}>
-                        <View
-                          style={[
-                            dk.moodBarSegment,
-                            {
-                              backgroundColor: filled
-                                ? '#4DE8D4'
-                                : 'rgba(255, 255, 255, 0.04)',
-                            },
-                            filled && dk.moodBarSegmentGlow,
-                          ]}
-                        />
-                      </Pressable>
-                    );
-                  })}
-                </Pressable>
-                <View style={dk.moodBarEndpoints}>
-                  <Text style={dk.moodBarEndText}>Low</Text>
-                  <Text style={dk.moodBarEndText}>High</Text>
+                <View style={dk.moodInputRow}>
+                  <TextInput
+                    style={dk.moodInput}
+                    placeholder="One word…"
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    value={moodWord}
+                    onChangeText={handleMoodChange}
+                    onSubmitEditing={submitMoodWord}
+                    maxLength={50}
+                    returnKeyType="done"
+                    editable={!moodSaved}
+                    autoCorrect={false}
+                  />
+                  {!moodSaved && moodWord.trim().length > 0 && (
+                    <Pressable onPress={submitMoodWord} style={dk.moodSubmitBtn}>
+                      <Image source={SendIconImg} style={dk.sendIcon} resizeMode="contain" />
+                    </Pressable>
+                  )}
+                  {moodSaved && (
+                    <Pressable onPress={() => setMoodSaved(false)} style={dk.moodEditBtn}>
+                      <Text style={dk.moodEditText}>Edit</Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
+
+              {/* Journal Prompt */}
+              <Pressable
+                style={dk.journalPromptBar}
+                onPress={() => navigation.navigate('CreateJournal')}
+              >
+                <Text style={dk.journalPromptText}>Guess what happened today....</Text>
+                <Image source={SendIconImg} style={dk.sendIcon} resizeMode="contain" />
+              </Pressable>
 
               {/* SoulBar Section */}
               <Pressable style={dk.soulBarCard} onPress={() => navigation.navigate('SoulSight')}>
@@ -536,16 +564,18 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Welcome Header Card */}
         <View style={lt.welcomeCard}>
           <View style={lt.headerRow}>
-            <Image
-              source={homeImage}
-              style={lt.soulpalAvatar}
-              resizeMode="contain"
-            />
+            <Animated.View style={palAnimStyle}>
+              <LottieView
+                ref={lottieRef}
+                source={SoulpalLottie}
+                loop
+                style={lt.soulpalAvatar}
+              />
+            </Animated.View>
             <View style={lt.headerTextSection}>
               <Text style={lt.welcomeText}>
                 Welcome Back, {displayName}!
               </Text>
-              <Text style={lt.dayText}>Ready to learn more about yourself?</Text>
             </View>
             <Pressable style={lt.gearButton} onPress={() => navigation.navigate('Settings')}>
               <Image
@@ -556,26 +586,42 @@ const HomeScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* I'm Feeling Bar */}
+          {/* Mood Word Input */}
+          <View style={lt.moodSection}>
+            <View style={lt.moodInputRow}>
+              <TextInput
+                style={lt.moodInput}
+                placeholder="I'm feeling..."
+                placeholderTextColor="rgba(89, 22, 139, 0.35)"
+                value={moodWord}
+                onChangeText={handleMoodChange}
+                onSubmitEditing={submitMoodWord}
+                maxLength={50}
+                returnKeyType="done"
+                editable={!moodSaved}
+                textAlign="center"
+                autoCorrect={false}
+              />
+              {!moodSaved && moodWord.trim().length > 0 && (
+                <Pressable onPress={submitMoodWord} style={lt.moodSubmitBtn}>
+                  <Image source={SendIconImg} style={lt.sendIcon} resizeMode="contain" />
+                </Pressable>
+              )}
+              {moodSaved && (
+                <Pressable onPress={() => setMoodSaved(false)} style={lt.moodEditBtn}>
+                  <Text style={lt.moodEditText}>Edit</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          {/* Journal Prompt */}
           <Pressable
-            style={lt.feelingBar}
+            style={lt.journalPromptBar}
             onPress={() => navigation.navigate('CreateJournal')}
           >
-            <View style={lt.soulpalEyesContainer}>
-              <Image
-                source={bodyImage}
-                style={lt.soulpalEyes}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={lt.feelingText}>Guess what happened today....</Text>
-            <View style={lt.sendButton}>
-              <Image
-                source={SendIconImg}
-                style={lt.sendIcon}
-                resizeMode="contain"
-              />
-            </View>
+            <Text style={lt.journalPromptText}>Guess what happened today....</Text>
+            <Image source={SendIconImg} style={lt.sendIcon} resizeMode="contain" />
           </Pressable>
 
           {/* SoulBar Section */}
@@ -802,6 +848,7 @@ const dk = StyleSheet.create({
     height: 72,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'visible',
   },
   soulpalGlow: {
     position: 'absolute',
@@ -812,8 +859,8 @@ const dk = StyleSheet.create({
     top: 4,
   },
   soulpalAvatar: {
-    width: 48,
-    height: 67,
+    width: 64,
+    height: 64,
   },
   headerTextSection: {
     flex: 1,
@@ -841,49 +888,69 @@ const dk = StyleSheet.create({
     tintColor: 'rgba(255, 255, 255, 0.5)',
   },
 
-  // Mood Bar
+  // Mood Word Input
   moodBarSection: {
-    marginTop: 16,
+    marginTop: 10,
   },
   moodBarLabel: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  moodBarTrack: {
+  moodInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    height: 34,
   },
-  moodBarSegment: {
+  moodInput: {
     flex: 1,
-    height: 20,
-    borderRadius: 4,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: colors.white,
   },
-  moodBarSegmentGlow: {
-    shadowColor: '#4DE8D4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 5,
-    elevation: 4,
+  moodSubmitBtn: {
+    padding: 4,
   },
-  moodBarEndpoints: {
+  moodEditBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(77, 232, 212, 0.15)',
+  },
+  moodEditText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    color: '#4DE8D4',
+  },
+  journalPromptBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    height: 34,
+    marginTop: 8,
+    paddingHorizontal: 12,
   },
-  moodBarEndText: {
+  journalPromptText: {
+    flex: 1,
     fontFamily: fonts.outfit.light,
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.3)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
   },
   sendButton: {
     padding: 4,
   },
   sendIcon: {
-    width: 18,
-    height: 18,
+    width: 16,
+    height: 16,
     tintColor: 'rgba(255, 255, 255, 0.75)',
   },
 
@@ -1100,8 +1167,8 @@ const lt = StyleSheet.create({
     alignItems: 'center',
   },
   soulpalAvatar: {
-    width: 48,
-    height: 67,
+    width: 64,
+    height: 64,
   },
   headerTextSection: {
     flex: 1,
@@ -1128,43 +1195,73 @@ const lt = StyleSheet.create({
     height: 32,
   },
 
-  // Feeling Bar
-  feelingBar: {
+  // Mood Word Input
+  moodSection: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  moodInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 10,
-    height: 36,
-    marginTop: 16,
-    paddingHorizontal: 10,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 32,
+    width: '60%',
+  },
+  moodInput: {
+    flex: 1,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: '#59168B',
+  },
+  moodSubmitBtn: {
+    padding: 4,
+  },
+  sendIcon: {
+    width: 16,
+    height: 16,
+  },
+  moodEditBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(89, 22, 139, 0.1)',
+  },
+  moodEditText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    color: '#59168B',
+  },
+  journalPromptBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    height: 32,
+    marginTop: 6,
+    paddingHorizontal: 14,
+    width: '80%',
   },
   soulpalEyesContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     backgroundColor: 'rgba(89, 22, 139, 0.1)',
   },
   soulpalEyes: {
-    width: 26,
-    height: 36,
+    width: 20,
+    height: 28,
   },
-  feelingText: {
+  journalPromptText: {
     flex: 1,
     fontFamily: fonts.outfit.light,
     fontSize: 12,
-    lineHeight: 12 * 1.26,
     color: 'rgba(89, 22, 139, 0.5)',
-    marginLeft: 8,
-  },
-  sendButton: {
-    padding: 4,
-  },
-  sendIcon: {
-    width: 18,
-    height: 18,
   },
 
   // SoulBar Card
