@@ -19,6 +19,17 @@ BUNDLE_ID="com.soultalk.mobile"
 # App Store Connect
 APPLE_ID="dev@soultalkapp.com"
 
+# App-specific password for TestFlight upload. Read from env so it's never
+# committed. To use keychain instead, store with:
+#   security add-generic-password -a "$APPLE_ID" -s APP_STORE_CONNECT_PASSWORD -w
+# then set ALTOOL_PASSWORD_REF="@keychain:APP_STORE_CONNECT_PASSWORD".
+ALTOOL_PASSWORD_REF="@env:APP_STORE_CONNECT_PASSWORD"
+if [ -z "${APP_STORE_CONNECT_PASSWORD:-}" ]; then
+  echo "ERROR: APP_STORE_CONNECT_PASSWORD not set. Export it before running:"
+  echo "  export APP_STORE_CONNECT_PASSWORD='xxxx-xxxx-xxxx-xxxx'"
+  exit 1
+fi
+
 # Production API — exported so Metro picks it up during xcodebuild JS bundling
 export API_BASE_URL="https://soultalkapp.com/api"
 
@@ -104,6 +115,6 @@ if [ ! -f "$IPA_FILE" ]; then
 fi
 
 echo "-> Uploading to TestFlight..."
-xcrun altool --upload-app -f "$IPA_FILE" -t ios -u "$APPLE_ID" -p "jpkj-xmew-amdn-baie"
+xcrun altool --upload-app -f "$IPA_FILE" -t ios -u "$APPLE_ID" -p "$ALTOOL_PASSWORD_REF"
 
 echo "=== Deploy complete! Build will appear in TestFlight after Apple processing. ==="
