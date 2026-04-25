@@ -32,6 +32,7 @@ import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
 import LottieView from 'lottie-react-native';
+import { ChargeUpGrid } from '../features/homeV2';
 
 const SoulpalLottie = require('../../assets/animations/Soulpal.json');
 
@@ -442,51 +443,13 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </GlassCard>
 
-          {/* Goal Garden Card */}
-          <GlassCard intensity="light" style={dk.goalGardenCard}>
-            <View style={dk.goalGardenInner}>
-              <Image source={LockIconDark} style={dk.comingSoonLockLarge} resizeMode="contain" />
-              <Text style={dk.comingSoonText}>Coming Soon</Text>
-            </View>
-          </GlassCard>
-
-          {/* Two Cards Row */}
-          <View style={dk.cardsRow}>
-            {/* Coming Soon Card */}
-            <View style={dk.smallCardWrapper}>
-              <GlassCard intensity="light" style={dk.smallCard}>
-                <View style={dk.smallCardInner}>
-                  <Image
-                    source={LockIconDark}
-                    style={dk.lockIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-              </GlassCard>
-              <View style={dk.cardLabel}>
-                <Text style={dk.cardLabelText}>Coming Soon</Text>
-              </View>
-            </View>
-
-            {/* Affirmation Mirror Card */}
-            <Pressable style={dk.smallCardWrapper} onPress={handleAffirmationPress}>
-              <GlassCard intensity="light" style={dk.smallCard}>
-                <View style={dk.smallCardInner}>
-                  {affirmationLoading ? (
-                    <ActivityIndicator size="large" color="#4DE8D4" />
-                  ) : (
-                    <Image
-                      source={AffirmationMirrorCardDark}
-                      style={dk.affirmationCardImage}
-                      resizeMode="cover"
-                    />
-                  )}
-                </View>
-              </GlassCard>
-              <View style={dk.cardLabel}>
-                <Text style={dk.cardLabelText}>Affirmation Mirror</Text>
-              </View>
-            </Pressable>
+          {/* Charge Up — 5-card grid */}
+          <View style={dk.chargeUpWrap}>
+            <ChargeUpGrid
+              theme="dark"
+              onMirrorPress={handleAffirmationPress}
+              onSightsPress={() => navigation.navigate('SoulSight')}
+            />
           </View>
 
           {/* Bottom spacing for tab bar */}
@@ -663,45 +626,13 @@ const HomeScreen = ({ navigation }: any) => {
 
         </View>
 
-        {/* Goal Garden Card */}
-        <View style={lt.goalGardenCard}>
-          <Image source={LockIcon} style={lt.comingSoonLockLarge} resizeMode="contain" />
-          <Text style={lt.comingSoonText}>Coming Soon</Text>
-        </View>
-
-        {/* Two Cards Row */}
-        <View style={lt.cardsRow}>
-          {/* Coming Soon Card */}
-          <View style={lt.smallCardWrapper}>
-            <View style={lt.smallCard}>
-              <Image
-                source={LockIcon}
-                style={lt.lockIcon}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={lt.cardLabel}>
-              <Text style={lt.cardLabelText}>Coming Soon</Text>
-            </View>
-          </View>
-
-          {/* Affirmation Mirror Card */}
-          <Pressable style={lt.smallCardWrapper} onPress={handleAffirmationPress}>
-            <View style={lt.smallCard}>
-              {affirmationLoading ? (
-                <ActivityIndicator size="large" color="#59168B" />
-              ) : (
-                <Image
-                  source={AffirmationMirrorCard}
-                  style={lt.affirmationCardImage}
-                  resizeMode="cover"
-                />
-              )}
-            </View>
-            <View style={lt.cardLabel}>
-              <Text style={lt.cardLabelText}>Affirmation Mirror</Text>
-            </View>
-          </Pressable>
+        {/* Charge Up — 5-card grid */}
+        <View style={lt.chargeUpWrap}>
+          <ChargeUpGrid
+            theme="light"
+            onMirrorPress={handleAffirmationPress}
+            onSightsPress={() => navigation.navigate('SoulSight')}
+          />
         </View>
 
         {/* Bottom spacing for tab bar */}
@@ -1006,6 +937,11 @@ const dk = StyleSheet.create({
     textAlign: 'right',
   },
 
+  // Charge Up grid wrap
+  chargeUpWrap: {
+    marginTop: 16,
+  },
+
   // Goal Garden Card
   goalGardenCard: {
     marginTop: 16,
@@ -1305,6 +1241,11 @@ const lt = StyleSheet.create({
     color: '#59168B',
     marginTop: 6,
     textAlign: 'right',
+  },
+
+  // Charge Up grid wrap
+  chargeUpWrap: {
+    marginTop: 16,
   },
 
   // Goal Garden Card
