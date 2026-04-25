@@ -126,8 +126,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         }
       } catch {}
     };
-    // TODO: remove this bypass after testing animations — forces initial "Click to Reveal" state every time
-    // if (dateKey) checkRevealed();
+    if (dateKey) checkRevealed();
   }, []);
 
   // --- Reveal handler ---
