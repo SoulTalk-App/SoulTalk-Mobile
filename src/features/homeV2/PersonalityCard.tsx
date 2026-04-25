@@ -30,9 +30,9 @@ const ARCHETYPES = [
 ];
 
 const VB_W = 160;
-const VB_H = 180;
+const VB_H = 160;
 const CX = 80;
-const CY = 84;
+const CY = 75;
 const R = 50;
 
 type Props = { theme: Theme; onPress?: () => void };
@@ -47,7 +47,7 @@ export function PersonalityCard({ theme, onPress }: Props) {
   return (
     <CardShell
       theme={theme}
-      aspectRatio={1 / 1.15}
+      aspectRatio={1}
       label="Personality Test"
       labelColor={PURPLE}
       onPress={onPress}

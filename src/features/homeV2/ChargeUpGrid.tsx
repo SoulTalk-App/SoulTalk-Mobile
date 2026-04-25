@@ -49,16 +49,20 @@ const styles = StyleSheet.create({
   row1: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'flex-start',
   },
   row1Cell: {
     flex: 1,
+    aspectRatio: 1,
   },
   row2: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
+    alignItems: 'flex-start',
   },
   row2Cell: {
     flex: 1,
+    aspectRatio: 1 / 1.25,
   },
 });
