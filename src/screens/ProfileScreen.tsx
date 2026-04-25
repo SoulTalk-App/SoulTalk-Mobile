@@ -25,6 +25,22 @@ import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
 import { usePersonality } from '../contexts/PersonalityContext';
+import { PersonalityTestResult } from '../services/PersonalityService';
+import { TestType } from '../data/personalityTests/types';
+
+const TEST_TYPE_LABEL: Record<TestType, string> = {
+  inner_lens: 'Inner Lens',
+  focus_factor: 'Focus Factor',
+};
+
+function formatTakenAt(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return iso;
+  }
+}
 
 // Assets — light mode
 const LockIcon = require('../../assets/images/home/LockIcon.png');
@@ -63,15 +79,15 @@ const ProfileScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const { colorId, setColorId } = useSoulPal();
   const { latestByType } = usePersonality();
-  const innerLensResult = latestByType.inner_lens;
-  const personalityDominant = innerLensResult?.dominant_type;
-  const handlePersonalityPress = useCallback(() => {
-    if (innerLensResult) {
-      navigation.navigate('PersonalityResult', { resultId: innerLensResult.id });
-    } else {
-      navigation.navigate('PersonalityHub');
-    }
-  }, [innerLensResult, navigation]);
+  const pastResults: PersonalityTestResult[] = (
+    Object.values(latestByType).filter(Boolean) as PersonalityTestResult[]
+  ).sort((a, b) => b.completed_at.localeCompare(a.completed_at));
+  const openResult = useCallback(
+    (resultId: string) => {
+      navigation.navigate('PersonalityResult', { resultId });
+    },
+    [navigation],
+  );
   const [activeTab, setActiveTab] = useState<TabName>('Profile');
 
   // Tab bar animations
@@ -462,38 +478,34 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
           </GlassCard>
 
-          {/* Two Column Layout — Personality Test + Achievement */}
+          {/* Two Column Layout — Personality (past results) + Achievement */}
           <View style={dk.twoColumns}>
-            <GlassCard style={dk.personalityCard} onPress={handlePersonalityPress}>
+            <GlassCard style={dk.personalityCard}>
               <View style={dk.personalityHeader}>
-                <Text style={dk.personalityTitle}>Personality Test</Text>
+                <Text style={dk.personalityTitle}>Personality</Text>
               </View>
-              <Text style={dk.personalityLoremText}>
-                {personalityDominant
-                  ? `Discover how your\nInner Lens shapes you.`
-                  : `Uncover the lens\nyou see through.`}
-              </Text>
-              <View style={dk.personalityFooter}>
-                <View style={dk.personalityProgressRow}>
-                  {Array.from({ length: 15 }).map((_, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        dk.progressDot,
-                        {
-                          backgroundColor: personalityDominant
-                            ? 'rgba(167, 139, 250, 0.8)'
-                            : 'rgba(112, 202, 207, 0.15)',
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-                <Text style={dk.takeTestText}>
-                  {personalityDominant
-                    ? `You are ${personalityDominant}`
-                    : 'Take the test'}
-                </Text>
+              <View style={dk.personalityBody}>
+                {pastResults.length === 0 ? (
+                  <Text style={dk.personalityEmptyText}>No tests taken yet</Text>
+                ) : (
+                  pastResults.map((r) => (
+                    <Pressable
+                      key={r.id}
+                      onPress={() => openResult(r.id)}
+                      style={dk.personalityResultRow}
+                    >
+                      <Text style={dk.personalityResultLabel} numberOfLines={1}>
+                        {TEST_TYPE_LABEL[r.test_type] || r.test_type}
+                      </Text>
+                      <Text style={dk.personalityResultProfile} numberOfLines={1}>
+                        {r.dominant_type}
+                      </Text>
+                      <Text style={dk.personalityResultDate}>
+                        {formatTakenAt(r.completed_at)}
+                      </Text>
+                    </Pressable>
+                  ))
+                )}
               </View>
             </GlassCard>
 
@@ -666,40 +678,36 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Two Column Layout — Personality Test + Achievement */}
+        {/* Two Column Layout — Personality (past results) + Achievement */}
         <View style={lt.twoColumns}>
-          <Pressable style={lt.personalityCard} onPress={handlePersonalityPress}>
+          <View style={lt.personalityCard}>
             <View style={lt.personalityHeader}>
-              <Text style={lt.personalityTitle}>Personality Test</Text>
+              <Text style={lt.personalityTitle}>Personality</Text>
             </View>
-            <Text style={lt.personalityLoremText}>
-              {personalityDominant
-                ? `Discover how your\nInner Lens shapes you.`
-                : `Uncover the lens\nyou see through.`}
-            </Text>
-            <View style={lt.personalityFooter}>
-              <View style={lt.personalityProgressRow}>
-                {Array.from({ length: 15 }).map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      lt.progressDot,
-                      {
-                        backgroundColor: personalityDominant
-                          ? '#59168B'
-                          : 'rgba(89, 22, 139, 0.2)',
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-              <Text style={lt.takeTestText}>
-                {personalityDominant
-                  ? `You are ${personalityDominant}`
-                  : 'Take the test'}
-              </Text>
+            <View style={lt.personalityBody}>
+              {pastResults.length === 0 ? (
+                <Text style={lt.personalityEmptyText}>No tests taken yet</Text>
+              ) : (
+                pastResults.map((r) => (
+                  <Pressable
+                    key={r.id}
+                    onPress={() => openResult(r.id)}
+                    style={lt.personalityResultRow}
+                  >
+                    <Text style={lt.personalityResultLabel} numberOfLines={1}>
+                      {TEST_TYPE_LABEL[r.test_type] || r.test_type}
+                    </Text>
+                    <Text style={lt.personalityResultProfile} numberOfLines={1}>
+                      {r.dominant_type}
+                    </Text>
+                    <Text style={lt.personalityResultDate}>
+                      {formatTakenAt(r.completed_at)}
+                    </Text>
+                  </Pressable>
+                ))
+              )}
             </View>
-          </Pressable>
+          </View>
 
           <View style={lt.achievementCard}>
             <View style={lt.achievementHeader}>
@@ -1150,6 +1158,39 @@ const dk = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 2,
   },
+  personalityBody: {
+    flex: 1,
+    paddingHorizontal: 11,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  personalityEmptyText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  personalityResultRow: {
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  personalityResultLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: colors.white,
+  },
+  personalityResultProfile: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 13,
+    color: 'rgba(167, 139, 250, 0.9)',
+    marginTop: 2,
+  },
+  personalityResultDate: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
 
   // Achievement Card
   achievementCard: {
@@ -1499,6 +1540,39 @@ const lt = StyleSheet.create({
     fontSize: 13,
     lineHeight: 13 * 1.4,
     color: '#59168B',
+    marginTop: 2,
+  },
+  personalityBody: {
+    flex: 1,
+    paddingHorizontal: 11,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  personalityEmptyText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    color: 'rgba(89, 22, 139, 0.6)',
+  },
+  personalityResultRow: {
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(89, 22, 139, 0.12)',
+  },
+  personalityResultLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    color: '#59168B',
+  },
+  personalityResultProfile: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 13,
+    color: '#59168B',
+    marginTop: 2,
+  },
+  personalityResultDate: {
+    fontFamily: fonts.outfit.light,
+    fontSize: 10,
+    color: 'rgba(89, 22, 139, 0.55)',
     marginTop: 2,
   },
 

@@ -10,10 +10,16 @@ import { Theme } from './tokens';
 type Props = {
   theme: Theme;
   onMirrorPress?: () => void;
+  onPersonalityPress?: () => void;
   onSightsPress?: () => void;
 };
 
-export function ChargeUpGrid({ theme, onMirrorPress, onSightsPress }: Props) {
+export function ChargeUpGrid({
+  theme,
+  onMirrorPress,
+  onPersonalityPress,
+  onSightsPress,
+}: Props) {
   return (
     <View>
       <View style={styles.row1}>
@@ -21,7 +27,7 @@ export function ChargeUpGrid({ theme, onMirrorPress, onSightsPress }: Props) {
           <MirrorCard theme={theme} onPress={onMirrorPress} />
         </View>
         <View style={styles.row1Cell}>
-          <PersonalityCard theme={theme} />
+          <PersonalityCard theme={theme} onPress={onPersonalityPress} />
         </View>
       </View>
       <View style={styles.row2}>

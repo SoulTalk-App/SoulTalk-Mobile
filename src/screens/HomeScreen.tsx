@@ -448,6 +448,7 @@ const HomeScreen = ({ navigation }: any) => {
             <ChargeUpGrid
               theme="dark"
               onMirrorPress={handleAffirmationPress}
+              onPersonalityPress={() => navigation.navigate('PersonalityHub')}
               onSightsPress={() => navigation.navigate('SoulSight')}
             />
           </View>
@@ -631,6 +632,7 @@ const HomeScreen = ({ navigation }: any) => {
           <ChargeUpGrid
             theme="light"
             onMirrorPress={handleAffirmationPress}
+            onPersonalityPress={() => navigation.navigate('PersonalityHub')}
             onSightsPress={() => navigation.navigate('SoulSight')}
           />
         </View>
