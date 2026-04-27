@@ -66,6 +66,13 @@ export interface SoulsightDetail {
   output_tokens: number | null;
   created_at: string | null;
   updated_at: string | null;
+  title?: string | null;
+  reading_paragraphs?: string[] | null;
+  pull_quote?: { text: string; tag: string } | null;
+  signals_summary?: string[] | null;
+  soulpal_variant?: 1 | 2 | 3 | 4 | 5 | null;
+  hero_hint?: string | null;
+  archived_at?: string | null;
 }
 
 export interface StatusResponse {
