@@ -108,6 +108,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
 
   const [detail, setDetail] = useState<SoulsightDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [archivedAt, setArchivedAt] = useState<string | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   useEffect(() => {
     if (!soulsightId) {
@@ -115,7 +117,10 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
       return;
     }
     SoulSightService.getById(soulsightId)
-      .then(setDetail)
+      .then((d) => {
+        setDetail(d);
+        setArchivedAt(d.archived_at ?? null);
+      })
       .catch((err) => console.log('[SoulSight] Detail fetch error:', err.message))
       .finally(() => setIsLoading(false));
   }, [soulsightId]);
@@ -141,9 +146,20 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
     }
   };
 
-  const handleSave = () => {
-    // TODO: backend endpoint for archive (idempotent) — pending [ASK] to soultalk_be_core
-    console.log('[SoulSight] Save tapped (stub)', sight?.id);
+  const handleSave = async () => {
+    if (!sight || isArchiving || archivedAt) return;
+    const previous = archivedAt;
+    setIsArchiving(true);
+    setArchivedAt(new Date().toISOString());
+    try {
+      const updated = await SoulSightService.setArchived(sight.id, true);
+      setArchivedAt(updated.archived_at ?? new Date().toISOString());
+    } catch (e: any) {
+      console.log('[SoulSight] Archive error:', e?.message);
+      setArchivedAt(previous);
+    } finally {
+      setIsArchiving(false);
+    }
   };
 
   const handleOpenJournal = () => {
@@ -171,6 +187,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           onOpenJournal={handleOpenJournal}
           onSave={handleSave}
           onShare={handleShare}
+          isArchived={!!archivedAt}
+          isArchiving={isArchiving}
         />
       )}
 

@@ -11,6 +11,7 @@ export interface EligibilityResponse {
   window_start: string | null;
   window_end: string | null;
   reason: string | null;
+  points?: number;
 }
 
 export interface GenerateResponse {
@@ -160,6 +161,11 @@ class SoulSightService {
 
   async getStatus(id: string): Promise<StatusResponse> {
     const response = await this.axiosInstance.get(`/soulsights/${id}/status`);
+    return response.data;
+  }
+
+  async setArchived(id: string, archived: boolean): Promise<SoulsightDetail> {
+    const response = await this.axiosInstance.patch(`/soulsights/${id}`, { archived });
     return response.data;
   }
 }

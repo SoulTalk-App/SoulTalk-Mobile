@@ -19,6 +19,8 @@ type Props = {
   accent: string;
   onSave?: () => void;
   onShare?: () => void;
+  isArchived?: boolean;
+  isArchiving?: boolean;
 };
 
 export function ReadingBody({
@@ -28,6 +30,8 @@ export function ReadingBody({
   accent,
   onSave,
   onShare,
+  isArchived = false,
+  isArchiving = false,
 }: Props) {
   const isDark = theme === 'dark';
   const [opening, ...rest] = sight.reading_paragraphs;
@@ -106,8 +110,21 @@ export function ReadingBody({
       ) : null}
 
       <View style={styles.actions}>
-        <Pressable style={styles.primaryBtn} onPress={onSave}>
-          <Text style={styles.primaryBtnText}>Save to your archive</Text>
+        <Pressable
+          style={[
+            styles.primaryBtn,
+            (isArchived || isArchiving) && styles.primaryBtnDisabled,
+          ]}
+          onPress={isArchived || isArchiving ? undefined : onSave}
+          disabled={isArchived || isArchiving}
+        >
+          <Text style={styles.primaryBtnText}>
+            {isArchived
+              ? 'Saved to your archive'
+              : isArchiving
+                ? 'Saving…'
+                : 'Save to your archive'}
+          </Text>
         </Pressable>
         <Pressable
           style={[
@@ -218,6 +235,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: PURPLE,
     alignItems: 'center',
+  },
+  primaryBtnDisabled: {
+    opacity: 0.55,
   },
   primaryBtnText: {
     fontFamily: fonts.outfit.semiBold,

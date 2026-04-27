@@ -24,6 +24,8 @@ type Props = {
   onOpenJournal?: () => void;
   onSave?: () => void;
   onShare?: () => void;
+  isArchived?: boolean;
+  isArchiving?: boolean;
 };
 
 export function SightsB({
@@ -35,6 +37,8 @@ export function SightsB({
   onOpenJournal,
   onSave,
   onShare,
+  isArchived,
+  isArchiving,
 }: Props) {
   return (
     <View style={styles.root}>
@@ -94,6 +98,8 @@ export function SightsB({
               accent={PINK}
               onSave={onSave}
               onShare={onShare}
+              isArchived={isArchived}
+              isArchiving={isArchiving}
             />
           </>
         )}
