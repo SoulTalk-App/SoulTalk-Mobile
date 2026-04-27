@@ -47,6 +47,8 @@ import CreateJournalScreen from "./src/screens/CreateJournalScreen";
 import AffirmationMirrorScreen from "./src/screens/AffirmationMirrorScreen";
 import SoulSightScreen from "./src/screens/SoulSightScreen";
 import SoulSightDetailScreen from "./src/screens/SoulSightDetailScreen";
+import SoulShiftsScreen from "./src/screens/SoulShiftsScreen";
+import SoulSignalsScreen from "./src/screens/SoulSignalsScreen";
 import PersonalityHubScreen from "./src/screens/personality/PersonalityHubScreen";
 import PersonalityIntroScreen from "./src/screens/personality/PersonalityIntroScreen";
 import PersonalityQuestionScreen from "./src/screens/personality/PersonalityQuestionScreen";
@@ -274,6 +276,8 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
           <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
           <Stack.Screen name="SoulSight" component={SoulSightScreen} />
           <Stack.Screen name="SoulSightDetail" component={SoulSightDetailScreen} />
+          <Stack.Screen name="SoulShifts" component={SoulShiftsScreen} />
+          <Stack.Screen name="SoulSignals" component={SoulSignalsScreen} />
           <Stack.Screen name="PersonalityHub" component={PersonalityHubScreen} />
           <Stack.Screen name="PersonalityIntro" component={PersonalityIntroScreen} />
           <Stack.Screen name="PersonalityQuestion" component={PersonalityQuestionScreen} options={{ gestureEnabled: false }} />

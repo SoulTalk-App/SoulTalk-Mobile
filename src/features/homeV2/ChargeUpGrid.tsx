@@ -11,6 +11,8 @@ type Props = {
   theme: Theme;
   onMirrorPress?: () => void;
   onPersonalityPress?: () => void;
+  onShiftsPress?: () => void;
+  onSignalsPress?: () => void;
   onSightsPress?: () => void;
 };
 
@@ -18,6 +20,8 @@ export function ChargeUpGrid({
   theme,
   onMirrorPress,
   onPersonalityPress,
+  onShiftsPress,
+  onSignalsPress,
   onSightsPress,
 }: Props) {
   return (
@@ -32,10 +36,10 @@ export function ChargeUpGrid({
       </View>
       <View style={styles.row2}>
         <View style={styles.row2Cell}>
-          <SoulShiftsCard theme={theme} />
+          <SoulShiftsCard theme={theme} onPress={onShiftsPress} />
         </View>
         <View style={styles.row2Cell}>
-          <SoulSignalsCard theme={theme} />
+          <SoulSignalsCard theme={theme} onPress={onSignalsPress} />
         </View>
         <View style={styles.row2Cell}>
           <SoulSightsCard theme={theme} onPress={onSightsPress} />

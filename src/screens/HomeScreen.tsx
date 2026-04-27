@@ -449,6 +449,8 @@ const HomeScreen = ({ navigation }: any) => {
               theme="dark"
               onMirrorPress={handleAffirmationPress}
               onPersonalityPress={() => navigation.navigate('PersonalityHub')}
+              onShiftsPress={() => navigation.navigate('SoulShifts')}
+              onSignalsPress={() => navigation.navigate('SoulSignals')}
               onSightsPress={() => navigation.navigate('SoulSight')}
             />
           </View>
@@ -633,6 +635,8 @@ const HomeScreen = ({ navigation }: any) => {
             theme="light"
             onMirrorPress={handleAffirmationPress}
             onPersonalityPress={() => navigation.navigate('PersonalityHub')}
+            onShiftsPress={() => navigation.navigate('SoulShifts')}
+            onSignalsPress={() => navigation.navigate('SoulSignals')}
             onSightsPress={() => navigation.navigate('SoulSight')}
           />
         </View>

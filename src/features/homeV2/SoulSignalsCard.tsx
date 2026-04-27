@@ -17,7 +17,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const RING_RADII = [34, 26, 18, 10];
 
-type Props = { theme: Theme };
+type Props = { theme: Theme; onPress?: () => void };
 
 function PulseRing({ baseR, index, stroke }: { baseR: number; index: number; stroke: string }) {
   const t = useSharedValue(0);
@@ -51,7 +51,7 @@ function PulseRing({ baseR, index, stroke }: { baseR: number; index: number; str
   );
 }
 
-export function SoulSignalsCard({ theme }: Props) {
+export function SoulSignalsCard({ theme, onPress }: Props) {
   const isDark = theme === 'dark';
   const ringStroke = isDark ? 'rgba(255,138,76,0.55)' : 'rgba(194,90,31,0.5)';
   const dotColor = isDark ? ORANGE : ORANGE_DEEP;
@@ -61,8 +61,9 @@ export function SoulSignalsCard({ theme }: Props) {
     <CardShell
       theme={theme}
       aspectRatio={1 / 1.25}
-      label="Coming Soon"
+      label="Soul Signals"
       labelColor={dotColor}
+      onPress={onPress}
     >
       {isDark ? (
         <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 100 125">

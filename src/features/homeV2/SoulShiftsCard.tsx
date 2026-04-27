@@ -6,13 +6,13 @@ import { fonts } from '../../theme';
 import { CardShell } from './CardShell';
 import { PURPLE, PURPLE_INK, TEAL_DEEP, Theme } from './tokens';
 
-type Props = { theme: Theme };
+type Props = { theme: Theme; onPress?: () => void };
 
 // 160deg gradient direction in normalized coords
 const GRAD_START = { x: 0.329, y: 0.030 };
 const GRAD_END = { x: 0.671, y: 0.970 };
 
-export function SoulShiftsCard({ theme }: Props) {
+export function SoulShiftsCard({ theme, onPress }: Props) {
   const isDark = theme === 'dark';
   const moonCircleColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(79,23,134,0.12)';
   const moonFill = isDark ? '#F5E1B5' : PURPLE;
@@ -22,8 +22,9 @@ export function SoulShiftsCard({ theme }: Props) {
     <CardShell
       theme={theme}
       aspectRatio={1 / 1.25}
-      label="Coming Soon"
+      label="Soul Shifts"
       labelColor={TEAL_DEEP}
+      onPress={onPress}
     >
       <LinearGradient
         colors={isDark ? ['#0F1A4F', '#050B2A'] : ['#E5F5F6', '#BFE6E9']}
