@@ -1,14 +1,18 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { fonts } from '../theme';
-import {
-  buildGroups,
-  MOCK_SIGNALS,
-  SignalsB,
-  SignalsStatus,
-} from '../features/soulSignals';
+import { buildGroups, SignalsB, SignalsStatus } from '../features/soulSignals';
+import { Signal } from '../features/soulSignals/types';
+import SoulSignalsService from '../services/SoulSignalsService';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
@@ -19,11 +23,24 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const theme = isDarkMode ? 'dark' : 'light';
   const statusOverride: SignalsStatus | undefined = route?.params?.displayStatus;
 
-  // TODO: replace with SoulSignalsService.list() once backend supports the
-  // structured shape (kind/strength/tag/tone/soulpal/fedSight). Pending [ASK].
-  const signals = MOCK_SIGNALS;
-  const groups = buildGroups(signals, 6);
-  const status: SignalsStatus = statusOverride ?? 'done';
+  const [signals, setSignals] = useState<Signal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    SoulSignalsService.list()
+      .then(setSignals)
+      .catch((err) => console.log('[SoulSignals] List fetch error:', err.message))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const groups = useMemo(() => buildGroups(signals, 6), [signals]);
+  const patternsCount = useMemo(
+    () => signals.filter((s) => s.kind === 'pattern').length,
+    [signals],
+  );
+
+  const status: SignalsStatus =
+    statusOverride ?? (signals.length === 0 ? 'listening' : 'done');
 
   const handleOpenJournal = () => navigation.navigate('CreateJournal');
 
@@ -32,14 +49,20 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
 
   return (
     <View style={styles.root}>
-      <SignalsB
-        theme={theme}
-        status={status}
-        groups={groups}
-        eligibility={{ current: 4, needed: 5 }}
-        listeningMeta={{ entries: 9, patterns: 3 }}
-        onOpenJournal={handleOpenJournal}
-      />
+      {isLoading ? (
+        <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
+          <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
+        </View>
+      ) : (
+        <SignalsB
+          theme={theme}
+          status={status}
+          groups={groups}
+          eligibility={{ current: 4, needed: 5 }}
+          listeningMeta={{ entries: signals.length, patterns: patternsCount }}
+          onOpenJournal={handleOpenJournal}
+        />
+      )}
 
       <View style={[styles.backRow, { top: insets.top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
@@ -55,6 +78,11 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#02011A',
+  },
+  loadingShell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backRow: {
     position: 'absolute',

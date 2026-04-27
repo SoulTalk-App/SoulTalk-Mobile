@@ -20,3 +20,18 @@ export const surfaceBg = (t: Theme) =>
   t === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff';
 export const surfaceBorder = (t: Theme) =>
   t === 'dark' ? 'rgba(255,255,255,0.10)' : 'rgba(58,14,102,0.06)';
+
+export const MOOD_HEX: Record<string, string> = {
+  teal: TEAL,
+  pink: PINK,
+  cyan: CYAN,
+  yellow: YELLOW,
+  lilac: LILAC,
+  orange: ORANGE,
+};
+
+export function resolveMood(token: string | null | undefined): string {
+  if (!token) return LILAC;
+  if (token.startsWith('#')) return token;
+  return MOOD_HEX[token.toLowerCase()] ?? LILAC;
+}
