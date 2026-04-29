@@ -13,6 +13,11 @@ import { fonts } from '../theme';
 import { buildGroups, SignalsB, SignalsStatus } from '../features/soulSignals';
 import { Signal } from '../features/soulSignals/types';
 import SoulSignalsService from '../services/SoulSignalsService';
+import SoulSightService from '../services/SoulSightService';
+
+// Matches soul_bar_service.compute_progress on the backend (is_full = entries_since >= 6).
+// Design spec drafted '5 more' approximately; backend is the source of truth.
+const ENTRIES_NEEDED = 6;
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
@@ -24,12 +29,26 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const statusOverride: SignalsStatus | undefined = route?.params?.displayStatus;
 
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [entriesSinceSight, setEntriesSinceSight] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    SoulSignalsService.list()
-      .then(setSignals)
-      .catch((err) => console.log('[SoulSignals] List fetch error:', err.message))
+    Promise.allSettled([
+      SoulSignalsService.list(),
+      SoulSightService.checkEligibility(),
+    ])
+      .then(([sigResult, eligResult]) => {
+        if (sigResult.status === 'fulfilled') {
+          setSignals(sigResult.value);
+        } else {
+          console.log('[SoulSignals] List fetch error:', sigResult.reason?.message);
+        }
+        if (eligResult.status === 'fulfilled') {
+          setEntriesSinceSight(eligResult.value.points ?? 0);
+        } else {
+          console.log('[SoulSignals] Eligibility fetch error:', eligResult.reason?.message);
+        }
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -39,8 +58,15 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     [signals],
   );
 
+  // Precedence: existing signals win — a user mid-cycle with prior signals never re-locks
+  // just because their entries-since-last-sight count reset. Locked is for zero-signal users.
   const status: SignalsStatus =
-    statusOverride ?? (signals.length === 0 ? 'listening' : 'done');
+    statusOverride ??
+    (signals.length > 0
+      ? 'done'
+      : entriesSinceSight < ENTRIES_NEEDED
+        ? 'locked'
+        : 'listening');
 
   const handleOpenJournal = () => navigation.navigate('CreateJournal');
 
@@ -58,8 +84,8 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           theme={theme}
           status={status}
           groups={groups}
-          eligibility={{ current: 4, needed: 5 }}
-          listeningMeta={{ entries: signals.length, patterns: patternsCount }}
+          eligibility={{ current: entriesSinceSight, needed: ENTRIES_NEEDED }}
+          listeningMeta={{ entries: entriesSinceSight, patterns: patternsCount }}
           onOpenJournal={handleOpenJournal}
         />
       )}
