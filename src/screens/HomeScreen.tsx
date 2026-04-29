@@ -22,6 +22,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Polygon } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -32,6 +33,7 @@ import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
 import LottieView from 'lottie-react-native';
+import { ChargeUpGrid } from '../features/homeV2';
 
 const SoulpalLottie = require('../../assets/animations/Soulpal.json');
 
@@ -380,11 +382,6 @@ const HomeScreen = ({ navigation }: any) => {
                     editable={!moodSaved}
                     autoCorrect={false}
                   />
-                  {!moodSaved && moodWord.trim().length > 0 && (
-                    <Pressable onPress={submitMoodWord} style={dk.moodSubmitBtn}>
-                      <Image source={SendIconImg} style={dk.sendIcon} resizeMode="contain" />
-                    </Pressable>
-                  )}
                   {moodSaved && (
                     <Pressable onPress={() => setMoodSaved(false)} style={dk.moodEditBtn}>
                       <Text style={dk.moodEditText}>Edit</Text>
@@ -399,7 +396,11 @@ const HomeScreen = ({ navigation }: any) => {
                 onPress={() => navigation.navigate('CreateJournal')}
               >
                 <Text style={dk.journalPromptText}>Guess what happened today....</Text>
-                <Image source={SendIconImg} style={dk.sendIcon} resizeMode="contain" />
+                <View style={dk.journalSubmitButton}>
+                  <Svg width={14} height={14} viewBox="0 0 14 14">
+                    <Polygon points="3,2 12,7 3,12" fill="#fff" />
+                  </Svg>
+                </View>
               </Pressable>
 
               {/* SoulBar Section */}
@@ -442,51 +443,16 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </GlassCard>
 
-          {/* Goal Garden Card */}
-          <GlassCard intensity="light" style={dk.goalGardenCard}>
-            <View style={dk.goalGardenInner}>
-              <Image source={LockIconDark} style={dk.comingSoonLockLarge} resizeMode="contain" />
-              <Text style={dk.comingSoonText}>Coming Soon</Text>
-            </View>
-          </GlassCard>
-
-          {/* Two Cards Row */}
-          <View style={dk.cardsRow}>
-            {/* Coming Soon Card */}
-            <View style={dk.smallCardWrapper}>
-              <GlassCard intensity="light" style={dk.smallCard}>
-                <View style={dk.smallCardInner}>
-                  <Image
-                    source={LockIconDark}
-                    style={dk.lockIcon}
-                    resizeMode="contain"
-                  />
-                </View>
-              </GlassCard>
-              <View style={dk.cardLabel}>
-                <Text style={dk.cardLabelText}>Coming Soon</Text>
-              </View>
-            </View>
-
-            {/* Affirmation Mirror Card */}
-            <Pressable style={dk.smallCardWrapper} onPress={handleAffirmationPress}>
-              <GlassCard intensity="light" style={dk.smallCard}>
-                <View style={dk.smallCardInner}>
-                  {affirmationLoading ? (
-                    <ActivityIndicator size="large" color="#4DE8D4" />
-                  ) : (
-                    <Image
-                      source={AffirmationMirrorCardDark}
-                      style={dk.affirmationCardImage}
-                      resizeMode="cover"
-                    />
-                  )}
-                </View>
-              </GlassCard>
-              <View style={dk.cardLabel}>
-                <Text style={dk.cardLabelText}>Affirmation Mirror</Text>
-              </View>
-            </Pressable>
+          {/* Charge Up — 5-card grid */}
+          <View style={dk.chargeUpWrap}>
+            <ChargeUpGrid
+              theme="dark"
+              onMirrorPress={handleAffirmationPress}
+              onPersonalityPress={() => navigation.navigate('PersonalityHub')}
+              onShiftsPress={() => navigation.navigate('SoulShifts')}
+              onSignalsPress={() => navigation.navigate('SoulSignals')}
+              onSightsPress={() => navigation.navigate('SoulSight')}
+            />
           </View>
 
           {/* Bottom spacing for tab bar */}
@@ -564,7 +530,8 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Welcome Header Card */}
         <View style={lt.welcomeCard}>
           <View style={lt.headerRow}>
-            <Animated.View style={palAnimStyle}>
+            <Animated.View style={[lt.soulpalAvatarWrap, palAnimStyle]}>
+              <View style={[lt.soulpalGlow, { backgroundColor: soulPalHex }]} />
               <LottieView
                 ref={lottieRef}
                 source={SoulpalLottie}
@@ -587,11 +554,12 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {/* Mood Word Input */}
-          <View style={lt.moodSection}>
+          <View style={lt.moodBarSection}>
+            <Text style={lt.moodBarLabel}>I'm Feeling</Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
-                placeholder="I'm feeling..."
+                placeholder="One word…"
                 placeholderTextColor="rgba(89, 22, 139, 0.35)"
                 value={moodWord}
                 onChangeText={handleMoodChange}
@@ -599,14 +567,8 @@ const HomeScreen = ({ navigation }: any) => {
                 maxLength={50}
                 returnKeyType="done"
                 editable={!moodSaved}
-                textAlign="center"
                 autoCorrect={false}
               />
-              {!moodSaved && moodWord.trim().length > 0 && (
-                <Pressable onPress={submitMoodWord} style={lt.moodSubmitBtn}>
-                  <Image source={SendIconImg} style={lt.sendIcon} resizeMode="contain" />
-                </Pressable>
-              )}
               {moodSaved && (
                 <Pressable onPress={() => setMoodSaved(false)} style={lt.moodEditBtn}>
                   <Text style={lt.moodEditText}>Edit</Text>
@@ -621,7 +583,11 @@ const HomeScreen = ({ navigation }: any) => {
             onPress={() => navigation.navigate('CreateJournal')}
           >
             <Text style={lt.journalPromptText}>Guess what happened today....</Text>
-            <Image source={SendIconImg} style={lt.sendIcon} resizeMode="contain" />
+            <View style={lt.journalSubmitButton}>
+              <Svg width={14} height={14} viewBox="0 0 14 14">
+                <Polygon points="3,2 12,7 3,12" fill="#fff" />
+              </Svg>
+            </View>
           </Pressable>
 
           {/* SoulBar Section */}
@@ -663,45 +629,16 @@ const HomeScreen = ({ navigation }: any) => {
 
         </View>
 
-        {/* Goal Garden Card */}
-        <View style={lt.goalGardenCard}>
-          <Image source={LockIcon} style={lt.comingSoonLockLarge} resizeMode="contain" />
-          <Text style={lt.comingSoonText}>Coming Soon</Text>
-        </View>
-
-        {/* Two Cards Row */}
-        <View style={lt.cardsRow}>
-          {/* Coming Soon Card */}
-          <View style={lt.smallCardWrapper}>
-            <View style={lt.smallCard}>
-              <Image
-                source={LockIcon}
-                style={lt.lockIcon}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={lt.cardLabel}>
-              <Text style={lt.cardLabelText}>Coming Soon</Text>
-            </View>
-          </View>
-
-          {/* Affirmation Mirror Card */}
-          <Pressable style={lt.smallCardWrapper} onPress={handleAffirmationPress}>
-            <View style={lt.smallCard}>
-              {affirmationLoading ? (
-                <ActivityIndicator size="large" color="#59168B" />
-              ) : (
-                <Image
-                  source={AffirmationMirrorCard}
-                  style={lt.affirmationCardImage}
-                  resizeMode="cover"
-                />
-              )}
-            </View>
-            <View style={lt.cardLabel}>
-              <Text style={lt.cardLabelText}>Affirmation Mirror</Text>
-            </View>
-          </Pressable>
+        {/* Charge Up — 5-card grid */}
+        <View style={lt.chargeUpWrap}>
+          <ChargeUpGrid
+            theme="light"
+            onMirrorPress={handleAffirmationPress}
+            onPersonalityPress={() => navigation.navigate('PersonalityHub')}
+            onShiftsPress={() => navigation.navigate('SoulShifts')}
+            onSignalsPress={() => navigation.navigate('SoulSignals')}
+            onSightsPress={() => navigation.navigate('SoulSight')}
+          />
         </View>
 
         {/* Bottom spacing for tab bar */}
@@ -953,6 +890,14 @@ const dk = StyleSheet.create({
     height: 16,
     tintColor: 'rgba(255, 255, 255, 0.75)',
   },
+  journalSubmitButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // SoulBar Card — glass inner card
   soulBarCard: {
@@ -1004,6 +949,11 @@ const dk = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 6,
     textAlign: 'right',
+  },
+
+  // Charge Up grid wrap
+  chargeUpWrap: {
+    marginTop: 16,
   },
 
   // Goal Garden Card
@@ -1166,13 +1116,29 @@ const lt = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  soulpalAvatarWrap: {
+    position: 'relative',
+    width: 56,
+    height: 72,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  soulpalGlow: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    opacity: 0.18,
+    top: 4,
+  },
   soulpalAvatar: {
     width: 64,
     height: 64,
   },
   headerTextSection: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   welcomeText: {
     fontFamily: fonts.edensor.light,
@@ -1193,21 +1159,28 @@ const lt = StyleSheet.create({
   gearIcon: {
     width: 32,
     height: 32,
+    tintColor: 'rgba(255, 255, 255, 0.5)',
   },
 
   // Mood Word Input
-  moodSection: {
-    marginTop: 8,
-    alignItems: 'center',
+  moodBarSection: {
+    marginTop: 10,
+  },
+  moodBarLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
   },
   moodInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 32,
-    width: '60%',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(89, 22, 139, 0.12)',
+    paddingHorizontal: 12,
+    height: 34,
   },
   moodInput: {
     flex: 1,
@@ -1236,13 +1209,21 @@ const lt = StyleSheet.create({
   journalPromptBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    height: 32,
-    marginTop: 6,
-    paddingHorizontal: 14,
-    width: '80%',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(89, 22, 139, 0.12)',
+    height: 34,
+    marginTop: 8,
+    paddingHorizontal: 12,
+  },
+  journalSubmitButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(89, 22, 139, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   soulpalEyesContainer: {
     width: 24,
@@ -1305,6 +1286,11 @@ const lt = StyleSheet.create({
     color: '#59168B',
     marginTop: 6,
     textAlign: 'right',
+  },
+
+  // Charge Up grid wrap
+  chargeUpWrap: {
+    marginTop: 16,
   },
 
   // Goal Garden Card
