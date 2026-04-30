@@ -1,9 +1,12 @@
 /**
  * SoulTalk Color Palette
  * Extracted from Figma design system
+ *
+ * Light is the canonical shape; `darkColors` mirrors every key.
+ * Screens should consume via `useThemeColors()` (see `./useThemeColors`).
  */
 
-export const colors = {
+export const lightColors = {
   // Primary palette (from Figma)
   primary: '#4F1786',      // Deep purple - main brand color
   secondary: '#653495',    // Medium purple - secondary buttons
@@ -63,6 +66,70 @@ export const colors = {
 } as const;
 
 /**
+ * Dark mode palette — mirrors `lightColors` shape exactly.
+ * Values consolidated from inline dark hex tokens previously scattered across
+ * HomeScreen, JournalScreen, JournalEntryScreen, CreateJournalScreen,
+ * AffirmationMirrorScreen, SoulSightScreen, SoulSightDetailScreen,
+ * SettingsScreen, ProfileScreen, HelpScreen.
+ */
+export const darkColors: typeof lightColors = {
+  primary: '#4DE8D4',      // Teal — dark-mode brand accent
+  secondary: '#70CACF',    // Soft teal
+  background: '#0A0A14',   // Deep space (matches createGradient base)
+
+  text: {
+    primary: '#FFFFFF',
+    secondary: 'rgba(255, 255, 255, 0.7)',
+    dark: '#FFFFFF',                          // Titles invert to white on dark
+    light: 'rgba(255, 255, 255, 0.5)',
+    white: '#FFFFFF',
+  },
+
+  white: '#FFFFFF',
+  black: '#000000',
+  border: 'rgba(255, 255, 255, 0.15)',
+  inputBorder: 'rgba(255, 255, 255, 0.2)',
+
+  accent: {
+    pink: '#E93678',
+    cyan: '#7DF0FF',
+    teal: '#4DE8D4',
+    orange: '#FF9E55',
+    yellow: '#FFD757',
+    magenta: '#D35CFF',
+  },
+
+  button: {
+    primary: 'rgba(77, 232, 212, 0.15)',      // Translucent teal pill
+    primaryText: '#4DE8D4',
+    secondary: '#4DE8D4',
+    secondaryText: '#0A0A14',
+    disabled: 'rgba(255, 255, 255, 0.2)',
+    pressed: 'rgba(77, 232, 212, 0.25)',
+    primaryPressed: 'rgba(77, 232, 212, 0.35)',
+  },
+
+  dots: {
+    active: '#4DE8D4',
+    inactive: 'rgba(255, 255, 255, 0.2)',
+    inactiveBorder: 'rgba(255, 255, 255, 0.3)',
+  },
+
+  success: '#4CAF50',
+  error: '#FF5E5E',
+  warning: '#FF9800',
+
+  overlay: 'rgba(255, 255, 255, 0.1)',
+  overlayDark: 'rgba(0, 0, 0, 0.7)',
+} as const;
+
+/**
+ * @deprecated Import `lightColors`/`darkColors` directly, or use `useThemeColors()`.
+ * Retained as a back-compat alias so partial migrations don't break.
+ */
+export const colors = lightColors;
+
+/**
  * Screen-specific mood gradients & glass surface tokens
  * Liquid Glass design language — dark-mode first
  */
@@ -114,5 +181,5 @@ export const surfaces = {
   },
 } as const;
 
-export type Colors = typeof colors;
+export type Colors = typeof lightColors;
 export type Surfaces = typeof surfaces;
