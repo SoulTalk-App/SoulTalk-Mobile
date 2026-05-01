@@ -11,9 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts, surfaces, useThemeColors } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -22,17 +21,9 @@ import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 import SoulPalAnimated from '../components/SoulPalAnimated';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
-
-// Star field (dark mode only)
-const CREATE_STARS = Array.from({ length: 30 }, (_, i) => ({
-  left: ((i * 43 + 17) % 100),
-  top: ((i * 61 + 9) % 100),
-  size: i < 2 ? 2.5 : (i % 4 === 0) ? 1.8 : 1,
-  opacity: i < 2 ? 0.45 : (0.08 + (i % 5) * 0.07),
-}));
-
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -46,9 +37,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         flex: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
-        planet: { position: 'absolute', width: 110, height: 110, borderRadius: 999, overflow: 'hidden', bottom: 120, left: -30, borderWidth: 1, borderColor: 'rgba(34, 34, 64, 0.15)' },
-        planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
-        planetHighlight: { position: 'absolute', top: '18%', left: '22%', width: 10, height: 10, borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.15)' },
         headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
         backIcon: { width: 32, height: 32 },
         headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.text.primary },
@@ -71,7 +59,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
         backIcon: { width: 36, height: 36 },
-        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
+        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
         textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: '#333333' },
         bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
@@ -190,39 +179,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // ════════════════════════════════════════
   if (isDarkMode) {
     return (
-      <LinearGradient
-        colors={[...surfaces.createGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dkS.container}
-      >
-        {/* Star field + planet backdrop */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {CREATE_STARS.map((s, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${s.left}%` as any,
-                top: `${s.top}%` as any,
-                width: s.size,
-                height: s.size,
-                borderRadius: s.size,
-                backgroundColor: '#FFFFFF',
-                opacity: s.opacity,
-              }}
-            />
-          ))}
-          <View style={dkS.planet}>
-            <LinearGradient
-              colors={['rgba(34, 34, 64, 0.35)', 'rgba(34, 34, 64, 0.08)', 'rgba(0, 0, 0, 0.2)']}
-              start={{ x: 0.2, y: 0.15 }}
-              end={{ x: 0.9, y: 0.85 }}
-              style={dkS.planetFill}
-            />
-            <View style={dkS.planetHighlight} />
-          </View>
-        </View>
-
+      <CosmicScreen tone="dawn">
         <KeyboardAvoidingView style={dkS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[dkS.content, { paddingTop: insets.top + 16 }]}>
             <View style={dkS.headerRow}>
@@ -268,7 +225,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </KeyboardAvoidingView>
         <SaveAnimation visible={showSaveAnimation} onComplete={handleSaveAnimationComplete} />
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
@@ -276,11 +233,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // LIGHT MODE
   // ════════════════════════════════════════
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#59168B']}
-      locations={[0, 0.5, 1]}
-      style={ltS.container}
-    >
+    <CosmicScreen tone="dawn">
       <KeyboardAvoidingView style={ltS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[ltS.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={ltS.backRow} onPress={() => navigation.goBack()}>
@@ -323,7 +276,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         </View>
       </KeyboardAvoidingView>
       <SaveAnimation visible={showSaveAnimation} onComplete={handleSaveAnimationComplete} />
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 

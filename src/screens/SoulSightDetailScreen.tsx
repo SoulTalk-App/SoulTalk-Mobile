@@ -8,6 +8,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useThemeColors } from '../theme';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, { SoulsightDetail } from '../services/SoulSightService';
 import { SightsB, SightDetail, SightStatus, SoulpalVariant } from '../features/soulSightsB';
 
@@ -100,11 +101,6 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: {
-          flex: 1,
-          // TODO(theme): map '#02011A' to palette key (sights detail near-black)
-          backgroundColor: '#02011A',
-        },
         loadingShell: {
           flex: 1,
           alignItems: 'center',
@@ -178,7 +174,7 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <View style={styles.root}>
+    <CosmicScreen tone="dawn">
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
           {/* TODO(theme): map '#3A0E66' (light deep purple) to palette key */}
@@ -202,7 +198,7 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           isArchiving={isArchiving}
         />
       )}
-    </View>
+    </CosmicScreen>
   );
 };
 

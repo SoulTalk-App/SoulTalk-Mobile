@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Alert, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,8 +13,8 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { welcomeContent } from '../mocks/content';
 import { fonts, useThemeColors } from '../theme';
-import { resetOnboarding } from '../utils/resetOnboarding';
 import { SpringConfigs, TimingConfigs, AnimationValues, ScreenAnimations } from '../animations/constants';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const SoultalkLogo = require('../../assets/images/logo/SoultalkLogo.png');
 
@@ -94,7 +94,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
         },
         content: {
           flex: 1,
@@ -123,15 +122,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
           alignItems: 'center',
           paddingHorizontal: 24,
           gap: 12,
-        },
-        devButton: {
-          marginTop: 20,
-          padding: 10,
-        },
-        devButtonText: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 12,
-          color: colors.error,
         },
       }),
     [colors]
@@ -201,49 +191,38 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     navigation.navigate('Login');
   };
 
-  // DEV only
-  const handleResetOnboarding = async () => {
-    await resetOnboarding();
-    Alert.alert('Reset', 'Onboarding reset. Reload the app.');
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo and Tagline Section */}
-        <View style={styles.centerSection}>
-          <Animated.Image
-            source={SoultalkLogo}
-            style={[styles.logo, logoStyle]}
-            resizeMode="contain"
-          />
-          <Animated.Text style={[styles.tagline, taglineStyle]}>
-            {welcomeContent.tagline}
-          </Animated.Text>
+    <CosmicScreen tone="night">
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          {/* Logo and Tagline Section */}
+          <View style={styles.centerSection}>
+            <Animated.Image
+              source={SoultalkLogo}
+              style={[styles.logo, logoStyle]}
+              resizeMode="contain"
+            />
+            <Animated.Text style={[styles.tagline, taglineStyle]}>
+              {welcomeContent.tagline}
+            </Animated.Text>
+          </View>
+
+          {/* Buttons Section */}
+          <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
+            <WelcomeButton
+              title={welcomeContent.primaryButton}
+              variant="primary"
+              onPress={handleGetStarted}
+            />
+            <WelcomeButton
+              title={welcomeContent.secondaryButton}
+              variant="secondary"
+              onPress={handleHaveAccount}
+            />
+          </Animated.View>
         </View>
-
-        {/* Buttons Section */}
-        <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
-          <WelcomeButton
-            title={welcomeContent.primaryButton}
-            variant="primary"
-            onPress={handleGetStarted}
-          />
-          <WelcomeButton
-            title={welcomeContent.secondaryButton}
-            variant="secondary"
-            onPress={handleHaveAccount}
-          />
-
-          {/* DEV Button */}
-          {__DEV__ && (
-            <Pressable style={styles.devButton} onPress={handleResetOnboarding}>
-              <Text style={styles.devButtonText}>DEV: Reset Onboarding</Text>
-            </Pressable>
-          )}
-        </Animated.View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </CosmicScreen>
   );
 };
 

@@ -13,6 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -24,6 +26,7 @@ interface WelcomeSplashScreenProps {
 
 const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -41,7 +44,6 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: '#59168B',
         },
         keyboardView: {
           flex: 1,
@@ -60,17 +62,18 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
           alignItems: 'center',
           paddingHorizontal: 20,
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         welcomeToText: {
           fontFamily: fonts.outfit.light,
           fontSize: 48,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           lineHeight: 48 * 1.2,
         },
         soulTalkText: {
           fontFamily: fonts.edensor.regular,
           fontSize: 56,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           lineHeight: 56 * 1.1,
           marginTop: 8, // Gap between "Welcome to" and "SoulTalk"
@@ -83,7 +86,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
         question: {
           fontFamily: fonts.outfit.light,
           fontSize: 15,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           marginBottom: 20,
           lineHeight: 15 * 1.26,
@@ -124,7 +127,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
           height: 22,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   useEffect(() => {
@@ -188,7 +191,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
   };
 
   return (
-    <View style={styles.container}>
+    <CosmicScreen tone="night">
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -267,7 +270,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
           </View>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </CosmicScreen>
   );
 };
 

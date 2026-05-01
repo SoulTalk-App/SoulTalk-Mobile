@@ -203,11 +203,6 @@ class JournalService {
     return response.data;
   }
 
-  async getPrompts(): Promise<string[]> {
-    const response = await this.axiosInstance.get('/prompts/');
-    return response.data.prompts;
-  }
-
   async getAIPreferences(): Promise<{
     main_focus: string | null;
     tone_preference: string;

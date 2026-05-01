@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -22,6 +24,7 @@ const RESEND_COOLDOWN_SECONDS = 60;
 
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const { email } = route.params;
   const { verifyOTP, resendVerificationEmail } = useAuth();
 
@@ -36,7 +39,6 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.primary,
         },
         content: {
           flex: 1,
@@ -44,17 +46,18 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
           alignItems: 'center',
           paddingHorizontal: 24,
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         title: {
           fontFamily: fonts.edensor.bold,
           fontSize: 28,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           marginBottom: 12,
         },
         subtitle: {
           fontFamily: fonts.outfit.regular,
           fontSize: 16,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           opacity: 0.9,
           marginBottom: 40,
@@ -69,8 +72,11 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
           width: 50,
           height: 60,
           borderRadius: 12,
-          backgroundColor: colors.white,
-          color: colors.primary,
+          // Theme-aware surface (so-iao).
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : 'transparent',
+          color: isDarkMode ? colors.white : colors.primary,
           fontFamily: fonts.outfit.bold,
           fontSize: 24,
           textAlign: 'center',
@@ -85,7 +91,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
         resendText: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 16,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textDecorationLine: 'underline',
           marginBottom: 40,
         },
@@ -110,7 +116,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
           color: colors.primary,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   // Resend cooldown timer
@@ -179,8 +185,9 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
   const isComplete = otp.every((digit) => digit !== '');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <CosmicScreen tone="night">
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
         <Text style={styles.title}>Verify Your Email</Text>
 
         <Text style={styles.subtitle}>
@@ -225,8 +232,9 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
             <Text style={styles.buttonText}>Confirm</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </CosmicScreen>
   );
 };
 

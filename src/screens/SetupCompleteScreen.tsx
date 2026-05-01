@@ -8,6 +8,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 interface SetupCompleteScreenProps {
   navigation: any;
@@ -17,13 +19,13 @@ const SETUP_COMPLETE_KEY = '@soultalk_setup_complete';
 
 const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: '#59168B',
         },
         content: {
           flex: 1,
@@ -31,10 +33,11 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
           alignItems: 'center',
           paddingBottom: 80,
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         title: {
           fontFamily: fonts.outfit.light,
           fontSize: 48,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           lineHeight: 48 * 1.26,
           paddingHorizontal: 40,
@@ -42,14 +45,14 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
         subtitle: {
           fontFamily: fonts.outfit.light,
           fontSize: 15,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           lineHeight: 15 * 1.26,
           marginTop: 30,
           paddingHorizontal: 35,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   const titleOpacity = useSharedValue(0);
@@ -89,7 +92,7 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
   }));
 
   return (
-    <View style={styles.container}>
+    <CosmicScreen tone="night">
       <View style={styles.content}>
         {/* Title */}
         <Animated.Text style={[styles.title, titleAnimatedStyle]}>
@@ -101,7 +104,7 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
           Let's get started on your journey.
         </Animated.Text>
       </View>
-    </View>
+    </CosmicScreen>
   );
 };
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 import {
   ShiftsA,
   ShiftsDetailModal,
@@ -9,6 +10,8 @@ import {
   TendToast,
   StageAdvance,
   ReleaseModal,
+  SnoozeModal,
+  IntegratedModal,
   SuggestModal,
 } from '../features/soulShifts';
 import {
@@ -50,6 +53,12 @@ const SoulShiftsScreen = ({ navigation }: any) => {
   // Release flow (so-7hw).
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [releaseSubmitting, setReleaseSubmitting] = useState(false);
+
+  // Snooze + Integrated full-modal flows (so-y4p).
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const [snoozeSubmitting, setSnoozeSubmitting] = useState(false);
+  const [integratedOpen, setIntegratedOpen] = useState(false);
+  const [integratedSubmitting, setIntegratedSubmitting] = useState(false);
 
   // Suggest flow (so-pjv).
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -136,38 +145,32 @@ const SoulShiftsScreen = ({ navigation }: any) => {
 
   const handleOpenSnooze = () => {
     if (!detail) return;
-
-    const submit = async (untilDate: Date) => {
-      try {
-        const updated = await SoulShiftsService.snooze(detail.id, untilDate);
-        // Default GET hides snoozed shifts (be_core so-trc), so the row
-        // drops out of the visible list. Mirror that locally.
-        setShifts((prev) => prev.filter((s) => s.id !== updated.id));
-        handleClose();
-      } catch (err: any) {
-        console.log('[SoulShifts] Snooze error:', err?.message);
-      }
-    };
-
-    const addDays = (n: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() + n);
-      return d;
-    };
-
-    Alert.alert(
-      'Snooze this shift',
-      'It’ll disappear from your list and reappear when the snooze ends.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: '1 day', onPress: () => submit(addDays(1)) },
-        { text: '1 week', onPress: () => submit(addDays(7)) },
-        { text: '1 month', onPress: () => submit(addDays(30)) },
-      ],
-    );
+    setSnoozeOpen(true);
   };
 
-  const handleMarkIntegrated = () => {
+  const handleConfirmSnooze = async (until: Date) => {
+    if (!detail) return;
+    setSnoozeSubmitting(true);
+    try {
+      const updated = await SoulShiftsService.snooze(detail.id, until);
+      // Default GET hides snoozed shifts (be_core so-trc), so the row drops
+      // out of the visible list. Mirror that locally.
+      setShifts((prev) => prev.filter((s) => s.id !== updated.id));
+      setSnoozeOpen(false);
+      handleClose();
+    } catch (err: any) {
+      console.log('[SoulShifts] Snooze error:', err?.message);
+    } finally {
+      setSnoozeSubmitting(false);
+    }
+  };
+
+  const handleOpenIntegrated = () => {
+    if (!detail) return;
+    setIntegratedOpen(true);
+  };
+
+  const handleConfirmIntegrated = async () => {
     if (!detail) return;
     // Stage thresholds (so-c0y): 0 / 0.25 / 0.5 / 0.75 → notice / practice /
     // embody / integrate. Capture prevStage from current pct so the
@@ -175,34 +178,27 @@ const SoulShiftsScreen = ({ navigation }: any) => {
     const prevStage =
       detail.pct >= 0.75 ? 3 : detail.pct >= 0.5 ? 2 : detail.pct >= 0.25 ? 1 : 0;
 
-    const submit = async () => {
-      try {
-        const updated = await SoulShiftsService.markIntegrated(detail.id);
-        const updatedDetail: ShiftDetail = { ...detail, ...updated };
-        setShifts((prev) =>
-          prev.map((s) => (s.id === updated.id ? updated : s)),
-        );
-        setDetail(updatedDetail);
-        if (prevStage < 3) {
-          setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
-        } else {
-          // Already at integrate stage — just close the detail so the user
-          // sees the list-level reflection of the new status.
-          handleClose();
-        }
-      } catch (err: any) {
-        console.log('[SoulShifts] markIntegrated error:', err?.message);
+    setIntegratedSubmitting(true);
+    try {
+      const updated = await SoulShiftsService.markIntegrated(detail.id);
+      const updatedDetail: ShiftDetail = { ...detail, ...updated };
+      setShifts((prev) =>
+        prev.map((s) => (s.id === updated.id ? updated : s)),
+      );
+      setDetail(updatedDetail);
+      setIntegratedOpen(false);
+      if (prevStage < 3) {
+        setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
+      } else {
+        // Already at integrate stage — just close the detail so the user
+        // sees the list-level reflection of the new status.
+        handleClose();
       }
-    };
-
-    Alert.alert(
-      'Mark this shift integrated?',
-      'It’ll move to the Integrated bucket and stop nudging you to tend it. You can keep tending it any time.',
-      [
-        { text: 'Not yet', style: 'cancel' },
-        { text: 'Mark integrated', style: 'default', onPress: submit },
-      ],
-    );
+    } catch (err: any) {
+      console.log('[SoulShifts] markIntegrated error:', err?.message);
+    } finally {
+      setIntegratedSubmitting(false);
+    }
   };
 
   const handleConfirmRelease = async (reason?: string) => {
@@ -291,7 +287,7 @@ const SoulShiftsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.root}>
+    <CosmicScreen tone="dawn">
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
@@ -309,14 +305,19 @@ const SoulShiftsScreen = ({ navigation }: any) => {
 
       <ShiftsDetailModal
         visible={
-          selectedId != null && !tendOpen && !releaseOpen && advance == null
+          selectedId != null &&
+          !tendOpen &&
+          !releaseOpen &&
+          !snoozeOpen &&
+          !integratedOpen &&
+          advance == null
         }
         detail={detail}
         theme={theme}
         onClose={handleClose}
         onTend={handleOpenTend}
         onRelease={handleOpenRelease}
-        onIntegrated={handleMarkIntegrated}
+        onIntegrated={handleOpenIntegrated}
         onSnooze={handleOpenSnooze}
       />
 
@@ -327,6 +328,24 @@ const SoulShiftsScreen = ({ navigation }: any) => {
         onClose={() => setReleaseOpen(false)}
         onConfirm={handleConfirmRelease}
         submitting={releaseSubmitting}
+      />
+
+      <SnoozeModal
+        visible={snoozeOpen}
+        detail={detail}
+        theme={theme}
+        onClose={() => setSnoozeOpen(false)}
+        onConfirm={handleConfirmSnooze}
+        submitting={snoozeSubmitting}
+      />
+
+      <IntegratedModal
+        visible={integratedOpen}
+        detail={detail}
+        theme={theme}
+        onClose={() => setIntegratedOpen(false)}
+        onConfirm={handleConfirmIntegrated}
+        submitting={integratedSubmitting}
       />
 
       <SuggestModal
@@ -383,15 +402,11 @@ const SoulShiftsScreen = ({ navigation }: any) => {
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} />
         </View>
       ) : null}
-    </View>
+    </CosmicScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#02011A',
-  },
   loadingShell: {
     flex: 1,
     alignItems: 'center',

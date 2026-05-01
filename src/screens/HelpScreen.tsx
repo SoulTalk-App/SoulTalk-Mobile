@@ -10,9 +10,9 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { fonts, surfaces, useThemeColors } from '../theme';
+import { fonts, useThemeColors } from '../theme';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService from '../services/JournalService';
 
@@ -102,27 +102,25 @@ const HelpScreen = ({ navigation }: any) => {
         // Themed
         container: {
           flex: 1,
-          // TODO: light-mode solid purple bg has no palette key; preserved as-is for visual identity.
-          backgroundColor: isDarkMode ? 'transparent' : '#59168B',
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         headerTitle: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 24,
           lineHeight: 24 * 1.26,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         introText: {
           fontFamily: fonts.outfit.regular,
           fontSize: 15,
           lineHeight: 22,
-          // Visual: light = 0.8 opacity white on purple, dark = 0.65 on space bg
-          color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.8)',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(58, 14, 102, 0.85)',
           marginBottom: 24,
         },
         sectionTitle: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 18,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           marginBottom: 12,
         },
         resourceCard: {
@@ -153,13 +151,13 @@ const HelpScreen = ({ navigation }: any) => {
         resourceName: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 15,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           marginBottom: 2,
         },
         resourceDesc: {
           fontFamily: fonts.outfit.regular,
           fontSize: 12,
-          color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.75)',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(58, 14, 102, 0.7)',
           lineHeight: 17,
           marginBottom: 4,
         },
@@ -174,7 +172,7 @@ const HelpScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.regular,
           fontSize: 15,
           lineHeight: 22,
-          color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(58, 14, 102, 0.7)',
           textAlign: 'center',
           marginTop: 30,
         },
@@ -182,22 +180,13 @@ const HelpScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.regular,
           fontSize: 11,
           lineHeight: 16,
-          color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(58, 14, 102, 0.55)',
           textAlign: 'center',
           marginTop: 8,
         },
       }),
     [colors, isDarkMode],
   );
-
-  const Wrapper = isDarkMode ? LinearGradient : View;
-  const wrapperProps = isDarkMode
-    ? {
-        colors: [...surfaces.profileGradient],
-        locations: [0, 0.3, 0.65, 1] as number[],
-        style: [styles.container, { paddingTop: insets.top + 10 }],
-      }
-    : { style: [styles.container, { paddingTop: insets.top + 10 }] };
 
   const renderResource = (resource: CrisisResource) => {
     const iconName = CONTACT_ICONS[resource.contact_type] || 'help-circle-outline';
@@ -212,7 +201,7 @@ const HelpScreen = ({ navigation }: any) => {
           <Ionicons
             name={iconName}
             size={22}
-            color={isDarkMode ? colors.primary : colors.white}
+            color={isDarkMode ? colors.primary : colors.text.primary}
           />
         </View>
         <View style={styles.resourceInfo}>
@@ -231,7 +220,8 @@ const HelpScreen = ({ navigation }: any) => {
   };
 
   return (
-    <Wrapper {...(wrapperProps as any)}>
+    <CosmicScreen tone="void">
+      <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 30 }]}
@@ -253,7 +243,7 @@ const HelpScreen = ({ navigation }: any) => {
         {loading ? (
           <ActivityIndicator
             size="large"
-            color={isDarkMode ? colors.primary : colors.white}
+            color={isDarkMode ? colors.primary : colors.text.primary}
             style={styles.loader}
           />
         ) : (
@@ -296,7 +286,7 @@ const HelpScreen = ({ navigation }: any) => {
                   <Ionicons
                     name="mail-outline"
                     size={22}
-                    color={isDarkMode ? colors.primary : colors.white}
+                    color={isDarkMode ? colors.primary : colors.text.primary}
                   />
                 </View>
                 <View style={styles.resourceInfo}>
@@ -322,7 +312,8 @@ const HelpScreen = ({ navigation }: any) => {
           </>
         )}
       </ScrollView>
-    </Wrapper>
+      </View>
+    </CosmicScreen>
   );
 };
 

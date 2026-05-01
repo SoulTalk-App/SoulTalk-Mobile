@@ -20,6 +20,7 @@ import { privacyPolicy, termsOfService } from "../mocks/content";
 import { fonts, useThemeColors } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
+import { CosmicScreen } from "../components/CosmicBackdrop";
 
 type LegalTab = 'privacy' | 'terms';
 
@@ -40,7 +41,6 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.background,
         },
         header: {
           paddingHorizontal: 24,
@@ -237,7 +237,8 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
   const currentDoc = activeTab === 'privacy' ? privacyPolicy : termsOfService;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <CosmicScreen tone="void">
+      <View style={[styles.container, { paddingTop: insets.top }]}>
       <Animated.View style={[styles.header, headerStyle]}>
         <AnimatedPressable
           style={[styles.backButton, backButtonStyle]}
@@ -300,7 +301,8 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           </AnimatedPressable>
         </View>
       </Animated.View>
-    </View>
+      </View>
+    </CosmicScreen>
   );
 };
 

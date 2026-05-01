@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 import {
   buildGroups,
   ResonanceToast,
@@ -275,7 +276,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   };
 
   return (
-    <View style={styles.root}>
+    <CosmicScreen tone="dawn">
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
@@ -341,15 +342,11 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         theme={theme}
         onDismiss={() => setResonanceToastVisible(false)}
       />
-    </View>
+    </CosmicScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#02011A',
-  },
   loadingShell: {
     flex: 1,
     alignItems: 'center',

@@ -24,8 +24,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
@@ -108,6 +109,7 @@ interface SlideContentProps {
 // ============================================
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayIndices, setDisplayIndices] = useState<[number, number]>([0, -1]); // [current, outgoing]
@@ -144,10 +146,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           flexDirection: 'row',
           flexWrap: 'wrap',
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         titleStart: {
           fontFamily: fonts.edensor.medium,
           fontSize: 30,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         titleHighlight: {
           fontFamily: fonts.edensor.medium,
@@ -264,20 +267,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         tagline: {
           fontFamily: fonts.outfit.light,
           fontSize: 16,
-          color: 'rgba(255,255,255,0.7)',
+          color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(58, 14, 102, 0.78)',
           textAlign: 'center',
           lineHeight: 24,
           paddingHorizontal: 10,
           marginBottom: 40,
         },
         bottomBar: {
-          backgroundColor: colors.primary,
+          // Dark: translucent deep-cosmic so the CosmicScreen night atmosphere
+          // reads through; light: keep brand-purple pill (existing design).
+          backgroundColor: isDarkMode ? 'rgba(15,8,32,0.78)' : colors.primary,
           borderTopLeftRadius: 32,
           borderTopRightRadius: 32,
           paddingTop: 18,
           paddingHorizontal: 20,
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.15)',
+          borderTopColor: isDarkMode
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(255,255,255,0.15)',
         },
         navigationRow: {
           flexDirection: 'row',
@@ -294,14 +301,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           width: 50,
           height: 50,
           borderRadius: 25,
-          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          // Dark: frosted-glass disc with subtle stroke so it doesn't read as
+          // a flat teal/cream chip pasted from light. Light unchanged.
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(255, 255, 255, 0.2)',
+          borderWidth: isDarkMode ? 1 : 0,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.18)' : 'transparent',
           justifyContent: 'center',
           alignItems: 'center',
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
+          shadowOpacity: isDarkMode ? 0 : 0.1,
           shadowRadius: 4,
-          elevation: 3,
+          elevation: isDarkMode ? 0 : 3,
         },
         dotsContainer: {
           flexDirection: 'row',
@@ -327,7 +340,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           backgroundColor: colors.white,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   // ============================================
@@ -397,7 +410,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           disabled={disabled}
           style={[styles.nextButton, animatedStyle]}
         >
-          <Ionicons name="chevron-forward" size={22} color={colors.primary} />
+          <Ionicons
+            name="chevron-forward"
+            size={22}
+            color={isDarkMode ? colors.white : colors.primary}
+          />
         </AnimatedPressable>
       );
     }
@@ -877,12 +894,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slidesToRender = displayIndices.filter(i => i >= 0);
 
   return (
-    <LinearGradient
-      colors={['#1A0A2E', '#2D1050', '#4F1786']}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={styles.container}
-    >
+    <CosmicScreen tone="night">
       {/* Main Content Area */}
       <View style={styles.contentArea}>
         <GestureDetector gesture={panGesture}>
@@ -927,7 +939,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           <NavArrow direction="right" onPress={handleNext} />
         </View>
       </View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 

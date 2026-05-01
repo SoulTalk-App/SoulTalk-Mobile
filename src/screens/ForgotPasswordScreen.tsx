@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -21,6 +23,7 @@ interface ForgotPasswordScreenProps {
 
 const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -34,7 +37,6 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.primary,
         },
         keyboardView: {
           flex: 1,
@@ -52,17 +54,18 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         iconContainer: {
           marginBottom: 30,
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         title: {
           fontFamily: fonts.edensor.bold,
           fontSize: 32,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           marginBottom: 16,
         },
         subtitle: {
           fontFamily: fonts.outfit.regular,
           fontSize: 16,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           lineHeight: 24,
           opacity: 0.9,
@@ -70,7 +73,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         },
         emailText: {
           fontFamily: fonts.outfit.semiBold,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         infoBox: {
           flexDirection: 'row',
@@ -87,7 +90,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         infoText: {
           fontFamily: fonts.outfit.regular,
           fontSize: 14,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           opacity: 0.8,
           flex: 1,
         },
@@ -95,16 +98,17 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1.5,
-          borderColor: 'rgba(255, 255, 255, 0.3)',
+          // Theme-aware surface (so-iao).
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.10)',
           borderRadius: 12,
           marginBottom: 16,
           paddingHorizontal: 12,
           height: 56,
-          backgroundColor: colors.white,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
           width: '100%',
         },
         inputContainerFocused: {
-          borderColor: colors.white,
+          borderColor: isDarkMode ? colors.white : colors.primary,
           borderWidth: 2,
         },
         inputIcon: {
@@ -163,7 +167,8 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           justifyContent: 'center',
           backgroundColor: 'transparent',
           borderWidth: 2,
-          borderColor: colors.white,
+          // Light path: ink border for AA on the so-u1k lavender wash.
+          borderColor: isDarkMode ? colors.white : colors.text.primary,
           borderRadius: 12,
           paddingVertical: 14,
           paddingHorizontal: 24,
@@ -172,11 +177,11 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         loginButtonText: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 16,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           marginLeft: 8,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   const validateEmail = (value: string) => {
@@ -230,10 +235,11 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 
   if (emailSent) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
+      <CosmicScreen tone="night">
+        <SafeAreaView style={styles.container}>
+          <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={80} color={colors.white} />
+            <Ionicons name="mail-outline" size={80} color={isDarkMode ? colors.white : colors.text.primary} />
           </View>
 
           <Text style={styles.title}>Check Your Email</Text>
@@ -246,7 +252,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           </Text>
 
           <View style={styles.infoBox}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.white} style={styles.infoIcon} />
+            <Ionicons name="information-circle-outline" size={20} color={isDarkMode ? colors.white : colors.text.primary} style={styles.infoIcon} />
             <Text style={styles.infoText}>
               If you don't see the email, check your spam folder
             </Text>
@@ -264,27 +270,29 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             style={styles.loginButton}
             onPress={handleBackToLogin}
           >
-            <Ionicons name="arrow-back-outline" size={20} color={colors.white} />
+            <Ionicons name="arrow-back-outline" size={20} color={isDarkMode ? colors.white : colors.text.primary} />
             <Text style={styles.loginButtonText}>Back to Login</Text>
           </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+          </View>
+        </SafeAreaView>
+      </CosmicScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+    <CosmicScreen tone="night">
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity style={styles.backButton} onPress={handleBackToLogin}>
-          <Ionicons name="chevron-back" size={24} color={colors.white} />
+          <Ionicons name="chevron-back" size={24} color={isDarkMode ? colors.white : colors.text.primary} />
         </TouchableOpacity>
 
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons name="key-outline" size={80} color={colors.white} />
+            <Ionicons name="key-outline" size={80} color={isDarkMode ? colors.white : colors.text.primary} />
           </View>
 
           <Text style={styles.title}>Forgot Password?</Text>
@@ -328,7 +336,8 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </CosmicScreen>
   );
 };
 

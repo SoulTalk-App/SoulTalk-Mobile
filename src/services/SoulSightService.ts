@@ -31,6 +31,14 @@ export interface SoulsightSummary {
   entry_count: number;
   active_days: number;
   created_at: string | null;
+  // Optional fields per [ASK] to be_core (so-ry4 companion). FE renders
+  // safe fallbacks until the list endpoint surfaces them. Bead spec:
+  // id, title, headline, soulpal, window_start, window_end, status,
+  // content_preview.
+  title?: string | null;
+  headline?: string | null;
+  soulpal?: 1 | 2 | 3 | 4 | 5 | null;
+  content_preview?: string | null;
 }
 
 export interface SoulsightListResponse {
@@ -143,7 +151,12 @@ class SoulSightService {
   }
 
   async list(limit: number = 10, offset: number = 0): Promise<SoulsightListResponse> {
-    const response = await this.axiosInstance.get('/soulsights', {
+    // Trailing slash required (so-rnk): FastAPI's auto-redirect for the
+    // collection route returns a 307 with an http:// Location because
+    // uvicorn isn't honoring X-Forwarded-Proto. Hitting the canonical
+    // path directly skips the redirect entirely. The infra-side fix is
+    // tracked in so-6dq.
+    const response = await this.axiosInstance.get('/soulsights/', {
       params: { limit, offset },
     });
     return response.data;

@@ -17,7 +17,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
-  withDelay,
   withRepeat,
   Easing,
 } from 'react-native-reanimated';
@@ -26,20 +25,13 @@ import Svg, { Path, Rect, Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { fonts, surfaces, useThemeColors } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
-import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
+import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { ChargeUpGrid } from '../features/homeV2';
-
-// Star field — deterministic positions seeded once
-const STARS = Array.from({ length: 45 }, (_, i) => ({
-  left: ((i * 37 + 13) % 100),
-  top: ((i * 53 + 7) % 100),
-  size: i < 3 ? 2.5 : (i % 3 === 0) ? 2 : 1,
-  opacity: i < 3 ? 0.55 : (0.12 + (i % 5) * 0.1),
-}));
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -80,7 +72,7 @@ const HomeScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { homeImage, bodyImage, colorId } = useSoulPal();
-  const soulPalHex = SOULPAL_COLORS.find(c => c.id === colorId)?.hex ?? '#70CACF';
+  const soulPalHex = getSoulPalHex(colorId, isDarkMode);
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [moodWord, setMoodWord] = useState('');
@@ -104,57 +96,6 @@ const HomeScreen = ({ navigation }: any) => {
         },
         scrollContent: {
           paddingHorizontal: CARD_HORIZONTAL_MARGIN,
-        },
-
-        // Planets
-        orb: {
-          position: 'absolute',
-          borderRadius: 999,
-          overflow: 'hidden',
-        },
-        orb1: {
-          width: 160,
-          height: 160,
-          top: 80,
-          right: -40,
-          borderWidth: 1,
-          borderColor: 'rgba(112, 202, 207, 0.12)',
-        },
-        orb2: {
-          width: 120,
-          height: 120,
-          top: 480,
-          left: -30,
-          borderWidth: 1,
-          borderColor: 'rgba(123, 104, 238, 0.10)',
-        },
-        orb3: {
-          width: 90,
-          height: 90,
-          bottom: 200,
-          right: -20,
-          borderWidth: 1,
-          borderColor: 'rgba(155, 89, 182, 0.08)',
-        },
-        planetFill: {
-          ...StyleSheet.absoluteFillObject,
-          borderRadius: 999,
-        },
-        planetHighlight: {
-          position: 'absolute',
-          borderRadius: 999,
-          backgroundColor: 'rgba(255, 255, 255, 0.18)',
-        },
-        planetRing: {
-          position: 'absolute',
-          width: '170%',
-          height: 18,
-          top: '46%',
-          left: '-35%',
-          borderRadius: 999,
-          borderWidth: 1.5,
-          borderColor: 'rgba(123, 104, 238, 0.18)',
-          transform: [{ rotate: '-20deg' }],
         },
 
         // Greeting Hero card (so-c0o, dark) — canonical home-v2 design
@@ -887,10 +828,6 @@ const HomeScreen = ({ navigation }: any) => {
   const palBlinkScaleY = useSharedValue(1);
 
 
-  // Floating orb animations (dark mode only, but hooks must always run)
-  const orb1Y = useSharedValue(0);
-  const orb2Y = useSharedValue(0);
-
   useEffect(() => {
     const loadLocalName = async () => {
       const stored = await AsyncStorage.getItem('@soultalk_username');
@@ -918,24 +855,6 @@ const HomeScreen = ({ navigation }: any) => {
       );
     }, 4200);
 
-    // Floating orbs
-    orb1Y.value = withRepeat(
-      withSequence(
-        withTiming(-20, { duration: 4000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(20, { duration: 4000, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      true,
-    );
-    orb2Y.value = withRepeat(
-      withSequence(
-        withTiming(15, { duration: 3500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(-15, { duration: 3500, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      true,
-    );
-
     return () => clearInterval(blinkId);
   }, []);
 
@@ -944,14 +863,6 @@ const HomeScreen = ({ navigation }: any) => {
   }));
   const palBlinkStyle = useAnimatedStyle(() => ({
     transform: [{ scaleY: palBlinkScaleY.value }],
-  }));
-
-  const orb1Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: orb1Y.value }],
-  }));
-
-  const orb2Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: orb2Y.value }],
   }));
 
   const handleMoodChange = useCallback((text: string) => {
@@ -1036,61 +947,7 @@ const HomeScreen = ({ navigation }: any) => {
   // ─── DARK MODE (current liquid glass design) ─────────────────────────
   if (isDarkMode) {
     return (
-      <LinearGradient
-        colors={[...surfaces.homeGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
-        {/* Star field + Planets — non-interactive backdrop */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {STARS.map((s, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${s.left}%` as any,
-                top: `${s.top}%` as any,
-                width: s.size,
-                height: s.size,
-                borderRadius: s.size,
-                backgroundColor: '#FFFFFF',
-                opacity: s.opacity,
-              }}
-            />
-          ))}
-
-          <Animated.View style={[dk.orb, dk.orb1, orb1Style]}>
-            <LinearGradient
-              colors={['rgba(112, 202, 207, 0.25)', 'rgba(112, 202, 207, 0.06)', 'rgba(0, 0, 0, 0.15)']}
-              start={{ x: 0.2, y: 0.15 }}
-              end={{ x: 0.9, y: 0.85 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '18%', left: '22%', width: 18, height: 18 }]} />
-          </Animated.View>
-
-          <Animated.View style={[dk.orb, dk.orb2, orb2Style]}>
-            <LinearGradient
-              colors={['rgba(123, 104, 238, 0.22)', 'rgba(123, 104, 238, 0.05)', 'rgba(0, 0, 0, 0.18)']}
-              start={{ x: 0.25, y: 0.1 }}
-              end={{ x: 0.85, y: 0.9 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '15%', left: '25%', width: 14, height: 14 }]} />
-            <View style={dk.planetRing} />
-          </Animated.View>
-
-          <View style={[dk.orb, dk.orb3]}>
-            <LinearGradient
-              colors={['rgba(155, 89, 182, 0.20)', 'rgba(155, 89, 182, 0.04)', 'rgba(0, 0, 0, 0.12)']}
-              start={{ x: 0.3, y: 0.15 }}
-              end={{ x: 0.8, y: 0.9 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '20%', left: '28%', width: 10, height: 10 }]} />
-          </View>
-        </View>
-
+      <CosmicScreen tone="night">
         <ScrollView
           style={[dk.scrollView, { paddingTop: insets.top + 10 }]}
           contentContainerStyle={dk.scrollContent}
@@ -1312,17 +1169,13 @@ const HomeScreen = ({ navigation }: any) => {
             </Animated.View>
           </View>
         </Animated.View>
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
   // ─── LIGHT MODE (original design) ────────────────────────────────────
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="night">
       <ScrollView
         style={[lt.scrollView, { paddingTop: insets.top + 10 }]}
         contentContainerStyle={lt.scrollContent}
@@ -1544,7 +1397,7 @@ const HomeScreen = ({ navigation }: any) => {
           </Animated.View>
         </View>
       </Animated.View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 

@@ -11,22 +11,19 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withDelay,
-  withRepeat,
-  withSequence,
   Easing,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { fonts, surfaces, useThemeColors } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
-import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
+import { useSoulPal, getSoulPalPalette } from '../contexts/SoulPalContext';
 import { usePersonality } from '../contexts/PersonalityContext';
 import { PersonalityTestResult } from '../services/PersonalityService';
 import { TestType } from '../data/personalityTests/types';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const TEST_TYPE_LABEL: Record<TestType, string> = {
   inner_lens: 'Inner Lens',
@@ -56,21 +53,6 @@ const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
 const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
 
-// Rich star field — more stars with varied sizes for depth
-const PROFILE_STARS = Array.from({ length: 60 }, (_, i) => ({
-  left: ((i * 41 + 19) % 100),
-  top: ((i * 59 + 11) % 100),
-  size: i < 3 ? 3 : i < 8 ? 2.2 : (i % 5 === 0) ? 1.8 : i % 3 === 0 ? 1.2 : 0.8,
-  opacity: i < 3 ? 0.6 : i < 8 ? 0.4 : (0.08 + (i % 6) * 0.06),
-}));
-
-// Shooting stars / meteors
-const METEORS = [
-  { startLeft: 15, startTop: 8, length: 45, angle: 35, delay: 0 },
-  { startLeft: 70, startTop: 3, length: 30, angle: 40, delay: 4000 },
-  { startLeft: 45, startTop: 12, length: 35, angle: 30, delay: 8000 },
-];
-
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const ProfileScreen = ({ navigation }: any) => {
@@ -79,6 +61,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { colorId, setColorId } = useSoulPal();
+  const soulPalPalette = getSoulPalPalette(isDarkMode);
   const { latestByType } = usePersonality();
   const pastResults: PersonalityTestResult[] = (
     Object.values(latestByType).filter(Boolean) as PersonalityTestResult[]
@@ -137,286 +120,12 @@ const ProfileScreen = ({ navigation }: any) => {
     }))
   );
 
-  // Floating animations for space elements
-  const planet1Y = useSharedValue(0);
-  const planet2Y = useSharedValue(0);
-  const planet3Y = useSharedValue(0);
-  const planet4Y = useSharedValue(0);
-  const nebulaScale = useSharedValue(1);
-  const meteor0Opacity = useSharedValue(0);
-  const meteor1Opacity = useSharedValue(0);
-  const meteor2Opacity = useSharedValue(0);
-  const meteor0TranslateX = useSharedValue(0);
-  const meteor0TranslateY = useSharedValue(0);
-  const meteor1TranslateX = useSharedValue(0);
-  const meteor1TranslateY = useSharedValue(0);
-  const meteor2TranslateX = useSharedValue(0);
-  const meteor2TranslateY = useSharedValue(0);
-  const galaxyRotation = useSharedValue(0);
-
-  React.useEffect(() => {
-    // Planets floating at different speeds
-    planet1Y.value = withRepeat(
-      withSequence(
-        withTiming(-18, { duration: 4500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(18, { duration: 4500, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true,
-    );
-    planet2Y.value = withRepeat(
-      withSequence(
-        withTiming(14, { duration: 3800, easing: Easing.inOut(Easing.sin) }),
-        withTiming(-14, { duration: 3800, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true,
-    );
-    planet3Y.value = withRepeat(
-      withSequence(
-        withTiming(-10, { duration: 5000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(10, { duration: 5000, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true,
-    );
-    planet4Y.value = withRepeat(
-      withSequence(
-        withTiming(8, { duration: 3200, easing: Easing.inOut(Easing.sin) }),
-        withTiming(-8, { duration: 3200, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true,
-    );
-
-    // Nebula breathing
-    nebulaScale.value = withRepeat(
-      withSequence(
-        withTiming(1.08, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.sin) }),
-      ), -1, true,
-    );
-
-    // Galaxy slow rotation
-    galaxyRotation.value = withRepeat(
-      withTiming(360, { duration: 60000, easing: Easing.linear }),
-      -1,
-    );
-
-    // Shooting stars — each fires, streaks across, fades
-    const animateMeteor = (
-      opacityVal: any, txVal: any, tyVal: any, delay: number, length: number, angle: number,
-    ) => {
-      const rad = (angle * Math.PI) / 180;
-      const dx = Math.cos(rad) * length * 3;
-      const dy = Math.sin(rad) * length * 3;
-      const fire = () => {
-        opacityVal.value = 0;
-        txVal.value = 0;
-        tyVal.value = 0;
-        opacityVal.value = withDelay(delay,
-          withSequence(
-            withTiming(1, { duration: 100 }),
-            withTiming(1, { duration: 500 }),
-            withTiming(0, { duration: 300 }),
-          ),
-        );
-        txVal.value = withDelay(delay,
-          withTiming(dx, { duration: 900, easing: Easing.out(Easing.quad) }),
-        );
-        tyVal.value = withDelay(delay,
-          withTiming(dy, { duration: 900, easing: Easing.out(Easing.quad) }),
-        );
-      };
-      fire();
-      // Repeat every 12s
-      const interval = setInterval(fire, 12000);
-      return interval;
-    };
-
-    const i0 = animateMeteor(meteor0Opacity, meteor0TranslateX, meteor0TranslateY, METEORS[0].delay, METEORS[0].length, METEORS[0].angle);
-    const i1 = animateMeteor(meteor1Opacity, meteor1TranslateX, meteor1TranslateY, METEORS[1].delay, METEORS[1].length, METEORS[1].angle);
-    const i2 = animateMeteor(meteor2Opacity, meteor2TranslateX, meteor2TranslateY, METEORS[2].delay, METEORS[2].length, METEORS[2].angle);
-
-    return () => {
-      clearInterval(i0);
-      clearInterval(i1);
-      clearInterval(i2);
-    };
-  }, []);
-
-  const planet1Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: planet1Y.value }],
-  }));
-  const planet2Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: planet2Y.value }],
-  }));
-  const planet3Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: planet3Y.value }],
-  }));
-  const planet4Style = useAnimatedStyle(() => ({
-    transform: [{ translateY: planet4Y.value }],
-  }));
-  const nebulaStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: nebulaScale.value }],
-  }));
-  const galaxyStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${galaxyRotation.value}deg` }],
-  }));
-  const meteor0Style = useAnimatedStyle(() => ({
-    opacity: meteor0Opacity.value,
-    transform: [{ translateX: meteor0TranslateX.value }, { translateY: meteor0TranslateY.value }],
-  }));
-  const meteor1Style = useAnimatedStyle(() => ({
-    opacity: meteor1Opacity.value,
-    transform: [{ translateX: meteor1TranslateX.value }, { translateY: meteor1TranslateY.value }],
-  }));
-  const meteor2Style = useAnimatedStyle(() => ({
-    opacity: meteor2Opacity.value,
-    transform: [{ translateX: meteor2TranslateX.value }, { translateY: meteor2TranslateY.value }],
-  }));
-
   const { dk, lt } = useMemo(() => buildStyles(colors), [colors]);
 
   /* ───────────────────────── DARK MODE (current liquid glass design) ───────────────────────── */
   if (isDarkMode) {
     return (
-      <LinearGradient
-        colors={[...surfaces.profileGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
-        {/* ═══ Rich space backdrop ═══ */}
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-          {/* ── Nebula glow — soft radial cloud ── */}
-          <Animated.View style={[dk.nebula, nebulaStyle]}>
-            <LinearGradient
-              colors={['rgba(155, 89, 182, 0.18)', 'rgba(123, 104, 238, 0.08)', 'transparent']}
-              start={{ x: 0.5, y: 0.5 }}
-              end={{ x: 0, y: 0 }}
-              style={dk.nebulaFill}
-            />
-          </Animated.View>
-
-          {/* ── Second nebula — warm accent ── */}
-          <Animated.View style={[dk.nebula2, nebulaStyle]}>
-            <LinearGradient
-              colors={['rgba(196, 122, 219, 0.12)', 'rgba(79, 23, 134, 0.06)', 'transparent']}
-              start={{ x: 0.5, y: 0.5 }}
-              end={{ x: 1, y: 1 }}
-              style={dk.nebulaFill}
-            />
-          </Animated.View>
-
-          {/* ── Galaxy swirl — slowly rotating disc ── */}
-          <Animated.View style={[dk.galaxy, galaxyStyle]}>
-            <View style={dk.galaxyCore} />
-            <View style={dk.galaxyArm1} />
-            <View style={dk.galaxyArm2} />
-            <View style={dk.galaxyArm3} />
-          </Animated.View>
-
-          {/* ── Stars ── */}
-          {PROFILE_STARS.map((s, i) => (
-            <View
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${s.left}%` as any,
-                top: `${s.top}%` as any,
-                width: s.size,
-                height: s.size,
-                borderRadius: s.size,
-                backgroundColor: '#FFFFFF',
-                opacity: s.opacity,
-              }}
-            />
-          ))}
-
-          {/* ── Planet 1 — large purple, top right ── */}
-          <Animated.View style={[dk.planet, dk.planet1, planet1Style]}>
-            <LinearGradient
-              colors={['rgba(155, 89, 182, 0.30)', 'rgba(155, 89, 182, 0.08)', 'rgba(0, 0, 0, 0.20)']}
-              start={{ x: 0.2, y: 0.15 }}
-              end={{ x: 0.9, y: 0.85 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '16%', left: '20%', width: 16, height: 16 }]} />
-            {/* Atmosphere haze */}
-            <View style={dk.atmosphere} />
-          </Animated.View>
-
-          {/* ── Planet 2 — ringed indigo, bottom left ── */}
-          <Animated.View style={[dk.planet, dk.planet2, planet2Style]}>
-            <LinearGradient
-              colors={['rgba(123, 104, 238, 0.25)', 'rgba(123, 104, 238, 0.06)', 'rgba(0, 0, 0, 0.20)']}
-              start={{ x: 0.25, y: 0.1 }}
-              end={{ x: 0.85, y: 0.9 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '15%', left: '25%', width: 12, height: 12 }]} />
-            <View style={dk.planetRing} />
-          </Animated.View>
-
-          {/* ── Planet 3 — tiny teal moon, mid left ── */}
-          <Animated.View style={[dk.planet, dk.planet3, planet3Style]}>
-            <LinearGradient
-              colors={['rgba(77, 232, 212, 0.20)', 'rgba(77, 232, 212, 0.04)', 'rgba(0, 0, 0, 0.12)']}
-              start={{ x: 0.3, y: 0.2 }}
-              end={{ x: 0.8, y: 0.85 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '20%', left: '28%', width: 6, height: 6 }]} />
-          </Animated.View>
-
-          {/* ── Planet 4 — warm rose, far bottom right ── */}
-          <Animated.View style={[dk.planet, dk.planet4, planet4Style]}>
-            <LinearGradient
-              colors={['rgba(196, 122, 219, 0.22)', 'rgba(196, 122, 219, 0.05)', 'rgba(0, 0, 0, 0.15)']}
-              start={{ x: 0.2, y: 0.15 }}
-              end={{ x: 0.85, y: 0.9 }}
-              style={dk.planetFill}
-            />
-            <View style={[dk.planetHighlight, { top: '18%', left: '22%', width: 8, height: 8 }]} />
-          </Animated.View>
-
-          {/* ── Shooting stars / meteors ── */}
-          {METEORS.map((m, idx) => {
-            const meteorStyles = [meteor0Style, meteor1Style, meteor2Style];
-            return (
-              <Animated.View
-                key={idx}
-                style={[
-                  dk.meteor,
-                  {
-                    left: `${m.startLeft}%` as any,
-                    top: `${m.startTop}%` as any,
-                    width: m.length,
-                    transform: [{ rotate: `${m.angle}deg` }],
-                  },
-                  meteorStyles[idx],
-                ]}
-              >
-                <LinearGradient
-                  colors={['rgba(255, 255, 255, 0.8)', 'rgba(255, 255, 255, 0.3)', 'transparent']}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={dk.meteorTrail}
-                />
-              </Animated.View>
-            );
-          })}
-
-          {/* ── Asteroid cluster — small irregular shapes ── */}
-          <View style={[dk.asteroid, { top: '25%', left: '8%', width: 5, height: 4 }]} />
-          <View style={[dk.asteroid, { top: '26%', left: '11%', width: 3, height: 3 }]} />
-          <View style={[dk.asteroid, { top: '24%', left: '13%', width: 4, height: 3 }]} />
-          <View style={[dk.asteroid, { bottom: '35%', right: '6%', width: 4, height: 3 }]} />
-          <View style={[dk.asteroid, { bottom: '37%', right: '10%', width: 3, height: 2 }]} />
-
-          {/* ── Dust lane — faint diagonal strip ── */}
-          <View style={dk.dustLane}>
-            <LinearGradient
-              colors={['transparent', 'rgba(155, 89, 182, 0.04)', 'rgba(123, 104, 238, 0.06)', 'rgba(155, 89, 182, 0.04)', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        </View>
-
+      <CosmicScreen tone="dusk">
         <ScrollView
           style={dk.scrollView}
           contentContainerStyle={[
@@ -537,7 +246,7 @@ const ProfileScreen = ({ navigation }: any) => {
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
                 <View style={dk.colorPickerGrid}>
-                  {SOULPAL_COLORS.map((c) => (
+                  {soulPalPalette.map((c) => (
                     <Pressable
                       key={c.id}
                       onPress={() => setColorId(c.id)}
@@ -606,17 +315,13 @@ const ProfileScreen = ({ navigation }: any) => {
             </Animated.View>
           </View>
         </Animated.View>
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
   /* ───────────────────────── LIGHT MODE (original design) ───────────────────────── */
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="dusk">
       <ScrollView
         style={lt.scrollView}
         contentContainerStyle={[
@@ -737,7 +442,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>
               <View style={lt.colorPickerGrid}>
-                {SOULPAL_COLORS.map((c) => (
+                {soulPalPalette.map((c) => (
                   <Pressable
                     key={c.id}
                     onPress={() => setColorId(c.id)}
@@ -806,7 +511,7 @@ const ProfileScreen = ({ navigation }: any) => {
           </Animated.View>
         </View>
       </Animated.View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 
@@ -824,170 +529,6 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   },
   scrollContent: {
     paddingHorizontal: 27,
-  },
-
-  // ── Nebula ──
-  nebula: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    top: -50,
-    right: -80,
-    borderRadius: 150,
-  },
-  nebula2: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    bottom: 100,
-    left: -60,
-    borderRadius: 125,
-  },
-  nebulaFill: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 150,
-  },
-
-  // ── Galaxy swirl ──
-  galaxy: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    top: '42%',
-    right: '12%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  galaxyCore: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(196, 122, 219, 0.25)',
-    shadowColor: 'rgba(196, 122, 219, 0.5)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-  },
-  galaxyArm1: {
-    position: 'absolute',
-    width: 60,
-    height: 1,
-    backgroundColor: 'rgba(155, 89, 182, 0.08)',
-    borderRadius: 1,
-    transform: [{ rotate: '0deg' }],
-  },
-  galaxyArm2: {
-    position: 'absolute',
-    width: 50,
-    height: 1,
-    backgroundColor: 'rgba(123, 104, 238, 0.06)',
-    borderRadius: 1,
-    transform: [{ rotate: '60deg' }],
-  },
-  galaxyArm3: {
-    position: 'absolute',
-    width: 55,
-    height: 1,
-    backgroundColor: 'rgba(155, 89, 182, 0.07)',
-    borderRadius: 1,
-    transform: [{ rotate: '120deg' }],
-  },
-
-  // ── Planets ──
-  planet: {
-    position: 'absolute',
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  planet1: {
-    width: 140,
-    height: 140,
-    top: 55,
-    right: -40,
-    borderWidth: 1,
-    borderColor: 'rgba(155, 89, 182, 0.12)',
-  },
-  planet2: {
-    width: 100,
-    height: 100,
-    bottom: 200,
-    left: -28,
-    borderWidth: 1,
-    borderColor: 'rgba(123, 104, 238, 0.10)',
-  },
-  planet3: {
-    width: 35,
-    height: 35,
-    top: '38%',
-    left: '5%',
-    borderWidth: 1,
-    borderColor: 'rgba(77, 232, 212, 0.10)',
-  },
-  planet4: {
-    width: 55,
-    height: 55,
-    bottom: '12%',
-    right: '8%',
-    borderWidth: 1,
-    borderColor: 'rgba(196, 122, 219, 0.08)',
-  },
-  planetFill: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-  },
-  planetHighlight: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.20)',
-  },
-  atmosphere: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: 'rgba(155, 89, 182, 0.08)',
-  },
-  planetRing: {
-    position: 'absolute',
-    width: '180%',
-    height: 16,
-    top: '44%',
-    left: '-40%',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: 'rgba(123, 104, 238, 0.20)',
-    transform: [{ rotate: '-22deg' }],
-  },
-
-  // ── Meteors / shooting stars ──
-  meteor: {
-    position: 'absolute',
-    height: 2,
-    borderRadius: 1,
-  },
-  meteorTrail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 1,
-  },
-
-  // ── Asteroids ──
-  asteroid: {
-    position: 'absolute',
-    backgroundColor: 'rgba(180, 170, 200, 0.15)',
-    borderRadius: 1.5,
-    transform: [{ rotate: '25deg' }],
-  },
-
-  // ── Dust lane ──
-  dustLane: {
-    position: 'absolute',
-    width: '150%',
-    height: 80,
-    top: '55%',
-    left: '-25%',
-    transform: [{ rotate: '-15deg' }],
-    opacity: 0.6,
   },
 
   // Top Row
@@ -1410,11 +951,12 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   },
 
   // Display Name
+  // Light path: page-bg ink for AA on the so-u1k lavender wash.
   displayNameText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 24,
     lineHeight: 24 * 1.4,
-    color: colors.white,
+    color: colors.text.primary,
     textAlign: 'center',
     marginBottom: 2,
   },
@@ -1424,7 +966,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.4,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(58, 14, 102, 0.7)',
     textAlign: 'center',
     marginBottom: 10,
   },

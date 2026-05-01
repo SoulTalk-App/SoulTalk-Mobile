@@ -82,26 +82,36 @@ export function ShiftsA({
       <PageBg theme={theme} />
       <StarsBg theme={theme} />
 
-      {onBack && (
-        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
-          <Pressable onPress={onBack} hitSlop={12}>
-            <Image
-              source={theme === 'dark' ? BackIconDark : BackIconLight}
-              style={styles.backIcon}
-              resizeMode="contain"
-            />
-          </Pressable>
-          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
-        </View>
-      )}
-
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 56 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 14 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: ink(theme) }]}>Soul Shifts</Text>
+          {/* Single-row header (so-rlz): back + title in one line.
+              Counter-equivalent (status filter pill row) lives just below,
+              so we don't double up a count on the title row. */}
+          <View style={styles.headerTopRow}>
+            {onBack ? (
+              <Pressable
+                onPress={onBack}
+                hitSlop={12}
+                style={styles.backInline}
+              >
+                <Image
+                  source={theme === 'dark' ? BackIconDark : BackIconLight}
+                  style={styles.backIcon}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            ) : null}
+            <Text
+              style={[styles.title, { color: ink(theme) }]}
+              numberOfLines={1}
+            >
+              Soul Shifts
+            </Text>
+          </View>
           <Text style={[styles.subtitle, { color: inkSub(theme) }]}>
             Behaviors moving from intention to integration.
           </Text>
@@ -202,26 +212,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  backRow: {
-    position: 'absolute',
-    left: 16,
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    zIndex: 10,
+  },
+  backInline: {
+    flexShrink: 0,
   },
   backIcon: {
     width: 36,
     height: 36,
   },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-  },
   title: {
+    flex: 1,
+    minWidth: 0,
     fontFamily: fonts.edensor.regular,
-    fontSize: 34,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 32,
   },
   subtitle: {
     marginTop: 6,

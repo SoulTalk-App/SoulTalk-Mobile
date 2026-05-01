@@ -18,6 +18,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 
 
@@ -30,6 +32,7 @@ interface RegisterScreenProps {
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -78,7 +81,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.primary,
         },
         header: {
           flexDirection: 'row',
@@ -86,7 +88,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           justifyContent: 'space-between',
           paddingHorizontal: 16,
           paddingBottom: 20,
-          backgroundColor: colors.primary,
         },
         backButton: {
           width: 40,
@@ -97,7 +98,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         headerTitle: {
           fontFamily: fonts.edensor.bold,
           fontSize: 26,
-          color: colors.white,
+          // Light path: page-bg ink for AA on the so-u1k lavender wash.
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         contentContainer: {
           flex: 1,
@@ -139,12 +141,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1.5,
-          borderColor: colors.border,
+          // Theme-aware surface: white pill on light, frosted glass on dark
+          // so the input chrome doesn't jar against the cosmic backdrop. (so-iao)
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : colors.border,
           borderRadius: 12,
           marginBottom: 16,
           paddingHorizontal: 12,
           height: 56,
-          backgroundColor: colors.white,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
         },
         inputContainerFocused: {
           borderColor: colors.primary,
@@ -291,7 +295,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           color: colors.primary,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   // Handle Google auth response
@@ -482,7 +486,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <CosmicScreen tone="night">
       {/* Purple Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
@@ -702,7 +706,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </CosmicScreen>
   );
 };
 

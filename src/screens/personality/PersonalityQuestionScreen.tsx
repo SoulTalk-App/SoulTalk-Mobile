@@ -9,7 +9,6 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -18,7 +17,8 @@ import Animated, {
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
-import { colors, fonts, surfaces } from '../../theme';
+import { colors, fonts } from '../../theme';
+import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTest } from '../../data/personalityTests';
 import {
@@ -146,11 +146,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   // ==============================
   if (isDarkMode) {
     return (
-      <LinearGradient
-        colors={[...surfaces.personalityGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
+      <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           {/* Header: back + progress + exit */}
           <View style={dk.headerRow}>
@@ -239,7 +235,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
             )}
           </View>
         </View>
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
@@ -247,11 +243,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   // LIGHT MODE
   // ==============================
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         {/* Header: back + progress + exit */}
         <View style={lt.headerRow}>
@@ -339,7 +331,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
           )}
         </View>
       </View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 
@@ -484,27 +476,28 @@ const lt = StyleSheet.create({
   },
   backRow: { padding: 4 },
   backIcon: { width: 36, height: 36 },
+  // Light path: page-bg ink for AA on the so-u1k lavender wash.
   progressText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(58,14,102,0.85)',
   },
   exitText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 14,
-    color: colors.white,
+    color: '#3A0E66',
   },
 
   progressTrack: {
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(89,22,139,0.15)',
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 24,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.white,
+    backgroundColor: '#59168B',
     borderRadius: 2,
   },
 
