@@ -8,9 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, surfaces } from '../../theme';
+import { colors, fonts } from '../../theme';
+import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
 import GlassCard from '../../components/GlassCard';
 import PersonalityService, {
@@ -74,11 +74,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
   // ==============================
   if (isDarkMode) {
     const renderDarkShell = (message?: string) => (
-      <LinearGradient
-        colors={[...surfaces.personalityGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
+      <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
             <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
@@ -90,7 +86,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1 }} />
           )}
         </View>
-      </LinearGradient>
+      </CosmicScreen>
     );
 
     if (isLoading) return renderDarkShell();
@@ -107,11 +103,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
     }
 
     return (
-      <LinearGradient
-        colors={[...surfaces.personalityGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
+      <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={goHome}>
             <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
@@ -222,7 +214,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }} />
           </ScrollView>
         </View>
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
@@ -230,11 +222,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
   // LIGHT MODE
   // ==============================
   const renderLightShell = (message?: string) => (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
           <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
@@ -246,7 +234,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
           <ActivityIndicator color={colors.white} size="large" style={{ flex: 1 }} />
         )}
       </View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 
   if (isLoading) return renderLightShell();
@@ -263,11 +251,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
   }
 
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={goHome}>
           <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
@@ -402,7 +386,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
           <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }} />
         </ScrollView>
       </View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 
@@ -691,10 +675,11 @@ const lt = StyleSheet.create({
     marginBottom: 8,
   },
   backIcon: { width: 36, height: 36 },
+  // Light path: page-bg ink for AA on the so-u1k lavender wash.
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
-    color: colors.white,
+    color: '#3A0E66',
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -707,7 +692,7 @@ const lt = StyleSheet.create({
   eyebrow: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
-    color: colors.white,
+    color: 'rgba(58,14,102,0.78)',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 10,
@@ -716,21 +701,21 @@ const lt = StyleSheet.create({
   archetype: {
     fontFamily: fonts.edensor.bold,
     fontSize: 36,
-    color: colors.white,
+    color: '#3A0E66',
     textAlign: 'center',
     marginBottom: 8,
   },
   motto: {
     fontFamily: fonts.edensor.italic,
     fontSize: 18,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(58,14,102,0.85)',
     textAlign: 'center',
   },
   tieNote: {
     fontFamily: fonts.outfit.light,
     fontSize: 13,
     lineHeight: 13 * 1.5,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(58,14,102,0.85)',
     textAlign: 'center',
     marginTop: 14,
     paddingHorizontal: 8,
@@ -825,7 +810,7 @@ const lt = StyleSheet.create({
   watchOutHeader: {
     fontFamily: fonts.edensor.bold,
     fontSize: 16,
-    color: colors.white,
+    color: '#3A0E66',
     marginTop: 6,
     marginBottom: 12,
   },
@@ -890,7 +875,7 @@ const lt = StyleSheet.create({
   errorText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    color: colors.white,
+    color: '#3A0E66',
     textAlign: 'center',
     marginTop: 40,
     paddingHorizontal: 20,

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, fonts } from '../theme';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const { changePassword } = useAuth();
@@ -92,8 +93,9 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+    <CosmicScreen tone="void">
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -188,14 +190,14 @@ const ChangePasswordScreen = ({ navigation }: any) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </CosmicScreen>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
   },
   keyboardView: {
     flex: 1,

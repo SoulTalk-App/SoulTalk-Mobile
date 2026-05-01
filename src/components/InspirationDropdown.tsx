@@ -1,43 +1,21 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { fonts } from '../theme';
-import JournalService from '../services/JournalService';
 
 const InspirationDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [prompts, setPrompts] = useState<string[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleToggle = useCallback(async () => {
-    if (!isOpen && !prompts) {
-      setIsOpen(true);
-      setIsLoading(true);
-      try {
-        const fetched = await JournalService.getPrompts();
-        setPrompts(fetched);
-      } catch (error) {
-        console.error('Failed to fetch prompts:', error);
-        setPrompts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setIsOpen(!isOpen);
-    }
-  }, [isOpen, prompts]);
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.header} onPress={handleToggle}>
+      <Pressable style={styles.header} onPress={() => setIsOpen((v) => !v)}>
         <Text style={styles.headerText}>Need inspiration?</Text>
-        <Text style={styles.chevron}>{isOpen ? '\u25B2' : '\u25BC'}</Text>
+        <Text style={styles.chevron}>{isOpen ? '▲' : '▼'}</Text>
       </Pressable>
       {isOpen && (
         <View style={styles.dropdown}>
@@ -48,15 +26,6 @@ const InspirationDropdown: React.FC = () => {
             <Text style={styles.tipText}>
               Tip from Chey: I use the voice to text feature the most so that I can just talk out loud, uninterrupted. I call it word vomit, but think of this like your stream of consciousness that you finally get feedback on, customized just to you.
             </Text>
-            {isLoading ? (
-              <ActivityIndicator color="#4DE8D4" size="small" style={styles.loader} />
-            ) : (
-              prompts?.map((prompt, idx) => (
-                <View key={idx} style={styles.promptItem}>
-                  <Text style={styles.promptText}>{prompt}</Text>
-                </View>
-              ))
-            )}
           </ScrollView>
         </View>
       )}
@@ -116,20 +85,6 @@ const styles = StyleSheet.create({
     lineHeight: 13 * 1.6,
     marginBottom: 14,
     fontStyle: 'italic',
-  },
-  loader: {
-    paddingVertical: 16,
-  },
-  promptItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  promptText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
-    lineHeight: 13 * 1.4,
   },
 });
 

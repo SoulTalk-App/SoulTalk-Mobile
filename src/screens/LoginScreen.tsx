@@ -19,6 +19,8 @@ import AuthService from "../services/AuthService";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { fonts, useThemeColors } from "../theme";
+import { useTheme } from "../contexts/ThemeContext";
+import { CosmicScreen } from "../components/CosmicBackdrop";
 
 const USE_LOCAL_AUTH = false;
 
@@ -28,6 +30,7 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,7 +69,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.primary,
         },
         header: {
           flexDirection: "row",
@@ -74,7 +76,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           justifyContent: "space-between",
           paddingHorizontal: 16,
           paddingBottom: 20,
-          backgroundColor: colors.primary,
         },
         backButton: {
           width: 40,
@@ -85,7 +86,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         headerTitle: {
           fontFamily: fonts.edensor.bold,
           fontSize: 26,
-          color: colors.white,
+          // Light path: page-bg ink for AA on the so-u1k lavender wash.
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         contentContainer: {
           flex: 1,
@@ -119,12 +121,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           flexDirection: "row",
           alignItems: "center",
           borderWidth: 1.5,
-          borderColor: colors.border,
+          // Theme-aware surface (so-iao).
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : colors.border,
           borderRadius: 12,
           marginBottom: 16,
           paddingHorizontal: 12,
           height: 56,
-          backgroundColor: colors.white,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
         },
         inputContainerFocused: {
           borderColor: colors.primary,
@@ -245,7 +248,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           color: colors.primary,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   useEffect(() => {
@@ -414,7 +417,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <CosmicScreen tone="night">
       {/* Purple Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
@@ -562,7 +565,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </CosmicScreen>
   );
 };
 

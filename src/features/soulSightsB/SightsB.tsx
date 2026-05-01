@@ -52,24 +52,27 @@ export function SightsB({
     <View style={styles.root}>
       <PageBg theme={theme} />
 
-      {onBack && (
-        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
-          <Pressable onPress={onBack} hitSlop={12}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 14 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Single-row header (so-rlz): back chevron sits inline at the top
+            of the scroll content so it doesn't claim its own band above the
+            hero orb. The centered hero+title aesthetic below stays intact. */}
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            hitSlop={12}
+            style={styles.backInlineRow}
+          >
             <Image
               source={theme === 'dark' ? BackIconDark : BackIconLight}
               style={styles.backIcon}
               resizeMode="contain"
             />
           </Pressable>
-          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
-        </View>
-      )}
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 56 }]}
-        showsVerticalScrollIndicator={false}
-      >
+        ) : null}
         {status === 'locked' || status === 'processing' || !sight ? (
           <View style={styles.stateWrap}>
             <StarsBg theme={theme} />
@@ -140,21 +143,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 80,
   },
-  backRow: {
-    position: 'absolute',
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    zIndex: 10,
+  backInlineRow: {
+    paddingLeft: 16,
+    paddingBottom: 8,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
   },
   backIcon: {
     width: 36,
     height: 36,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
   },
   stateWrap: {
     minHeight: 600,

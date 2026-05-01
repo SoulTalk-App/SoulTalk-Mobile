@@ -7,9 +7,9 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, surfaces } from '../../theme';
+import { colors, fonts } from '../../theme';
+import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
 import GlassCard from '../../components/GlassCard';
 import AnimatedButton from '../../components/AnimatedButton';
@@ -30,11 +30,7 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
   // ==============================
   if (isDarkMode) {
     return (
-      <LinearGradient
-        colors={[...surfaces.personalityGradient]}
-        locations={[0, 0.3, 0.65, 1]}
-        style={dk.container}
-      >
+      <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
             <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
@@ -99,7 +95,7 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
             />
           </View>
         </View>
-      </LinearGradient>
+      </CosmicScreen>
     );
   }
 
@@ -107,11 +103,7 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
   // LIGHT MODE
   // ==============================
   return (
-    <LinearGradient
-      colors={['#59168B', '#653495', '#F5F2F9']}
-      locations={[0.1, 0.6, 1]}
-      style={lt.container}
-    >
+    <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
           <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
@@ -184,7 +176,7 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
           </Pressable>
         </View>
       </View>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 
@@ -305,10 +297,11 @@ const lt = StyleSheet.create({
     marginBottom: 20,
   },
   backIcon: { width: 36, height: 36 },
+  // Light path: page-bg ink for AA on the so-u1k lavender wash.
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
-    color: colors.white,
+    color: '#3A0E66',
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -316,14 +309,14 @@ const lt = StyleSheet.create({
   titleText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 32,
-    color: colors.white,
+    color: '#3A0E66',
     marginBottom: 6,
   },
   taglineText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.5,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(58,14,102,0.85)',
     marginBottom: 20,
   },
 

@@ -23,8 +23,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import { fonts, surfaces, useThemeColors } from '../theme';
+import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
 const SubmitIcon = require('../../assets/images/common/SubmitIcon.png');
@@ -38,6 +39,7 @@ interface SoulPalNameScreenProps {
 
 const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [soulPalName, setSoulPalName] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
@@ -78,10 +80,11 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           alignItems: 'center',
           width: '100%',
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         question: {
           fontFamily: fonts.outfit.light,
           fontSize: 15,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           marginBottom: 20,
           lineHeight: 15 * 1.26,
@@ -107,7 +110,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
         input: {
           fontFamily: fonts.outfit.regular,
           fontSize: 18,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
         },
         iconButton: {
           width: 55,
@@ -124,7 +127,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           height: 22,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   // Animation values
@@ -225,12 +228,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   }));
 
   return (
-    <LinearGradient
-      colors={[...surfaces.profileGradient]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={styles.container}
-    >
+    <CosmicScreen tone="night">
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -297,7 +295,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           </View>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </CosmicScreen>
   );
 };
 

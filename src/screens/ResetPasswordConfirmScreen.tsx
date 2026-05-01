@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 interface ResetPasswordConfirmScreenProps {
   navigation: any;
@@ -23,6 +25,7 @@ interface ResetPasswordConfirmScreenProps {
 
 const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   const { token } = route.params || {};
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,7 +45,6 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: colors.primary,
         },
         keyboardView: {
           flex: 1,
@@ -66,17 +68,18 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
         iconContainer: {
           marginBottom: 30,
         },
+        // Light path: page-bg ink for AA on the so-u1k lavender wash.
         title: {
           fontFamily: fonts.edensor.bold,
           fontSize: 32,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           textAlign: 'center',
           marginBottom: 16,
         },
         subtitle: {
           fontFamily: fonts.outfit.regular,
           fontSize: 16,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           textAlign: 'center',
           lineHeight: 24,
           opacity: 0.9,
@@ -86,16 +89,17 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1.5,
-          borderColor: 'rgba(255, 255, 255, 0.3)',
+          // Theme-aware surface (so-iao).
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.10)',
           borderRadius: 12,
           marginBottom: 16,
           paddingHorizontal: 12,
           height: 56,
-          backgroundColor: colors.white,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
           width: '100%',
         },
         inputContainerFocused: {
-          borderColor: colors.white,
+          borderColor: isDarkMode ? colors.white : colors.primary,
           borderWidth: 2,
         },
         inputIcon: {
@@ -132,13 +136,13 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
         requirementsTitle: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 14,
-          color: colors.white,
+          color: isDarkMode ? colors.white : colors.text.primary,
           marginBottom: 8,
         },
         requirement: {
           fontFamily: fonts.outfit.regular,
           fontSize: 12,
-          color: colors.white,
+          color: isDarkMode ? colors.white : 'rgba(58, 14, 102, 0.85)',
           opacity: 0.8,
           marginBottom: 4,
         },
@@ -173,7 +177,7 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
           color: colors.primary,
         },
       }),
-    [colors]
+    [colors, isDarkMode]
   );
 
   const validatePassword = (value: string) => {
@@ -266,10 +270,11 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
 
   if (resetComplete) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.successContent}>
+      <CosmicScreen tone="night">
+        <SafeAreaView style={styles.container}>
+          <View style={styles.successContent}>
           <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle-outline" size={80} color={colors.white} />
+            <Ionicons name="checkmark-circle-outline" size={80} color={isDarkMode ? colors.white : colors.text.primary} />
           </View>
 
           <Text style={styles.title}>Password Reset!</Text>
@@ -285,17 +290,19 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
           >
             <Text style={styles.loginButtonText}>Go to Login</Text>
           </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+          </View>
+        </SafeAreaView>
+      </CosmicScreen>
     );
   }
 
   if (!token) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.successContent}>
+      <CosmicScreen tone="night">
+        <SafeAreaView style={styles.container}>
+          <View style={styles.successContent}>
           <View style={styles.iconContainer}>
-            <Ionicons name="alert-circle-outline" size={80} color={colors.white} />
+            <Ionicons name="alert-circle-outline" size={80} color={isDarkMode ? colors.white : colors.text.primary} />
           </View>
 
           <Text style={styles.title}>Invalid Link</Text>
@@ -311,14 +318,16 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
           >
             <Text style={styles.loginButtonText}>Go to Login</Text>
           </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+          </View>
+        </SafeAreaView>
+      </CosmicScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+    <CosmicScreen tone="night">
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -328,7 +337,7 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
         >
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed-outline" size={80} color={colors.white} />
+              <Ionicons name="lock-closed-outline" size={80} color={isDarkMode ? colors.white : colors.text.primary} />
             </View>
 
             <Text style={styles.title}>Create New Password</Text>
@@ -430,7 +439,8 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </CosmicScreen>
   );
 };
 

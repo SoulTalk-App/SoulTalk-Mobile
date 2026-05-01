@@ -44,28 +44,15 @@ export function SignalsB({
   focusId,
 }: Props) {
   const insets = useSafeAreaInsets();
-  // Reserve room at the top of the scroll content for the absolute back row
-  // so it never overlaps the first piece of content (header in done state,
-  // or the LockedState/ListeningState card in locked/listening states).
-  const scrollTopPad = insets.top + 56;
+  // Single-row header (so-rlz): back + title + counter ride the same row,
+  // no separate back-row band above. Just enough top inset to clear the
+  // notch.
+  const scrollTopPad = insets.top + 14;
 
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
       <StarsBg theme={theme} />
-
-      {onBack && (
-        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
-          <Pressable onPress={onBack} hitSlop={12}>
-            <Image
-              source={theme === 'dark' ? BackIconDark : BackIconLight}
-              style={styles.backIcon}
-              resizeMode="contain"
-            />
-          </Pressable>
-          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
-        </View>
-      )}
 
       <ScrollView
         style={styles.scroll}
@@ -84,7 +71,23 @@ export function SignalsB({
           <>
             <View style={styles.header}>
               <View style={styles.headerTopRow}>
-                <Text style={[styles.title, { color: ink(theme) }]}>
+                {onBack ? (
+                  <Pressable
+                    onPress={onBack}
+                    hitSlop={12}
+                    style={styles.backInline}
+                  >
+                    <Image
+                      source={theme === 'dark' ? BackIconDark : BackIconLight}
+                      style={styles.backIcon}
+                      resizeMode="contain"
+                    />
+                  </Pressable>
+                ) : null}
+                <Text
+                  style={[styles.title, { color: ink(theme) }]}
+                  numberOfLines={1}
+                >
                   Soul Signals
                 </Text>
                 <Text style={[styles.countCap, { color: inkSub(theme) }]}>
@@ -129,31 +132,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
   },
-  backRow: {
-    position: 'absolute',
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    zIndex: 10,
+  backInline: {
+    flexShrink: 0,
   },
   backIcon: {
     width: 36,
     height: 36,
   },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-  },
   headerTopRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
   },
   title: {
+    flex: 1,
+    minWidth: 0,
     fontFamily: fonts.edensor.regular,
-    fontSize: 36,
-    lineHeight: 36,
+    fontSize: 30,
+    lineHeight: 32,
     letterSpacing: -0.3,
   },
   countCap: {

@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Star field for dark mode
+// Star field for dark mode — sprinkled over the cosmic video.
 const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
   left: ((i * 39 + 23) % 100),
   top: ((i * 57 + 13) % 100),
@@ -53,17 +53,6 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           flex: 1,
         },
 
-        // Video tint overlay (dark mode — heavy purple wash matching homescreen card)
-        videoTintOverlay: {
-          ...StyleSheet.absoluteFillObject,
-          zIndex: 1,
-        },
-        videoTint: {
-          ...StyleSheet.absoluteFillObject,
-          // TODO(theme): map 'rgba(72, 62, 101, 0.85)' to palette key (homescreen card wash)
-          backgroundColor: 'rgba(72, 62, 101, 0.85)',
-        },
-
         // Video backgrounds
         videoWrapper: {
           ...StyleSheet.absoluteFillObject,
@@ -82,7 +71,19 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           left: 0,
         },
 
-        // Clouds overlay (light mode)
+        // Seam-fade: 56px tall strip that sits on the top of the video,
+        // fading from opaque #33335B (matching containerBg) at the seam line
+        // to transparent over the strip's height. Hides the BT.709/sRGB
+        // color drift between page bg and decoded video pixels.
+        seamFade: {
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: SCREEN_WIDTH - 56,
+          height: 56,
+        },
+
+        // Clouds overlay (both themes — opacity is knocked down in dark below)
         cloudsContainer: {
           position: 'absolute',
           top: 0,
@@ -90,6 +91,11 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           right: 0,
           height: SCREEN_HEIGHT,
           zIndex: 2,
+        },
+        cloudsContainerDark: {
+          // Soft mist over cosmic bg — bright PNGs would otherwise read as
+          // jarring white blobs against the slate-purple atmosphere.
+          opacity: 0.35,
         },
         cloudsLayer: {
           ...StyleSheet.absoluteFillObject,
@@ -386,17 +392,26 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     opacity: revealedVideoOpacity.value,
   }));
 
-  // TODO(theme): map '#3B495D' to palette key (dark mirror background slate)
-  const containerBg = isDarkMode ? '#3B495D' : colors.accent.pink;
+  // Dark bg matched to the new dark video's top edge so the page-top + video
+  // bottom read as one continuous backdrop. Sampled from
+  // assets/videos/dark/affirmationIdle.mp4 + affirmationMirrorLookingUp.mp4
+  // (both top-20 row average = rgb(51,51,91) = #33335B). Light mode uses brand
+  // pink — clouds layer over it pre-reveal, pink shows through on reveal.
+  // TODO(theme): map '#33335B' / '#2B2B54' to palette keys (dark mirror bg).
+  const containerBg = isDarkMode ? '#33335B' : colors.accent.pink;
   const backIcon = isDarkMode ? BackIconDark : BackIconLight;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
-      {/* ---- Dark mode: gradient background ---- */}
+      {/* ---- Dark mode: subtle vertical gradient. Top fades to a slightly
+              deeper purple for atmospheric depth, then settles to #33335B at
+              location 0.5 — exactly at the video top edge on a 2:1 aspect
+              phone — and pins through the bottom so any leak around the
+              contain-fit video matches. ---- */}
       {isDarkMode && (
         <LinearGradient
-          colors={['#333F55', '#3B495D', '#444E6B', '#3B495D']}
-          locations={[0, 0.35, 0.65, 1]}
+          colors={['#2B2B54', '#33335B', '#33335B']}
+          locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         />
       )}
@@ -422,14 +437,24 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
             allowsPictureInPicture={false}
           />
         </Animated.View>
-      </Animated.View>
 
-      {/* ---- Dark mode: single heavy purple wash matching homescreen card ---- */}
-      {isDarkMode && (
-        <View style={styles.videoTintOverlay} pointerEvents="none">
-          <View style={styles.videoTint} />
-        </View>
-      )}
+        {/* Seam-fade strip (dark only): overlays the top edge of the video,
+            fading from solid containerBg → transparent over 56px. Source-frame
+            sampling shows the video top is exactly #33335B, but at runtime the
+            BT.709 → sRGB conversion drifts a few units, leaving a visible
+            band where bg meets video. The fade hides the band by blending
+            the bg color into the video's top region. Lives inside the
+            videoWrapper so it tracks the videoZoomStyle scale on reveal. */}
+        {isDarkMode && (
+          <LinearGradient
+            colors={['#33335B', 'rgba(51,51,91,0)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.seamFade}
+            pointerEvents="none"
+          />
+        )}
+      </Animated.View>
 
       {/* ---- Stars over everything (dark mode) ---- */}
       {isDarkMode && (
@@ -452,20 +477,24 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         </View>
       )}
 
-      {/* ---- Clouds overlay (light mode only — blow apart on reveal) ---- */}
-      {!isDarkMode && (
-        <View style={styles.cloudsContainer} pointerEvents="none">
-          <Animated.View style={[styles.cloudsLayer, cloudsBgAnimStyle]}>
-            <Image source={CloudsBg} style={styles.cloudsImage} resizeMode="cover" />
-          </Animated.View>
-          <Animated.View style={[styles.cloudsLayer, cloudsLeftAnimStyle]}>
-            <Image source={CloudsLeft} style={styles.cloudsImage} resizeMode="cover" />
-          </Animated.View>
-          <Animated.View style={[styles.cloudsLayer, cloudsRightAnimStyle]}>
-            <Image source={CloudsRight} style={styles.cloudsImage} resizeMode="cover" />
-          </Animated.View>
-        </View>
-      )}
+      {/* ---- Clouds overlay (both themes — blow apart on reveal).
+              In dark mode the cloud PNGs are bright/white-ish; we knock the
+              container opacity down to 0.35 so they read as soft purple-tinted
+              mist over the cosmic bg rather than jarring white blobs. ---- */}
+      <View
+        style={[styles.cloudsContainer, isDarkMode && styles.cloudsContainerDark]}
+        pointerEvents="none"
+      >
+        <Animated.View style={[styles.cloudsLayer, cloudsBgAnimStyle]}>
+          <Image source={CloudsBg} style={styles.cloudsImage} resizeMode="cover" />
+        </Animated.View>
+        <Animated.View style={[styles.cloudsLayer, cloudsLeftAnimStyle]}>
+          <Image source={CloudsLeft} style={styles.cloudsImage} resizeMode="cover" />
+        </Animated.View>
+        <Animated.View style={[styles.cloudsLayer, cloudsRightAnimStyle]}>
+          <Image source={CloudsRight} style={styles.cloudsImage} resizeMode="cover" />
+        </Animated.View>
+      </View>
 
       {/* ---- Back button ---- */}
       <Animated.View
