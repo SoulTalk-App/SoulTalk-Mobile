@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fonts } from '../../theme';
 import { Shift, SoulpalVariant, STAGES, STATUS_LABEL } from './types';
 import { PURPLE_INK, Theme, ink, inkSub, surfaceBg, surfaceBorder } from './tokens';
@@ -22,9 +22,15 @@ function stageIndex(s: Shift): number {
 type Props = {
   shift: Shift;
   theme: Theme;
+  /** When `true`, draws a tone-colored 2px border + outer glow. */
+  focused?: boolean;
+  /** When `true`, drops opacity to ~0.45 (used while another shift is focused). */
+  dim?: boolean;
+  /** Tap handler. When omitted, the card is non-interactive. */
+  onPress?: () => void;
 };
 
-export function ShiftCard({ shift, theme }: Props) {
+export function ShiftCard({ shift, theme, focused = false, dim = false, onPress }: Props) {
   const isDark = theme === 'dark';
   const locked = shift.status === 'locked';
   const processing = shift.status === 'processing';
@@ -38,17 +44,25 @@ export function ShiftCard({ shift, theme }: Props) {
   const mutedTrack = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(58,14,102,0.10)';
   const mutedDot = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(58,14,102,0.15)';
 
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: surfaceBg(theme),
-          borderColor: surfaceBorder(theme),
-          opacity: locked ? 0.65 : 1,
-        },
-      ]}
-    >
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: surfaceBg(theme),
+      borderColor: focused ? shift.mood : surfaceBorder(theme),
+      borderWidth: focused ? 2 : 1,
+      opacity: dim ? 0.45 : locked ? 0.65 : 1,
+    },
+    focused && {
+      shadowColor: shift.mood,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.55,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+  ];
+
+  const Content = (
+    <>
       <View style={styles.headerRow}>
         <View
           style={[
@@ -171,8 +185,17 @@ export function ShiftCard({ shift, theme }: Props) {
           SoulPal is sensing this pattern in your recent entries…
         </Text>
       ) : null}
-    </View>
+    </>
   );
+
+  if (onPress && !locked) {
+    return (
+      <Pressable style={cardStyle} onPress={onPress}>
+        {Content}
+      </Pressable>
+    );
+  }
+  return <View style={cardStyle}>{Content}</View>;
 }
 
 const styles = StyleSheet.create({

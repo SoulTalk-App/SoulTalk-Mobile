@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
@@ -77,6 +77,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
   const { colorId, setColorId } = useSoulPal();
   const { latestByType } = usePersonality();
   const pastResults: PersonalityTestResult[] = (
@@ -266,6 +267,8 @@ const ProfileScreen = ({ navigation }: any) => {
     opacity: meteor2Opacity.value,
     transform: [{ translateX: meteor2TranslateX.value }, { translateY: meteor2TranslateY.value }],
   }));
+
+  const { dk, lt } = useMemo(() => buildStyles(colors), [colors]);
 
   /* ───────────────────────── DARK MODE (current liquid glass design) ───────────────────────── */
   if (isDarkMode) {
@@ -808,9 +811,11 @@ const ProfileScreen = ({ navigation }: any) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   DARK MODE STYLES (dk) — liquid glass design
+   STYLES — built per-render from useThemeColors()
    ═══════════════════════════════════════════════════════════════ */
-const dk = StyleSheet.create({
+function buildStyles(colors: ReturnType<typeof useThemeColors>) {
+  // Dark mode — liquid glass design
+  const dk = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -1356,12 +1361,10 @@ const dk = StyleSheet.create({
     color: colors.white,
     marginTop: 2,
   },
-});
+  });
 
-/* ═══════════════════════════════════════════════════════════════
-   LIGHT MODE STYLES (lt) — original design
-   ═══════════════════════════════════════════════════════════════ */
-const lt = StyleSheet.create({
+  // Light mode — original design
+  const lt = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -1756,6 +1759,9 @@ const lt = StyleSheet.create({
     color: '#59168B',
     marginTop: 2,
   },
-});
+  });
+
+  return { dk, lt };
+}
 
 export default ProfileScreen;

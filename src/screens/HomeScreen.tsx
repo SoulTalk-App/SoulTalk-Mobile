@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,20 +22,16 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Polygon } from 'react-native-svg';
+import Svg, { Path, Rect, Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
-import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, SOULPAL_COLORS } from '../contexts/SoulPalContext';
-import LottieView from 'lottie-react-native';
 import { ChargeUpGrid } from '../features/homeV2';
-
-const SoulpalLottie = require('../../assets/animations/Soulpal.json');
 
 // Star field — deterministic positions seeded once
 const STARS = Array.from({ length: 45 }, (_, i) => ({
@@ -50,7 +46,6 @@ const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
 const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
-const GearIconImg = require('../../assets/images/home/GearIcon.png');
 const GoalGardenCharacterImg = require('../../assets/images/home/GoalGardenCharacter.png');
 const GoalGardenBg = require('../../assets/images/home/GoalGardenBg.png');
 const PalmTree1 = require('../../assets/images/home/PalmTree1.png');
@@ -66,15 +61,24 @@ const LockIconDark = require('../../assets/images/home/dark/LockIcon.png');
 const SoulpalEyesDark = require('../../assets/images/home/dark/SoulpalIcon.png');
 const AffirmationMirrorCardDark = require('../../assets/images/home/dark/AffirmationMirrorCard.png');
 
+// Greeting hero avatar (canonical home-v2 design)
+const Soulpal5 = require('../../assets/images/home-v2/soulpal-5.png');
+
 
 type TabName = 'Home' | 'Journal' | 'Profile';
 
 const SOUL_BAR_SEGMENTS = 6;
+const CARD_HORIZONTAL_MARGIN = 20;
+// Canonical SoulBar accent gradient (Design/handoff/.../home-v2.jsx GreetingHero).
+const SOULBAR_TEAL = '#70CACF';
+const SOULBAR_PINK = '#E93678';
+const NOTEBOOK_BADGE_PINK = '#E93678';
 
 const HomeScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
   const { homeImage, bodyImage, colorId } = useSoulPal();
   const soulPalHex = SOULPAL_COLORS.find(c => c.id === colorId)?.hex ?? '#70CACF';
   const [localName, setLocalName] = useState('User');
@@ -83,7 +87,777 @@ const HomeScreen = ({ navigation }: any) => {
   const [moodSaved, setMoodSaved] = useState(false);
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   const { soulBar, fetchSoulBar } = useJournal();
-  const lottieRef = useRef<LottieView>(null);
+
+  // SoulBar wiring (canonical GreetingHero).
+  const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
+  const soulBarRemaining = Math.max(0, SOUL_BAR_SEGMENTS - soulBarFilled);
+  const soulBarTotalFilled = soulBar?.total_filled ?? 0;
+
+  const dk = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+        },
+        scrollView: {
+          flex: 1,
+        },
+        scrollContent: {
+          paddingHorizontal: CARD_HORIZONTAL_MARGIN,
+        },
+
+        // Planets
+        orb: {
+          position: 'absolute',
+          borderRadius: 999,
+          overflow: 'hidden',
+        },
+        orb1: {
+          width: 160,
+          height: 160,
+          top: 80,
+          right: -40,
+          borderWidth: 1,
+          borderColor: 'rgba(112, 202, 207, 0.12)',
+        },
+        orb2: {
+          width: 120,
+          height: 120,
+          top: 480,
+          left: -30,
+          borderWidth: 1,
+          borderColor: 'rgba(123, 104, 238, 0.10)',
+        },
+        orb3: {
+          width: 90,
+          height: 90,
+          bottom: 200,
+          right: -20,
+          borderWidth: 1,
+          borderColor: 'rgba(155, 89, 182, 0.08)',
+        },
+        planetFill: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 999,
+        },
+        planetHighlight: {
+          position: 'absolute',
+          borderRadius: 999,
+          backgroundColor: 'rgba(255, 255, 255, 0.18)',
+        },
+        planetRing: {
+          position: 'absolute',
+          width: '170%',
+          height: 18,
+          top: '46%',
+          left: '-35%',
+          borderRadius: 999,
+          borderWidth: 1.5,
+          borderColor: 'rgba(123, 104, 238, 0.18)',
+          transform: [{ rotate: '-20deg' }],
+        },
+
+        // Greeting Hero card (so-c0o, dark) — canonical home-v2 design
+        welcomeCard: {
+          borderRadius: 24,
+          padding: 18,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.10)',
+        },
+        greetingTopRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          position: 'relative',
+        },
+        avatarBtn: {
+          flexShrink: 0,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          overflow: 'hidden',
+        },
+        avatarBtnDark: {
+          backgroundColor: '#5A674E',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.15)',
+        },
+        avatarBtnLight: {
+          backgroundColor: '#A6BD7B',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.08)',
+        },
+        avatarImg: {
+          width: 56,
+          height: 56,
+          marginBottom: -2,
+        },
+        greetingTextSection: {
+          flex: 1,
+          minWidth: 0,
+        },
+        welcomeLine: {
+          fontFamily: fonts.edensor.regular,
+          fontSize: 28,
+          lineHeight: 28 * 1.05,
+          color: '#FFFFFF',
+          letterSpacing: -0.2,
+        },
+        settingsBtn: {
+          flexShrink: 0,
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.18)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+
+        // I'm Feeling block
+        moodBlock: {
+          marginTop: 18,
+        },
+        moodLabel: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 12,
+          letterSpacing: 0.4,
+          color: 'rgba(255, 255, 255, 0.78)',
+          marginBottom: 6,
+        },
+        moodInputRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.10)',
+          borderRadius: 14,
+          paddingVertical: 11,
+          paddingHorizontal: 14,
+        },
+        moodInput: {
+          flex: 1,
+          fontFamily: fonts.edensor.italic,
+          fontSize: 16,
+          color: '#FFFFFF',
+          padding: 0,
+        },
+        notebookBtn: {
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.18)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        },
+        notebookBadge: {
+          position: 'absolute',
+          top: -3,
+          right: -3,
+          width: 11,
+          height: 11,
+          borderRadius: 6,
+          backgroundColor: NOTEBOOK_BADGE_PINK,
+          borderWidth: 1,
+          borderColor: '#110428',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        notebookBadgeText: {
+          color: '#FFFFFF',
+          fontSize: 10,
+          lineHeight: 10,
+          fontFamily: fonts.outfit.bold,
+        },
+
+        // SoulBar block
+        soulBarBlock: {
+          marginTop: 14,
+          paddingTop: 14,
+          paddingHorizontal: 14,
+          paddingBottom: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.16)',
+        },
+        soulBarHeaderRow: {
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        },
+        soulBarTitleGroup: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        },
+        soulBarTitle: {
+          fontFamily: fonts.outfit.bold,
+          fontSize: 14,
+          letterSpacing: 0.2,
+          color: '#FFFFFF',
+        },
+        soulBarInfoBadge: {
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.16)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        soulBarInfoText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 9,
+          lineHeight: 12,
+          color: 'rgba(255, 255, 255, 0.78)',
+        },
+        soulBarCounter: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 13,
+          color: '#FFFFFF',
+        },
+        soulBarCounterTotal: {
+          opacity: 0.55,
+        },
+        soulBarSegments: {
+          flexDirection: 'row',
+          gap: 6,
+        },
+        soulBarSeg: {
+          flex: 1,
+          height: 12,
+          borderRadius: 4,
+        },
+        soulBarSegFilled: {
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.25)',
+          shadowColor: SOULBAR_TEAL,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.45,
+          shadowRadius: 8,
+          elevation: 3,
+        },
+        soulBarSegEmpty: {
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.16)',
+        },
+        soulBarFooter: {
+          marginTop: 8,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        },
+        soulBarFooterLabel: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 11,
+          color: 'rgba(255, 255, 255, 0.78)',
+        },
+        soulBarFooterRight: {
+          fontFamily: fonts.edensor.italic,
+          fontSize: 11,
+          color: 'rgba(255, 255, 255, 0.78)',
+        },
+
+        // Charge Up grid wrap
+        chargeUpWrap: {
+          marginTop: 16,
+        },
+
+        // Goal Garden Card
+        goalGardenCard: {
+          marginTop: 16,
+        },
+        goalGardenInner: {
+          height: 130,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        comingSoonLockLarge: {
+          width: 44,
+          height: 44,
+          opacity: 0.4,
+        },
+        comingSoonText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 13,
+          color: 'rgba(255, 255, 255, 0.4)',
+          marginTop: 8,
+        },
+
+        // Small Cards Row
+        cardsRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: 16,
+        },
+        smallCardWrapper: {
+          width: 155,
+          alignItems: 'center',
+        },
+        smallCard: {
+          width: 155,
+        },
+        smallCardInner: {
+          width: '100%',
+          height: 155,
+          justifyContent: 'center',
+          alignItems: 'center',
+          overflow: 'hidden',
+          borderRadius: 16,
+        },
+        lockIcon: {
+          width: 60,
+          height: 60,
+          opacity: 0.6,
+        },
+        affirmationCardImage: {
+          width: '100%',
+          height: '100%',
+          borderRadius: 16,
+        },
+        cardLabel: {
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          marginTop: 8,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.08)',
+        },
+        cardLabelText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 12,
+          lineHeight: 12 * 1.26,
+          color: colors.text.secondary,
+          textAlign: 'center',
+        },
+
+        // Bottom Tab Bar — frosted glass
+        tabBar: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+        },
+        tabBarInner: {
+          flexDirection: 'row',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          borderRadius: 200,
+          width: 269,
+          height: 62,
+          alignItems: 'center',
+          justifyContent: 'space-evenly',
+          paddingHorizontal: 16,
+          paddingTop: 14,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.12)',
+        },
+        tabItem: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 50,
+        },
+        tabPressable: {
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        activeTabBg: {
+          backgroundColor: 'rgba(112, 202, 207, 0.25)',
+          borderRadius: 24,
+          width: 52,
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: 'rgba(112, 202, 207, 0.35)',
+          shadowColor: colors.primary,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          elevation: 6,
+        },
+        tabIcon: {
+          width: 28,
+          height: 26,
+          tintColor: colors.white,
+        },
+        tabIconInactive: {
+          width: 33,
+          height: 30,
+          opacity: 0.4,
+          tintColor: colors.white,
+        },
+        activeTabLabel: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 12,
+          lineHeight: 12 * 1.4,
+          color: colors.text.primary,
+          marginTop: 2,
+        },
+      }),
+    [colors]
+  );
+
+  const lt = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+        },
+        scrollView: {
+          flex: 1,
+        },
+        scrollContent: {
+          paddingHorizontal: CARD_HORIZONTAL_MARGIN,
+        },
+
+        // Greeting Hero card (so-c0o, light) — canonical home-v2 design
+        welcomeCard: {
+          borderRadius: 24,
+          padding: 18,
+          backgroundColor: '#FFFFFF',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+        },
+        greetingTopRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          position: 'relative',
+        },
+        avatarBtn: {
+          flexShrink: 0,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          overflow: 'hidden',
+        },
+        avatarBtnDark: {
+          backgroundColor: '#5A674E',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.15)',
+        },
+        avatarBtnLight: {
+          backgroundColor: '#A6BD7B',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.08)',
+        },
+        avatarImg: {
+          width: 56,
+          height: 56,
+          marginBottom: -2,
+        },
+        greetingTextSection: {
+          flex: 1,
+          minWidth: 0,
+        },
+        welcomeLine: {
+          fontFamily: fonts.edensor.regular,
+          fontSize: 28,
+          lineHeight: 28 * 1.05,
+          color: '#3A0E66',
+          letterSpacing: -0.2,
+        },
+        settingsBtn: {
+          flexShrink: 0,
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+
+        // I'm Feeling block
+        moodBlock: {
+          marginTop: 18,
+        },
+        moodLabel: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 12,
+          letterSpacing: 0.4,
+          color: 'rgba(58, 14, 102, 0.7)',
+          marginBottom: 6,
+        },
+        moodInputRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          backgroundColor: '#F5F0FB',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.08)',
+          borderRadius: 14,
+          paddingVertical: 11,
+          paddingHorizontal: 14,
+        },
+        moodInput: {
+          flex: 1,
+          fontFamily: fonts.edensor.italic,
+          fontSize: 16,
+          color: '#3A0E66',
+          padding: 0,
+        },
+        notebookBtn: {
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: '#FFFFFF',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.12)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        },
+        notebookBadge: {
+          position: 'absolute',
+          top: -3,
+          right: -3,
+          width: 11,
+          height: 11,
+          borderRadius: 6,
+          backgroundColor: NOTEBOOK_BADGE_PINK,
+          borderWidth: 1,
+          borderColor: '#FFFFFF',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        notebookBadgeText: {
+          color: '#FFFFFF',
+          fontSize: 10,
+          lineHeight: 10,
+          fontFamily: fonts.outfit.bold,
+        },
+
+        // SoulBar block
+        soulBarBlock: {
+          marginTop: 14,
+          paddingTop: 14,
+          paddingHorizontal: 14,
+          paddingBottom: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+        },
+        soulBarHeaderRow: {
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        },
+        soulBarTitleGroup: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        },
+        soulBarTitle: {
+          fontFamily: fonts.outfit.bold,
+          fontSize: 14,
+          letterSpacing: 0.2,
+          color: '#3A0E66',
+        },
+        soulBarInfoBadge: {
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        soulBarInfoText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 9,
+          lineHeight: 12,
+          color: 'rgba(58, 14, 102, 0.7)',
+        },
+        soulBarCounter: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 13,
+          color: '#3A0E66',
+        },
+        soulBarCounterTotal: {
+          opacity: 0.55,
+        },
+        soulBarSegments: {
+          flexDirection: 'row',
+          gap: 6,
+        },
+        soulBarSeg: {
+          flex: 1,
+          height: 12,
+          borderRadius: 4,
+        },
+        soulBarSegFilled: {
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.25)',
+          shadowColor: SOULBAR_TEAL,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.45,
+          shadowRadius: 8,
+          elevation: 3,
+        },
+        soulBarSegEmpty: {
+          backgroundColor: 'rgba(79, 23, 134, 0.08)',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+        },
+        soulBarFooter: {
+          marginTop: 8,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        },
+        soulBarFooterLabel: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 11,
+          color: 'rgba(58, 14, 102, 0.7)',
+        },
+        soulBarFooterRight: {
+          fontFamily: fonts.edensor.italic,
+          fontSize: 11,
+          color: 'rgba(58, 14, 102, 0.7)',
+        },
+
+        // Charge Up grid wrap
+        chargeUpWrap: {
+          marginTop: 16,
+        },
+
+        // Goal Garden Card
+        goalGardenCard: {
+          borderRadius: 20,
+          backgroundColor: colors.white,
+          marginTop: 16,
+          height: 174,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        comingSoonLockLarge: {
+          width: 80,
+          height: 80,
+        },
+        comingSoonText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 14,
+          color: '#59168B',
+          marginTop: 8,
+        },
+
+        // Small Cards Row
+        cardsRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginTop: 16,
+        },
+        smallCardWrapper: {
+          width: 155,
+          alignItems: 'center',
+        },
+        smallCard: {
+          width: '100%',
+          height: 155,
+          backgroundColor: colors.white,
+          borderRadius: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          overflow: 'hidden',
+        },
+        lockIcon: {
+          width: '110%',
+          height: '110%',
+        },
+        affirmationCardImage: {
+          width: '100%',
+          height: '100%',
+          borderRadius: 20,
+        },
+        cardLabel: {
+          backgroundColor: colors.white,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          marginTop: 8,
+        },
+        cardLabelText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 12,
+          lineHeight: 12 * 1.26,
+          color: '#59168B',
+          textAlign: 'center',
+        },
+
+        // Bottom Tab Bar
+        tabBar: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+        },
+        tabBarInner: {
+          flexDirection: 'row',
+          backgroundColor: colors.white,
+          borderRadius: 200,
+          width: 269,
+          height: 62,
+          alignItems: 'center',
+          justifyContent: 'space-evenly',
+          paddingHorizontal: 16,
+          paddingTop: 14,
+        },
+        tabItem: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 50,
+        },
+        tabPressable: {
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        activeTabBg: {
+          backgroundColor: '#59168B',
+          borderRadius: 24,
+          width: 52,
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabIcon: {
+          width: 28,
+          height: 26,
+          tintColor: '#FFFFFF',
+        },
+        tabIconInactive: {
+          width: 33,
+          height: 30,
+          opacity: 0.85,
+          tintColor: '#59168B',
+        },
+        activeTabLabel: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 12,
+          lineHeight: 12 * 1.4,
+          color: '#59168B',
+          marginTop: 2,
+        },
+      }),
+    [colors]
+  );
 
   // Refresh soul bar and mood whenever Home screen gains focus
   useFocusEffect(
@@ -100,11 +874,6 @@ const HomeScreen = ({ navigation }: any) => {
     }, [fetchSoulBar])
   );
 
-  // Play only the bounce+wink segment (skip the wave intro)
-  useEffect(() => {
-    lottieRef.current?.play(0, 162);
-  }, []);
-
   // Tab bar animation
   const tabTranslateY = useSharedValue(0);
 
@@ -113,10 +882,9 @@ const HomeScreen = ({ navigation }: any) => {
   const tabRiseValues = [useSharedValue(-20), useSharedValue(0), useSharedValue(0)];
   const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
-  // SoulPal avatar animation
-  const palFloatY = useSharedValue(0);
-  const palRotate = useSharedValue(0);
-  const palScale = useSharedValue(1);
+  // SoulPal avatar animation — bob (3.6s ease-in-out) + blink every ~4.2s
+  const palBobY = useSharedValue(0);
+  const palBlinkScaleY = useSharedValue(1);
 
 
   // Floating orb animations (dark mode only, but hooks must always run)
@@ -131,36 +899,24 @@ const HomeScreen = ({ navigation }: any) => {
     loadLocalName();
   }, []);
 
-  // SoulPal float + wiggle + breathe
+  // SoulPal bob + blink (canonical GreetingHero).
   useEffect(() => {
-    // Gentle float
-    palFloatY.value = withRepeat(
+    palBobY.value = withRepeat(
       withSequence(
-        withTiming(-5, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-        withTiming(5, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-3, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
       true,
     );
-    // Periodic wiggle wave
-    palRotate.value = withRepeat(
-      withSequence(
-        withDelay(3000, withTiming(6, { duration: 200, easing: Easing.inOut(Easing.ease) })),
-        withTiming(-6, { duration: 200, easing: Easing.inOut(Easing.ease) }),
-        withTiming(4, { duration: 150, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 150, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-    );
-    // Subtle breathing scale
-    palScale.value = withRepeat(
-      withSequence(
-        withTiming(1.04, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      true,
-    );
+
+    // Blink: every 4.2s, eyes squeeze shut for 140ms.
+    const blinkId = setInterval(() => {
+      palBlinkScaleY.value = withSequence(
+        withTiming(0.05, { duration: 70 }),
+        withTiming(1, { duration: 70 }),
+      );
+    }, 4200);
 
     // Floating orbs
     orb1Y.value = withRepeat(
@@ -179,14 +935,15 @@ const HomeScreen = ({ navigation }: any) => {
       -1,
       true,
     );
+
+    return () => clearInterval(blinkId);
   }, []);
 
-  const palAnimStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: palFloatY.value },
-      { rotate: `${palRotate.value}deg` },
-      { scale: palScale.value },
-    ],
+  const palBobStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: palBobY.value }],
+  }));
+  const palBlinkStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: palBlinkScaleY.value }],
   }));
 
   const orb1Style = useAnimatedStyle(() => ({
@@ -339,109 +1096,153 @@ const HomeScreen = ({ navigation }: any) => {
           contentContainerStyle={dk.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Welcome Header Card */}
-          <GlassCard intensity="medium" glowColor={surfaces.homeGlow} style={dk.welcomeCard}>
-            <View style={dk.welcomeInner}>
-              <View style={dk.headerRow}>
-                <Animated.View style={[dk.soulpalAvatarWrap, palAnimStyle]}>
-                  <View style={[dk.soulpalGlow, { backgroundColor: soulPalHex }]} />
-                  <LottieView
-                    ref={lottieRef}
-                    source={SoulpalLottie}
-                    loop
-                    style={dk.soulpalAvatar}
-                  />
-                </Animated.View>
-                <View style={dk.headerTextSection}>
-                  <Text style={dk.welcomeText}>
-                    Welcome Back, {displayName}!
-                  </Text>
-                </View>
-                <Pressable style={dk.gearButton} onPress={() => navigation.navigate('Settings')}>
-                  <Image
-                    source={GearIconImg}
-                    style={dk.gearIcon}
-                    resizeMode="contain"
-                  />
-                </Pressable>
+          {/* Greeting Hero (so-c0o) — canonical home-v2 design */}
+          <View style={dk.welcomeCard}>
+            {/* Top row: avatar + welcome + settings cog */}
+            <View style={dk.greetingTopRow}>
+              {/* TODO(so-c0o): no SoulPal route exists yet — avatar tap is a no-op for now (FYI lead). */}
+              <Animated.View style={[dk.avatarBtn, dk.avatarBtnDark, palBobStyle]}>
+                <Animated.Image
+                  source={Soulpal5}
+                  style={[dk.avatarImg, palBlinkStyle]}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+              <View style={dk.greetingTextSection}>
+                <Text style={dk.welcomeLine}>Welcome back,</Text>
+                <Text style={dk.welcomeLine}>{displayName}.</Text>
               </View>
-
-              {/* Mood Word Input */}
-              <View style={dk.moodBarSection}>
-                <Text style={dk.moodBarLabel}>I'm Feeling</Text>
-                <View style={dk.moodInputRow}>
-                  <TextInput
-                    style={dk.moodInput}
-                    placeholder="One word…"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    value={moodWord}
-                    onChangeText={handleMoodChange}
-                    onSubmitEditing={submitMoodWord}
-                    maxLength={50}
-                    returnKeyType="done"
-                    editable={!moodSaved}
-                    autoCorrect={false}
-                  />
-                  {moodSaved && (
-                    <Pressable onPress={() => setMoodSaved(false)} style={dk.moodEditBtn}>
-                      <Text style={dk.moodEditText}>Edit</Text>
-                    </Pressable>
-                  )}
-                </View>
-              </View>
-
-              {/* Journal Prompt */}
               <Pressable
-                style={dk.journalPromptBar}
-                onPress={() => navigation.navigate('CreateJournal')}
+                style={dk.settingsBtn}
+                onPress={() => navigation.navigate('Settings')}
+                accessibilityLabel="Settings"
               >
-                <Text style={dk.journalPromptText}>Guess what happened today....</Text>
-                <View style={dk.journalSubmitButton}>
-                  <Svg width={14} height={14} viewBox="0 0 14 14">
-                    <Polygon points="3,2 12,7 3,12" fill="#fff" />
-                  </Svg>
-                </View>
-              </Pressable>
-
-              {/* SoulBar Section */}
-              <Pressable style={dk.soulBarCard} onPress={() => navigation.navigate('SoulSight')}>
-                <View style={dk.soulBarHeader}>
-                  <Text style={dk.soulBarTitle}>SoulSight</Text>
-                  <Text style={dk.soulBarCount}>
-                    {soulBar?.points ?? 0}/{SOUL_BAR_SEGMENTS}
-                  </Text>
-                </View>
-                <View style={dk.soulBarSegments}>
-                  {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => {
-                    const pts = soulBar?.points ?? 0;
-                    const isFull = pts >= i + 1;
-                    const isHalf = !isFull && pts > i;
-                    return (
-                      <View
-                        key={i}
-                        style={[
-                          dk.soulBarSegment,
-                          {
-                            backgroundColor: isFull
-                              ? '#4DE8D4'
-                              : isHalf
-                                ? 'rgba(77, 232, 212, 0.5)'
-                                : 'rgba(255, 255, 255, 0.08)',
-                          },
-                          isFull && dk.soulBarSegmentGlow,
-                        ]}
-                      />
-                    );
-                  })}
-                </View>
-                {(soulBar?.total_filled ?? 0) > 0 && (
-                  <Text style={dk.soulBarFilled}>
-                    Filled {soulBar?.total_filled} time{(soulBar?.total_filled ?? 0) !== 1 ? 's' : ''}
-                  </Text>
-                )}
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"
+                    fill="#fff"
+                  />
+                  <Path
+                    d="M19.4 13.6c.04-.5.06-1 .06-1.6s-.02-1.1-.06-1.6l2-1.5a.5.5 0 00.12-.65l-1.9-3.3a.5.5 0 00-.6-.22l-2.35.95a7 7 0 00-2.7-1.55l-.36-2.5a.5.5 0 00-.5-.43h-3.8a.5.5 0 00-.5.43l-.36 2.5a7 7 0 00-2.7 1.55l-2.35-.95a.5.5 0 00-.6.22l-1.9 3.3a.5.5 0 00.12.65l2 1.5c-.04.5-.06 1-.06 1.6s.02 1.1.06 1.6l-2 1.5a.5.5 0 00-.12.65l1.9 3.3a.5.5 0 00.6.22l2.35-.95a7 7 0 002.7 1.55l.36 2.5c.04.25.25.43.5.43h3.8c.25 0 .46-.18.5-.43l.36-2.5a7 7 0 002.7-1.55l2.35.95c.23.09.5 0 .6-.22l1.9-3.3a.5.5 0 00-.12-.65l-2-1.5z"
+                    stroke="#fff"
+                    strokeWidth={1.5}
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                </Svg>
               </Pressable>
             </View>
-          </GlassCard>
+
+            {/* I'm Feeling block */}
+            <View style={dk.moodBlock}>
+              <Text style={dk.moodLabel}>I'm Feeling</Text>
+              <View style={dk.moodInputRow}>
+                <TextInput
+                  style={dk.moodInput}
+                  placeholder="One word…"
+                  placeholderTextColor="rgba(255, 255, 255, 0.45)"
+                  value={moodWord}
+                  onChangeText={handleMoodChange}
+                  onSubmitEditing={submitMoodWord}
+                  onBlur={() => moodWord.trim() && submitMoodWord()}
+                  maxLength={50}
+                  returnKeyType="done"
+                  editable={!moodSaved}
+                  autoCorrect={false}
+                />
+                <Pressable
+                  style={dk.notebookBtn}
+                  onPress={() => navigation.navigate('CreateJournal')}
+                  accessibilityLabel="Open journal"
+                >
+                  <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                    <Rect
+                      x={3}
+                      y={2.5}
+                      width={9}
+                      height={11}
+                      rx={1.2}
+                      stroke="#fff"
+                      strokeWidth={1.2}
+                    />
+                    <Line x1={3} y1={5} x2={2} y2={5} stroke="#fff" strokeWidth={1.2} />
+                    <Line x1={3} y1={8} x2={2} y2={8} stroke="#fff" strokeWidth={1.2} />
+                    <Line x1={3} y1={11} x2={2} y2={11} stroke="#fff" strokeWidth={1.2} />
+                    <Line
+                      x1={5.5}
+                      y1={6}
+                      x2={9.5}
+                      y2={6}
+                      stroke="#fff"
+                      strokeWidth={1}
+                      strokeLinecap="round"
+                    />
+                    <Line
+                      x1={5.5}
+                      y1={8.5}
+                      x2={8.5}
+                      y2={8.5}
+                      stroke="#fff"
+                      strokeWidth={1}
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                  <View style={dk.notebookBadge}>
+                    <Text style={dk.notebookBadgeText}>+</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* SoulBar block */}
+            <LinearGradient
+              colors={['rgba(112, 202, 207, 0.10)', 'rgba(126, 91, 217, 0.10)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={dk.soulBarBlock}
+            >
+              <View style={dk.soulBarHeaderRow}>
+                <View style={dk.soulBarTitleGroup}>
+                  <Text style={dk.soulBarTitle}>SoulBar</Text>
+                  <View
+                    style={dk.soulBarInfoBadge}
+                    accessibilityLabel="Daily charge — fill all 6 to complete a soul cycle"
+                  >
+                    <Text style={dk.soulBarInfoText}>i</Text>
+                  </View>
+                </View>
+                <Text style={dk.soulBarCounter}>
+                  {soulBarFilled}
+                  <Text style={dk.soulBarCounterTotal}>/{SOUL_BAR_SEGMENTS}</Text>
+                </Text>
+              </View>
+              <View style={dk.soulBarSegments}>
+                {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) =>
+                  i < soulBarFilled ? (
+                    <LinearGradient
+                      key={i}
+                      colors={[SOULBAR_TEAL, SOULBAR_PINK]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[dk.soulBarSeg, dk.soulBarSegFilled]}
+                    />
+                  ) : (
+                    <View key={i} style={[dk.soulBarSeg, dk.soulBarSegEmpty]} />
+                  )
+                )}
+              </View>
+              <View style={dk.soulBarFooter}>
+                <Text style={dk.soulBarFooterLabel}>
+                  Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
+                </Text>
+                <Text style={dk.soulBarFooterRight}>
+                  {soulBarFilled >= SOUL_BAR_SEGMENTS
+                    ? 'cycle complete ✦'
+                    : `${soulBarRemaining} more to charge`}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
 
           {/* Charge Up — 5-card grid */}
           <View style={dk.chargeUpWrap}>
@@ -527,106 +1328,152 @@ const HomeScreen = ({ navigation }: any) => {
         contentContainerStyle={lt.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Header Card */}
+        {/* Greeting Hero (so-c0o) — canonical home-v2 design */}
         <View style={lt.welcomeCard}>
-          <View style={lt.headerRow}>
-            <Animated.View style={[lt.soulpalAvatarWrap, palAnimStyle]}>
-              <View style={[lt.soulpalGlow, { backgroundColor: soulPalHex }]} />
-              <LottieView
-                ref={lottieRef}
-                source={SoulpalLottie}
-                loop
-                style={lt.soulpalAvatar}
-              />
-            </Animated.View>
-            <View style={lt.headerTextSection}>
-              <Text style={lt.welcomeText}>
-                Welcome Back, {displayName}!
-              </Text>
-            </View>
-            <Pressable style={lt.gearButton} onPress={() => navigation.navigate('Settings')}>
-              <Image
-                source={GearIconImg}
-                style={lt.gearIcon}
+          {/* Top row: avatar + welcome + settings cog */}
+          <View style={lt.greetingTopRow}>
+            {/* TODO(so-c0o): no SoulPal route exists yet — avatar tap is a no-op for now (FYI lead). */}
+            <Animated.View style={[lt.avatarBtn, lt.avatarBtnLight, palBobStyle]}>
+              <Animated.Image
+                source={Soulpal5}
+                style={[lt.avatarImg, palBlinkStyle]}
                 resizeMode="contain"
               />
+            </Animated.View>
+            <View style={lt.greetingTextSection}>
+              <Text style={lt.welcomeLine}>Welcome back,</Text>
+              <Text style={lt.welcomeLine}>{displayName}.</Text>
+            </View>
+            <Pressable
+              style={lt.settingsBtn}
+              onPress={() => navigation.navigate('Settings')}
+              accessibilityLabel="Settings"
+            >
+              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                <Path
+                  d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"
+                  fill="#4F1786"
+                />
+                <Path
+                  d="M19.4 13.6c.04-.5.06-1 .06-1.6s-.02-1.1-.06-1.6l2-1.5a.5.5 0 00.12-.65l-1.9-3.3a.5.5 0 00-.6-.22l-2.35.95a7 7 0 00-2.7-1.55l-.36-2.5a.5.5 0 00-.5-.43h-3.8a.5.5 0 00-.5.43l-.36 2.5a7 7 0 00-2.7 1.55l-2.35-.95a.5.5 0 00-.6.22l-1.9 3.3a.5.5 0 00.12.65l2 1.5c-.04.5-.06 1-.06 1.6s.02 1.1.06 1.6l-2 1.5a.5.5 0 00-.12.65l1.9 3.3a.5.5 0 00.6.22l2.35-.95a7 7 0 002.7 1.55l.36 2.5c.04.25.25.43.5.43h3.8c.25 0 .46-.18.5-.43l.36-2.5a7 7 0 002.7-1.55l2.35.95c.23.09.5 0 .6-.22l1.9-3.3a.5.5 0 00-.12-.65l-2-1.5z"
+                  stroke="#4F1786"
+                  strokeWidth={1.5}
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </Svg>
             </Pressable>
           </View>
 
-          {/* Mood Word Input */}
-          <View style={lt.moodBarSection}>
-            <Text style={lt.moodBarLabel}>I'm Feeling</Text>
+          {/* I'm Feeling block */}
+          <View style={lt.moodBlock}>
+            <Text style={lt.moodLabel}>I'm Feeling</Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
                 placeholder="One word…"
-                placeholderTextColor="rgba(89, 22, 139, 0.35)"
+                placeholderTextColor="rgba(79, 23, 134, 0.45)"
                 value={moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
+                onBlur={() => moodWord.trim() && submitMoodWord()}
                 maxLength={50}
                 returnKeyType="done"
                 editable={!moodSaved}
                 autoCorrect={false}
               />
-              {moodSaved && (
-                <Pressable onPress={() => setMoodSaved(false)} style={lt.moodEditBtn}>
-                  <Text style={lt.moodEditText}>Edit</Text>
-                </Pressable>
-              )}
+              <Pressable
+                style={lt.notebookBtn}
+                onPress={() => navigation.navigate('CreateJournal')}
+                accessibilityLabel="Open journal"
+              >
+                <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+                  <Rect
+                    x={3}
+                    y={2.5}
+                    width={9}
+                    height={11}
+                    rx={1.2}
+                    stroke="#4F1786"
+                    strokeWidth={1.2}
+                  />
+                  <Line x1={3} y1={5} x2={2} y2={5} stroke="#4F1786" strokeWidth={1.2} />
+                  <Line x1={3} y1={8} x2={2} y2={8} stroke="#4F1786" strokeWidth={1.2} />
+                  <Line x1={3} y1={11} x2={2} y2={11} stroke="#4F1786" strokeWidth={1.2} />
+                  <Line
+                    x1={5.5}
+                    y1={6}
+                    x2={9.5}
+                    y2={6}
+                    stroke="#4F1786"
+                    strokeWidth={1}
+                    strokeLinecap="round"
+                  />
+                  <Line
+                    x1={5.5}
+                    y1={8.5}
+                    x2={8.5}
+                    y2={8.5}
+                    stroke="#4F1786"
+                    strokeWidth={1}
+                    strokeLinecap="round"
+                  />
+                </Svg>
+                <View style={lt.notebookBadge}>
+                  <Text style={lt.notebookBadgeText}>+</Text>
+                </View>
+              </Pressable>
             </View>
           </View>
 
-          {/* Journal Prompt */}
-          <Pressable
-            style={lt.journalPromptBar}
-            onPress={() => navigation.navigate('CreateJournal')}
+          {/* SoulBar block */}
+          <LinearGradient
+            colors={['#FBF6FF', '#F5F0FB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={lt.soulBarBlock}
           >
-            <Text style={lt.journalPromptText}>Guess what happened today....</Text>
-            <View style={lt.journalSubmitButton}>
-              <Svg width={14} height={14} viewBox="0 0 14 14">
-                <Polygon points="3,2 12,7 3,12" fill="#fff" />
-              </Svg>
-            </View>
-          </Pressable>
-
-          {/* SoulBar Section */}
-          <Pressable style={lt.soulBarCard} onPress={() => navigation.navigate('SoulSight')}>
-            <View style={lt.soulBarHeader}>
-              <Text style={lt.soulBarTitle}>SoulSight</Text>
-              <Text style={lt.soulBarCount}>
-                {soulBar?.points ?? 0}/{SOUL_BAR_SEGMENTS}
+            <View style={lt.soulBarHeaderRow}>
+              <View style={lt.soulBarTitleGroup}>
+                <Text style={lt.soulBarTitle}>SoulBar</Text>
+                <View
+                  style={lt.soulBarInfoBadge}
+                  accessibilityLabel="Daily charge — fill all 6 to complete a soul cycle"
+                >
+                  <Text style={lt.soulBarInfoText}>i</Text>
+                </View>
+              </View>
+              <Text style={lt.soulBarCounter}>
+                {soulBarFilled}
+                <Text style={lt.soulBarCounterTotal}>/{SOUL_BAR_SEGMENTS}</Text>
               </Text>
             </View>
             <View style={lt.soulBarSegments}>
-              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) => {
-                const pts = soulBar?.points ?? 0;
-                const isFull = pts >= i + 1;
-                const isHalf = !isFull && pts > i;
-                return (
-                  <View
+              {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) =>
+                i < soulBarFilled ? (
+                  <LinearGradient
                     key={i}
-                    style={[
-                      lt.soulBarSegment,
-                      {
-                        backgroundColor: isFull
-                          ? '#59168B'
-                          : isHalf
-                            ? 'rgba(89, 22, 139, 0.5)'
-                            : 'rgba(89, 22, 139, 0.15)',
-                      },
-                    ]}
+                    colors={[SOULBAR_TEAL, SOULBAR_PINK]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[lt.soulBarSeg, lt.soulBarSegFilled]}
                   />
-                );
-              })}
+                ) : (
+                  <View key={i} style={[lt.soulBarSeg, lt.soulBarSegEmpty]} />
+                )
+              )}
             </View>
-            {(soulBar?.total_filled ?? 0) > 0 && (
-              <Text style={lt.soulBarFilled}>
-                Filled {soulBar?.total_filled} time{(soulBar?.total_filled ?? 0) !== 1 ? 's' : ''}
+            <View style={lt.soulBarFooter}>
+              <Text style={lt.soulBarFooterLabel}>
+                Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
               </Text>
-            )}
-          </Pressable>
-
+              <Text style={lt.soulBarFooterRight}>
+                {soulBarFilled >= SOUL_BAR_SEGMENTS
+                  ? 'cycle complete ✦'
+                  : `${soulBarRemaining} more to charge`}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Charge Up — 5-card grid */}
@@ -701,715 +1548,5 @@ const HomeScreen = ({ navigation }: any) => {
   );
 };
 
-// ─── DARK MODE STYLES (liquid glass design) ──────────────────────────────
-const CARD_HORIZONTAL_MARGIN = 20;
-
-const dk = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: CARD_HORIZONTAL_MARGIN,
-  },
-
-  // Planets
-  orb: {
-    position: 'absolute',
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  orb1: {
-    width: 160,
-    height: 160,
-    top: 80,
-    right: -40,
-    borderWidth: 1,
-    borderColor: 'rgba(112, 202, 207, 0.12)',
-  },
-  orb2: {
-    width: 120,
-    height: 120,
-    top: 480,
-    left: -30,
-    borderWidth: 1,
-    borderColor: 'rgba(123, 104, 238, 0.10)',
-  },
-  orb3: {
-    width: 90,
-    height: 90,
-    bottom: 200,
-    right: -20,
-    borderWidth: 1,
-    borderColor: 'rgba(155, 89, 182, 0.08)',
-  },
-  planetFill: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-  },
-  planetHighlight: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  planetRing: {
-    position: 'absolute',
-    width: '170%',
-    height: 18,
-    top: '46%',
-    left: '-35%',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: 'rgba(123, 104, 238, 0.18)',
-    transform: [{ rotate: '-20deg' }],
-  },
-
-  // Welcome Header Card
-  welcomeCard: {
-    marginBottom: 0,
-  },
-  welcomeInner: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  soulpalAvatarWrap: {
-    position: 'relative',
-    width: 56,
-    height: 72,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'visible',
-  },
-  soulpalGlow: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    opacity: 0.25,
-    top: 4,
-  },
-  soulpalAvatar: {
-    width: 64,
-    height: 64,
-  },
-  headerTextSection: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  welcomeText: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 24,
-    lineHeight: 24 * 1.35,
-    color: colors.white,
-  },
-  dayText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 4,
-  },
-  gearButton: {
-    padding: 4,
-  },
-  gearIcon: {
-    width: 32,
-    height: 32,
-    tintColor: 'rgba(255, 255, 255, 0.5)',
-  },
-
-  // Mood Word Input
-  moodBarSection: {
-    marginTop: 10,
-  },
-  moodBarLabel: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 4,
-  },
-  moodInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 12,
-    height: 34,
-  },
-  moodInput: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: colors.white,
-  },
-  moodSubmitBtn: {
-    padding: 4,
-  },
-  moodEditBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: 'rgba(77, 232, 212, 0.15)',
-  },
-  moodEditText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: '#4DE8D4',
-  },
-  journalPromptBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    height: 34,
-    marginTop: 8,
-    paddingHorizontal: 12,
-  },
-  journalPromptText: {
-    flex: 1,
-    fontFamily: fonts.outfit.light,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-  },
-  sendButton: {
-    padding: 4,
-  },
-  sendIcon: {
-    width: 16,
-    height: 16,
-    tintColor: 'rgba(255, 255, 255, 0.75)',
-  },
-  journalSubmitButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // SoulBar Card — glass inner card
-  soulBarCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  soulBarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  soulBarTitle: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 15,
-    lineHeight: 15 * 1.4,
-    color: colors.white,
-  },
-  soulBarCount: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  soulBarSegments: {
-    flexDirection: 'row',
-    gap: 6,
-    height: 14,
-  },
-  soulBarSegment: {
-    flex: 1,
-    height: 12,
-    borderRadius: 3,
-  },
-  soulBarSegmentGlow: {
-    shadowColor: '#4DE8D4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  soulBarFilled: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 6,
-    textAlign: 'right',
-  },
-
-  // Charge Up grid wrap
-  chargeUpWrap: {
-    marginTop: 16,
-  },
-
-  // Goal Garden Card
-  goalGardenCard: {
-    marginTop: 16,
-  },
-  goalGardenInner: {
-    height: 130,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  comingSoonLockLarge: {
-    width: 44,
-    height: 44,
-    opacity: 0.4,
-  },
-  comingSoonText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 8,
-  },
-
-  // Small Cards Row
-  cardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  smallCardWrapper: {
-    width: 155,
-    alignItems: 'center',
-  },
-  smallCard: {
-    width: 155,
-  },
-  smallCardInner: {
-    width: '100%',
-    height: 155,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderRadius: 16,
-  },
-  lockIcon: {
-    width: 60,
-    height: 60,
-    opacity: 0.6,
-  },
-  affirmationCardImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 16,
-  },
-  cardLabel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  cardLabelText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-
-  // Bottom Tab Bar — frosted glass
-  tabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  tabBarInner: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 200,
-    width: 269,
-    height: 62,
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 50,
-  },
-  tabPressable: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeTabBg: {
-    backgroundColor: 'rgba(112, 202, 207, 0.25)',
-    borderRadius: 24,
-    width: 52,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(112, 202, 207, 0.35)',
-    shadowColor: '#4DE8D4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  tabIcon: {
-    width: 28,
-    height: 26,
-    tintColor: '#FFFFFF',
-  },
-  tabIconInactive: {
-    width: 33,
-    height: 30,
-    opacity: 0.4,
-    tintColor: '#FFFFFF',
-  },
-  activeTabLabel: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 12,
-    lineHeight: 12 * 1.4,
-    color: colors.white,
-    marginTop: 2,
-  },
-});
-
-// ─── LIGHT MODE STYLES (original design) ─────────────────────────────────
-const lt = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: CARD_HORIZONTAL_MARGIN,
-  },
-
-  // Welcome Header Card
-  welcomeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 85, 158, 0.2)',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  soulpalAvatarWrap: {
-    position: 'relative',
-    width: 56,
-    height: 72,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'visible',
-  },
-  soulpalGlow: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    opacity: 0.18,
-    top: 4,
-  },
-  soulpalAvatar: {
-    width: 64,
-    height: 64,
-  },
-  headerTextSection: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  welcomeText: {
-    fontFamily: fonts.edensor.light,
-    fontSize: 24,
-    lineHeight: 24 * 1.3,
-    color: colors.white,
-  },
-  dayText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 4,
-  },
-  gearButton: {
-    padding: 4,
-  },
-  gearIcon: {
-    width: 32,
-    height: 32,
-    tintColor: 'rgba(255, 255, 255, 0.5)',
-  },
-
-  // Mood Word Input
-  moodBarSection: {
-    marginTop: 10,
-  },
-  moodBarLabel: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 4,
-  },
-  moodInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(89, 22, 139, 0.12)',
-    paddingHorizontal: 12,
-    height: 34,
-  },
-  moodInput: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: '#59168B',
-  },
-  moodSubmitBtn: {
-    padding: 4,
-  },
-  sendIcon: {
-    width: 16,
-    height: 16,
-  },
-  moodEditBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    backgroundColor: 'rgba(89, 22, 139, 0.1)',
-  },
-  moodEditText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: '#59168B',
-  },
-  journalPromptBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(89, 22, 139, 0.12)',
-    height: 34,
-    marginTop: 8,
-    paddingHorizontal: 12,
-  },
-  journalSubmitButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(89, 22, 139, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  soulpalEyesContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    backgroundColor: 'rgba(89, 22, 139, 0.1)',
-  },
-  soulpalEyes: {
-    width: 20,
-    height: 28,
-  },
-  journalPromptText: {
-    flex: 1,
-    fontFamily: fonts.outfit.light,
-    fontSize: 12,
-    color: 'rgba(89, 22, 139, 0.5)',
-  },
-
-  // SoulBar Card
-  soulBarCard: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 12,
-  },
-  soulBarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  soulBarTitle: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 15,
-    lineHeight: 15 * 1.4,
-    color: '#59168B',
-  },
-  soulBarCount: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: '#59168B',
-  },
-  soulBarSegments: {
-    flexDirection: 'row',
-    gap: 6,
-    height: 14,
-  },
-  soulBarSegment: {
-    flex: 1,
-    height: 12,
-    borderRadius: 3,
-  },
-  soulBarFilled: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 11,
-    color: '#59168B',
-    marginTop: 6,
-    textAlign: 'right',
-  },
-
-  // Charge Up grid wrap
-  chargeUpWrap: {
-    marginTop: 16,
-  },
-
-  // Goal Garden Card
-  goalGardenCard: {
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    marginTop: 16,
-    height: 174,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  comingSoonLockLarge: {
-    width: 80,
-    height: 80,
-  },
-  comingSoonText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 14,
-    color: '#59168B',
-    marginTop: 8,
-  },
-
-  // Small Cards Row
-  cardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  smallCardWrapper: {
-    width: 155,
-    alignItems: 'center',
-  },
-  smallCard: {
-    width: '100%',
-    height: 155,
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  lockIcon: {
-    width: '110%',
-    height: '110%',
-  },
-  affirmationCardImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-  },
-  cardLabel: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 8,
-  },
-  cardLabelText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    color: '#59168B',
-    textAlign: 'center',
-  },
-
-  // Bottom Tab Bar
-  tabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  tabBarInner: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: 200,
-    width: 269,
-    height: 62,
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-    paddingHorizontal: 16,
-    paddingTop: 14,
-  },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 50,
-  },
-  tabPressable: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeTabBg: {
-    backgroundColor: '#59168B',
-    borderRadius: 24,
-    width: 52,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabIcon: {
-    width: 28,
-    height: 26,
-    tintColor: '#FFFFFF',
-  },
-  tabIconInactive: {
-    width: 33,
-    height: 30,
-    opacity: 0.85,
-    tintColor: '#59168B',
-  },
-  activeTabLabel: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 12,
-    lineHeight: 12 * 1.4,
-    color: '#59168B',
-    marginTop: 2,
-  },
-});
 
 export default HomeScreen;

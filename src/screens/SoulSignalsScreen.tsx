@@ -1,26 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { fonts } from '../theme';
-import { buildGroups, SignalsB, SignalsStatus } from '../features/soulSignals';
-import { Signal } from '../features/soulSignals/types';
+import {
+  buildGroups,
+  ResonanceToast,
+  SignalsB,
+  SignalsDetailModal,
+  SignalsMuteModal,
+  SignalsPatternModal,
+  SignalsStatus,
+  SignalsTurnToShiftModal,
+  TurnToShiftCandidate,
+} from '../features/soulSignals';
+import {
+  MuteDuration,
+  ResonanceVote,
+  Signal,
+  SignalDetail,
+  SignalPatternAggregate,
+} from '../features/soulSignals/types';
 import SoulSignalsService from '../services/SoulSignalsService';
+import SoulShiftsService from '../services/SoulShiftsService';
 import SoulSightService from '../services/SoulSightService';
 
 // Matches soul_bar_service.compute_progress on the backend (is_full = entries_since >= 6).
 // Design spec drafted '5 more' approximately; backend is the source of truth.
 const ENTRIES_NEEDED = 6;
-
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 
 const SoulSignalsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -31,6 +37,31 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [entriesSinceSight, setEntriesSinceSight] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Detail-modal state (so-4vd). selectedId drives both the feed's focusId
+  // (for dim/glow) and the modal's visibility.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<SignalDetail | null>(null);
+  const [resonanceSubmitting, setResonanceSubmitting] =
+    useState<ResonanceVote | null>(null);
+  const [saveSubmitting, setSaveSubmitting] = useState(false);
+  const [resonanceToastVisible, setResonanceToastVisible] = useState(false);
+
+  // Pattern modal state (so-n56). When `patternTag` is set, the pattern
+  // modal is up; the detail modal hides so layers don't fight.
+  const [patternTag, setPatternTag] = useState<string | null>(null);
+  const [patternAggregate, setPatternAggregate] =
+    useState<SignalPatternAggregate | null>(null);
+  const [patternLoading, setPatternLoading] = useState(false);
+
+  // Mute modal state (so-x5g).
+  const [muteOpen, setMuteOpen] = useState(false);
+  const [muteSubmitting, setMuteSubmitting] = useState(false);
+
+  // Turn-pattern-into-shift state (so-axs). Cross-feature write to Shifts.
+  const [turnCandidate, setTurnCandidate] =
+    useState<TurnToShiftCandidate | null>(null);
+  const [turnSubmitting, setTurnSubmitting] = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -58,6 +89,11 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     [signals],
   );
 
+  const fallbackSignal = useMemo(
+    () => (selectedId ? signals.find((s) => s.id === selectedId) ?? null : null),
+    [selectedId, signals],
+  );
+
   // Precedence: existing signals win — a user mid-cycle with prior signals never re-locks
   // just because their entries-since-last-sight count reset. Locked is for zero-signal users.
   const status: SignalsStatus =
@@ -70,8 +106,173 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
 
   const handleOpenJournal = () => navigation.navigate('CreateJournal');
 
-  const backIconSource = isDarkMode ? BackIcon : ProfileBackIcon;
-  const backTextColor = isDarkMode ? '#fff' : '#3A0E66';
+  const handlePatternPress = (id: string) => {
+    setSelectedId(id);
+    SoulSignalsService.getDetail(id)
+      .then(setDetail)
+      .catch((err) =>
+        console.log('[SoulSignals] Detail fetch error:', err?.message),
+      );
+  };
+
+  const handleClose = () => {
+    setSelectedId(null);
+    setDetail(null);
+  };
+
+  const handleResonance = async (id: string, value: ResonanceVote) => {
+    setResonanceSubmitting(value);
+    try {
+      const updated = await SoulSignalsService.setResonance(id, value);
+      setSignals((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      if (detail?.id === id) {
+        setDetail({ ...detail, ...updated });
+      }
+      if (value === 'yes') setResonanceToastVisible(true);
+    } catch (err: any) {
+      console.log('[SoulSignals] Resonance error:', err?.message);
+    } finally {
+      setResonanceSubmitting(null);
+    }
+  };
+
+  const handleOpenMute = () => {
+    if (!detail) return;
+    setMuteOpen(true);
+  };
+
+  const handleConfirmMute = async (duration: MuteDuration) => {
+    if (!detail) return;
+    setMuteSubmitting(true);
+    try {
+      const updated = await SoulSignalsService.muteSignal(detail.id, duration);
+      // Default list call hides muted signals (per be_core so-otk), so the
+      // muted signal disappears from the feed. Mirror that locally.
+      setSignals((prev) => prev.filter((s) => s.id !== updated.id));
+      setMuteOpen(false);
+      handleClose();
+    } catch (err: any) {
+      console.log('[SoulSignals] Mute error:', err?.message);
+    } finally {
+      setMuteSubmitting(false);
+    }
+  };
+
+  const handleViewPattern = async (tag: string) => {
+    setPatternTag(tag);
+    setPatternLoading(true);
+    try {
+      const result = await SoulSignalsService.getPatternByTag(tag);
+      setPatternAggregate(result);
+    } catch (err: any) {
+      console.log('[SoulSignals] Pattern fetch error:', err?.message);
+      // Surface the empty-state path inside the modal rather than catching
+      // and silently dismissing — matches the so-pjv suggestion modal
+      // behavior where a fetch failure shows the empty-state copy.
+      setPatternAggregate({
+        tag,
+        tone: '#B89CE0',
+        headline: 'Couldn’t load this pattern.',
+        summary: '',
+        noticings: [],
+        date_range: { start: '', end: '' },
+        soulpal: 1,
+      });
+    } finally {
+      setPatternLoading(false);
+    }
+  };
+
+  const handleClosePattern = () => {
+    setPatternTag(null);
+    setPatternAggregate(null);
+  };
+
+  const handlePatternNoticingPress = (id: string) => {
+    // Crossfade: close pattern, open detail with the chosen noticing.
+    handleClosePattern();
+    handlePatternPress(id);
+  };
+
+  /**
+   * Derive a TurnToShiftCandidate from a SignalPatternAggregate. The
+   * pattern's headline is descriptive ("You keep coming back to pacing.");
+   * for the shift we want an action-oriented title and a one-line practice.
+   * Fallback chain: take the freshest noticing's headline as the practice
+   * starter when the aggregate doesn't carry it explicitly. Server-side
+   * distillation can replace this in a follow-up bead if needed.
+   */
+  const derivePatternCandidate = (
+    agg: SignalPatternAggregate,
+  ): TurnToShiftCandidate => {
+    const freshest = agg.noticings[0];
+    return {
+      tag: agg.tag,
+      tone: agg.tone,
+      cat: agg.tag,
+      soulpal: agg.soulpal,
+      title: freshest?.headline ?? agg.headline,
+      practice:
+        freshest?.detail ??
+        agg.summary ??
+        'Notice when this comes up. Let one moment of awareness be enough today.',
+      sourceSignalIds: agg.noticings.map((n) => n.id),
+    };
+  };
+
+  const handleOpenTurnToShift = (agg: SignalPatternAggregate) => {
+    setTurnCandidate(derivePatternCandidate(agg));
+  };
+
+  const handleCloseTurnToShift = () => {
+    setTurnCandidate(null);
+  };
+
+  const handleConfirmTurnToShift = async (override: {
+    title: string;
+    practice: string;
+  }) => {
+    if (!turnCandidate) return;
+    setTurnSubmitting(true);
+    try {
+      await SoulShiftsService.createFromSignalPattern({
+        tag: turnCandidate.tag,
+        title: override.title,
+        practice: override.practice,
+        cat: turnCandidate.cat,
+        mood: turnCandidate.tone,
+        soulpal: turnCandidate.soulpal,
+        sourceSignalIds: turnCandidate.sourceSignalIds,
+      });
+      // Close everything and route the user to Soul Shifts so they see the
+      // freshly-tended shift in its native list. Detail modal navigation
+      // for the new shift requires its id; SoulShifts screen will fetch +
+      // surface it on next mount.
+      handleCloseTurnToShift();
+      handleClosePattern();
+      handleClose();
+      navigation.navigate('SoulShifts');
+    } catch (err: any) {
+      console.log('[SoulSignals] TurnToShift error:', err?.message);
+    } finally {
+      setTurnSubmitting(false);
+    }
+  };
+
+  const handleToggleSaved = async (id: string, nextSaved: boolean) => {
+    setSaveSubmitting(true);
+    try {
+      const updated = await SoulSignalsService.setSaved(id, nextSaved);
+      setSignals((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      if (detail?.id === id) {
+        setDetail({ ...detail, ...updated, isSaved: nextSaved });
+      }
+    } catch (err: any) {
+      console.log('[SoulSignals] Save error:', err?.message);
+    } finally {
+      setSaveSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -87,15 +288,59 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           eligibility={{ current: entriesSinceSight, needed: ENTRIES_NEEDED }}
           listeningMeta={{ entries: entriesSinceSight, patterns: patternsCount }}
           onOpenJournal={handleOpenJournal}
+          onBack={() => navigation.goBack()}
+          onPatternPress={handlePatternPress}
+          focusId={selectedId ?? undefined}
         />
       )}
 
-      <View style={[styles.backRow, { top: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Image source={backIconSource} style={styles.backIcon} resizeMode="contain" />
-        </Pressable>
-        <Text style={[styles.backText, { color: backTextColor }]}>Back</Text>
-      </View>
+      <SignalsDetailModal
+        visible={selectedId != null && patternTag == null && !muteOpen}
+        detail={detail}
+        fallbackSignal={fallbackSignal}
+        theme={theme}
+        onClose={handleClose}
+        onResonance={handleResonance}
+        onToggleSaved={handleToggleSaved}
+        onMute={handleOpenMute}
+        onViewPattern={handleViewPattern}
+        resonanceSubmitting={resonanceSubmitting}
+        saveSubmitting={saveSubmitting}
+      />
+
+      <SignalsMuteModal
+        visible={muteOpen}
+        detail={detail}
+        theme={theme}
+        onClose={() => setMuteOpen(false)}
+        onConfirm={handleConfirmMute}
+        submitting={muteSubmitting}
+      />
+
+      <SignalsPatternModal
+        visible={patternTag != null && turnCandidate == null}
+        aggregate={patternAggregate}
+        loading={patternLoading}
+        theme={theme}
+        onClose={handleClosePattern}
+        onNoticingPress={handlePatternNoticingPress}
+        onTurnToShift={handleOpenTurnToShift}
+      />
+
+      <SignalsTurnToShiftModal
+        visible={turnCandidate != null}
+        candidate={turnCandidate}
+        theme={theme}
+        onClose={handleCloseTurnToShift}
+        onConfirm={handleConfirmTurnToShift}
+        submitting={turnSubmitting}
+      />
+
+      <ResonanceToast
+        visible={resonanceToastVisible}
+        theme={theme}
+        onDismiss={() => setResonanceToastVisible(false)}
+      />
     </View>
   );
 };
@@ -109,21 +354,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backRow: {
-    position: 'absolute',
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
   },
 });
 

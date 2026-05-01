@@ -18,7 +18,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Star field for dark mode
@@ -45,6 +45,145 @@ const RevealedVideoDark = require('../../assets/videos/dark/affirmationMirrorLoo
 const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+        },
+
+        // Video tint overlay (dark mode — heavy purple wash matching homescreen card)
+        videoTintOverlay: {
+          ...StyleSheet.absoluteFillObject,
+          zIndex: 1,
+        },
+        videoTint: {
+          ...StyleSheet.absoluteFillObject,
+          // TODO(theme): map 'rgba(72, 62, 101, 0.85)' to palette key (homescreen card wash)
+          backgroundColor: 'rgba(72, 62, 101, 0.85)',
+        },
+
+        // Video backgrounds
+        videoWrapper: {
+          ...StyleSheet.absoluteFillObject,
+          zIndex: 0,
+        },
+        videoContainer: {
+          ...StyleSheet.absoluteFillObject,
+          zIndex: 0,
+          justifyContent: 'flex-end',
+        },
+        video: {
+          width: SCREEN_WIDTH,
+          height: SCREEN_WIDTH,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+        },
+
+        // Clouds overlay (light mode)
+        cloudsContainer: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: SCREEN_HEIGHT,
+          zIndex: 2,
+        },
+        cloudsLayer: {
+          ...StyleSheet.absoluteFillObject,
+        },
+        cloudsImage: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        },
+
+        // Back button
+        backButtonContainer: {
+          position: 'absolute',
+          left: 22,
+          zIndex: 10,
+        },
+        backIconCircle: {
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.white,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        backIcon: {
+          width: 32,
+          height: 32,
+        },
+
+        // Affirmation text area
+        textArea: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+          zIndex: 5,
+        },
+        affirmationText: {
+          fontFamily: fonts.outfit.light,
+          color: colors.white,
+          textAlign: 'center',
+        },
+
+        // Reveal button
+        revealButtonContainer: {
+          position: 'absolute',
+          top: SCREEN_HEIGHT * 0.53,
+          alignSelf: 'center',
+          zIndex: 10,
+        },
+        revealButton: {
+          overflow: 'hidden',
+          borderWidth: 1,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.3)' (light reveal border) to palette key
+          borderColor: 'rgba(255, 255, 255, 0.3)',
+          borderRadius: 24,
+          paddingHorizontal: 28,
+          paddingVertical: 10,
+          alignItems: 'center',
+          justifyContent: 'center',
+          // TODO(theme): map 'rgba(255, 255, 255, 0.08)' (light reveal bg) to palette key
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        },
+        revealButtonDark: {
+          // TODO(theme): map 'rgba(77, 232, 212, 0.3)' (dark reveal border) to palette key
+          borderColor: 'rgba(77, 232, 212, 0.3)',
+          // TODO(theme): map 'rgba(77, 232, 212, 0.08)' (dark reveal bg) to palette key
+          backgroundColor: 'rgba(77, 232, 212, 0.08)',
+          shadowColor: colors.primary,
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 0 },
+        },
+        revealButtonGradient: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 24,
+        },
+        revealButtonText: {
+          fontFamily: fonts.edensor.semiBold,
+          fontSize: 22,
+          color: colors.white,
+          textAlign: 'center',
+        },
+        revealButtonTextDark: {
+          color: colors.primary,
+        },
+      }),
+    [colors],
+  );
   const affirmation = route.params?.affirmation_text ?? null;
   const dateKey = route.params?.date_key ?? null;
   const [isRevealed, setIsRevealed] = useState(false);
@@ -247,6 +386,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     opacity: revealedVideoOpacity.value,
   }));
 
+  // TODO(theme): map '#3B495D' to palette key (dark mirror background slate)
   const containerBg = isDarkMode ? '#3B495D' : colors.accent.pink;
   const backIcon = isDarkMode ? BackIconDark : BackIconLight;
 
@@ -368,135 +508,5 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  // Video tint overlay (dark mode — heavy purple wash matching homescreen card)
-  videoTintOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
-  },
-  videoTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(72, 62, 101, 0.85)',
-  },
-
-  // Video backgrounds
-  videoWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-  },
-  videoContainer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-    justifyContent: 'flex-end',
-  },
-  video: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-  },
-
-  // Clouds overlay (light mode)
-  cloudsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: SCREEN_HEIGHT,
-    zIndex: 2,
-  },
-  cloudsLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  cloudsImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-  },
-
-  // Back button
-  backButtonContainer: {
-    position: 'absolute',
-    left: 22,
-    zIndex: 10,
-  },
-  backIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    width: 32,
-    height: 32,
-  },
-
-  // Affirmation text area
-  textArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
-    zIndex: 5,
-  },
-  affirmationText: {
-    fontFamily: fonts.outfit.light,
-    color: colors.white,
-    textAlign: 'center',
-  },
-
-  // Reveal button
-  revealButtonContainer: {
-    position: 'absolute',
-    top: SCREEN_HEIGHT * 0.53,
-    alignSelf: 'center',
-    zIndex: 10,
-  },
-  revealButton: {
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 24,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  revealButtonDark: {
-    borderColor: 'rgba(77, 232, 212, 0.3)',
-    backgroundColor: 'rgba(77, 232, 212, 0.08)',
-    shadowColor: '#4DE8D4',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  revealButtonGradient: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 24,
-  },
-  revealButtonText: {
-    fontFamily: fonts.edensor.semiBold,
-    fontSize: 22,
-    color: colors.white,
-    textAlign: 'center',
-  },
-  revealButtonTextDark: {
-    color: '#4DE8D4',
-  },
-});
 
 export default AffirmationMirrorScreen;

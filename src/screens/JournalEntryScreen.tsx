@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
@@ -43,6 +43,108 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { entries } = useJournal();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
+  const dk = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+        nebula: { position: 'absolute', width: 260, height: 260, top: -30, right: -60, borderRadius: 130 },
+        nebulaFill: { width: '100%', height: '100%', borderRadius: 130 },
+        planet: { position: 'absolute', borderRadius: 999, overflow: 'hidden' },
+        // TODO(theme): map 'rgba(77, 67, 104, 0.12)' to palette key (planet1 ring)
+        planet1: { width: 110, height: 110, top: 50, right: -28, borderWidth: 1, borderColor: 'rgba(77, 67, 104, 0.12)' },
+        // TODO(theme): map 'rgba(112, 202, 207, 0.10)' to palette key (planet2 ring)
+        planet2: { width: 45, height: 45, bottom: '20%', left: -12, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.10)' },
+        planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.18)' (planet highlight) to palette key
+        planetHighlight: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.18)' },
+        // TODO(theme): map 'rgba(112, 202, 207, 0.16)' to palette key
+        planetRing: { position: 'absolute', width: '180%', height: 10, top: '44%', left: '-40%', borderRadius: 999, borderWidth: 1.2, borderColor: 'rgba(112, 202, 207, 0.16)', transform: [{ rotate: '-22deg' }] },
+        meteor: { position: 'absolute', height: 2, borderRadius: 1 },
+        meteorTrail: { width: '100%', height: '100%', borderRadius: 1 },
+        // TODO(theme): map 'rgba(160, 155, 180, 0.12)' (asteroid) to palette key
+        asteroid: { position: 'absolute', backgroundColor: 'rgba(160, 155, 180, 0.12)', borderRadius: 1.5, transform: [{ rotate: '20deg' }] },
+        backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+        backIcon: { width: 36, height: 36 },
+        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+        titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+        titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
+        // TODO(theme): map 'rgba(77, 232, 212, 0.10)' to palette key (edit btn bg)
+        editBtn: { paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'rgba(77, 232, 212, 0.10)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.25)' },
+        editBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: colors.primary },
+        editBtnDisabled: { opacity: 0.4 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.08)' (ai card bg) and 'rgba(112, 202, 207, 0.20)' (border) to palette keys
+        aiCard: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.20)', padding: 18, marginBottom: 16 },
+        aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+        aiLabel: { fontFamily: fonts.edensor.bold, fontSize: 16, color: colors.primary },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.88)' (ai text) to palette key
+        aiText: { fontFamily: fonts.outfit.light, fontSize: 15, lineHeight: 15 * 1.65, color: 'rgba(255, 255, 255, 0.88)', marginBottom: 14 },
+        pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.08)' (topic pill bg) to palette key
+        topicPill: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: colors.border },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.8)' to palette key
+        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: 'rgba(255, 255, 255, 0.8)' },
+        // TODO(theme): map 'rgba(77, 232, 212, 0.7)' (coping label) to palette key
+        copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
+        // TODO(theme): map 'rgba(77, 232, 212, 0.08)' / '0.20' (coping pill) to palette keys
+        copingPill: { backgroundColor: 'rgba(77, 232, 212, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.20)' },
+        aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.45)' to palette key
+        aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 14, color: 'rgba(255, 255, 255, 0.45)', fontStyle: 'italic' },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.06)' / '0.10' (entry card) to palette keys
+        entryCard: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)', padding: 20 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key
+        entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.88)' to palette key
+        entryText: { fontFamily: fonts.edensor.medium, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
+      }),
+    [colors],
+  );
+  const lt = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+        backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+        backIcon: { width: 36, height: 36 },
+        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+        titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+        titleText: { fontFamily: fonts.outfit.regular, fontSize: 24, color: colors.white, flex: 1 },
+        // TODO(theme): map 'rgba(255, 255, 255, 0.15)' to palette key
+        actionBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 16 },
+        actionBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: colors.white },
+        actionBtnDisabled: { opacity: 0.5 },
+        contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
+        scrollContent: { flexGrow: 1 },
+        aiSection: { marginBottom: 16 },
+        // TODO(theme): map '#E0D4E8' (light divider) to palette key
+        aiDivider: { height: 1, backgroundColor: '#E0D4E8', marginBottom: 14 },
+        aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+        // TODO(theme): map '#59168B' to palette key
+        aiLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B' },
+        // TODO(theme): map '#333333' (light body text) to palette key
+        aiText: { fontFamily: fonts.outfit.light, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333', marginBottom: 12 },
+        pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+        // TODO(theme): map '#F3ECFA' to palette key
+        topicPill: { backgroundColor: '#F3ECFA', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+        // TODO(theme): map '#59168B' to palette key
+        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#59168B' },
+        // TODO(theme): map '#59168B' to palette key
+        copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: '#59168B', marginBottom: 4 },
+        // TODO(theme): map '#E8F5E9' / '#2E7D32' (coping green) to palette keys
+        copingPill: { backgroundColor: '#E8F5E9', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+        copingPillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#2E7D32' },
+        aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+        // TODO(theme): map '#888' to palette key (light loading text)
+        aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 13, color: '#888', fontStyle: 'italic' },
+        // TODO(theme): map '#59168B' to palette key
+        journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B', marginTop: 14, marginBottom: 8 },
+        // TODO(theme): map '#333333' to palette key
+        journalText: { fontFamily: fonts.outfit.thin, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333' },
+      }),
+    [colors],
+  );
   const entryId: string = route.params?.entryId;
   const isLatest: boolean = route.params?.isLatest ?? false;
 
@@ -252,7 +354,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     }
     return (
       <View style={isDarkMode ? dk.aiLoadingRow : lt.aiLoadingRow}>
-        <ActivityIndicator color={isDarkMode ? '#4DE8D4' : '#59168B'} size="small" />
+        {/* TODO(theme): map light '#59168B' to palette key */}
+        <ActivityIndicator color={isDarkMode ? colors.primary : '#59168B'} size="small" />
         <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>Preparing your reflection...</Text>
       </View>
     );
@@ -271,7 +374,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
               <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
               <Text style={dk.backText}>Back</Text>
             </Pressable>
-            <ActivityIndicator color="#4DE8D4" size="large" style={{ flex: 1 }} />
+            <ActivityIndicator color={colors.primary} size="large" style={{ flex: 1 }} />
           </View>
         </LinearGradient>
       );
@@ -283,7 +386,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             <Image source={BackIcon} style={lt.backIcon} resizeMode="contain" />
             <Text style={lt.backText}>Back</Text>
           </Pressable>
-          <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
+          <ActivityIndicator color={colors.white} size="large" style={{ flex: 1, justifyContent: 'center' }} />
         </View>
       </LinearGradient>
     );
@@ -366,78 +469,5 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   );
 };
 
-// ═══════════════════════════════════════════
-// DARK MODE STYLES
-// ═══════════════════════════════════════════
-const dk = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-  nebula: { position: 'absolute', width: 260, height: 260, top: -30, right: -60, borderRadius: 130 },
-  nebulaFill: { width: '100%', height: '100%', borderRadius: 130 },
-  planet: { position: 'absolute', borderRadius: 999, overflow: 'hidden' },
-  planet1: { width: 110, height: 110, top: 50, right: -28, borderWidth: 1, borderColor: 'rgba(77, 67, 104, 0.12)' },
-  planet2: { width: 45, height: 45, bottom: '20%', left: -12, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.10)' },
-  planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
-  planetHighlight: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.18)' },
-  planetRing: { position: 'absolute', width: '180%', height: 10, top: '44%', left: '-40%', borderRadius: 999, borderWidth: 1.2, borderColor: 'rgba(112, 202, 207, 0.16)', transform: [{ rotate: '-22deg' }] },
-  meteor: { position: 'absolute', height: 2, borderRadius: 1 },
-  meteorTrail: { width: '100%', height: '100%', borderRadius: 1 },
-  asteroid: { position: 'absolute', backgroundColor: 'rgba(160, 155, 180, 0.12)', borderRadius: 1.5, transform: [{ rotate: '20deg' }] },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  backIcon: { width: 36, height: 36 },
-  backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
-  editBtn: { paddingHorizontal: 14, paddingVertical: 6, backgroundColor: 'rgba(77, 232, 212, 0.10)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.25)' },
-  editBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: '#4DE8D4' },
-  editBtnDisabled: { opacity: 0.4 },
-  aiCard: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.20)', padding: 18, marginBottom: 16 },
-  aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  aiLabel: { fontFamily: fonts.edensor.bold, fontSize: 16, color: '#4DE8D4' },
-  aiText: { fontFamily: fonts.outfit.light, fontSize: 15, lineHeight: 15 * 1.65, color: 'rgba(255, 255, 255, 0.88)', marginBottom: 14 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  topicPill: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
-  pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: 'rgba(255, 255, 255, 0.8)' },
-  copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
-  copingPill: { backgroundColor: 'rgba(77, 232, 212, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.20)' },
-  aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 14, color: 'rgba(255, 255, 255, 0.45)', fontStyle: 'italic' },
-  entryCard: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)', padding: 20 },
-  entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
-  entryText: { fontFamily: fonts.edensor.medium, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
-});
-
-// ═══════════════════════════════════════════
-// LIGHT MODE STYLES
-// ═══════════════════════════════════════════
-const lt = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  backIcon: { width: 36, height: 36 },
-  backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  titleText: { fontFamily: fonts.outfit.regular, fontSize: 24, color: colors.white, flex: 1 },
-  actionBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 16 },
-  actionBtnText: { fontFamily: fonts.outfit.medium, fontSize: 13, color: colors.white },
-  actionBtnDisabled: { opacity: 0.5 },
-  contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
-  scrollContent: { flexGrow: 1 },
-  aiSection: { marginBottom: 16 },
-  aiDivider: { height: 1, backgroundColor: '#E0D4E8', marginBottom: 14 },
-  aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  aiLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B' },
-  aiText: { fontFamily: fonts.outfit.light, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333', marginBottom: 12 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  topicPill: { backgroundColor: '#F3ECFA', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#59168B' },
-  copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: '#59168B', marginBottom: 4 },
-  copingPill: { backgroundColor: '#E8F5E9', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  copingPillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#2E7D32' },
-  aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 13, color: '#888', fontStyle: 'italic' },
-  journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B', marginTop: 14, marginBottom: 8 },
-  journalText: { fontFamily: fonts.outfit.thin, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333' },
-});
 
 export default JournalEntryScreen;

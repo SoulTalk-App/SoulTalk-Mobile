@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
 import { ListeningState } from './ListeningState';
 import { LockedState } from './LockedState';
@@ -13,6 +14,9 @@ import {
 } from './tokens';
 import { Eligibility, Group, SignalsStatus } from './types';
 
+const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
+const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
+
 type Props = {
   theme: Theme;
   status: SignalsStatus;
@@ -20,6 +24,12 @@ type Props = {
   eligibility?: Eligibility;
   listeningMeta?: { entries: number; patterns: number };
   onOpenJournal?: () => void;
+  onBack?: () => void;
+  /** Tap handler for the pattern card → opens SignalsDetailModal. */
+  onPatternPress?: (id: string) => void;
+  /** When set, the matching card renders focused; all other cards dim.
+   *  Used while a detail / mute / turn-to-shift modal is over the feed. */
+  focusId?: string;
 };
 
 export function SignalsB({
@@ -29,15 +39,37 @@ export function SignalsB({
   eligibility,
   listeningMeta,
   onOpenJournal,
+  onBack,
+  onPatternPress,
+  focusId,
 }: Props) {
+  const insets = useSafeAreaInsets();
+  // Reserve room at the top of the scroll content for the absolute back row
+  // so it never overlaps the first piece of content (header in done state,
+  // or the LockedState/ListeningState card in locked/listening states).
+  const scrollTopPad = insets.top + 56;
+
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
       <StarsBg theme={theme} />
 
+      {onBack && (
+        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
+          <Pressable onPress={onBack} hitSlop={12}>
+            <Image
+              source={theme === 'dark' ? BackIconDark : BackIconLight}
+              style={styles.backIcon}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: scrollTopPad }]}
         showsVerticalScrollIndicator={false}
       >
         {status === 'locked' ? (
@@ -65,7 +97,14 @@ export function SignalsB({
             </View>
             <View style={styles.list}>
               {groups.map((g) => (
-                <PatternCard key={g.pattern.id} group={g} theme={theme} />
+                <PatternCard
+                  key={g.pattern.id}
+                  group={g}
+                  theme={theme}
+                  focused={focusId === g.pattern.id}
+                  dim={focusId != null && focusId !== g.pattern.id}
+                  onPress={onPatternPress}
+                />
               ))}
             </View>
           </>
@@ -87,9 +126,24 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 12,
+  },
+  backRow: {
+    position: 'absolute',
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  backIcon: {
+    width: 36,
+    height: 36,
+  },
+  backText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 18,
   },
   headerTopRow: {
     flexDirection: 'row',

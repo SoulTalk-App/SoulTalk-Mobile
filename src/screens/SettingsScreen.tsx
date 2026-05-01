@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,8 +26,8 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import SecureStorage from '../utils/SecureStorage';
-import { colors, fonts, surfaces } from '../theme';
-import { useTheme } from '../contexts/ThemeContext';
+import { fonts, surfaces, useThemeColors } from '../theme';
+import { useTheme, ThemePref } from '../contexts/ThemeContext';
 
 const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
@@ -60,13 +60,13 @@ const PRONOUN_OPTIONS = [
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user, logout, updateProfile } = useAuth();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { isDarkMode, themePref, setThemePref } = useTheme();
+  const colors = useThemeColors();
+  const styles = useMemo(() => buildStyles(colors), [colors]);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [pronoun, setPronoun] = useState('');
   const [showPronounPicker, setShowPronounPicker] = useState(false);
-  const darkModeTapCount = useRef(0);
-  const darkModeTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -468,22 +468,29 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
-        {/* Dark/Light Mode — hidden behind Coming Soon */}
-        <Pressable
-          style={styles.toggleRow}
-          onPress={() => {
-            darkModeTapCount.current += 1;
-            if (darkModeTapTimer.current) clearTimeout(darkModeTapTimer.current);
-            darkModeTapTimer.current = setTimeout(() => { darkModeTapCount.current = 0; }, 2000);
-            if (darkModeTapCount.current >= 4) {
-              darkModeTapCount.current = 0;
-              toggleTheme();
-            }
-          }}
-        >
-          <Text style={styles.toggleLabel}>Dark Mode</Text>
-          <Text style={styles.comingSoonTag}>Coming Soon</Text>
-        </Pressable>
+        {/* Appearance — tri-state System / Light / Dark */}
+        <View style={styles.appearanceRow}>
+          <Text style={styles.toggleLabel}>Appearance</Text>
+          <View style={styles.themeSegment}>
+            {(['system', 'light', 'dark'] as const).map((opt) => {
+              const active = themePref === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  style={[styles.themeSegmentItem, active && styles.themeSegmentItemActive]}
+                  onPress={() => setThemePref(opt as ThemePref)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`Appearance ${opt}`}
+                >
+                  <Text style={[styles.themeSegmentText, active && styles.themeSegmentTextActive]}>
+                    {opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
 
         {/* Log Out */}
         <Pressable onPress={handleLogout}>
@@ -545,252 +552,286 @@ const SettingsScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#59168B',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 22,
-    flexGrow: 1,
-  },
+const buildStyles = (colors: ReturnType<typeof useThemeColors>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#59168B',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingHorizontal: 22,
+      flexGrow: 1,
+    },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    lineHeight: 24 * 1.26,
-    color: colors.white,
-  },
+    // Header
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 30,
+    },
+    backButton: {
+      marginRight: 12,
+    },
+    backIcon: {
+      width: 36,
+      height: 36,
+    },
+    backText: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 24,
+      lineHeight: 24 * 1.26,
+      color: colors.white,
+    },
 
-  // Signed in
-  signedInText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    lineHeight: 46,
-    color: colors.white,
-  },
-  signedInBold: {
-    fontFamily: fonts.outfit.semiBold,
-  },
+    // Signed in
+    signedInText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      lineHeight: 46,
+      color: colors.white,
+    },
+    signedInBold: {
+      fontFamily: fonts.outfit.semiBold,
+    },
 
-  // Dashed line
-  dashedLine: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderStyle: 'dashed',
-  },
+    // Dashed line
+    dashedLine: {
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      borderStyle: 'dashed',
+    },
 
-  // Input fields
-  fieldInput: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.5)',
-    height: 46,
-  },
-  fieldInputActive: {
-    color: colors.white,
-  },
+    // Input fields
+    fieldInput: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      lineHeight: 20,
+      color: 'rgba(255, 255, 255, 0.5)',
+      height: 46,
+    },
+    fieldInputActive: {
+      color: colors.white,
+    },
 
-  // Field label
-  fieldLabel: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    color: colors.white,
-    marginTop: 16,
-  },
+    // Field label
+    fieldLabel: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      color: colors.white,
+      marginTop: 16,
+    },
 
-  // Email
-  emailLabel: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    color: colors.white,
-    marginTop: 16,
-  },
-  emailInput: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.5)',
-    height: 36,
-  },
+    // Email
+    emailLabel: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      color: colors.white,
+      marginTop: 16,
+    },
+    emailInput: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: 'rgba(255, 255, 255, 0.5)',
+      height: 36,
+    },
 
-  // Username
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  usernameChecking: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  usernameTaken: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 11,
-    color: '#FF5E5E',
-    marginTop: 2,
-    marginBottom: 4,
-  },
+    // Username
+    usernameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    usernameChecking: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.5)',
+    },
+    usernameTaken: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 11,
+      color: colors.error,
+      marginTop: 2,
+      marginBottom: 4,
+    },
 
-  // Separator
-  separator: {
-    height: 1,
-    backgroundColor: colors.white,
-  },
-  separatorDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  dashedLineDark: {
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
+    // Separator
+    separator: {
+      height: 1,
+      backgroundColor: colors.white,
+    },
+    separatorDark: {
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    },
+    dashedLineDark: {
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+    },
 
-  // Reset Password
-  resetButton: {
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  resetButtonText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 46,
-    color: colors.white,
-  },
+    // Reset Password
+    resetButton: {
+      marginTop: 6,
+      marginBottom: 6,
+    },
+    resetButtonText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      lineHeight: 46,
+      color: colors.white,
+    },
 
-  // Pronouns
-  pronounText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    height: 36,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
+    // Pronouns
+    pronounText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      height: 36,
+      color: 'rgba(255, 255, 255, 0.5)',
+    },
 
-  // Toggle rows
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 46,
-  },
-  toggleLabel: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    lineHeight: 46,
-    color: colors.white,
-  },
-  comingSoonTag: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    overflow: 'hidden',
-  },
+    // Toggle rows
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: 46,
+    },
+    toggleLabel: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      lineHeight: 46,
+      color: colors.white,
+    },
+    comingSoonTag: {
+      fontFamily: fonts.outfit.medium,
+      fontSize: 11,
+      color: 'rgba(255, 255, 255, 0.5)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      overflow: 'hidden',
+    },
 
-  // Logout
-  logoutText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 46,
-    color: '#FF5E5E',
-    marginTop: 4,
-  },
+    // Appearance tri-state segmented control
+    appearanceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 46,
+      paddingVertical: 6,
+    },
+    themeSegment: {
+      flexDirection: 'row',
+      backgroundColor: 'rgba(255, 255, 255, 0.10)',
+      borderRadius: 10,
+      padding: 2,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    themeSegmentItem: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+    },
+    themeSegmentItemActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    },
+    themeSegmentText: {
+      fontFamily: fonts.outfit.medium,
+      fontSize: 12,
+      color: 'rgba(255, 255, 255, 0.65)',
+    },
+    themeSegmentTextActive: {
+      color: colors.white,
+    },
 
-  // Footer
-  footerLinks: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  footerLink: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    lineHeight: 28,
-    color: '#5ECFFF',
-    textDecorationLine: 'underline',
-  },
-  footerSeparator: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 4,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  logo: {
-    width: 100,
-    height: 22,
-  },
+    // Logout
+    logoutText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      lineHeight: 46,
+      color: colors.error,
+      marginTop: 4,
+    },
 
-  // Pronoun Picker Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#59168B',
-    borderRadius: 16,
-    width: 280,
-    maxHeight: 400,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  modalTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-    color: colors.white,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  modalOptionActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  modalContentDark: {
-    backgroundColor: '#1E1540',
-    borderColor: 'rgba(155, 89, 182, 0.3)',
-  },
-  modalOptionActiveDark: {
-    backgroundColor: 'rgba(77, 232, 212, 0.12)',
-  },
-  modalOptionText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  modalOptionTextActive: {
-    color: colors.white,
-    fontFamily: fonts.outfit.medium,
-  },
-});
+    // Footer
+    footerLinks: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    footerLink: {
+      fontFamily: fonts.outfit.medium,
+      fontSize: 12,
+      lineHeight: 28,
+      color: colors.accent.cyan,
+      textDecorationLine: 'underline',
+    },
+    footerSeparator: {
+      height: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+      marginTop: 4,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginTop: 16,
+    },
+    logo: {
+      width: 100,
+      height: 22,
+    },
+
+    // Pronoun Picker Modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: '#59168B',
+      borderRadius: 16,
+      width: 280,
+      maxHeight: 400,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    modalTitle: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 18,
+      color: colors.white,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    modalOption: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+    },
+    modalOptionActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    modalContentDark: {
+      backgroundColor: '#1E1540',
+      borderColor: 'rgba(155, 89, 182, 0.3)',
+    },
+    modalOptionActiveDark: {
+      backgroundColor: 'rgba(77, 232, 212, 0.12)',
+    },
+    modalOptionText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.7)',
+    },
+    modalOptionTextActive: {
+      color: colors.white,
+      fontFamily: fonts.outfit.medium,
+    },
+  });
 
 // ── Dark mode space backdrop styles ──
 const dkS = StyleSheet.create({

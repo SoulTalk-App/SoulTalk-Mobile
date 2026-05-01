@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
 }
 
 const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -27,6 +28,156 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
   const [emailError, setEmailError] = useState('');
 
   const { resetPassword } = useAuth();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.primary,
+        },
+        keyboardView: {
+          flex: 1,
+        },
+        backButton: {
+          padding: 16,
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+          marginTop: -60,
+        },
+        iconContainer: {
+          marginBottom: 30,
+        },
+        title: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 32,
+          color: colors.white,
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        subtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.white,
+          textAlign: 'center',
+          lineHeight: 24,
+          opacity: 0.9,
+          marginBottom: 32,
+        },
+        emailText: {
+          fontFamily: fonts.outfit.semiBold,
+          color: colors.white,
+        },
+        infoBox: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 32,
+        },
+        infoIcon: {
+          marginRight: 10,
+          opacity: 0.8,
+        },
+        infoText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: colors.white,
+          opacity: 0.8,
+          flex: 1,
+        },
+        inputContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderWidth: 1.5,
+          borderColor: 'rgba(255, 255, 255, 0.3)',
+          borderRadius: 12,
+          marginBottom: 16,
+          paddingHorizontal: 12,
+          height: 56,
+          backgroundColor: colors.white,
+          width: '100%',
+        },
+        inputContainerFocused: {
+          borderColor: colors.white,
+          borderWidth: 2,
+        },
+        inputIcon: {
+          marginRight: 12,
+        },
+        input: {
+          flex: 1,
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.dark,
+        },
+        errorText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: '#FF6B6B',
+          marginBottom: 8,
+          alignSelf: 'flex-start',
+        },
+        submitButton: {
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          height: 56,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          marginTop: 8,
+        },
+        submitButtonDisabled: {
+          opacity: 0.7,
+        },
+        submitButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+        },
+        resendButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          marginBottom: 16,
+          width: '100%',
+        },
+        resendButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+          marginLeft: 8,
+        },
+        loginButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderColor: colors.white,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 24,
+          width: '100%',
+        },
+        loginButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.white,
+          marginLeft: 8,
+        },
+      }),
+    [colors]
+  );
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -180,151 +331,5 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  backButton: {
-    padding: 16,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: -60,
-  },
-  iconContainer: {
-    marginBottom: 30,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 32,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.white,
-    textAlign: 'center',
-    lineHeight: 24,
-    opacity: 0.9,
-    marginBottom: 32,
-  },
-  emailText: {
-    fontFamily: fonts.outfit.semiBold,
-    color: colors.white,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
-  },
-  infoIcon: {
-    marginRight: 10,
-    opacity: 0.8,
-  },
-  infoText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: colors.white,
-    opacity: 0.8,
-    flex: 1,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 56,
-    backgroundColor: colors.white,
-    width: '100%',
-  },
-  inputContainerFocused: {
-    borderColor: colors.white,
-    borderWidth: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.dark,
-  },
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: '#FF6B6B',
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  submitButton: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-  },
-  resendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    width: '100%',
-  },
-  resendButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-    marginLeft: 8,
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.white,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    width: '100%',
-  },
-  loginButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.white,
-    marginLeft: 8,
-  },
-});
 
 export default ForgotPasswordScreen;

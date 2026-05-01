@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Alert, Image, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { welcomeContent } from '../mocks/content';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import { resetOnboarding } from '../utils/resetOnboarding';
 import { SpringConfigs, TimingConfigs, AnimationValues, ScreenAnimations } from '../animations/constants';
 
@@ -32,6 +32,7 @@ const WelcomeButton: React.FC<{
   variant: 'primary' | 'secondary';
   onPress: () => void;
 }> = ({ title, variant, onPress }) => {
+  const colors = useThemeColors();
   const scale = useSharedValue(1);
 
   const handlePressIn = useCallback(() => {
@@ -54,16 +55,28 @@ const WelcomeButton: React.FC<{
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[
-        styles.button,
-        isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
+        {
+          width: 319,
+          height: 48,
+          borderRadius: 10,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+          backgroundColor: isPrimary ? colors.white : colors.secondary,
+        },
         buttonStyle,
       ]}
     >
       <Text
-        style={[
-          styles.buttonText,
-          isPrimary ? styles.buttonTextPrimary : styles.buttonTextSecondary,
-        ]}
+        style={{
+          fontFamily: fonts.outfit.bold,
+          fontSize: 18,
+          color: isPrimary ? colors.primary : colors.white,
+        }}
       >
         {title}
       </Text>
@@ -75,6 +88,55 @@ const WelcomeButton: React.FC<{
 // Main Welcome Screen
 // ============================================
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'space-between',
+          paddingVertical: 60,
+        },
+        centerSection: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 40,
+        },
+        logo: {
+          width: 228,
+          height: 52,
+          marginBottom: 30,
+        },
+        tagline: {
+          fontFamily: fonts.edensor.italic,
+          fontSize: 20,
+          color: colors.text.primary,
+          textAlign: 'center',
+          lineHeight: 28,
+        },
+        buttonsSection: {
+          alignItems: 'center',
+          paddingHorizontal: 24,
+          gap: 12,
+        },
+        devButton: {
+          marginTop: 20,
+          padding: 10,
+        },
+        devButtonText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: colors.error,
+        },
+      }),
+    [colors]
+  );
+
   // Animation values
   const logoOpacity = useSharedValue(0);
   const logoScale = useSharedValue(0.8);
@@ -184,80 +246,5 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-// ============================================
-// Styles
-// ============================================
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: 60,
-  },
-  centerSection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  logo: {
-    width: 228,
-    height: 52,
-    marginBottom: 30,
-  },
-  tagline: {
-    fontFamily: fonts.edensor.italic,
-    fontSize: 20,
-    color: colors.text.primary,
-    textAlign: 'center',
-    lineHeight: 28,
-  },
-  buttonsSection: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
-  },
-  button: {
-    width: 319,
-    height: 48,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonPrimary: {
-    backgroundColor: colors.white,
-  },
-  buttonSecondary: {
-    backgroundColor: colors.secondary,
-  },
-  buttonText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 18,
-  },
-  buttonTextPrimary: {
-    color: colors.primary,
-  },
-  buttonTextSecondary: {
-    color: colors.white,
-  },
-  devButton: {
-    marginTop: 20,
-    padding: 10,
-  },
-  devButtonText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: colors.error,
-  },
-});
 
 export default WelcomeScreen;

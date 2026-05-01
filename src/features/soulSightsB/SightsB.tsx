@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
 import { HeroOrb } from './HeroOrb';
 import { LockedState } from './LockedState';
@@ -15,6 +16,9 @@ import {
 } from './tokens';
 import { Eligibility, SightDetail, SightStatus } from './types';
 
+const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
+const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
+
 type Props = {
   theme: Theme;
   status: SightStatus;
@@ -24,6 +28,7 @@ type Props = {
   onOpenJournal?: () => void;
   onSave?: () => void;
   onShare?: () => void;
+  onBack?: () => void;
   isArchived?: boolean;
   isArchiving?: boolean;
 };
@@ -37,16 +42,32 @@ export function SightsB({
   onOpenJournal,
   onSave,
   onShare,
+  onBack,
   isArchived,
   isArchiving,
 }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
 
+      {onBack && (
+        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
+          <Pressable onPress={onBack} hitSlop={12}>
+            <Image
+              source={theme === 'dark' ? BackIconDark : BackIconLight}
+              style={styles.backIcon}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 56 }]}
         showsVerticalScrollIndicator={false}
       >
         {status === 'locked' || status === 'processing' || !sight ? (
@@ -118,6 +139,22 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 80,
+  },
+  backRow: {
+    position: 'absolute',
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  backIcon: {
+    width: 36,
+    height: 36,
+  },
+  backText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 18,
   },
   stateWrap: {
     minHeight: 600,

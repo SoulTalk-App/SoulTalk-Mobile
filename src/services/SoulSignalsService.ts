@@ -1,7 +1,16 @@
 import SecureStorage from '../utils/SecureStorage';
 import Constants from 'expo-constants';
 import axios from 'axios';
-import { Signal, SignalKind, SoulpalVariant } from '../features/soulSignals/types';
+import {
+  MuteDuration,
+  ResonanceVote,
+  Signal,
+  SignalDetail,
+  SignalKind,
+  SignalPatternAggregate,
+  SignalSource,
+  SoulpalVariant,
+} from '../features/soulSignals/types';
 import { resolveTone } from '../features/soulSignals/tokens';
 
 export interface SignalWire {
@@ -56,7 +65,11 @@ export interface PatchSignalBody {
   soulpal?: SoulpalVariant;
 }
 
-function normalizeSignal(w: SignalWire): Signal {
+function normalizeSignal(w: SignalWire & {
+  is_saved?: boolean;
+  muted_until?: string | null;
+  muted_forever?: boolean;
+}): Signal {
   return {
     id: w.id,
     kind: w.kind,
@@ -69,6 +82,9 @@ function normalizeSignal(w: SignalWire): Signal {
     detail: w.detail,
     quotes: w.quotes ?? [],
     fedSight: w.fedSight,
+    isSaved: w.is_saved ?? false,
+    muteUntil: w.muted_until ?? null,
+    mutedForever: w.muted_forever ?? false,
   };
 }
 
@@ -122,8 +138,9 @@ class SoulSignalsService {
     );
   }
 
-  async list(): Promise<Signal[]> {
-    const response = await this.axiosInstance.get('/soul-signals/');
+  async list(opts?: { saved?: boolean }): Promise<Signal[]> {
+    const params = opts?.saved ? { saved: true } : undefined;
+    const response = await this.axiosInstance.get('/soul-signals/', { params });
     const data = response.data as SignalListResponse;
     return (data.signals ?? []).map(normalizeSignal);
   }
@@ -136,6 +153,104 @@ class SoulSignalsService {
   async update(id: string, body: PatchSignalBody): Promise<Signal> {
     const response = await this.axiosInstance.patch(`/soul-signals/${id}`, body);
     return normalizeSignal(response.data as SignalWire);
+  }
+
+  /**
+   * Detail-modal projection (be_core so-711). Sources, save state, and
+   * resonance vote come back per-user; pre-existing signals (NULL sources)
+   * surface as an empty array.
+   */
+  async getDetail(id: string): Promise<SignalDetail> {
+    const response = await this.axiosInstance.get(`/soul-signals/${id}`);
+    const wire = response.data as SignalWire & {
+      sources?: { date_label: string; excerpt: string; entry_id?: string }[];
+      is_saved?: boolean;
+      resonance?: ResonanceVote | null;
+      muted_until?: string | null;
+      muted_forever?: boolean;
+    };
+    const base = normalizeSignal(wire);
+    const sources: SignalSource[] = (wire.sources ?? []).map((s) => ({
+      date: s.date_label,
+      excerpt: s.excerpt,
+      entry_id: s.entry_id,
+    }));
+    return {
+      ...base,
+      sources,
+      isSaved: wire.is_saved ?? false,
+      muteUntil: wire.muted_until ?? null,
+      mutedForever: wire.muted_forever ?? false,
+    };
+  }
+
+  /**
+   * Record a resonance vote ("yes" | "not_quite"). Repeated calls upsert
+   * — no need to read the current value first.
+   */
+  async setResonance(id: string, value: ResonanceVote): Promise<Signal> {
+    const response = await this.axiosInstance.post(
+      `/soul-signals/${id}/resonance`,
+      { value },
+    );
+    const data = response.data as { signal: SignalWire };
+    return normalizeSignal(data.signal);
+  }
+
+  /**
+   * Toggle save state (be_core so-711). POST adds; DELETE removes. Both
+   * idempotent. Returns the refreshed signal so is_saved propagates.
+   */
+  async setSaved(id: string, saved: boolean): Promise<Signal> {
+    const response = saved
+      ? await this.axiosInstance.post(`/soul-signals/${id}/save`)
+      : await this.axiosInstance.delete(`/soul-signals/${id}/save`);
+    const data = response.data as { signal: SignalWire };
+    return normalizeSignal(data.signal);
+  }
+
+  /**
+   * Mute a signal thread for the chosen duration (be_core so-otk).
+   * 'week'/'month' set muted_until = now()+7/30 days; 'forever' sets
+   * muted_forever = true (server-side, opaque to FE).
+   */
+  async muteSignal(id: string, duration: MuteDuration): Promise<Signal> {
+    const response = await this.axiosInstance.post(
+      `/soul-signals/${id}/mute`,
+      { duration },
+    );
+    const data = response.data as { signal: SignalWire };
+    return normalizeSignal(data.signal);
+  }
+
+  /**
+   * Lift a mute (be_core so-otk DELETE companion). Idempotent.
+   */
+  async unmuteSignal(id: string): Promise<Signal> {
+    const response = await this.axiosInstance.delete(
+      `/soul-signals/${id}/mute`,
+    );
+    const data = response.data as { signal: SignalWire };
+    return normalizeSignal(data.signal);
+  }
+
+  /**
+   * Pattern-level aggregation across all of the user's signals tagged
+   * `tag` (be_core so-ris). Headline + summary are server-formatted; the
+   * noticings list rides through normalizeSignal so downstream consumers
+   * see the same Signal shape as the hub list.
+   */
+  async getPatternByTag(tag: string): Promise<SignalPatternAggregate> {
+    const response = await this.axiosInstance.get(
+      `/soul-signals/patterns/${encodeURIComponent(tag)}`,
+    );
+    const data = response.data as Omit<SignalPatternAggregate, 'noticings'> & {
+      noticings: SignalWire[];
+    };
+    return {
+      ...data,
+      noticings: (data.noticings ?? []).map(normalizeSignal),
+    };
   }
 }
 

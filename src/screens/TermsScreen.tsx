@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { privacyPolicy, termsOfService } from "../mocks/content";
-import { colors, fonts } from "../theme";
+import { fonts, useThemeColors } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
 
@@ -30,9 +30,129 @@ interface TermsScreenProps {
 }
 
 const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<LegalTab>('privacy');
   const scrollRef = useRef<ScrollView>(null);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.background,
+        },
+        header: {
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 16,
+        },
+        backButton: {
+          marginLeft: -4,
+          marginBottom: 12,
+          alignSelf: "flex-start",
+        },
+        backButtonCircle: {
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: colors.white,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 2,
+          elevation: 2,
+        },
+        title: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 32,
+          color: colors.text.dark,
+          marginBottom: 4,
+        },
+        lastUpdated: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: colors.text.light,
+          marginBottom: 12,
+        },
+        tabRow: {
+          flexDirection: 'row',
+          gap: 8,
+        },
+        tab: {
+          flex: 1,
+          paddingVertical: 10,
+          borderRadius: 8,
+          backgroundColor: colors.background,
+          alignItems: 'center',
+        },
+        tabActive: {
+          backgroundColor: colors.primary,
+        },
+        tabText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 14,
+          color: colors.text.light,
+        },
+        tabTextActive: {
+          color: colors.white,
+        },
+        scrollContainer: {
+          flex: 1,
+          overflow: 'hidden',
+        },
+        scrollContent: {
+          paddingHorizontal: 24,
+          paddingBottom: 20,
+        },
+        content: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 15,
+          color: colors.text.primary,
+          lineHeight: 24,
+        },
+        bottomContainer: {
+          backgroundColor: colors.white,
+        },
+        separator: {
+          height: 1,
+          backgroundColor: colors.border,
+        },
+        buttonContainer: {
+          paddingHorizontal: 24,
+          paddingTop: 16,
+        },
+        agreementText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: colors.text.light,
+          textAlign: "center",
+          marginBottom: 16,
+        },
+        acceptButton: {
+          backgroundColor: colors.primary,
+          borderRadius: 10,
+          height: 48,
+          width: 319,
+          alignSelf: 'center',
+          justifyContent: "center",
+          alignItems: "center",
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        acceptButtonText: {
+          fontFamily: fonts.outfit.bold,
+          fontSize: 18,
+          color: colors.white,
+        },
+      }),
+    [colors]
+  );
 
   // Animation values
   const headerOpacity = useSharedValue(0);
@@ -183,120 +303,5 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  backButton: {
-    marginLeft: -4,
-    marginBottom: 12,
-    alignSelf: "flex-start",
-  },
-  backButtonCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 32,
-    color: colors.text.dark,
-    marginBottom: 4,
-  },
-  lastUpdated: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: colors.text.light,
-    marginBottom: 12,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 14,
-    color: colors.text.light,
-  },
-  tabTextActive: {
-    color: colors.white,
-  },
-  scrollContainer: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-  },
-  content: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 15,
-    color: colors.text.primary,
-    lineHeight: 24,
-  },
-  bottomContainer: {
-    backgroundColor: colors.white,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  buttonContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-  },
-  agreementText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: colors.text.light,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  acceptButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    height: 48,
-    width: 319,
-    alignSelf: 'center',
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  acceptButtonText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 18,
-    color: colors.white,
-  },
-});
 
 export default TermsScreen;

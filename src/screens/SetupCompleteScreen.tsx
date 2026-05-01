@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -7,7 +7,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 
 interface SetupCompleteScreenProps {
   navigation: any;
@@ -16,6 +16,41 @@ interface SetupCompleteScreenProps {
 const SETUP_COMPLETE_KEY = '@soultalk_setup_complete';
 
 const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: '#59168B',
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingBottom: 80,
+        },
+        title: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 48,
+          color: colors.white,
+          textAlign: 'center',
+          lineHeight: 48 * 1.26,
+          paddingHorizontal: 40,
+        },
+        subtitle: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 15,
+          color: colors.white,
+          textAlign: 'center',
+          lineHeight: 15 * 1.26,
+          marginTop: 30,
+          paddingHorizontal: 35,
+        },
+      }),
+    [colors]
+  );
 
   const titleOpacity = useSharedValue(0);
   const subtitleOpacity = useSharedValue(0);
@@ -69,35 +104,5 @@ const SetupCompleteScreen: React.FC<SetupCompleteScreenProps> = ({ navigation })
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#59168B',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 80,
-  },
-  title: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 48,
-    color: colors.white,
-    textAlign: 'center',
-    lineHeight: 48 * 1.26,
-    paddingHorizontal: 40,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 15,
-    color: colors.white,
-    textAlign: 'center',
-    lineHeight: 15 * 1.26,
-    marginTop: 30,
-    paddingHorizontal: 35,
-  },
-});
 
 export default SetupCompleteScreen;

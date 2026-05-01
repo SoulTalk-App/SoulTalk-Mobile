@@ -1,21 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
-  Pressable,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
-import { fonts } from '../theme';
+import { useThemeColors } from '../theme';
 import SoulSightService, { SoulsightDetail } from '../services/SoulSightService';
 import { SightsB, SightDetail, SightStatus, SoulpalVariant } from '../features/soulSightsB';
-
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 
 const FALLBACK_PULL_QUOTE = {
   text: 'You stopped negotiating with yourself for permission to rest.',
@@ -102,6 +96,23 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
 const SoulSightDetailScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          flex: 1,
+          // TODO(theme): map '#02011A' to palette key (sights detail near-black)
+          backgroundColor: '#02011A',
+        },
+        loadingShell: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+      }),
+    [colors],
+  );
   const theme = isDarkMode ? 'dark' : 'light';
   const soulsightId: string = route.params?.soulsightId;
   const displayStatusOverride: SightStatus | undefined = route.params?.displayStatus;
@@ -166,13 +177,12 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
     navigation.navigate('CreateJournal');
   };
 
-  const backIconSource = isDarkMode ? BackIcon : ProfileBackIcon;
-
   return (
     <View style={styles.root}>
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
-          <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
+          {/* TODO(theme): map '#3A0E66' (light deep purple) to palette key */}
+          <ActivityIndicator color={isDarkMode ? colors.text.primary : '#3A0E66'} size="large" />
         </View>
       ) : (
         <SightsB
@@ -187,53 +197,13 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           onOpenJournal={handleOpenJournal}
           onSave={handleSave}
           onShare={handleShare}
+          onBack={() => navigation.goBack()}
           isArchived={!!archivedAt}
           isArchiving={isArchiving}
         />
       )}
-
-      <View style={[styles.backRow, { top: insets.top + 12 }]}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Image source={backIconSource} style={styles.backIcon} resizeMode="contain" />
-        </Pressable>
-        <Text
-          style={[
-            styles.backText,
-            { color: isDarkMode ? '#fff' : '#3A0E66' },
-          ]}
-        >
-          Back
-        </Text>
-      </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#02011A',
-  },
-  loadingShell: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backRow: {
-    position: 'absolute',
-    left: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-  },
-});
 
 export default SoulSightDetailScreen;

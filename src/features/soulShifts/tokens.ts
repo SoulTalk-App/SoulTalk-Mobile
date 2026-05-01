@@ -16,6 +16,8 @@ export type Theme = 'dark' | 'light';
 export const ink = (t: Theme) => (t === 'dark' ? '#fff' : PURPLE_INK);
 export const inkSub = (t: Theme) =>
   t === 'dark' ? 'rgba(255,255,255,0.72)' : 'rgba(58,14,102,0.7)';
+export const inkFaint = (t: Theme) =>
+  t === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.5)';
 export const surfaceBg = (t: Theme) =>
   t === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff';
 export const surfaceBorder = (t: Theme) =>

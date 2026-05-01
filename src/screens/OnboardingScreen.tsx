@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
@@ -88,94 +88,6 @@ interface OnboardingScreenProps {
   navigation: any;
 }
 
-// ============================================
-// Pagination Dot Component
-// ============================================
-const PaginationDot: React.FC<{ isActive: boolean; onPress: () => void }> = ({
-  isActive,
-  onPress,
-}) => {
-  const scale = useSharedValue(isActive ? 1 : 0.85);
-  const fillOpacity = useSharedValue(isActive ? 1 : 0);
-
-  useEffect(() => {
-    fillOpacity.value = withSpring(isActive ? 1 : 0, FIGMA_SPRING_CONFIG);
-    scale.value = withSpring(isActive ? 1 : 0.85, FIGMA_SPRING_CONFIG);
-  }, [isActive]);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const fillStyle = useAnimatedStyle(() => ({
-    opacity: fillOpacity.value,
-  }));
-
-  return (
-    <Pressable onPress={onPress} style={styles.dotTouchable}>
-      <Animated.View style={[styles.dotOuter, dotStyle]}>
-        <Animated.View style={[styles.dotInner, fillStyle]} />
-      </Animated.View>
-    </Pressable>
-  );
-};
-
-// ============================================
-// Navigation Arrow Component
-// ============================================
-const NavArrow: React.FC<{
-  direction: 'left' | 'right';
-  onPress: () => void;
-  disabled?: boolean;
-}> = ({ direction, onPress, disabled }) => {
-  const scale = useSharedValue(1);
-
-  const handlePressIn = () => {
-    if (!disabled) {
-      scale.value = withSpring(0.9, SpringConfigs.snappy);
-    }
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, SpringConfigs.bouncy);
-  };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: disabled ? 0.3 : 1,
-  }));
-
-  // Right arrow has a circular button background
-  if (direction === 'right') {
-    return (
-      <AnimatedPressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        disabled={disabled}
-        style={[styles.nextButton, animatedStyle]}
-      >
-        <Ionicons name="chevron-forward" size={22} color={colors.primary} />
-      </AnimatedPressable>
-    );
-  }
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled}
-      style={[styles.prevButton, animatedStyle]}
-    >
-      <Ionicons name="chevron-back" size={22} color={colors.white} />
-    </AnimatedPressable>
-  );
-};
-
-// ============================================
-// Slide Content Component (for crossfade)
-// ============================================
 interface SlideContentProps {
   slide: typeof slides[0];
   opacity: SharedValue<number>;
@@ -191,176 +103,11 @@ interface SlideContentProps {
   sideCharactersOpacity: SharedValue<number>;
 }
 
-const SlideContent: React.FC<SlideContentProps> = ({
-  slide,
-  opacity,
-  scale,
-  floatY,
-  rotation,
-  decorOpacity,
-  starFloat,
-  heartLargeFloat,
-  heartMediumFloat,
-  heartSmallFloat,
-  sideCharactersScale,
-  sideCharactersOpacity,
-}) => {
-  // Main content opacity (text, main character)
-  const containerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  // Main character animation
-  const characterStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: floatY.value },
-      { scale: scale.value },
-      { rotate: `${rotation.value}deg` },
-    ],
-  }));
-
-  // Side characters (SoulPal left/right) - animate separately
-  const sideCharacterLeftStyle = useAnimatedStyle(() => ({
-    opacity: sideCharactersOpacity.value,
-    transform: [
-      { translateY: floatY.value },
-      { scale: sideCharactersScale.value },
-      { translateX: (1 - sideCharactersScale.value) * 50 }, // Slide in from center
-    ],
-  }));
-
-  const sideCharacterRightStyle = useAnimatedStyle(() => ({
-    opacity: sideCharactersOpacity.value,
-    transform: [
-      { translateY: floatY.value },
-      { scale: sideCharactersScale.value },
-      { translateX: -(1 - sideCharactersScale.value) * 50 }, // Slide in from center
-    ],
-  }));
-
-  const decorStyle = useAnimatedStyle(() => ({
-    opacity: decorOpacity.value,
-  }));
-
-  const starStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: starFloat.value }],
-  }));
-
-  const heartLargeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: heartLargeFloat.value }],
-  }));
-
-  const heartMediumStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: heartMediumFloat.value }],
-  }));
-
-  const heartSmallStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: heartSmallFloat.value }],
-  }));
-
-  const renderCharacter = () => {
-    switch (slide.characterType) {
-      case 'soulpal':
-        // SoulPal slide: main character + animated side characters
-        return (
-          <View style={styles.soulpalComposite}>
-            {/* Side characters animate in separately */}
-            <Animated.Image
-              source={SoulpalLeft}
-              style={[styles.soulpalLeft, sideCharacterLeftStyle]}
-              resizeMode="contain"
-            />
-            <Animated.Image
-              source={SoulpalRight}
-              style={[styles.soulpalRight, sideCharacterRightStyle]}
-              resizeMode="contain"
-            />
-            {/* Main character stays in place (morphs from Welcome character) */}
-            <Image source={SoulpalMain} style={styles.soulpalMain} resizeMode="contain" />
-          </View>
-        );
-      case 'discover':
-        return (
-          <Image source={CharacterDiscover} style={styles.characterImage} resizeMode="contain" />
-        );
-      case 'welcome':
-      default:
-        return (
-          <Image source={CharacterWelcome} style={styles.characterImage} resizeMode="contain" />
-        );
-    }
-  };
-
-  return (
-    <Animated.View style={[styles.slideContent, containerStyle]}>
-      {/* Title */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.titleStart}>{slide.titleStart}</Text>
-        <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-      </View>
-
-      {/* Character with decorations */}
-      <View style={styles.characterWrapper}>
-        <Animated.View style={[styles.characterContainer, characterStyle]}>
-          {/* Decorations - Welcome slide (star and hearts) */}
-          {slide.characterType === 'welcome' && (
-            <Animated.View style={[styles.decorationsContainer, decorStyle]}>
-              <Animated.Image
-                source={StarDecoration}
-                style={[styles.decorStar, starStyle]}
-                resizeMode="contain"
-              />
-              <Animated.Image
-                source={HeartLarge}
-                style={[styles.decorHeartLarge, heartLargeStyle]}
-                resizeMode="contain"
-              />
-              <Animated.Image
-                source={HeartMedium}
-                style={[styles.decorHeartMedium, heartMediumStyle]}
-                resizeMode="contain"
-              />
-              <Animated.Image
-                source={HeartSmall}
-                style={[styles.decorHeartSmall, heartSmallStyle]}
-                resizeMode="contain"
-              />
-            </Animated.View>
-          )}
-
-          {/* Decorations - Discover slide (icons) */}
-          {slide.characterType === 'discover' && (
-            <View style={styles.decorationsContainer}>
-              {/* Notebook icon - 11 o'clock position */}
-              <Animated.View style={[styles.discoverIconLeft, starStyle]}>
-                <Image source={DiscoverIconTop} style={styles.discoverIconImage} resizeMode="contain" />
-              </Animated.View>
-              {/* Speech bubble icon - 12 o'clock position */}
-              <Animated.View style={[styles.discoverIconTop, heartLargeStyle]}>
-                <Image source={DiscoverIconRight} style={styles.discoverIconImage} resizeMode="contain" />
-              </Animated.View>
-              {/* Pentagon/spiral icon - 1 o'clock position */}
-              <Animated.View style={[styles.discoverIconRight, heartMediumStyle]}>
-                <Image source={DiscoverIconLeft} style={styles.discoverIconImage} resizeMode="contain" />
-              </Animated.View>
-            </View>
-          )}
-
-          {/* Character image */}
-          {renderCharacter()}
-        </Animated.View>
-      </View>
-
-      {/* Tagline */}
-      <Text style={styles.tagline}>{slide.tagline}</Text>
-    </Animated.View>
-  );
-};
-
 // ============================================
 // Main Onboarding Screen
 // ============================================
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayIndices, setDisplayIndices] = useState<[number, number]>([0, -1]); // [current, outgoing]
@@ -368,6 +115,474 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === slides.length - 1;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+        },
+        contentArea: {
+          flex: 1,
+        },
+        slideContainer: {
+          flex: 1,
+          position: 'relative',
+        },
+        // Each slide content is absolutely positioned for crossfade overlap
+        slideContent: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 20,
+          paddingTop: 120,
+          justifyContent: 'space-between',
+        },
+        titleContainer: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+        },
+        titleStart: {
+          fontFamily: fonts.edensor.medium,
+          fontSize: 30,
+          color: colors.white,
+        },
+        titleHighlight: {
+          fontFamily: fonts.edensor.medium,
+          fontSize: 30,
+          color: '#C47ADB',
+        },
+        characterWrapper: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        characterContainer: {
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+          width: SCREEN_WIDTH * 0.9,
+          height: SCREEN_WIDTH * 1.1,
+        },
+        decorationsContainer: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 10,
+          pointerEvents: 'none',
+        },
+        characterImage: {
+          width: SCREEN_WIDTH * 0.5,
+          height: SCREEN_WIDTH * 0.8,
+        },
+        // Star - 11 o'clock position from head (upper-left diagonal)
+        decorStar: {
+          position: 'absolute',
+          width: 38,
+          height: 38,
+          left: '18%',
+          top: '15%',
+        },
+        // Large heart - top right (highest)
+        decorHeartLarge: {
+          position: 'absolute',
+          width: 48,
+          height: 44,
+          right: '10%',
+          top: '8%',
+        },
+        // Medium heart - middle right (below large)
+        decorHeartMedium: {
+          position: 'absolute',
+          width: 38,
+          height: 34,
+          right: '5%',
+          top: '18%',
+        },
+        // Small heart - at eye level (lowest in cascade)
+        decorHeartSmall: {
+          position: 'absolute',
+          width: 30,
+          height: 26,
+          right: '12%',
+          top: '27%',
+        },
+        // Discover slide icons - positioned at 11, 12, and 1 o'clock from head
+        discoverIconLeft: {
+          position: 'absolute',
+          left: '14%',
+          top: '8%',
+        },
+        discoverIconTop: {
+          position: 'absolute',
+          left: '50%',
+          marginLeft: -20,
+          top: '0%',
+        },
+        discoverIconRight: {
+          position: 'absolute',
+          right: '14%',
+          top: '8%',
+        },
+        discoverIconImage: {
+          width: 40,
+          height: 40,
+        },
+        soulpalComposite: {
+          width: SCREEN_WIDTH * 0.65,
+          height: SCREEN_WIDTH * 0.9,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        soulpalMain: {
+          width: SCREEN_WIDTH * 0.34,
+          height: SCREEN_WIDTH * 0.65,
+          position: 'absolute',
+          zIndex: 3,
+        },
+        // Side characters positioned very close to main, almost behind it
+        soulpalLeft: {
+          width: SCREEN_WIDTH * 0.24,
+          height: SCREEN_WIDTH * 0.48,
+          position: 'absolute',
+          left: '12%',
+          top: '20%',
+          zIndex: 1,
+        },
+        soulpalRight: {
+          width: SCREEN_WIDTH * 0.24,
+          height: SCREEN_WIDTH * 0.48,
+          position: 'absolute',
+          right: '12%',
+          top: '20%',
+          zIndex: 2,
+        },
+        tagline: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 16,
+          color: 'rgba(255,255,255,0.7)',
+          textAlign: 'center',
+          lineHeight: 24,
+          paddingHorizontal: 10,
+          marginBottom: 40,
+        },
+        bottomBar: {
+          backgroundColor: colors.primary,
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          paddingTop: 18,
+          paddingHorizontal: 20,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.15)',
+        },
+        navigationRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        prevButton: {
+          width: 44,
+          height: 44,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        nextButton: {
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        dotsContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+        },
+        dotTouchable: {
+          padding: 4,
+        },
+        dotOuter: {
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          borderWidth: 2,
+          borderColor: colors.white,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        dotInner: {
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: colors.white,
+        },
+      }),
+    [colors]
+  );
+
+  // ============================================
+  // Pagination Dot Component
+  // ============================================
+  const PaginationDot: React.FC<{ isActive: boolean; onPress: () => void }> = ({
+    isActive,
+    onPress,
+  }) => {
+    const scale = useSharedValue(isActive ? 1 : 0.85);
+    const fillOpacity = useSharedValue(isActive ? 1 : 0);
+
+    useEffect(() => {
+      fillOpacity.value = withSpring(isActive ? 1 : 0, FIGMA_SPRING_CONFIG);
+      scale.value = withSpring(isActive ? 1 : 0.85, FIGMA_SPRING_CONFIG);
+    }, [isActive]);
+
+    const dotStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+
+    const fillStyle = useAnimatedStyle(() => ({
+      opacity: fillOpacity.value,
+    }));
+
+    return (
+      <Pressable onPress={onPress} style={styles.dotTouchable}>
+        <Animated.View style={[styles.dotOuter, dotStyle]}>
+          <Animated.View style={[styles.dotInner, fillStyle]} />
+        </Animated.View>
+      </Pressable>
+    );
+  };
+
+  // ============================================
+  // Navigation Arrow Component
+  // ============================================
+  const NavArrow: React.FC<{
+    direction: 'left' | 'right';
+    onPress: () => void;
+    disabled?: boolean;
+  }> = ({ direction, onPress, disabled }) => {
+    const scale = useSharedValue(1);
+
+    const handlePressIn = () => {
+      if (!disabled) {
+        scale.value = withSpring(0.9, SpringConfigs.snappy);
+      }
+    };
+
+    const handlePressOut = () => {
+      scale.value = withSpring(1, SpringConfigs.bouncy);
+    };
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+      opacity: disabled ? 0.3 : 1,
+    }));
+
+    // Right arrow has a circular button background
+    if (direction === 'right') {
+      return (
+        <AnimatedPressable
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          disabled={disabled}
+          style={[styles.nextButton, animatedStyle]}
+        >
+          <Ionicons name="chevron-forward" size={22} color={colors.primary} />
+        </AnimatedPressable>
+      );
+    }
+
+    return (
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        style={[styles.prevButton, animatedStyle]}
+      >
+        <Ionicons name="chevron-back" size={22} color={colors.white} />
+      </AnimatedPressable>
+    );
+  };
+
+  // ============================================
+  // Slide Content Component (for crossfade)
+  // ============================================
+  const SlideContent: React.FC<SlideContentProps> = ({
+    slide,
+    opacity,
+    scale,
+    floatY,
+    rotation,
+    decorOpacity,
+    starFloat,
+    heartLargeFloat,
+    heartMediumFloat,
+    heartSmallFloat,
+    sideCharactersScale,
+    sideCharactersOpacity,
+  }) => {
+    // Main content opacity (text, main character)
+    const containerStyle = useAnimatedStyle(() => ({
+      opacity: opacity.value,
+    }));
+
+    // Main character animation
+    const characterStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateY: floatY.value },
+        { scale: scale.value },
+        { rotate: `${rotation.value}deg` },
+      ],
+    }));
+
+    // Side characters (SoulPal left/right) - animate separately
+    const sideCharacterLeftStyle = useAnimatedStyle(() => ({
+      opacity: sideCharactersOpacity.value,
+      transform: [
+        { translateY: floatY.value },
+        { scale: sideCharactersScale.value },
+        { translateX: (1 - sideCharactersScale.value) * 50 }, // Slide in from center
+      ],
+    }));
+
+    const sideCharacterRightStyle = useAnimatedStyle(() => ({
+      opacity: sideCharactersOpacity.value,
+      transform: [
+        { translateY: floatY.value },
+        { scale: sideCharactersScale.value },
+        { translateX: -(1 - sideCharactersScale.value) * 50 }, // Slide in from center
+      ],
+    }));
+
+    const decorStyle = useAnimatedStyle(() => ({
+      opacity: decorOpacity.value,
+    }));
+
+    const starStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: starFloat.value }],
+    }));
+
+    const heartLargeStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: heartLargeFloat.value }],
+    }));
+
+    const heartMediumStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: heartMediumFloat.value }],
+    }));
+
+    const heartSmallStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: heartSmallFloat.value }],
+    }));
+
+    const renderCharacter = () => {
+      switch (slide.characterType) {
+        case 'soulpal':
+          // SoulPal slide: main character + animated side characters
+          return (
+            <View style={styles.soulpalComposite}>
+              {/* Side characters animate in separately */}
+              <Animated.Image
+                source={SoulpalLeft}
+                style={[styles.soulpalLeft, sideCharacterLeftStyle]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={SoulpalRight}
+                style={[styles.soulpalRight, sideCharacterRightStyle]}
+                resizeMode="contain"
+              />
+              {/* Main character stays in place (morphs from Welcome character) */}
+              <Image source={SoulpalMain} style={styles.soulpalMain} resizeMode="contain" />
+            </View>
+          );
+        case 'discover':
+          return (
+            <Image source={CharacterDiscover} style={styles.characterImage} resizeMode="contain" />
+          );
+        case 'welcome':
+        default:
+          return (
+            <Image source={CharacterWelcome} style={styles.characterImage} resizeMode="contain" />
+          );
+      }
+    };
+
+    return (
+      <Animated.View style={[styles.slideContent, containerStyle]}>
+        {/* Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleStart}>{slide.titleStart}</Text>
+          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+        </View>
+
+        {/* Character with decorations */}
+        <View style={styles.characterWrapper}>
+          <Animated.View style={[styles.characterContainer, characterStyle]}>
+            {/* Decorations - Welcome slide (star and hearts) */}
+            {slide.characterType === 'welcome' && (
+              <Animated.View style={[styles.decorationsContainer, decorStyle]}>
+                <Animated.Image
+                  source={StarDecoration}
+                  style={[styles.decorStar, starStyle]}
+                  resizeMode="contain"
+                />
+                <Animated.Image
+                  source={HeartLarge}
+                  style={[styles.decorHeartLarge, heartLargeStyle]}
+                  resizeMode="contain"
+                />
+                <Animated.Image
+                  source={HeartMedium}
+                  style={[styles.decorHeartMedium, heartMediumStyle]}
+                  resizeMode="contain"
+                />
+                <Animated.Image
+                  source={HeartSmall}
+                  style={[styles.decorHeartSmall, heartSmallStyle]}
+                  resizeMode="contain"
+                />
+              </Animated.View>
+            )}
+
+            {/* Decorations - Discover slide (icons) */}
+            {slide.characterType === 'discover' && (
+              <View style={styles.decorationsContainer}>
+                {/* Notebook icon - 11 o'clock position */}
+                <Animated.View style={[styles.discoverIconLeft, starStyle]}>
+                  <Image source={DiscoverIconTop} style={styles.discoverIconImage} resizeMode="contain" />
+                </Animated.View>
+                {/* Speech bubble icon - 12 o'clock position */}
+                <Animated.View style={[styles.discoverIconTop, heartLargeStyle]}>
+                  <Image source={DiscoverIconRight} style={styles.discoverIconImage} resizeMode="contain" />
+                </Animated.View>
+                {/* Pentagon/spiral icon - 1 o'clock position */}
+                <Animated.View style={[styles.discoverIconRight, heartMediumStyle]}>
+                  <Image source={DiscoverIconLeft} style={styles.discoverIconImage} resizeMode="contain" />
+                </Animated.View>
+              </View>
+            )}
+
+            {/* Character image */}
+            {renderCharacter()}
+          </Animated.View>
+        </View>
+
+        {/* Tagline */}
+        <Text style={styles.tagline}>{slide.tagline}</Text>
+      </Animated.View>
+    );
+  };
 
   // Opacity values for crossfade effect
   const slideOpacity0 = useSharedValue(1);
@@ -715,218 +930,5 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     </LinearGradient>
   );
 };
-
-// ============================================
-// Styles
-// ============================================
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  contentArea: {
-    flex: 1,
-  },
-  slideContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  // Each slide content is absolutely positioned for crossfade overlap
-  slideContent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 20,
-    paddingTop: 120,
-    justifyContent: 'space-between',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  titleStart: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 30,
-    color: colors.white,
-  },
-  titleHighlight: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 30,
-    color: '#C47ADB',
-  },
-  characterWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  characterContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    width: SCREEN_WIDTH * 0.9,
-    height: SCREEN_WIDTH * 1.1,
-  },
-  decorationsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
-    pointerEvents: 'none',
-  },
-  characterImage: {
-    width: SCREEN_WIDTH * 0.5,
-    height: SCREEN_WIDTH * 0.8,
-  },
-  // Star - 11 o'clock position from head (upper-left diagonal)
-  decorStar: {
-    position: 'absolute',
-    width: 38,
-    height: 38,
-    left: '18%',
-    top: '15%',
-  },
-  // Large heart - top right (highest)
-  decorHeartLarge: {
-    position: 'absolute',
-    width: 48,
-    height: 44,
-    right: '10%',
-    top: '8%',
-  },
-  // Medium heart - middle right (below large)
-  decorHeartMedium: {
-    position: 'absolute',
-    width: 38,
-    height: 34,
-    right: '5%',
-    top: '18%',
-  },
-  // Small heart - at eye level (lowest in cascade)
-  decorHeartSmall: {
-    position: 'absolute',
-    width: 30,
-    height: 26,
-    right: '12%',
-    top: '27%',
-  },
-  // Discover slide icons - positioned at 11, 12, and 1 o'clock from head
-  discoverIconLeft: {
-    position: 'absolute',
-    left: '14%',
-    top: '8%',
-  },
-  discoverIconTop: {
-    position: 'absolute',
-    left: '50%',
-    marginLeft: -20,
-    top: '0%',
-  },
-  discoverIconRight: {
-    position: 'absolute',
-    right: '14%',
-    top: '8%',
-  },
-  discoverIconImage: {
-    width: 40,
-    height: 40,
-  },
-  soulpalComposite: {
-    width: SCREEN_WIDTH * 0.65,
-    height: SCREEN_WIDTH * 0.9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  soulpalMain: {
-    width: SCREEN_WIDTH * 0.34,
-    height: SCREEN_WIDTH * 0.65,
-    position: 'absolute',
-    zIndex: 3,
-  },
-  // Side characters positioned very close to main, almost behind it
-  soulpalLeft: {
-    width: SCREEN_WIDTH * 0.24,
-    height: SCREEN_WIDTH * 0.48,
-    position: 'absolute',
-    left: '12%',
-    top: '20%',
-    zIndex: 1,
-  },
-  soulpalRight: {
-    width: SCREEN_WIDTH * 0.24,
-    height: SCREEN_WIDTH * 0.48,
-    position: 'absolute',
-    right: '12%',
-    top: '20%',
-    zIndex: 2,
-  },
-  tagline: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 10,
-    marginBottom: 40,
-  },
-  bottomBar: {
-    backgroundColor: colors.primary,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 18,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.15)',
-  },
-  navigationRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  prevButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  dotTouchable: {
-    padding: 4,
-  },
-  dotOuter: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dotInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.white,
-  },
-});
 
 export default OnboardingScreen;
