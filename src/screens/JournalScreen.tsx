@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalLoader from '../components/JournalLoader';
@@ -84,6 +84,7 @@ function getEmotionColor(item: any): string {
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
   const { entries, isLoading, fetchEntries, streak, hasEntryToday } = useJournal();
   const { colorId } = useSoulPal();
   const soulPalHex = SOULPAL_COLORS.find(c => c.id === colorId)?.hex ?? '#70CACF';
@@ -297,6 +298,422 @@ const JournalScreen = ({ navigation }: any) => {
     : '';
 
   const tabBarHeight = 62 + (insets.bottom > 0 ? insets.bottom - 6 : 8) + 20;
+
+  const dk = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        screen: { flex: 1, paddingHorizontal: 20 },
+
+        // ── Nebulae ──
+        nebula: {
+          position: 'absolute',
+          width: 280,
+          height: 280,
+          top: -40,
+          right: -70,
+          borderRadius: 140,
+        },
+        nebula2: {
+          position: 'absolute',
+          width: 230,
+          height: 230,
+          bottom: 100,
+          left: -55,
+          borderRadius: 115,
+        },
+        nebulaFill: {
+          width: '100%',
+          height: '100%',
+          borderRadius: 140,
+        },
+
+        // ── Galaxy swirl ──
+        galaxy: {
+          position: 'absolute',
+          width: 70,
+          height: 70,
+          top: '48%',
+          left: '8%',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        galaxyCore: {
+          width: 5,
+          height: 5,
+          borderRadius: 2.5,
+          backgroundColor: 'rgba(91, 141, 184, 0.22)',
+          shadowColor: 'rgba(91, 141, 184, 0.4)',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 1,
+          shadowRadius: 6,
+        },
+        galaxyArm: {
+          position: 'absolute',
+          height: 1,
+          backgroundColor: 'rgba(61, 84, 120, 0.07)',
+          borderRadius: 1,
+        },
+
+        // ── Planets ──
+        planet: {
+          position: 'absolute',
+          borderRadius: 999,
+          overflow: 'hidden',
+        },
+        planet1: {
+          width: 140,
+          height: 140,
+          top: 30,
+          right: -30,
+          borderWidth: 1,
+          borderColor: 'rgba(91, 141, 184, 0.15)',
+        },
+        planet2: {
+          width: 100,
+          height: 100,
+          top: 400,
+          left: -25,
+          borderWidth: 1,
+          borderColor: 'rgba(123, 143, 168, 0.10)',
+        },
+        planet3: {
+          width: 32,
+          height: 32,
+          top: '35%',
+          left: '6%',
+          borderWidth: 1,
+          borderColor: 'rgba(77, 232, 212, 0.10)',
+        },
+        planet4: {
+          width: 55,
+          height: 55,
+          bottom: 140,
+          right: -15,
+          borderWidth: 1,
+          borderColor: 'rgba(74, 94, 128, 0.08)',
+        },
+        planetFill: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 999,
+        },
+        planetHighlight: {
+          position: 'absolute',
+          borderRadius: 999,
+          backgroundColor: 'rgba(255, 255, 255, 0.20)',
+        },
+        atmosphere: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 999,
+          borderWidth: 2,
+          borderColor: 'rgba(91, 141, 184, 0.08)',
+        },
+        planetRing: {
+          position: 'absolute',
+          width: '175%',
+          height: 14,
+          top: '44%',
+          left: '-37%',
+          borderRadius: 999,
+          borderWidth: 1.5,
+          borderColor: 'rgba(123, 143, 168, 0.20)',
+          transform: [{ rotate: '-25deg' }],
+        },
+
+        // ── Meteors ──
+        meteor: {
+          position: 'absolute',
+          height: 2,
+          borderRadius: 1,
+        },
+        meteorTrail: {
+          width: '100%',
+          height: '100%',
+          borderRadius: 1,
+        },
+
+        // ── Asteroids ──
+        asteroid: {
+          position: 'absolute',
+          backgroundColor: 'rgba(160, 175, 200, 0.14)',
+          borderRadius: 1.5,
+          transform: [{ rotate: '20deg' }],
+        },
+
+        // ── Dust lane ──
+        dustLane: {
+          position: 'absolute',
+          width: '150%',
+          height: 70,
+          top: '58%',
+          left: '-25%',
+          transform: [{ rotate: '-16deg' }],
+          opacity: 0.5,
+        },
+
+        headerCard: {
+          marginBottom: 16,
+          backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+          overflow: 'hidden',
+        },
+        headerTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
+        soulPalWrap: {
+          position: 'relative',
+          width: 52,
+          height: 66,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        soulPalGlow: {
+          position: 'absolute',
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          opacity: 0.35,
+        },
+        headerText: { flex: 1, marginLeft: 14 },
+        headerTitle: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 20,
+          lineHeight: 26,
+          color: colors.text.primary,
+        },
+        headerSubtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 18,
+          color: 'rgba(255,255,255,0.55)',
+          marginTop: 2,
+        },
+        streakRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginHorizontal: 16,
+          paddingTop: 10,
+          paddingBottom: 12,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.08)',
+        },
+        streakBadge: {
+          fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.accent.yellow,
+          textShadowColor: 'rgba(255, 215, 87, 0.5)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 6,
+        },
+        filterToggle: {
+          width: 40, height: 40, borderRadius: 12,
+          backgroundColor: 'rgba(255,255,255,0.12)',
+          borderWidth: 1, borderColor: colors.inputBorder,
+          justifyContent: 'center', alignItems: 'center',
+        },
+        filterToggleIcon: { width: 20, height: 20, tintColor: colors.primary },
+        filterBadge: {
+          position: 'absolute', top: -4, right: -4,
+          backgroundColor: colors.success, borderRadius: 8,
+          width: 16, height: 16, justifyContent: 'center', alignItems: 'center',
+        },
+        filterBadgeText: { fontFamily: fonts.outfit.medium, fontSize: 10, color: colors.white },
+
+        activeFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+        activeFilterPill: {
+          backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10,
+          paddingHorizontal: 10, paddingVertical: 4,
+          borderWidth: 1, borderColor: colors.inputBorder,
+        },
+        activeFilterText: { fontFamily: fonts.outfit.medium, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+
+        filterSection: {
+          backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14,
+          padding: 14, marginBottom: 16,
+          borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+        },
+        pillRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+        pill: {
+          backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 8,
+          paddingHorizontal: 14, paddingVertical: 5,
+          borderWidth: 1, borderColor: colors.border,
+        },
+        pillActive: { backgroundColor: 'rgba(255,255,255,0.25)', borderColor: 'rgba(255,255,255,0.4)' },
+        pillText: { fontFamily: fonts.outfit.regular, fontSize: 13, color: colors.text.secondary },
+        pillTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
+        reflectedPill: { borderWidth: 1.5, borderColor: colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+        reflectedPillActive: { backgroundColor: colors.success },
+        reflectedText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.success },
+
+        entriesScroll: { flex: 1 },
+        entriesList: { gap: 12, paddingTop: 4 },
+        entryCard: { borderRadius: 14 },
+        accentStrip: { height: 3, borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+        entryContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 14 },
+        entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+        entryDate: { fontFamily: fonts.edensor.bold, fontSize: 14, color: 'rgba(255,255,255,0.6)' },
+        aiIndicator: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+        aiDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.success },
+        aiLabel: { fontFamily: fonts.outfit.regular, fontSize: 10, color: 'rgba(76, 175, 80, 0.8)' },
+        entryText: { fontFamily: fonts.outfit.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.85)' },
+
+        emptyState: { alignItems: 'center', paddingVertical: 80 },
+        emptyTitle: { fontFamily: fonts.outfit.medium, fontSize: 17, color: 'rgba(255,255,255,0.9)', marginBottom: 6 },
+        emptySub: { fontFamily: fonts.outfit.regular, fontSize: 14, color: 'rgba(255,255,255,0.45)' },
+
+        fab: {
+          position: 'absolute', alignSelf: 'center', left: '50%', marginLeft: -26,
+          width: 52, height: 52, borderRadius: 26,
+          backgroundColor: colors.primary,
+          justifyContent: 'center', alignItems: 'center', zIndex: 20,
+          shadowColor: colors.primary,
+          shadowOpacity: 0.5,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+        },
+        fabDisabled: { opacity: 0.25 },
+        fabText: { fontFamily: fonts.outfit.medium, fontSize: 28, color: colors.background, marginTop: -2 },
+
+        tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
+        tabBarInner: {
+          flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 200,
+          width: 269, height: 62, alignItems: 'center', justifyContent: 'space-evenly',
+          paddingHorizontal: 16, paddingTop: 14, borderWidth: 1, borderColor: colors.inputBorder,
+        },
+        tabItem: { alignItems: 'center', justifyContent: 'center', minWidth: 50 },
+        tabPressable: { alignItems: 'center', justifyContent: 'center' },
+        activeTabBg: {
+          backgroundColor: 'rgba(61, 84, 120, 0.4)', borderRadius: 24,
+          width: 52, height: 40, justifyContent: 'center', alignItems: 'center',
+          shadowColor: colors.primary,
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 0 },
+        },
+        tabIcon: { width: 28, height: 26, tintColor: colors.white },
+        tabIconInactive: { width: 33, height: 30, opacity: 0.6, tintColor: colors.white },
+        activeTabLabel: { fontFamily: fonts.edensor.bold, fontSize: 12, lineHeight: 17, color: colors.white, marginTop: 2 },
+      }),
+    [colors]
+  );
+
+  const lt = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        mainContent: { flex: 1, paddingHorizontal: 20 },
+
+        // Header
+        headerSection: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: -20, zIndex: 0 },
+        soulPalImage: { width: 70, height: 98, marginLeft: -6 },
+        soulPalArmLeft: { position: 'absolute', width: 28, height: 33, left: 26, zIndex: 2 },
+        soulPalArmRight: { position: 'absolute', width: 30, height: 32, left: 40, zIndex: 2 },
+        speechBubble: {
+          flex: 1, backgroundColor: colors.white, borderRadius: 8,
+          paddingHorizontal: 8, paddingVertical: 6, marginLeft: -8, marginTop: 10,
+        },
+        speechText: {
+          fontFamily: fonts.outfit.regular, fontSize: 11, lineHeight: 11 * 1.3,
+          color: '#59168B', textAlign: 'center',
+        },
+        streakStars: { fontSize: 11, textAlign: 'center', marginTop: 2 },
+
+        // Journal Card
+        journalCard: {
+          flex: 1, backgroundColor: colors.white, borderRadius: 10,
+          paddingHorizontal: 17, paddingTop: 22, paddingBottom: 18, zIndex: 1,
+        },
+        entriesScroll: { flex: 1 },
+
+        // Year Pills
+        yearScroll: { marginBottom: 12, flexShrink: 0, flexGrow: 0 },
+        yearRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+        yearPill: {
+          backgroundColor: '#59168B', borderRadius: 10,
+          paddingHorizontal: 16, paddingVertical: 4, justifyContent: 'center', alignItems: 'center',
+        },
+        yearPillActive: { backgroundColor: '#3A0D5E' },
+        yearText: { fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.26, color: colors.white },
+        yearTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
+        yearDots: { width: 14, height: 4, tintColor: colors.white },
+
+        // Divider
+        divider: { height: 1, backgroundColor: '#59168B', marginBottom: 12, flexShrink: 0 },
+
+        // Month Pills
+        monthScroll: { marginBottom: 8, flexShrink: 0, flexGrow: 0 },
+        monthRow: { flexDirection: 'row', gap: 8 },
+        monthPill: {
+          backgroundColor: '#59168B', borderRadius: 5,
+          paddingHorizontal: 16, paddingVertical: 4, justifyContent: 'center', alignItems: 'center',
+        },
+        monthPillActive: { backgroundColor: '#3A0D5E' },
+        monthText: { fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.26, color: colors.white },
+        monthTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
+
+        // Reflected Filters
+        filterScroll: { marginBottom: 8, flexShrink: 0, flexGrow: 0 },
+        filterRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+        reflectedPill: { borderWidth: 1.5, borderColor: colors.success, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
+        reflectedPillActive: { backgroundColor: colors.success },
+        reflectedText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.success },
+        reflectedTextActive: { color: colors.white },
+
+        // Sort Row
+        sortRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, flexShrink: 0 },
+        sortBar: {
+          flex: 1, backgroundColor: '#59168B', borderRadius: 5, minHeight: 35,
+          flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, marginRight: 10,
+        },
+        sortText: { fontFamily: fonts.outfit.regular, fontSize: 10, lineHeight: 10 * 1.26, color: colors.white, marginRight: 6 },
+        sortPillsScroll: { flex: 1 },
+        sortPillsRow: { flexDirection: 'row', gap: 6 },
+        sortPill: {
+          flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
+          borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, gap: 4,
+        },
+        sortPillText: { fontFamily: fonts.outfit.medium, fontSize: 10, color: '#59168B' },
+        sortPillX: { fontFamily: fonts.outfit.medium, fontSize: 10, color: '#59168B' },
+        filterIcon: { width: 35, height: 35 },
+
+        // Entries
+        entriesList: { gap: 12 },
+        entryCard: { backgroundColor: '#59168B', borderRadius: 10, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 14 },
+        entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+        entryDate: { fontFamily: fonts.outfit.regular, fontSize: 12, lineHeight: 12 * 1.26, color: colors.white },
+        aiDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success },
+        entryContent: { fontFamily: fonts.outfit.light, fontSize: 12, lineHeight: 12 * 1.4, color: colors.white },
+
+        // Empty State
+        emptyState: { alignItems: 'center', paddingVertical: 40 },
+        emptyText: { fontFamily: fonts.outfit.medium, fontSize: 16, color: '#59168B', marginBottom: 4 },
+        emptySubtext: { fontFamily: fonts.outfit.light, fontSize: 14, color: '#59168B' },
+
+        // FAB
+        fab: {
+          position: 'absolute', right: 4, width: 56, height: 56, borderRadius: 28,
+          backgroundColor: '#59168B', justifyContent: 'center', alignItems: 'center', zIndex: 10,
+          elevation: 5, shadowColor: colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
+        },
+        fabDisabled: { opacity: 0.4 },
+        fabText: { fontFamily: fonts.outfit.light, fontSize: 32, color: colors.white, marginTop: -2 },
+
+        // Tab Bar
+        tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
+        tabBarInner: {
+          flexDirection: 'row', backgroundColor: colors.white, borderRadius: 200,
+          width: 269, height: 62, alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: 16, paddingTop: 14,
+        },
+        tabItem: { alignItems: 'center', justifyContent: 'center', minWidth: 50 },
+        tabPressable: { alignItems: 'center', justifyContent: 'center' },
+        activeTabBg: {
+          backgroundColor: '#59168B', borderRadius: 24, width: 52, height: 40,
+          justifyContent: 'center', alignItems: 'center',
+        },
+        tabIcon: { width: 28, height: 26, tintColor: '#FFFFFF' },
+        tabIconInactive: { width: 33, height: 30, opacity: 0.85, tintColor: '#59168B' },
+        activeTabLabel: { fontFamily: fonts.edensor.bold, fontSize: 12, lineHeight: 12 * 1.4, color: '#59168B', marginTop: 2 },
+      }),
+    [colors]
+  );
 
   // =============================================
   // DARK MODE — Liquid Glass Design
@@ -522,13 +939,13 @@ const JournalScreen = ({ navigation }: any) => {
                   style={[dk.reflectedPill, selectedReflected === true && dk.reflectedPillActive]}
                   onPress={() => toggleReflected(true)}
                 >
-                  <Text style={[dk.reflectedText, selectedReflected === true && { color: '#fff' }]}>Reflected</Text>
+                  <Text style={[dk.reflectedText, selectedReflected === true && { color: colors.white }]}>Reflected</Text>
                 </Pressable>
                 <Pressable
                   style={[dk.reflectedPill, selectedReflected === false && dk.reflectedPillActive]}
                   onPress={() => toggleReflected(false)}
                 >
-                  <Text style={[dk.reflectedText, selectedReflected === false && { color: '#fff' }]}>Unreflected</Text>
+                  <Text style={[dk.reflectedText, selectedReflected === false && { color: colors.white }]}>Unreflected</Text>
                 </Pressable>
               </View>
             </View>
@@ -540,7 +957,7 @@ const JournalScreen = ({ navigation }: any) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[dk.entriesList, { paddingBottom: tabBarHeight + 20 }]}
             refreshControl={
-              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor="#fff" />
+              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
             }
           >
             {isLoading && entries.length === 0 ? (
@@ -793,418 +1210,5 @@ const JournalScreen = ({ navigation }: any) => {
   );
 };
 
-// =============================================
-// DARK MODE STYLES — Liquid Glass
-// =============================================
-const dk = StyleSheet.create({
-  container: { flex: 1 },
-  screen: { flex: 1, paddingHorizontal: 20 },
-
-  // ── Nebulae ──
-  nebula: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    top: -40,
-    right: -70,
-    borderRadius: 140,
-  },
-  nebula2: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    bottom: 100,
-    left: -55,
-    borderRadius: 115,
-  },
-  nebulaFill: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 140,
-  },
-
-  // ── Galaxy swirl ──
-  galaxy: {
-    position: 'absolute',
-    width: 70,
-    height: 70,
-    top: '48%',
-    left: '8%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  galaxyCore: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: 'rgba(91, 141, 184, 0.22)',
-    shadowColor: 'rgba(91, 141, 184, 0.4)',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-  },
-  galaxyArm: {
-    position: 'absolute',
-    height: 1,
-    backgroundColor: 'rgba(61, 84, 120, 0.07)',
-    borderRadius: 1,
-  },
-
-  // ── Planets ──
-  planet: {
-    position: 'absolute',
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  planet1: {
-    width: 140,
-    height: 140,
-    top: 30,
-    right: -30,
-    borderWidth: 1,
-    borderColor: 'rgba(91, 141, 184, 0.15)',
-  },
-  planet2: {
-    width: 100,
-    height: 100,
-    top: 400,
-    left: -25,
-    borderWidth: 1,
-    borderColor: 'rgba(123, 143, 168, 0.10)',
-  },
-  planet3: {
-    width: 32,
-    height: 32,
-    top: '35%',
-    left: '6%',
-    borderWidth: 1,
-    borderColor: 'rgba(77, 232, 212, 0.10)',
-  },
-  planet4: {
-    width: 55,
-    height: 55,
-    bottom: 140,
-    right: -15,
-    borderWidth: 1,
-    borderColor: 'rgba(74, 94, 128, 0.08)',
-  },
-  planetFill: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-  },
-  planetHighlight: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.20)',
-  },
-  atmosphere: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: 'rgba(91, 141, 184, 0.08)',
-  },
-  planetRing: {
-    position: 'absolute',
-    width: '175%',
-    height: 14,
-    top: '44%',
-    left: '-37%',
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: 'rgba(123, 143, 168, 0.20)',
-    transform: [{ rotate: '-25deg' }],
-  },
-
-  // ── Meteors ──
-  meteor: {
-    position: 'absolute',
-    height: 2,
-    borderRadius: 1,
-  },
-  meteorTrail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 1,
-  },
-
-  // ── Asteroids ──
-  asteroid: {
-    position: 'absolute',
-    backgroundColor: 'rgba(160, 175, 200, 0.14)',
-    borderRadius: 1.5,
-    transform: [{ rotate: '20deg' }],
-  },
-
-  // ── Dust lane ──
-  dustLane: {
-    position: 'absolute',
-    width: '150%',
-    height: 70,
-    top: '58%',
-    left: '-25%',
-    transform: [{ rotate: '-16deg' }],
-    opacity: 0.5,
-  },
-
-  headerCard: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    overflow: 'hidden',
-  },
-  headerTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
-  soulPalWrap: {
-    position: 'relative',
-    width: 52,
-    height: 66,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  soulPalGlow: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    opacity: 0.35,
-  },
-  headerText: { flex: 1, marginLeft: 14 },
-  headerTitle: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 20,
-    lineHeight: 26,
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    color: 'rgba(255,255,255,0.55)',
-    marginTop: 2,
-  },
-  streakRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  streakBadge: {
-    fontFamily: fonts.outfit.medium, fontSize: 12, color: '#FFD757',
-    textShadowColor: 'rgba(255, 215, 87, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
-  },
-  filterToggle: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  filterToggleIcon: { width: 20, height: 20, tintColor: '#4DE8D4' },
-  filterBadge: {
-    position: 'absolute', top: -4, right: -4,
-    backgroundColor: '#4CAF50', borderRadius: 8,
-    width: 16, height: 16, justifyContent: 'center', alignItems: 'center',
-  },
-  filterBadgeText: { fontFamily: fonts.outfit.medium, fontSize: 10, color: '#fff' },
-
-  activeFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  activeFilterPill: {
-    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  activeFilterText: { fontFamily: fonts.outfit.medium, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-
-  filterSection: {
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14,
-    padding: 14, marginBottom: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-  },
-  pillRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  pill: {
-    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 5,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  pillActive: { backgroundColor: 'rgba(255,255,255,0.25)', borderColor: 'rgba(255,255,255,0.4)' },
-  pillText: { fontFamily: fonts.outfit.regular, fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-  pillTextActive: { color: '#fff', fontFamily: fonts.outfit.medium },
-  reflectedPill: { borderWidth: 1.5, borderColor: '#4CAF50', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  reflectedPillActive: { backgroundColor: '#4CAF50' },
-  reflectedText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#4CAF50' },
-
-  entriesScroll: { flex: 1 },
-  entriesList: { gap: 12, paddingTop: 4 },
-  entryCard: { borderRadius: 14 },
-  accentStrip: { height: 3, borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-  entryContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 14 },
-  entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  entryDate: { fontFamily: fonts.edensor.bold, fontSize: 14, color: 'rgba(255,255,255,0.6)' },
-  aiIndicator: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  aiDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4CAF50' },
-  aiLabel: { fontFamily: fonts.outfit.regular, fontSize: 10, color: 'rgba(76, 175, 80, 0.8)' },
-  entryText: { fontFamily: fonts.outfit.regular, fontSize: 13, lineHeight: 20, color: 'rgba(255,255,255,0.85)' },
-
-  emptyState: { alignItems: 'center', paddingVertical: 80 },
-  emptyTitle: { fontFamily: fonts.outfit.medium, fontSize: 17, color: 'rgba(255,255,255,0.9)', marginBottom: 6 },
-  emptySub: { fontFamily: fonts.outfit.regular, fontSize: 14, color: 'rgba(255,255,255,0.45)' },
-
-  fab: {
-    position: 'absolute', alignSelf: 'center', left: '50%', marginLeft: -26,
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#4DE8D4',
-    justifyContent: 'center', alignItems: 'center', zIndex: 20,
-    shadowColor: '#4DE8D4',
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  fabDisabled: { opacity: 0.25 },
-  fabText: { fontFamily: fonts.outfit.medium, fontSize: 28, color: '#0F1B2D', marginTop: -2 },
-
-  tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
-  tabBarInner: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 200,
-    width: 269, height: 62, alignItems: 'center', justifyContent: 'space-evenly',
-    paddingHorizontal: 16, paddingTop: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-  },
-  tabItem: { alignItems: 'center', justifyContent: 'center', minWidth: 50 },
-  tabPressable: { alignItems: 'center', justifyContent: 'center' },
-  activeTabBg: {
-    backgroundColor: 'rgba(61, 84, 120, 0.4)', borderRadius: 24,
-    width: 52, height: 40, justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#4DE8D4',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  tabIcon: { width: 28, height: 26, tintColor: '#fff' },
-  tabIconInactive: { width: 33, height: 30, opacity: 0.6, tintColor: '#fff' },
-  activeTabLabel: { fontFamily: fonts.edensor.bold, fontSize: 12, lineHeight: 17, color: '#fff', marginTop: 2 },
-});
-
-// =============================================
-// LIGHT MODE STYLES — Original Design
-// =============================================
-const lt = StyleSheet.create({
-  container: { flex: 1 },
-  mainContent: { flex: 1, paddingHorizontal: 20 },
-
-  // Header
-  headerSection: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: -20, zIndex: 0 },
-  soulPalImage: { width: 70, height: 98, marginLeft: -6 },
-  soulPalArmLeft: { position: 'absolute', width: 28, height: 33, left: 26, zIndex: 2 },
-  soulPalArmRight: { position: 'absolute', width: 30, height: 32, left: 40, zIndex: 2 },
-  speechBubble: {
-    flex: 1, backgroundColor: colors.white, borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 6, marginLeft: -8, marginTop: 10,
-  },
-  speechText: {
-    fontFamily: fonts.outfit.regular, fontSize: 11, lineHeight: 11 * 1.3,
-    color: '#59168B', textAlign: 'center',
-  },
-  streakStars: { fontSize: 11, textAlign: 'center', marginTop: 2 },
-
-  // Journal Card
-  journalCard: {
-    flex: 1, backgroundColor: colors.white, borderRadius: 10,
-    paddingHorizontal: 17, paddingTop: 22, paddingBottom: 18, zIndex: 1,
-  },
-  entriesScroll: { flex: 1 },
-
-  // Year Pills
-  yearScroll: { marginBottom: 12, flexShrink: 0, flexGrow: 0 },
-  yearRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  yearPill: {
-    backgroundColor: '#59168B', borderRadius: 10,
-    paddingHorizontal: 16, paddingVertical: 4, justifyContent: 'center', alignItems: 'center',
-  },
-  yearPillActive: { backgroundColor: '#3A0D5E' },
-  yearText: { fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.26, color: colors.white },
-  yearTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
-  yearDots: { width: 14, height: 4, tintColor: colors.white },
-
-  // Divider
-  divider: { height: 1, backgroundColor: '#59168B', marginBottom: 12, flexShrink: 0 },
-
-  // Month Pills
-  monthScroll: { marginBottom: 8, flexShrink: 0, flexGrow: 0 },
-  monthRow: { flexDirection: 'row', gap: 8 },
-  monthPill: {
-    backgroundColor: '#59168B', borderRadius: 5,
-    paddingHorizontal: 16, paddingVertical: 4, justifyContent: 'center', alignItems: 'center',
-  },
-  monthPillActive: { backgroundColor: '#3A0D5E' },
-  monthText: { fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.26, color: colors.white },
-  monthTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
-
-  // Reflected Filters
-  filterScroll: { marginBottom: 8, flexShrink: 0, flexGrow: 0 },
-  filterRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  reflectedPill: { borderWidth: 1.5, borderColor: '#4CAF50', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  reflectedPillActive: { backgroundColor: '#4CAF50' },
-  reflectedText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#4CAF50' },
-  reflectedTextActive: { color: colors.white },
-
-  // Sort Row
-  sortRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, flexShrink: 0 },
-  sortBar: {
-    flex: 1, backgroundColor: '#59168B', borderRadius: 5, minHeight: 35,
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, marginRight: 10,
-  },
-  sortText: { fontFamily: fonts.outfit.regular, fontSize: 10, lineHeight: 10 * 1.26, color: colors.white, marginRight: 6 },
-  sortPillsScroll: { flex: 1 },
-  sortPillsRow: { flexDirection: 'row', gap: 6 },
-  sortPill: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
-    borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, gap: 4,
-  },
-  sortPillText: { fontFamily: fonts.outfit.medium, fontSize: 10, color: '#59168B' },
-  sortPillX: { fontFamily: fonts.outfit.medium, fontSize: 10, color: '#59168B' },
-  filterIcon: { width: 35, height: 35 },
-
-  // Entries
-  entriesList: { gap: 12 },
-  entryCard: { backgroundColor: '#59168B', borderRadius: 10, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 14 },
-  entryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  entryDate: { fontFamily: fonts.outfit.regular, fontSize: 12, lineHeight: 12 * 1.26, color: colors.white },
-  aiDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4CAF50' },
-  entryContent: { fontFamily: fonts.outfit.light, fontSize: 12, lineHeight: 12 * 1.4, color: colors.white },
-
-  // Empty State
-  emptyState: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontFamily: fonts.outfit.medium, fontSize: 16, color: '#59168B', marginBottom: 4 },
-  emptySubtext: { fontFamily: fonts.outfit.light, fontSize: 14, color: '#59168B' },
-
-  // FAB
-  fab: {
-    position: 'absolute', right: 4, width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#59168B', justifyContent: 'center', alignItems: 'center', zIndex: 10,
-    elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
-  },
-  fabDisabled: { opacity: 0.4 },
-  fabText: { fontFamily: fonts.outfit.light, fontSize: 32, color: colors.white, marginTop: -2 },
-
-  // Tab Bar
-  tabBar: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center' },
-  tabBarInner: {
-    flexDirection: 'row', backgroundColor: colors.white, borderRadius: 200,
-    width: 269, height: 62, alignItems: 'center', justifyContent: 'space-evenly', paddingHorizontal: 16, paddingTop: 14,
-  },
-  tabItem: { alignItems: 'center', justifyContent: 'center', minWidth: 50 },
-  tabPressable: { alignItems: 'center', justifyContent: 'center' },
-  activeTabBg: {
-    backgroundColor: '#59168B', borderRadius: 24, width: 52, height: 40,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  tabIcon: { width: 28, height: 26, tintColor: '#FFFFFF' },
-  tabIconInactive: { width: 33, height: 30, opacity: 0.85, tintColor: '#59168B' },
-  activeTabLabel: { fontFamily: fonts.edensor.bold, fontSize: 12, lineHeight: 12 * 1.4, color: '#59168B', marginTop: 2 },
-});
 
 export default JournalScreen;

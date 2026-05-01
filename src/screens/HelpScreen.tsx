@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService from '../services/JournalService';
 
@@ -39,6 +39,7 @@ const CONTACT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 const HelpScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
   const [resources, setResources] = useState<CrisisResource[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,16 +67,137 @@ const HelpScreen = ({ navigation }: any) => {
     }
   };
 
-  const s = isDarkMode ? dk : lt;
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        // Shared layout
+        scrollView: {
+          flex: 1,
+        },
+        scrollContent: {
+          paddingHorizontal: 22,
+          flexGrow: 1,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 20,
+        },
+        backButton: {
+          marginRight: 12,
+        },
+        backIcon: {
+          width: 36,
+          height: 36,
+        },
+        loader: {
+          marginTop: 60,
+        },
+        section: {
+          marginBottom: 28,
+        },
+        resourceInfo: {
+          flex: 1,
+        },
+        // Themed
+        container: {
+          flex: 1,
+          // TODO: light-mode solid purple bg has no palette key; preserved as-is for visual identity.
+          backgroundColor: isDarkMode ? 'transparent' : '#59168B',
+        },
+        headerTitle: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 24,
+          lineHeight: 24 * 1.26,
+          color: colors.white,
+        },
+        introText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 15,
+          lineHeight: 22,
+          // Visual: light = 0.8 opacity white on purple, dark = 0.65 on space bg
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.8)',
+          marginBottom: 24,
+        },
+        sectionTitle: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 18,
+          color: colors.white,
+          marginBottom: 12,
+        },
+        resourceCard: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          // Visual: glass surface alpha differs per mode
+          backgroundColor: isDarkMode
+            ? 'rgba(255, 255, 255, 0.06)'
+            : 'rgba(255, 255, 255, 0.10)',
+          borderRadius: 14,
+          padding: 16,
+          marginBottom: 10,
+          borderWidth: 1,
+          // Dark uses a tinted purple border, light uses translucent white
+          borderColor: isDarkMode ? 'rgba(155, 89, 182, 0.2)' : 'rgba(255, 255, 255, 0.18)',
+        },
+        resourceIconWrap: {
+          width: 42,
+          height: 42,
+          borderRadius: 12,
+          backgroundColor: isDarkMode
+            ? 'rgba(77, 232, 212, 0.1)'
+            : 'rgba(255, 255, 255, 0.22)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: 14,
+        },
+        resourceName: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 15,
+          color: colors.white,
+          marginBottom: 2,
+        },
+        resourceDesc: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.75)',
+          lineHeight: 17,
+          marginBottom: 4,
+        },
+        resourceContact: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 13,
+          // Dark = #4DE8D4 (= colors.primary in dark). Light original = '#7DF0FF' which has no
+          // light palette equivalent (light accent.cyan is #5ECEFF). TODO: align light token.
+          color: isDarkMode ? colors.primary : '#7DF0FF',
+        },
+        fallbackText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 15,
+          lineHeight: 22,
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+          textAlign: 'center',
+          marginTop: 30,
+        },
+        disclaimer: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 11,
+          lineHeight: 16,
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+          textAlign: 'center',
+          marginTop: 8,
+        },
+      }),
+    [colors, isDarkMode],
+  );
 
   const Wrapper = isDarkMode ? LinearGradient : View;
   const wrapperProps = isDarkMode
     ? {
         colors: [...surfaces.profileGradient],
         locations: [0, 0.3, 0.65, 1] as number[],
-        style: [s.container, { paddingTop: insets.top + 10 }],
+        style: [styles.container, { paddingTop: insets.top + 10 }],
       }
-    : { style: [s.container, { paddingTop: insets.top + 10 }] };
+    : { style: [styles.container, { paddingTop: insets.top + 10 }] };
 
   const renderResource = (resource: CrisisResource) => {
     const iconName = CONTACT_ICONS[resource.contact_type] || 'help-circle-outline';
@@ -83,24 +205,25 @@ const HelpScreen = ({ navigation }: any) => {
     return (
       <Pressable
         key={resource.id}
-        style={s.resourceCard}
+        style={styles.resourceCard}
         onPress={() => handleContact(resource)}
       >
-        <View style={s.resourceIconWrap}>
+        <View style={styles.resourceIconWrap}>
           <Ionicons
             name={iconName}
             size={22}
-            color={isDarkMode ? '#4DE8D4' : colors.white}
+            color={isDarkMode ? colors.primary : colors.white}
           />
         </View>
-        <View style={shared.resourceInfo}>
-          <Text style={s.resourceName}>{resource.resource_name}</Text>
-          <Text style={s.resourceDesc}>{resource.description}</Text>
-          <Text style={s.resourceContact}>{resource.contact_value}</Text>
+        <View style={styles.resourceInfo}>
+          <Text style={styles.resourceName}>{resource.resource_name}</Text>
+          <Text style={styles.resourceDesc}>{resource.description}</Text>
+          <Text style={styles.resourceContact}>{resource.contact_value}</Text>
         </View>
         <Ionicons
           name="chevron-forward"
           size={18}
+          // TODO: light-mode chevron uses purple-tinted alpha (#59168B-derived); no palette key
           color={isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(89,22,139,0.25)'}
         />
       </Pressable>
@@ -110,35 +233,35 @@ const HelpScreen = ({ navigation }: any) => {
   return (
     <Wrapper {...(wrapperProps as any)}>
       <ScrollView
-        style={shared.scrollView}
-        contentContainerStyle={[shared.scrollContent, { paddingBottom: insets.bottom + 30 }]}
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 30 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={shared.header}>
-          <Pressable onPress={() => navigation.goBack()} style={shared.backButton}>
-            <Image source={BackButtonIcon} style={shared.backIcon} resizeMode="contain" />
+        <View style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Image source={BackButtonIcon} style={styles.backIcon} resizeMode="contain" />
           </Pressable>
-          <Text style={s.headerTitle}>Help</Text>
+          <Text style={styles.headerTitle}>Help</Text>
         </View>
 
         {/* Intro */}
-        <Text style={s.introText}>
+        <Text style={styles.introText}>
           If you or someone you know is in crisis, please reach out to one of the resources below. You are not alone.
         </Text>
 
         {loading ? (
           <ActivityIndicator
             size="large"
-            color={isDarkMode ? '#4DE8D4' : colors.white}
-            style={shared.loader}
+            color={isDarkMode ? colors.primary : colors.white}
+            style={styles.loader}
           />
         ) : (
           <>
             {/* Local Resources */}
             {localResources.length > 0 && (
-              <View style={shared.section}>
-                <Text style={s.sectionTitle}>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   {localResources[0].country_name || 'Your Region'}
                 </Text>
                 {localResources.map(renderResource)}
@@ -147,52 +270,53 @@ const HelpScreen = ({ navigation }: any) => {
 
             {/* International Resources */}
             {internationalResources.length > 0 && (
-              <View style={shared.section}>
-                <Text style={s.sectionTitle}>International</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>International</Text>
                 {internationalResources.map(renderResource)}
               </View>
             )}
 
             {/* No resources fallback */}
             {resources.length === 0 && (
-              <View style={shared.section}>
-                <Text style={s.fallbackText}>
+              <View style={styles.section}>
+                <Text style={styles.fallbackText}>
                   If you are in immediate danger, please call your local emergency services.
                 </Text>
               </View>
             )}
 
             {/* Contact SoulTalk */}
-            <View style={shared.section}>
-              <Text style={s.sectionTitle}>Contact SoulTalk</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Contact SoulTalk</Text>
               <Pressable
-                style={s.resourceCard}
+                style={styles.resourceCard}
                 onPress={() => Linking.openURL('mailto:info@soultalkapp.com')}
               >
-                <View style={s.resourceIconWrap}>
+                <View style={styles.resourceIconWrap}>
                   <Ionicons
                     name="mail-outline"
                     size={22}
-                    color={isDarkMode ? '#4DE8D4' : colors.white}
+                    color={isDarkMode ? colors.primary : colors.white}
                   />
                 </View>
-                <View style={shared.resourceInfo}>
-                  <Text style={s.resourceName}>Email Support</Text>
-                  <Text style={s.resourceDesc}>
+                <View style={styles.resourceInfo}>
+                  <Text style={styles.resourceName}>Email Support</Text>
+                  <Text style={styles.resourceDesc}>
                     For questions, feedback, or account issues
                   </Text>
-                  <Text style={s.resourceContact}>info@soultalkapp.com</Text>
+                  <Text style={styles.resourceContact}>info@soultalkapp.com</Text>
                 </View>
                 <Ionicons
                   name="chevron-forward"
                   size={18}
+                  // TODO: light-mode chevron uses purple-tinted alpha (#59168B-derived); no palette key
                   color={isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(89,22,139,0.25)'}
                 />
               </Pressable>
             </View>
 
             {/* Disclaimer */}
-            <Text style={s.disclaimer}>
+            <Text style={styles.disclaimer}>
               SoulTalk is not a substitute for professional mental health care. If you are experiencing a mental health emergency, please contact your local emergency services or a crisis helpline immediately.
             </Text>
           </>
@@ -201,196 +325,5 @@ const HelpScreen = ({ navigation }: any) => {
     </Wrapper>
   );
 };
-
-// ── Shared (layout-only, no colors) ──
-const shared = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 22,
-    flexGrow: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
-  loader: {
-    marginTop: 60,
-  },
-  section: {
-    marginBottom: 28,
-  },
-  resourceInfo: {
-    flex: 1,
-  },
-});
-
-// ── Light mode ──
-const lt = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#59168B',
-  },
-  headerTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    lineHeight: 24 * 1.26,
-    color: colors.white,
-  },
-  introText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-    color: colors.white,
-    marginBottom: 12,
-  },
-  resourceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  resourceIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  resourceName: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 15,
-    color: colors.white,
-    marginBottom: 2,
-  },
-  resourceDesc: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 17,
-    marginBottom: 4,
-  },
-  resourceContact: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: '#7DF0FF',
-  },
-  fallbackText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    marginTop: 30,
-  },
-  disclaimer: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    color: 'rgba(255, 255, 255, 0.4)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});
-
-// ── Dark mode ──
-const dk = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    lineHeight: 24 * 1.26,
-    color: colors.white,
-  },
-  introText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255, 255, 255, 0.65)',
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-    color: colors.white,
-    marginBottom: 12,
-  },
-  resourceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(155, 89, 182, 0.2)',
-  },
-  resourceIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(77, 232, 212, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  resourceName: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 15,
-    color: colors.white,
-    marginBottom: 2,
-  },
-  resourceDesc: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    lineHeight: 17,
-    marginBottom: 4,
-  },
-  resourceContact: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 13,
-    color: '#4DE8D4',
-  },
-  fallbackText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    marginTop: 30,
-  },
-  disclaimer: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    color: 'rgba(255, 255, 255, 0.3)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-});
 
 export default HelpScreen;

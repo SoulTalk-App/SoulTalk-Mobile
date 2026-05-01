@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 
 const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
 const SubmitIcon = require('../../assets/images/common/SubmitIcon.png');
@@ -37,9 +37,95 @@ interface SoulPalNameScreenProps {
 }
 
 const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const [soulPalName, setSoulPalName] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+        },
+        keyboardView: {
+          flex: 1,
+        },
+        content: {
+          flex: 1,
+          alignItems: 'center',
+        },
+        mainWrapper: {
+          flex: 1,
+          alignItems: 'center',
+          width: '100%',
+          paddingTop: 120, // Position content from top
+        },
+        characterContainer: {
+          alignItems: 'center',
+        },
+        characterImage: {
+          width: SCREEN_WIDTH * 0.35,
+          height: SCREEN_WIDTH * 0.55,
+        },
+        characterFront: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+        },
+        formSection: {
+          marginTop: 40, // Gap between character and form
+          alignItems: 'center',
+          width: '100%',
+        },
+        question: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 15,
+          color: colors.white,
+          textAlign: 'center',
+          marginBottom: 20,
+          lineHeight: 15 * 1.26,
+          paddingHorizontal: 40,
+        },
+        inputWrapper: {
+          width: 268,
+          marginBottom: 20,
+        },
+        inputContainer: {
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          borderRadius: 10,
+          height: 44,
+          justifyContent: 'center',
+          paddingHorizontal: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.2)',
+        },
+        inputContainerFocused: {
+          borderWidth: 2,
+          borderColor: 'rgba(255,255,255,0.5)',
+        },
+        input: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 18,
+          color: colors.white,
+        },
+        iconButton: {
+          width: 55,
+          height: 38,
+          backgroundColor: 'rgba(255,255,255,0.15)',
+          borderRadius: 10,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.2)',
+        },
+        submitIcon: {
+          width: 22,
+          height: 22,
+        },
+      }),
+    [colors]
+  );
 
   // Animation values
   const characterOpacity = useSharedValue(0);
@@ -214,86 +300,5 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     </LinearGradient>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  mainWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    width: '100%',
-    paddingTop: 120, // Position content from top
-  },
-  characterContainer: {
-    alignItems: 'center',
-  },
-  characterImage: {
-    width: SCREEN_WIDTH * 0.35,
-    height: SCREEN_WIDTH * 0.55,
-  },
-  characterFront: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  formSection: {
-    marginTop: 40, // Gap between character and form
-    alignItems: 'center',
-    width: '100%',
-  },
-  question: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 15,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 15 * 1.26,
-    paddingHorizontal: 40,
-  },
-  inputWrapper: {
-    width: 268,
-    marginBottom: 20,
-  },
-  inputContainer: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 10,
-    height: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  inputContainerFocused: {
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  input: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 18,
-    color: colors.white,
-  },
-  iconButton: {
-    width: 55,
-    height: 38,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  submitIcon: {
-    width: 22,
-    height: 22,
-  },
-});
 
 export default SoulPalNameScreen;

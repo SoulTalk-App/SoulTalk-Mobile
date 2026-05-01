@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 
 
 
@@ -29,6 +29,7 @@ interface RegisterScreenProps {
 }
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -71,6 +72,227 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     promptAsync: promptFacebookAsync,
     getAccessToken: getFacebookAccessToken,
   } = useFacebookAuth();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.primary,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingBottom: 20,
+          backgroundColor: colors.primary,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        headerTitle: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 26,
+          color: colors.white,
+        },
+        contentContainer: {
+          flex: 1,
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 30,
+          borderTopRightRadius: 30,
+        },
+        scrollContent: {
+          flexGrow: 1,
+          padding: 24,
+        },
+        title: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 28,
+          color: colors.primary,
+          textAlign: 'left',
+          marginTop: 20,
+          marginBottom: 4,
+        },
+        subtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.secondary,
+          textAlign: 'left',
+          marginBottom: 30,
+        },
+        form: {
+          marginBottom: 20,
+        },
+        row: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+        },
+        halfWidthWrapper: {
+          width: '48%',
+        },
+        inputContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderWidth: 1.5,
+          borderColor: colors.border,
+          borderRadius: 12,
+          marginBottom: 16,
+          paddingHorizontal: 12,
+          height: 56,
+          backgroundColor: colors.white,
+        },
+        inputContainerFocused: {
+          borderColor: colors.primary,
+          borderWidth: 2,
+        },
+        halfWidth: {
+          width: '100%',
+          marginBottom: 0,
+        },
+        errorText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: colors.error,
+          marginBottom: 8,
+          marginLeft: 4,
+        },
+        inputIcon: {
+          marginRight: 12,
+        },
+        input: {
+          flex: 1,
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.dark,
+        },
+        passwordInput: {
+          paddingRight: 40,
+        },
+        eyeIcon: {
+          position: 'absolute',
+          right: 12,
+          padding: 4,
+        },
+        passwordRequirements: {
+          marginBottom: 16,
+          padding: 16,
+          backgroundColor: colors.overlay,
+          borderRadius: 12,
+        },
+        requirementsTitle: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+          marginBottom: 8,
+        },
+        requirement: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: colors.text.secondary,
+          marginBottom: 4,
+        },
+        termsContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 24,
+          marginTop: 2,
+        },
+        checkbox: {
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: colors.primary,
+          marginRight: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        checkboxChecked: {
+          backgroundColor: colors.primary,
+        },
+        termsText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: colors.text.secondary,
+          flex: 1,
+        },
+        termsLink: {
+          fontFamily: fonts.outfit.semiBold,
+          color: '#2196F3',
+          textDecorationLine: 'underline',
+        },
+        registerButton: {
+          backgroundColor: colors.primary,
+          borderRadius: 12,
+          height: 48,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 24,
+        },
+        registerButtonDisabled: {
+          backgroundColor: colors.button.disabled,
+        },
+        registerButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.white,
+        },
+        dividerContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 24,
+        },
+        divider: {
+          flex: 1,
+          height: 1,
+          backgroundColor: colors.border,
+        },
+        dividerText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: colors.text.secondary,
+          marginHorizontal: 16,
+        },
+        socialContainer: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 20,
+          marginBottom: 24,
+        },
+        socialButton: {
+          width: 48,
+          height: 48,
+          borderRadius: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        googleButton: {
+          backgroundColor: '#EA4335',
+        },
+        facebookButton: {
+          backgroundColor: '#1877F2',
+        },
+        footer: {
+          alignItems: 'center',
+          marginTop: -30,
+        },
+        signinText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.secondary,
+        },
+        signinLink: {
+          fontFamily: fonts.outfit.semiBold,
+          color: colors.primary,
+        },
+      }),
+    [colors]
+  );
 
   // Handle Google auth response
   useEffect(() => {
@@ -483,222 +705,5 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    backgroundColor: colors.primary,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 26,
-    color: colors.white,
-  },
-  contentContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 24,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 28,
-    color: colors.primary,
-    textAlign: 'left',
-    marginTop: 20,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.secondary,
-    textAlign: 'left',
-    marginBottom: 30,
-  },
-  form: {
-    marginBottom: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  halfWidthWrapper: {
-    width: '48%',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 56,
-    backgroundColor: colors.white,
-  },
-  inputContainerFocused: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  halfWidth: {
-    width: '100%',
-    marginBottom: 0,
-  },
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: colors.error,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.dark,
-  },
-  passwordInput: {
-    paddingRight: 40,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
-  },
-  passwordRequirements: {
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: colors.overlay,
-    borderRadius: 12,
-  },
-  requirementsTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  requirement: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: 4,
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 2,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-  },
-  termsText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: colors.text.secondary,
-    flex: 1,
-  },
-  termsLink: {
-    fontFamily: fonts.outfit.semiBold,
-    color: '#2196F3',
-    textDecorationLine: 'underline',
-  },
-  registerButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  registerButtonDisabled: {
-    backgroundColor: colors.button.disabled,
-  },
-  registerButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.white,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginHorizontal: 16,
-  },
-  socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 24,
-  },
-  socialButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  googleButton: {
-    backgroundColor: '#EA4335',
-  },
-  facebookButton: {
-    backgroundColor: '#1877F2',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: -30,
-  },
-  signinText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  signinLink: {
-    fontFamily: fonts.outfit.semiBold,
-    color: colors.primary,
-  },
-});
 
 export default RegisterScreen;

@@ -1,12 +1,15 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
 import { PageBg } from './PageBg';
 import { ShiftCard } from './ShiftCard';
 import { StarsBg } from './StarsBg';
-import { Shift } from './types';
+import { Shift, ShiftStatus } from './types';
 import {
   PINK,
+  PURPLE,
+  PURPLE_INK,
   TEAL,
   Theme,
   YELLOW,
@@ -14,10 +17,25 @@ import {
   inkSub,
 } from './tokens';
 
+const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
+const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
+
+type FilterKey = 'all' | ShiftStatus;
+
 type Props = {
   theme: Theme;
   shifts: Shift[];
-  onAddShift?: () => void;
+  onBack?: () => void;
+  /** Tap handler for individual cards (open detail modal). */
+  onShiftPress?: (id: string) => void;
+  /**
+   * When set, the matching card renders with `focused` styling and all other
+   * cards render with `dim` styling. Used while a detail/tend/release modal
+   * is open over the list.
+   */
+  focusId?: string;
+  /** Tap handler for the "✨ Suggestions" pill at the end of the chips row. */
+  onSuggestionsPress?: () => void;
 };
 
 type StatusChip = {
@@ -26,26 +44,60 @@ type StatusChip = {
   color: string;
 };
 
-export function ShiftsA({ theme, shifts, onAddShift }: Props) {
+export function ShiftsA({
+  theme,
+  shifts,
+  onBack,
+  onShiftPress,
+  focusId,
+  onSuggestionsPress,
+}: Props) {
+  const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const [filter, setFilter] = useState<FilterKey>('all');
 
+  // Counts always reflect unfiltered totals so the pill counters stay stable
+  // as the user toggles filters.
   const counts: StatusChip[] = [
     { k: 'active', n: shifts.filter((s) => s.status === 'active').length, color: YELLOW },
     { k: 'processing', n: shifts.filter((s) => s.status === 'processing').length, color: PINK },
     { k: 'integrated', n: shifts.filter((s) => s.status === 'integrated').length, color: TEAL },
   ];
 
+  const visibleShifts =
+    filter === 'all' ? shifts : shifts.filter((s) => s.status === filter);
+
   const chipBg = isDark ? 'rgba(255,255,255,0.06)' : '#fff';
   const chipBorder = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.08)';
+  const activeChipBg = isDark ? '#fff' : PURPLE;
+  const activeChipFg = isDark ? PURPLE_INK : '#fff';
+
+  const onPillTap = (k: FilterKey) => {
+    // Tapping the active pill clears the filter — toggle behavior per design.
+    setFilter((prev) => (prev === k ? 'all' : k));
+  };
 
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
       <StarsBg theme={theme} />
 
+      {onBack && (
+        <View style={[styles.backRow, { top: insets.top + 12 }]} pointerEvents="box-none">
+          <Pressable onPress={onBack} hitSlop={12}>
+            <Image
+              source={theme === 'dark' ? BackIconDark : BackIconLight}
+              style={styles.backIcon}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <Text style={[styles.backText, { color: ink(theme) }]}>Back</Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 56 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -56,46 +108,79 @@ export function ShiftsA({ theme, shifts, onAddShift }: Props) {
         </View>
 
         <View style={styles.chipsRow}>
-          {counts.map((c) => (
-            <View
-              key={c.k}
+          {/* All pill (always present, shows total count) */}
+          <Pressable
+            onPress={() => onPillTap('all')}
+            style={[
+              styles.chip,
+              filter === 'all'
+                ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+                : { backgroundColor: chipBg, borderColor: chipBorder },
+            ]}
+            accessibilityState={{ selected: filter === 'all' }}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                { color: filter === 'all' ? activeChipFg : ink(theme) },
+              ]}
+            >
+              All · {shifts.length}
+            </Text>
+          </Pressable>
+          {counts.map((c) => {
+            const active = filter === c.k;
+            return (
+              <Pressable
+                key={c.k}
+                onPress={() => onPillTap(c.k)}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+                    : { backgroundColor: chipBg, borderColor: chipBorder },
+                ]}
+                accessibilityState={{ selected: active }}
+              >
+                <View style={[styles.chipDot, { backgroundColor: c.color }]} />
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? activeChipFg : ink(theme) },
+                  ]}
+                >
+                  {c.k} · {c.n}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {onSuggestionsPress && (
+            <Pressable
+              onPress={onSuggestionsPress}
               style={[
                 styles.chip,
                 { backgroundColor: chipBg, borderColor: chipBorder },
               ]}
+              accessibilityLabel="See SoulPal suggestions"
             >
-              <View style={[styles.chipDot, { backgroundColor: c.color }]} />
               <Text style={[styles.chipText, { color: ink(theme) }]}>
-                {c.k} · {c.n}
+                ✨ Suggestions
               </Text>
-            </View>
-          ))}
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.list}>
-          {shifts.map((shift) => (
-            <ShiftCard key={shift.id} shift={shift} theme={theme} />
+          {visibleShifts.map((shift) => (
+            <ShiftCard
+              key={shift.id}
+              shift={shift}
+              theme={theme}
+              focused={focusId === shift.id}
+              dim={focusId != null && focusId !== shift.id}
+              onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+            />
           ))}
-        </View>
-
-        <View style={styles.addWrap}>
-          <Pressable
-            style={[
-              styles.addBtn,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff',
-                borderColor: isDark
-                  ? 'rgba(255,255,255,0.3)'
-                  : 'rgba(79,23,134,0.25)',
-              },
-            ]}
-            onPress={onAddShift}
-          >
-            <Text style={[styles.addPlus, { color: ink(theme) }]}>+</Text>
-            <Text style={[styles.addText, { color: ink(theme) }]}>
-              Begin a new shift
-            </Text>
-          </Pressable>
         </View>
       </ScrollView>
     </View>
@@ -114,9 +199,24 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 12,
+  },
+  backRow: {
+    position: 'absolute',
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  backIcon: {
+    width: 36,
+    height: 36,
+  },
+  backText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 18,
   },
   title: {
     fontFamily: fonts.edensor.regular,
@@ -158,27 +258,5 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 20,
     gap: 12,
-  },
-  addWrap: {
-    paddingTop: 18,
-    paddingHorizontal: 20,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderRadius: 16,
-  },
-  addPlus: {
-    fontSize: 16,
-    fontFamily: fonts.outfit.semiBold,
-  },
-  addText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 13,
   },
 });

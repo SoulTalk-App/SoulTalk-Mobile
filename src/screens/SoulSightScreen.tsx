@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import AnimatedButton from '../components/AnimatedButton';
 import GlassCard from '../components/GlassCard';
@@ -40,6 +40,337 @@ const formatCreatedDate = (dateStr: string | null): string => {
 const SoulSightScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
+  const dk = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+
+        backRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 20,
+        },
+        backIcon: { width: 36, height: 36 },
+        backText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 24,
+          color: colors.white,
+        },
+
+        titleText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 24,
+          color: colors.white,
+          marginBottom: 16,
+        },
+
+        eligibilityCard: {
+          padding: 20,
+          marginBottom: 24,
+        },
+        eligibleTitle: {
+          fontFamily: fonts.edensor.medium,
+          fontSize: 20,
+          color: colors.white,
+          marginBottom: 8,
+        },
+        eligibleWindow: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 14,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key (matches dark text.light)
+          color: 'rgba(255, 255, 255, 0.5)',
+          marginBottom: 12,
+        },
+        statRow: {
+          flexDirection: 'row',
+          gap: 8,
+          marginBottom: 16,
+        },
+        statPill: {
+          // TODO(theme): map 'rgba(255, 255, 255, 0.12)' to palette key (glass pill bg)
+          backgroundColor: 'rgba(255, 255, 255, 0.12)',
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.inputBorder,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+        },
+        statPillText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 12,
+          color: colors.white,
+        },
+        generateButton: {
+          width: '100%',
+          height: 48,
+        },
+        notEligibleText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 15,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.8)' to palette key
+          color: 'rgba(255, 255, 255, 0.8)',
+          textAlign: 'center',
+          lineHeight: 22,
+        },
+        progressText: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key
+          color: 'rgba(255, 255, 255, 0.5)',
+          textAlign: 'center',
+          marginTop: 8,
+        },
+
+        generatingContainer: {
+          alignItems: 'center',
+          paddingVertical: 20,
+        },
+        generatingText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 16,
+          color: colors.white,
+          marginTop: 16,
+        },
+        generatingSubtext: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key
+          color: 'rgba(255, 255, 255, 0.5)',
+          marginTop: 4,
+        },
+
+        sectionHeader: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.white,
+          marginBottom: 12,
+        },
+
+        listContent: {
+          gap: 10,
+          paddingBottom: 20,
+        },
+        historyCard: {
+          padding: 16,
+        },
+        historyDateRange: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 15,
+          color: colors.white,
+          marginBottom: 4,
+        },
+        historySubtitle: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.6)' to palette key
+          color: 'rgba(255, 255, 255, 0.6)',
+        },
+        historyCreated: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 12,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.4)' to palette key
+          color: 'rgba(255, 255, 255, 0.4)',
+          marginTop: 6,
+        },
+
+        emptyText: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 14,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key
+          color: 'rgba(255, 255, 255, 0.5)',
+          textAlign: 'center',
+          marginTop: 20,
+        },
+      }),
+    [colors],
+  );
+  const lt = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+
+        backRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 20,
+        },
+        backIcon: { width: 36, height: 36 },
+        backText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 24,
+          color: colors.white,
+        },
+
+        titleText: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 28,
+          color: colors.white,
+          marginBottom: 16,
+        },
+
+        eligibilityCard: {
+          backgroundColor: colors.white,
+          borderRadius: 10,
+          overflow: 'hidden',
+          marginBottom: 24,
+        },
+        eligibleHeaderBand: {
+          // TODO(theme): map 'rgba(89, 22, 139, 0.08)' (light deep purple wash) to palette key
+          backgroundColor: 'rgba(89, 22, 139, 0.08)',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+        },
+        eligibleBody: {
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        },
+        notEligibleWrap: {
+          paddingHorizontal: 16,
+          paddingVertical: 20,
+        },
+        eligibleTitle: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 16,
+          // TODO(theme): map '#59168B' (light deep purple) to palette key
+          color: '#59168B',
+        },
+        eligibleWindow: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(89, 22, 139, 0.7)' to palette key
+          color: 'rgba(89, 22, 139, 0.7)',
+          marginBottom: 12,
+        },
+        statRow: {
+          flexDirection: 'row',
+          gap: 8,
+          marginBottom: 16,
+        },
+        statPill: {
+          // TODO(theme): map 'rgba(89, 22, 139, 0.1)' to palette key
+          backgroundColor: 'rgba(89, 22, 139, 0.1)',
+          borderRadius: 12,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+        },
+        statPillText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 12,
+          // TODO(theme): map '#59168B' to palette key
+          color: '#59168B',
+        },
+        generateButton: {
+          width: '100%',
+          height: 48,
+          // TODO(theme): map '#59168B' to palette key
+          backgroundColor: '#59168B',
+          borderRadius: 10,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        generateButtonText: {
+          fontFamily: fonts.outfit.bold,
+          fontSize: 15,
+          color: colors.white,
+        },
+        notEligibleText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          // TODO(theme): map '#59168B' to palette key
+          color: '#59168B',
+          textAlign: 'center',
+          lineHeight: 22,
+        },
+        progressText: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(89, 22, 139, 0.7)' to palette key
+          color: 'rgba(89, 22, 139, 0.7)',
+          textAlign: 'center',
+          marginTop: 8,
+        },
+
+        generatingContainer: {
+          alignItems: 'center',
+          paddingVertical: 30,
+        },
+        generatingText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 15,
+          // TODO(theme): map '#59168B' to palette key
+          color: '#59168B',
+          marginTop: 16,
+        },
+        generatingSubtext: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 13,
+          // TODO(theme): map 'rgba(89, 22, 139, 0.7)' to palette key
+          color: 'rgba(89, 22, 139, 0.7)',
+          marginTop: 4,
+        },
+
+        sectionHeader: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 16,
+          color: colors.white,
+          marginBottom: 12,
+        },
+
+        listContent: {
+          gap: 10,
+          paddingBottom: 20,
+        },
+        historyCard: {
+          backgroundColor: colors.white,
+          borderRadius: 10,
+          overflow: 'hidden',
+        },
+        historyHeaderBand: {
+          // TODO(theme): map 'rgba(89, 22, 139, 0.08)' to palette key
+          backgroundColor: 'rgba(89, 22, 139, 0.08)',
+          paddingHorizontal: 14,
+          paddingVertical: 8,
+        },
+        historyBody: {
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+        },
+        historyDateRange: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 14,
+          // TODO(theme): map '#59168B' to palette key
+          color: '#59168B',
+        },
+        historySubtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          // TODO(theme): map '#59168B' to palette key
+          color: '#59168B',
+        },
+        historyCreated: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 11,
+          // TODO(theme): map 'rgba(89, 22, 139, 0.6)' to palette key
+          color: 'rgba(89, 22, 139, 0.6)',
+          marginTop: 4,
+        },
+
+        emptyText: {
+          fontFamily: fonts.outfit.light,
+          fontSize: 14,
+          // TODO(theme): map 'rgba(255, 255, 255, 0.9)' to palette key
+          color: 'rgba(255, 255, 255, 0.9)',
+          textAlign: 'center',
+          marginTop: 20,
+        },
+      }),
+    [colors],
+  );
   const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
   const [soulsights, setSoulsights] = useState<SoulsightSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -153,7 +484,7 @@ const SoulSightScreen = ({ navigation }: any) => {
               <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
               <Text style={dk.backText}>Back</Text>
             </Pressable>
-            <ActivityIndicator color="#FFFFFF" size="large" style={{ flex: 1, justifyContent: 'center' }} />
+            <ActivityIndicator color={colors.white} size="large" style={{ flex: 1, justifyContent: 'center' }} />
           </View>
         </LinearGradient>
       );
@@ -176,7 +507,7 @@ const SoulSightScreen = ({ navigation }: any) => {
           <GlassCard intensity="heavy" style={dk.eligibilityCard}>
             {isGenerating ? (
               <View style={dk.generatingContainer}>
-                <ActivityIndicator color="#FFFFFF" size="large" style={{ marginBottom: 16 }} />
+                <ActivityIndicator color={colors.white} size="large" style={{ marginBottom: 16 }} />
                 <Text style={dk.generatingText}>Generating your insight...</Text>
                 <Text style={dk.generatingSubtext}>This may take a minute</Text>
               </View>
@@ -296,7 +627,8 @@ const SoulSightScreen = ({ navigation }: any) => {
         <View style={lt.eligibilityCard}>
           {isGenerating ? (
             <View style={lt.generatingContainer}>
-              <ActivityIndicator color="#59168B" size="large" style={{ marginBottom: 16 }} />
+              {/* TODO(theme): map '#59168B' (light deep purple) to palette key */}
+            <ActivityIndicator color="#59168B" size="large" style={{ marginBottom: 16 }} />
               <Text style={lt.generatingText}>Generating your insight...</Text>
               <Text style={lt.generatingSubtext}>This may take a minute</Text>
             </View>
@@ -358,311 +690,5 @@ const SoulSightScreen = ({ navigation }: any) => {
   );
 };
 
-// ==============================
-// DARK MODE STYLES
-// ==============================
-const dk = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  backIcon: { width: 36, height: 36 },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
-  },
-
-  titleText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 24,
-    color: colors.white,
-    marginBottom: 16,
-  },
-
-  eligibilityCard: {
-    padding: 20,
-    marginBottom: 24,
-  },
-  eligibleTitle: {
-    fontFamily: fonts.edensor.medium,
-    fontSize: 20,
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  eligibleWindow: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 12,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  statPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statPillText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
-  generateButton: {
-    width: '100%',
-    height: 48,
-  },
-  notEligibleText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  progressText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-
-  generatingContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  generatingText: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginTop: 16,
-  },
-  generatingSubtext: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 4,
-  },
-
-  sectionHeader: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.white,
-    marginBottom: 12,
-  },
-
-  listContent: {
-    gap: 10,
-    paddingBottom: 20,
-  },
-  historyCard: {
-    padding: 16,
-  },
-  historyDateRange: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 15,
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  historySubtitle: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
-  historyCreated: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 6,
-  },
-
-  emptyText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-});
-
-// ==============================
-// LIGHT MODE STYLES
-// ==============================
-const lt = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  backIcon: { width: 36, height: 36 },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
-  },
-
-  titleText: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 28,
-    color: colors.white,
-    marginBottom: 16,
-  },
-
-  eligibilityCard: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  eligibleHeaderBand: {
-    backgroundColor: 'rgba(89, 22, 139, 0.08)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  eligibleBody: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  notEligibleWrap: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  eligibleTitle: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 16,
-    color: '#59168B',
-  },
-  eligibleWindow: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: 'rgba(89, 22, 139, 0.7)',
-    marginBottom: 12,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  statPill: {
-    backgroundColor: 'rgba(89, 22, 139, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statPillText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 12,
-    color: '#59168B',
-  },
-  generateButton: {
-    width: '100%',
-    height: 48,
-    backgroundColor: '#59168B',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateButtonText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 15,
-    color: colors.white,
-  },
-  notEligibleText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: '#59168B',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  progressText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: 'rgba(89, 22, 139, 0.7)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-
-  generatingContainer: {
-    alignItems: 'center',
-    paddingVertical: 30,
-  },
-  generatingText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 15,
-    color: '#59168B',
-    marginTop: 16,
-  },
-  generatingSubtext: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 13,
-    color: 'rgba(89, 22, 139, 0.7)',
-    marginTop: 4,
-  },
-
-  sectionHeader: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 16,
-    color: colors.white,
-    marginBottom: 12,
-  },
-
-  listContent: {
-    gap: 10,
-    paddingBottom: 20,
-  },
-  historyCard: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  historyHeaderBand: {
-    backgroundColor: 'rgba(89, 22, 139, 0.08)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  historyBody: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  historyDateRange: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 14,
-    color: '#59168B',
-  },
-  historySubtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 13,
-    color: '#59168B',
-  },
-  historyCreated: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 11,
-    color: 'rgba(89, 22, 139, 0.6)',
-    marginTop: 4,
-  },
-
-  emptyText: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-});
 
 export default SoulSightScreen;

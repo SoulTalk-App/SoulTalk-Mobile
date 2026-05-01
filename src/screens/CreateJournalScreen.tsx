@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, surfaces } from '../theme';
+import { fonts, surfaces, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -37,7 +37,50 @@ const CREATE_STARS = Array.from({ length: 30 }, (_, i) => ({
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
   const { createEntry, updateEntry, finalizeDraft } = useJournal();
+
+  const dkS = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        flex: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+        planet: { position: 'absolute', width: 110, height: 110, borderRadius: 999, overflow: 'hidden', bottom: 120, left: -30, borderWidth: 1, borderColor: 'rgba(34, 34, 64, 0.15)' },
+        planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
+        planetHighlight: { position: 'absolute', top: '18%', left: '22%', width: 10, height: 10, borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+        headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
+        backIcon: { width: 32, height: 32 },
+        headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.text.primary },
+        soulPal: { marginRight: 4 },
+        contentCard: { flex: 1, borderRadius: 14, padding: 18, backgroundColor: 'rgba(255, 255, 255, 0.07)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)' },
+        textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: colors.text.primary },
+        bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
+        saveButton: { flex: 1, height: 52, backgroundColor: colors.primary, borderRadius: 26, justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+        saveButtonDisabled: { opacity: 0.3 },
+        saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 17, color: colors.background },
+      }),
+    [colors]
+  );
+
+  const ltS = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1 },
+        flex: { flex: 1 },
+        content: { flex: 1, paddingHorizontal: 22 },
+        backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+        backIcon: { width: 36, height: 36 },
+        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
+        contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
+        textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: '#333333' },
+        bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
+        saveButton: { flex: 1, height: 56, backgroundColor: '#59168B', borderRadius: 28, borderWidth: 2, borderColor: colors.white, justifyContent: 'center', alignItems: 'center' },
+        saveButtonDisabled: { opacity: 0.5 },
+        saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 18, color: colors.white },
+      }),
+    [colors]
+  );
 
   // Edit mode: entry passed via params
   const editEntry = route.params?.entry;
@@ -216,7 +259,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
                 disabled={!text.trim() || isSaving}
               >
                 {isSaving ? (
-                  <ActivityIndicator color="#0A0A14" size="small" />
+                  <ActivityIndicator color={colors.background} size="small" />
                 ) : (
                   <Text style={dkS.saveText}>{isEdit ? 'Update' : 'Submit'}</Text>
                 )}
@@ -283,45 +326,5 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     </LinearGradient>
   );
 };
-
-// ═══════════════════════════════════════════
-// DARK MODE STYLES
-// ═══════════════════════════════════════════
-const dkS = StyleSheet.create({
-  container: { flex: 1 },
-  flex: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-  planet: { position: 'absolute', width: 110, height: 110, borderRadius: 999, overflow: 'hidden', bottom: 120, left: -30, borderWidth: 1, borderColor: 'rgba(34, 34, 64, 0.15)' },
-  planetFill: { ...StyleSheet.absoluteFillObject, borderRadius: 999 },
-  planetHighlight: { position: 'absolute', top: '18%', left: '22%', width: 10, height: 10, borderRadius: 999, backgroundColor: 'rgba(255, 255, 255, 0.15)' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
-  backIcon: { width: 32, height: 32 },
-  headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.white },
-  soulPal: { marginRight: 4 },
-  contentCard: { flex: 1, borderRadius: 14, padding: 18, backgroundColor: 'rgba(255, 255, 255, 0.07)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)' },
-  textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: colors.white },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
-  saveButton: { flex: 1, height: 52, backgroundColor: '#4DE8D4', borderRadius: 26, justifyContent: 'center', alignItems: 'center', shadowColor: '#4DE8D4', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-  saveButtonDisabled: { opacity: 0.3 },
-  saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 17, color: '#0A0A14' },
-});
-
-// ═══════════════════════════════════════════
-// LIGHT MODE STYLES
-// ═══════════════════════════════════════════
-const ltS = StyleSheet.create({
-  container: { flex: 1 },
-  flex: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 22 },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  backIcon: { width: 36, height: 36 },
-  backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
-  contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
-  textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: '#333333' },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
-  saveButton: { flex: 1, height: 56, backgroundColor: '#59168B', borderRadius: 28, borderWidth: 2, borderColor: colors.white, justifyContent: 'center', alignItems: 'center' },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 18, color: colors.white },
-});
 
 export default CreateJournalScreen;

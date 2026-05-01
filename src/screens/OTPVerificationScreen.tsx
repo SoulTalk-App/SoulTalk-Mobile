@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -21,6 +21,7 @@ const OTP_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 60;
 
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation, route }) => {
+  const colors = useThemeColors();
   const { email } = route.params;
   const { verifyOTP, resendVerificationEmail } = useAuth();
 
@@ -29,6 +30,88 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
   const [error, setError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.primary,
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+        },
+        title: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 28,
+          color: colors.white,
+          textAlign: 'center',
+          marginBottom: 12,
+        },
+        subtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.white,
+          textAlign: 'center',
+          opacity: 0.9,
+          marginBottom: 40,
+        },
+        otpContainer: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 12,
+          marginBottom: 16,
+        },
+        otpInput: {
+          width: 50,
+          height: 60,
+          borderRadius: 12,
+          backgroundColor: colors.white,
+          color: colors.primary,
+          fontFamily: fonts.outfit.bold,
+          fontSize: 24,
+          textAlign: 'center',
+        },
+        errorText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: '#FF6B6B',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        resendText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.white,
+          textDecorationLine: 'underline',
+          marginBottom: 40,
+        },
+        resendTextDisabled: {
+          opacity: 0.5,
+          textDecorationLine: 'none',
+        },
+        button: {
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          height: 56,
+          width: '100%',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        buttonDisabled: {
+          backgroundColor: 'rgba(255,255,255,0.5)',
+        },
+        buttonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 18,
+          color: colors.primary,
+        },
+      }),
+    [colors]
+  );
 
   // Resend cooldown timer
   useEffect(() => {
@@ -146,83 +229,5 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 28,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.white,
-    textAlign: 'center',
-    opacity: 0.9,
-    marginBottom: 40,
-  },
-  otpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  otpInput: {
-    width: 50,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    color: colors.primary,
-    fontFamily: fonts.outfit.bold,
-    fontSize: 24,
-    textAlign: 'center',
-  },
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: '#FF6B6B',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  resendText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.white,
-    textDecorationLine: 'underline',
-    marginBottom: 40,
-  },
-  resendTextDisabled: {
-    opacity: 0.5,
-    textDecorationLine: 'none',
-  },
-  button: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
-  buttonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 18,
-    color: colors.primary,
-  },
-});
 
 export default OTPVerificationScreen;

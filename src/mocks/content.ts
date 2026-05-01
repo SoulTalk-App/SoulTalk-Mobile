@@ -5,7 +5,7 @@
 
 export const privacyPolicy = {
   title: 'Privacy Policy',
-  effectiveDate: 'April 21, 2026',
+  effectiveDate: 'April 15, 2026',
   content: `SoulTalk ("SoulTalk," "we," "our," or "us") respects your privacy and is committed to protecting personal data. This Privacy Policy describes how we collect, use, disclose, store, and protect information when you access or use the SoulTalk mobile application, website, and related services (collectively, the "Services").
 
 By using the Services, you acknowledge that you have read and understood this Privacy Policy.
@@ -90,7 +90,7 @@ Depending on your jurisdiction, you may have the right to:
 • Obtain a copy of your data
 • Object to or restrict certain processing
 
-Users may delete their account directly within the app or by contacting: dev@soultalkapp.com
+Users may delete their account directly within the app or by contacting: privacy@soultalkapp.com
 
 9. INTERNATIONAL DATA TRANSFERS
 
@@ -106,12 +106,12 @@ We may update this Privacy Policy from time to time. Changes will be posted with
 
 12. CONTACT
 
-Privacy questions or requests may be sent to: info@soultalkapp.com`,
+Privacy questions or requests may be sent to: privacy@soultalkapp.com`,
 };
 
 export const termsOfService = {
   title: 'Terms of Service',
-  effectiveDate: 'April 21, 2026',
+  effectiveDate: 'April 15, 2026',
   content: `These Terms of Service ("Terms") govern your use of the SoulTalk Services. By accessing or using the Services, you agree to be bound by these Terms.
 
 1. ELIGIBILITY
@@ -207,12 +207,12 @@ If any provision of these Terms is found unenforceable, the remaining provisions
 
 15. CONTACT
 
-Questions regarding these Terms may be sent to: info@soultalkapp.com`,
+Questions regarding these Terms may be sent to: privacy@soultalkapp.com`,
 };
 
 export const termsAndConditions = {
   title: 'Terms and Privacy',
-  lastUpdated: 'April 21, 2026',
+  lastUpdated: 'April 15, 2026',
   content: privacyPolicy.content + '\n\n---\n\n' + termsOfService.content,
 };
 

@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
 
 interface ResetPasswordConfirmScreenProps {
   navigation: any;
@@ -22,6 +22,7 @@ interface ResetPasswordConfirmScreenProps {
 }
 
 const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({ navigation, route }) => {
+  const colors = useThemeColors();
   const { token } = route.params || {};
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +36,145 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
   const { confirmPasswordReset } = useAuth();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.primary,
+        },
+        keyboardView: {
+          flex: 1,
+        },
+        scrollContent: {
+          flexGrow: 1,
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+          paddingVertical: 40,
+        },
+        successContent: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+        },
+        iconContainer: {
+          marginBottom: 30,
+        },
+        title: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 32,
+          color: colors.white,
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        subtitle: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.white,
+          textAlign: 'center',
+          lineHeight: 24,
+          opacity: 0.9,
+          marginBottom: 32,
+        },
+        inputContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderWidth: 1.5,
+          borderColor: 'rgba(255, 255, 255, 0.3)',
+          borderRadius: 12,
+          marginBottom: 16,
+          paddingHorizontal: 12,
+          height: 56,
+          backgroundColor: colors.white,
+          width: '100%',
+        },
+        inputContainerFocused: {
+          borderColor: colors.white,
+          borderWidth: 2,
+        },
+        inputIcon: {
+          marginRight: 12,
+        },
+        input: {
+          flex: 1,
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.dark,
+        },
+        passwordInput: {
+          paddingRight: 40,
+        },
+        eyeIcon: {
+          position: 'absolute',
+          right: 12,
+          padding: 4,
+        },
+        errorText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: '#FF6B6B',
+          marginBottom: 8,
+          alignSelf: 'flex-start',
+        },
+        passwordRequirements: {
+          marginBottom: 24,
+          padding: 16,
+          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          borderRadius: 12,
+          width: '100%',
+        },
+        requirementsTitle: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 14,
+          color: colors.white,
+          marginBottom: 8,
+        },
+        requirement: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: colors.white,
+          opacity: 0.8,
+          marginBottom: 4,
+        },
+        submitButton: {
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          height: 56,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+        },
+        submitButtonDisabled: {
+          opacity: 0.7,
+        },
+        submitButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+        },
+        loginButton: {
+          backgroundColor: colors.white,
+          borderRadius: 12,
+          height: 56,
+          justifyContent: 'center',
+          alignItems: 'center',
+          width: '100%',
+          paddingHorizontal: 24,
+        },
+        loginButtonText: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+        },
+      }),
+    [colors]
+  );
 
   const validatePassword = (value: string) => {
     if (!value) {
@@ -293,140 +433,5 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.primary,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  successContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  iconContainer: {
-    marginBottom: 30,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 32,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.white,
-    textAlign: 'center',
-    lineHeight: 24,
-    opacity: 0.9,
-    marginBottom: 32,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 56,
-    backgroundColor: colors.white,
-    width: '100%',
-  },
-  inputContainerFocused: {
-    borderColor: colors.white,
-    borderWidth: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.dark,
-  },
-  passwordInput: {
-    paddingRight: 40,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
-  },
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: '#FF6B6B',
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  passwordRequirements: {
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    width: '100%',
-  },
-  requirementsTitle: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 14,
-    color: colors.white,
-    marginBottom: 8,
-  },
-  requirement: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: colors.white,
-    opacity: 0.8,
-    marginBottom: 4,
-  },
-  submitButton: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-  },
-  loginButton: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 24,
-  },
-  loginButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-  },
-});
 
 export default ResetPasswordConfirmScreen;
