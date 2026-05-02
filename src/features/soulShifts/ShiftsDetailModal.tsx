@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { formatRelativeTime } from '../../utils/time';
 import { ShiftDetail, SoulpalVariant, STAGES } from './types';
 import {
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   cat: {
     flex: 1,
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   },
   practiceLabel: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     // Edensor italic was unreadable for long body copy (so-niz). Convention
     // (theme/typography.ts): Edensor = short emotional/brand moments;
     // Outfit = body / UI. Matches soulSightsB ReadingBody paragraph sizing.
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.55,
   },
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tendCtaText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 14,
     letterSpacing: 0.3,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
+    fontSize: 12,
   },
 });
 
@@ -566,7 +566,7 @@ const stepperStyles = StyleSheet.create({
     borderWidth: 1.5,
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.2,
     // Canonical shifts-states.jsx STAGES array uses proper-case keys
     // ('Notice'/'Practice'/'Embody'/'Integrate'); rendering them uppercase

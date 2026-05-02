@@ -353,12 +353,13 @@ const dk = StyleSheet.create({
   progressText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    // matches dark text.secondary exactly
+    color: colors.text.secondary,
   },
   exitText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: colors.text.secondary,
   },
 
   progressTrack: {
@@ -387,7 +388,8 @@ const dk = StyleSheet.create({
   questionNumber: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: 'rgba(167, 139, 250, 0.9)',
+    // lavender accent (so-9tg)
+    color: colors.accent.lavenderSoft,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 10,
@@ -396,7 +398,7 @@ const dk = StyleSheet.create({
     fontFamily: fonts.outfit.medium,
     fontSize: 20,
     lineHeight: 20 * 1.4,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 
   likertStack: { gap: 10 },
@@ -440,7 +442,7 @@ const dk = StyleSheet.create({
   },
   likertLabelSelected: {
     fontFamily: fonts.outfit.semiBold,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 
   footer: { paddingTop: 16 },
@@ -457,7 +459,7 @@ const dk = StyleSheet.create({
   submitButtonText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 });
 
@@ -485,7 +487,8 @@ const lt = StyleSheet.create({
   exitText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 14,
-    color: '#3A0E66',
+    // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
+    color: colors.text.primary,
   },
 
   progressTrack: {
@@ -517,7 +520,7 @@ const lt = StyleSheet.create({
   questionNumber: {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
-    color: '#59168B',
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
@@ -525,7 +528,7 @@ const lt = StyleSheet.create({
     fontFamily: fonts.outfit.medium,
     fontSize: 18,
     lineHeight: 18 * 1.45,
-    color: '#59168B',
+    color: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
@@ -564,11 +567,12 @@ const lt = StyleSheet.create({
   likertLabel: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    color: '#59168B',
+    color: colors.primary,
   },
   likertLabelSelected: {
     fontFamily: fonts.outfit.semiBold,
-    color: '#FFFFFF',
+    // White text on the selected purple pill — brand-canonical, opaque bg
+    color: colors.white,
   },
 
   footer: { paddingTop: 16 },
@@ -585,7 +589,7 @@ const lt = StyleSheet.create({
   submitButtonText: {
     fontFamily: fonts.outfit.bold,
     fontSize: 16,
-    color: '#59168B',
+    color: colors.primary,
   },
 });
 

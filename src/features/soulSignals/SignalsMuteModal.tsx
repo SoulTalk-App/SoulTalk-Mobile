@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { MuteDuration, SignalDetail } from './types';
 import { PURPLE, Theme, ink, inkSub } from './tokens';
 
@@ -189,7 +189,7 @@ export function SignalsMuteModal({
                 <Text
                   style={[
                     styles.btnText,
-                    { color: '#FFFFFF', fontFamily: fonts.outfit.bold },
+                    { color: colors.white, fontFamily: fonts.outfit.bold },
                   ]}
                 >
                   {submitting ? 'Muting…' : 'Mute thread'}
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
+    fontSize: 12,
   },
   btnRow: {
     marginTop: 18,

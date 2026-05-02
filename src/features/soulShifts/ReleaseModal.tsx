@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { ShiftDetail } from './types';
 import { PURPLE, Theme, ink, inkSub } from './tokens';
 
@@ -181,7 +181,7 @@ export function ReleaseModal({
                 <Text
                   style={[
                     styles.btnText,
-                    { color: '#FFFFFF', fontFamily: fonts.outfit.bold },
+                    { color: colors.white, fontFamily: fonts.outfit.bold },
                   ]}
                 >
                   {submitting ? 'Releasing…' : 'Release'}

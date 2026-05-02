@@ -11,13 +11,13 @@ export const YELLOW = '#FFC85C';
 export const LILAC = '#C8A6FF';
 export const ORANGE = '#FF8A4C';
 
-export type Theme = 'dark' | 'light';
-
-export const ink = (t: Theme) => (t === 'dark' ? '#fff' : PURPLE_INK);
-export const inkSub = (t: Theme) =>
-  t === 'dark' ? 'rgba(255,255,255,0.72)' : 'rgba(58,14,102,0.7)';
-export const inkFaint = (t: Theme) =>
-  t === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.5)';
+// Theme + ink helpers hoisted into theme/colors.ts (so-9tg). Imported
+// for in-file use (surfaceBg/surfaceBorder below) AND re-exported so
+// downstream consumers `import { Theme, ink, inkSub, inkFaint } from
+// './tokens'` keep working without churn.
+import type { ThemeMode } from '../../theme';
+export type Theme = ThemeMode;
+export { ink, inkSub, inkFaint } from '../../theme';
 export const surfaceBg = (t: Theme) =>
   t === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff';
 export const surfaceBorder = (t: Theme) =>

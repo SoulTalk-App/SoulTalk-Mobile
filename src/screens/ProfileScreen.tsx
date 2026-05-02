@@ -580,7 +580,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.4,
-    color: 'rgba(255, 255, 255, 0.5)',
+    // matches dark text.light (inkFaint convention) — slated for hoist in so-K
+    color: colors.text.light,
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -602,7 +603,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.outfit.bold,
     fontSize: 12,
     lineHeight: 12 * 1.26,
-    color: 'rgba(255, 255, 255, 0.85)',
+    // 0.85 → colors.text.primary (#fff) — slight visual lift but tokenized
+    color: colors.text.primary,
   },
 
   // Badges — GlassCard wrapper
@@ -622,7 +624,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
-    color: 'rgba(255, 255, 255, 0.9)',
+    // 0.9 → colors.text.primary (#fff) — slight lift
+    color: colors.text.primary,
   },
   threeDots: {
     width: 14,
@@ -675,7 +678,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
     lineHeight: 12 * 1.26,
-    color: 'rgba(255, 255, 255, 0.6)',
+    // 0.6 → colors.text.secondary (dark = rgba 0.7) — slight lift, tokenized
+    color: colors.text.secondary,
     paddingHorizontal: 11,
     flex: 1,
     marginTop: 10,
@@ -701,7 +705,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
     lineHeight: 13 * 1.4,
-    color: 'rgba(255, 255, 255, 0.7)',
+    // matches dark text.secondary exactly
+    color: colors.text.secondary,
     marginTop: 2,
   },
   personalityBody: {
@@ -713,7 +718,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   personalityEmptyText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    // matches dark text.light (inkFaint) exactly
+    color: colors.text.light,
   },
   personalityResultRow: {
     paddingVertical: 6,
@@ -728,13 +734,17 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   personalityResultProfile: {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
-    color: 'rgba(167, 139, 250, 0.9)',
+    // lavender accent (so-9tg). 0.9 alpha kept inline since the token is
+    // the full-opacity hex; per-instance alpha lives at the call site.
+    color: colors.accent.lavenderSoft,
     marginTop: 2,
   },
   personalityResultDate: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
+    // outfit.light + 10pt was P1 illegible per audit so-c2f. Bumped to
+    // regular + 12pt (typography.caption convention).
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    color: colors.text.light,
     marginTop: 2,
   },
 
@@ -835,8 +845,9 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   },
   comingSoonLabel: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    // 11 → 12 per typography.caption floor (so-cn9)
+    fontSize: 12,
+    color: colors.text.secondary,
   },
 
   // Bottom Tab Bar — frosted glass
@@ -986,7 +997,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.outfit.bold,
     fontSize: 12,
     lineHeight: 12 * 1.26,
-    color: '#59168B',
+    // #59168B → colors.primary (#4F1786) — minor pixel shift, brand-canonical
+    color: colors.primary,
   },
 
   // Badges — plain white card
@@ -1007,7 +1019,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
   },
   threeDots: {
     width: 14,
@@ -1052,13 +1064,13 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
   },
   personalityLoremText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
     lineHeight: 12 * 1.26,
-    color: '#59168B',
+    color: colors.primary,
     paddingHorizontal: 11,
     flex: 1,
     marginTop: 10,
@@ -1084,7 +1096,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
     lineHeight: 13 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
     marginTop: 2,
   },
   personalityBody: {
@@ -1096,7 +1108,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   personalityEmptyText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 12,
-    color: 'rgba(89, 22, 139, 0.6)',
+    // rgba(89,22,139,0.6) drifted from canonical primary; aligned to colors.primary
+    color: 'rgba(79, 23, 134, 0.6)',
   },
   personalityResultRow: {
     paddingVertical: 6,
@@ -1106,18 +1119,21 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   personalityResultLabel: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#59168B',
+    color: colors.primary,
   },
   personalityResultProfile: {
     fontFamily: fonts.edensor.bold,
     fontSize: 13,
-    color: '#59168B',
+    color: colors.primary,
     marginTop: 2,
   },
   personalityResultDate: {
-    fontFamily: fonts.outfit.light,
-    fontSize: 10,
-    color: 'rgba(89, 22, 139, 0.55)',
+    // outfit.light + 10pt was P1 illegible. Bumped to regular + 12pt
+    // (typography.caption convention).
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    // rgba(89,22,139,0.55) → primary RGB at same alpha
+    color: 'rgba(79, 23, 134, 0.55)',
     marginTop: 2,
   },
 
@@ -1139,7 +1155,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
     lineHeight: 15 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
   },
   achievementGrid: {
     flexDirection: 'row',
@@ -1184,7 +1200,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 16,
     lineHeight: 16 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
     marginBottom: 10,
   },
   colorPickerGrid: {
@@ -1234,7 +1250,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   comingSoonLabel: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#59168B',
+    color: colors.primary,
   },
   comingSoonLabelLight: {
     fontFamily: fonts.outfit.medium,
@@ -1298,7 +1314,7 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     fontFamily: fonts.edensor.bold,
     fontSize: 12,
     lineHeight: 12 * 1.4,
-    color: '#59168B',
+    color: colors.primary,
     marginTop: 2,
   },
   });

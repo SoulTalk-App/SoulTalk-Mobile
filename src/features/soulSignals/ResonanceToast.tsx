@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { PINK, TEAL, Theme, ink, inkSub } from './tokens';
 
 const VISIBLE_MS = 2500;
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkBubbleText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 16,
     lineHeight: 18,
     fontFamily: fonts.outfit.bold,

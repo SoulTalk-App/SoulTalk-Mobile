@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   indicatorText: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 11,
+    fontSize: 12,
   },
   blinkDot: {
     width: 6,

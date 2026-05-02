@@ -144,7 +144,7 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.edensor.regular,
           fontSize: 28,
           lineHeight: 28 * 1.05,
-          color: '#FFFFFF',
+          color: colors.white,
           letterSpacing: -0.2,
         },
         settingsBtn: {
@@ -167,7 +167,8 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.medium,
           fontSize: 12,
           letterSpacing: 0.4,
-          color: 'rgba(255, 255, 255, 0.78)',
+          // 0.78 → text.secondary (dark = 0.7) — slight drop, tokenized
+          color: colors.text.secondary,
           marginBottom: 6,
         },
         moodInputRow: {
@@ -185,7 +186,7 @@ const HomeScreen = ({ navigation }: any) => {
           flex: 1,
           fontFamily: fonts.edensor.italic,
           fontSize: 16,
-          color: '#FFFFFF',
+          color: colors.white,
           padding: 0,
         },
         notebookBtn: {
@@ -214,9 +215,12 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'center',
         },
         notebookBadgeText: {
-          color: '#FFFFFF',
-          fontSize: 10,
-          lineHeight: 10,
+          color: colors.white,
+          // Badge text on a colored pill bg — sub-12pt is acceptable for
+          // a 10pt badge digit, but bumping to 11 still fits and aligns
+          // with the so-cn9 floor.
+          fontSize: 11,
+          lineHeight: 11,
           fontFamily: fonts.outfit.bold,
         },
 
@@ -245,7 +249,7 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.bold,
           fontSize: 14,
           letterSpacing: 0.2,
-          color: '#FFFFFF',
+          color: colors.white,
         },
         soulBarInfoBadge: {
           width: 14,
@@ -258,14 +262,15 @@ const HomeScreen = ({ navigation }: any) => {
         },
         soulBarInfoText: {
           fontFamily: fonts.outfit.semiBold,
-          fontSize: 9,
-          lineHeight: 12,
-          color: 'rgba(255, 255, 255, 0.78)',
+          fontSize: 11,
+          lineHeight: 14,
+          // 0.78 → text.secondary (dark = 0.7) — slight drop, tokenized
+          color: colors.text.secondary,
         },
         soulBarCounter: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 13,
-          color: '#FFFFFF',
+          color: colors.white,
         },
         soulBarCounterTotal: {
           opacity: 0.55,
@@ -300,13 +305,14 @@ const HomeScreen = ({ navigation }: any) => {
         },
         soulBarFooterLabel: {
           fontFamily: fonts.outfit.regular,
-          fontSize: 11,
-          color: 'rgba(255, 255, 255, 0.78)',
+          // 11 → 12 per typography.caption floor (so-cn9)
+          fontSize: 12,
+          color: colors.text.secondary,
         },
         soulBarFooterRight: {
           fontFamily: fonts.edensor.italic,
-          fontSize: 11,
-          color: 'rgba(255, 255, 255, 0.78)',
+          fontSize: 12,
+          color: colors.text.secondary,
         },
 
         // Charge Up grid wrap
@@ -509,7 +515,8 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.edensor.regular,
           fontSize: 28,
           lineHeight: 28 * 1.05,
-          color: '#3A0E66',
+          // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
+          color: colors.text.primary,
           letterSpacing: -0.2,
         },
         settingsBtn: {
@@ -550,7 +557,7 @@ const HomeScreen = ({ navigation }: any) => {
           flex: 1,
           fontFamily: fonts.edensor.italic,
           fontSize: 16,
-          color: '#3A0E66',
+          color: colors.text.primary,
           padding: 0,
         },
         notebookBtn: {
@@ -558,7 +565,7 @@ const HomeScreen = ({ navigation }: any) => {
           width: 30,
           height: 30,
           borderRadius: 9,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.white,
           borderWidth: 1,
           borderColor: 'rgba(79, 23, 134, 0.12)',
           alignItems: 'center',
@@ -574,14 +581,15 @@ const HomeScreen = ({ navigation }: any) => {
           borderRadius: 6,
           backgroundColor: NOTEBOOK_BADGE_PINK,
           borderWidth: 1,
-          borderColor: '#FFFFFF',
+          borderColor: colors.white,
           alignItems: 'center',
           justifyContent: 'center',
         },
         notebookBadgeText: {
-          color: '#FFFFFF',
-          fontSize: 10,
-          lineHeight: 10,
+          color: colors.white,
+          // 10 → 11 per audit floor (badge sits on opaque pink — still legible)
+          fontSize: 11,
+          lineHeight: 11,
           fontFamily: fonts.outfit.bold,
         },
 
@@ -610,7 +618,7 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.bold,
           fontSize: 14,
           letterSpacing: 0.2,
-          color: '#3A0E66',
+          color: colors.text.primary,
         },
         soulBarInfoBadge: {
           width: 14,
@@ -623,14 +631,14 @@ const HomeScreen = ({ navigation }: any) => {
         },
         soulBarInfoText: {
           fontFamily: fonts.outfit.semiBold,
-          fontSize: 9,
-          lineHeight: 12,
+          fontSize: 11,
+          lineHeight: 14,
           color: 'rgba(58, 14, 102, 0.7)',
         },
         soulBarCounter: {
           fontFamily: fonts.outfit.semiBold,
           fontSize: 13,
-          color: '#3A0E66',
+          color: colors.text.primary,
         },
         soulBarCounterTotal: {
           opacity: 0.55,
@@ -665,12 +673,14 @@ const HomeScreen = ({ navigation }: any) => {
         },
         soulBarFooterLabel: {
           fontFamily: fonts.outfit.regular,
-          fontSize: 11,
+          // 11 → 12 per typography.caption floor
+          fontSize: 12,
+          // matches light inkSub exactly
           color: 'rgba(58, 14, 102, 0.7)',
         },
         soulBarFooterRight: {
           fontFamily: fonts.edensor.italic,
-          fontSize: 11,
+          fontSize: 12,
           color: 'rgba(58, 14, 102, 0.7)',
         },
 
@@ -695,7 +705,7 @@ const HomeScreen = ({ navigation }: any) => {
         comingSoonText: {
           fontFamily: fonts.outfit.medium,
           fontSize: 14,
-          color: '#59168B',
+          color: colors.primary,
           marginTop: 8,
         },
 
@@ -738,7 +748,7 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.outfit.medium,
           fontSize: 12,
           lineHeight: 12 * 1.26,
-          color: '#59168B',
+          color: colors.primary,
           textAlign: 'center',
         },
 
@@ -793,7 +803,7 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.edensor.bold,
           fontSize: 12,
           lineHeight: 12 * 1.4,
-          color: '#59168B',
+          color: colors.primary,
           marginTop: 2,
         },
       }),

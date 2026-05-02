@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { ShiftDetail, SoulpalVariant } from './types';
 import {
   PINK,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   noteLabel: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 13,
     letterSpacing: 0.3,

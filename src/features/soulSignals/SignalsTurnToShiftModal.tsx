@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { SoulpalVariant } from './types';
 import { PINK, PURPLE, TEAL, Theme, ink, inkFaint, inkSub } from './tokens';
 
@@ -306,13 +306,13 @@ const styles = StyleSheet.create({
   },
   eyebrowText: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   eyebrowArrow: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
   },
   title: {
     fontFamily: fonts.edensor.regular,
@@ -342,18 +342,18 @@ const styles = StyleSheet.create({
   },
   candidatePracticeLabel: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   candidatePracticeBody: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.5,
   },
   candidatePracticeInput: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.5,
     minHeight: 60,
@@ -384,8 +384,9 @@ const styles = StyleSheet.create({
   },
   benefitSub: {
     marginTop: 2,
-    fontFamily: fonts.outfit.light,
-    fontSize: 11,
+    fontFamily: fonts.outfit.medium,
+    // typography.caption floor (12pt medium) per so-cn9 / so-8li
+    fontSize: 12,
   },
   cta: {
     borderRadius: 999,
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 14,
     letterSpacing: 0.3,

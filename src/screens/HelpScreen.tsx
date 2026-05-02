@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { fonts, useThemeColors } from '../theme';
+import { fonts, typography, useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService from '../services/JournalService';
@@ -111,9 +111,8 @@ const HelpScreen = ({ navigation }: any) => {
           color: isDarkMode ? colors.white : colors.text.primary,
         },
         introText: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 15,
-          lineHeight: 22,
+          // bodyLarge per so-ci7 — read-heavy intro paragraph
+          ...typography.bodyLarge,
           color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(58, 14, 102, 0.85)',
           marginBottom: 24,
         },
@@ -169,16 +168,16 @@ const HelpScreen = ({ navigation }: any) => {
           color: isDarkMode ? colors.primary : '#7DF0FF',
         },
         fallbackText: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 15,
-          lineHeight: 22,
+          // bodyLarge per so-ci7 — empty-state copy needs comfortable read
+          ...typography.bodyLarge,
           color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(58, 14, 102, 0.7)',
           textAlign: 'center',
           marginTop: 30,
         },
         disclaimer: {
           fontFamily: fonts.outfit.regular,
-          fontSize: 11,
+          // 11 → 12 per typography.caption floor (so-cn9 / so-8li)
+          fontSize: 12,
           lineHeight: 16,
           color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(58, 14, 102, 0.55)',
           textAlign: 'center',

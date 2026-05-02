@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { privacyPolicy, termsOfService } from "../mocks/content";
-import { fonts, useThemeColors } from "../theme";
+import { fonts, typography, useThemeColors } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
 import { CosmicScreen } from "../components/CosmicBackdrop";
@@ -108,10 +108,11 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           paddingBottom: 20,
         },
         content: {
-          fontFamily: fonts.outfit.light,
-          fontSize: 15,
+          // typography.bodyLarge per so-ci7 — read-heavy policy copy at
+          // outfit.light/15pt was P1 illegibility. bodyLarge is
+          // outfit.regular at 17pt, comfortable sustained-read tier.
+          ...typography.bodyLarge,
           color: colors.text.primary,
-          lineHeight: 24,
         },
         bottomContainer: {
           backgroundColor: colors.white,

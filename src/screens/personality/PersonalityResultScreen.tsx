@@ -480,7 +480,8 @@ const dk = StyleSheet.create({
   eyebrow: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: 'rgba(167, 139, 250, 0.9)',
+    // lavender accent (so-9tg)
+    color: colors.accent.lavenderSoft,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 12,
@@ -488,18 +489,20 @@ const dk = StyleSheet.create({
   archetype: {
     fontFamily: fonts.edensor.bold,
     fontSize: 40,
-    color: '#FFFFFF',
+    color: colors.white,
     textAlign: 'center',
     marginBottom: 8,
   },
   motto: {
     fontFamily: fonts.edensor.italic,
     fontSize: 18,
-    color: 'rgba(255,255,255,0.75)',
+    // 0.75 → text.secondary (dark = 0.7) — slight drop, tokenized
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
   },
   tieNote: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 13pt body was P1 illegible per audit. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.5,
     color: 'rgba(255,255,255,0.7)',
@@ -516,13 +519,14 @@ const dk = StyleSheet.create({
   sectionHeader: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.white,
     marginBottom: 10,
   },
   sectionEyebrow: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: 'rgba(167, 139, 250, 0.9)',
+    // lavender accent (so-9tg)
+    color: colors.accent.lavenderSoft,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 8,
@@ -531,10 +535,11 @@ const dk = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
-    color: '#FFFFFF',
+    color: colors.white,
   },
   bodyText: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 15pt body — P1 per audit. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
     color: 'rgba(255,255,255,0.88)',
@@ -553,7 +558,7 @@ const dk = StyleSheet.create({
   },
   scoreLabelDominant: {
     fontFamily: fonts.outfit.semiBold,
-    color: '#FFFFFF',
+    color: colors.white,
   },
   scoreValue: {
     fontFamily: fonts.outfit.medium,
@@ -586,7 +591,8 @@ const dk = StyleSheet.create({
   },
   tipText: {
     flex: 1,
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 14pt body — P1. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.55,
     color: 'rgba(255,255,255,0.85)',
@@ -595,7 +601,7 @@ const dk = StyleSheet.create({
   watchOutHeader: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: colors.white,
     marginTop: 6,
     marginBottom: 12,
   },
@@ -612,9 +618,12 @@ const dk = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.outfit.medium,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.white,
   },
   watchOutToggle: {
+    // outfit.light at 22pt is decorative-large; light weight is fine here
+    // since it's a chevron/+ glyph. Leaving outfit.light per typography
+    // floor exception for >=20pt decorative.
     fontFamily: fonts.outfit.light,
     fontSize: 22,
     color: 'rgba(255,255,255,0.7)',
@@ -622,7 +631,8 @@ const dk = StyleSheet.create({
   },
   watchOutBody: { marginTop: 10 },
   watchOutInsight: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 14pt body — P1. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.55,
     color: 'rgba(255,255,255,0.85)',
@@ -648,7 +658,7 @@ const dk = StyleSheet.create({
   retakeButtonText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 
   errorText: {
@@ -679,7 +689,8 @@ const lt = StyleSheet.create({
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
-    color: '#3A0E66',
+    // #3A0E66 (PURPLE_INK) → colors.text.primary (#4F1786, brand canonical)
+    color: colors.text.primary,
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -701,7 +712,7 @@ const lt = StyleSheet.create({
   archetype: {
     fontFamily: fonts.edensor.bold,
     fontSize: 36,
-    color: '#3A0E66',
+    color: colors.text.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -712,7 +723,8 @@ const lt = StyleSheet.create({
     textAlign: 'center',
   },
   tieNote: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 13pt body — P1. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.5,
     color: 'rgba(58,14,102,0.85)',
@@ -739,20 +751,20 @@ const lt = StyleSheet.create({
   sectionHeader: {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   atBestText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.6,
-    color: '#59168B',
+    color: colors.primary,
   },
   bodyText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.55,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   scoreRow: { marginBottom: 12 },
@@ -764,16 +776,17 @@ const lt = StyleSheet.create({
   scoreLabel: {
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
-    color: 'rgba(89, 22, 139, 0.65)',
+    // rgba(89,22,139,0.65) drift → primary RGB at same alpha
+    color: 'rgba(79, 23, 134, 0.65)',
   },
   scoreLabelDominant: {
     fontFamily: fonts.outfit.bold,
-    color: '#59168B',
+    color: colors.primary,
   },
   scoreValue: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
-    color: '#59168B',
+    color: colors.primary,
   },
   scoreTrack: {
     height: 8,
@@ -804,13 +817,13 @@ const lt = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.55,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   watchOutHeader: {
     fontFamily: fonts.edensor.bold,
     fontSize: 16,
-    color: '#3A0E66',
+    color: colors.text.primary,
     marginTop: 6,
     marginBottom: 12,
   },
@@ -832,12 +845,14 @@ const lt = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.edensor.bold,
     fontSize: 14,
-    color: '#59168B',
+    color: colors.primary,
   },
   watchOutToggle: {
+    // outfit.light at 22pt is decorative-large (chevron/+ glyph) — light
+    // weight is fine here per typography floor exception for >=20pt.
     fontFamily: fonts.outfit.light,
     fontSize: 22,
-    color: '#59168B',
+    color: colors.primary,
     marginLeft: 12,
   },
   watchOutBody: {
@@ -848,13 +863,13 @@ const lt = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.55,
-    color: '#59168B',
+    color: colors.primary,
     marginBottom: 12,
   },
   watchOutTipsLabel: {
     fontFamily: fonts.outfit.bold,
     fontSize: 12,
-    color: '#59168B',
+    color: colors.primary,
     marginBottom: 6,
   },
 
@@ -869,13 +884,13 @@ const lt = StyleSheet.create({
   retakeButtonText: {
     fontFamily: fonts.outfit.bold,
     fontSize: 15,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   errorText: {
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
-    color: '#3A0E66',
+    color: colors.text.primary,
     textAlign: 'center',
     marginTop: 40,
     paddingHorizontal: 20,

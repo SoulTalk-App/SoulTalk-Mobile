@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 6,
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
   },
   chipsRow: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     textTransform: 'capitalize',
   },
   list: {

@@ -591,7 +591,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     formingPillText: {
       fontFamily: fonts.outfit.bold,
-      fontSize: 9,
+      fontSize: 11,
       letterSpacing: 0.6,
       textTransform: 'uppercase',
     },
@@ -643,7 +643,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       justifyContent: 'center',
     },
     currentOpenBtnText: {
-      color: '#FFFFFF',
+      color: colors.white,
       fontFamily: fonts.outfit.bold,
       fontSize: 12,
       letterSpacing: 0.3,

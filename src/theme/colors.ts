@@ -35,6 +35,7 @@ export const lightColors = {
     orange: '#FF9E55',     // Character accent
     yellow: '#FFD757',     // Character accent
     magenta: '#D35CFF',    // Character accent
+    lavenderSoft: '#A78BFA',  // Decorative lavender — eyebrow/result/dot accents (so-9tg)
   },
 
   // Button colors
@@ -97,6 +98,7 @@ export const darkColors: typeof lightColors = {
     orange: '#FF9E55',
     yellow: '#FFD757',
     magenta: '#D35CFF',
+    lavenderSoft: '#A78BFA',  // same as light — lavender reads on both bgs
   },
 
   button: {
@@ -128,6 +130,31 @@ export const darkColors: typeof lightColors = {
  * Retained as a back-compat alias so partial migrations don't break.
  */
 export const colors = lightColors;
+
+/**
+ * Theme-aware ink token helpers (so-9tg) — single source of truth.
+ * Previously duplicated in three feature-scope tokens.ts files
+ * (soulSignals, soulShifts, soulSightsB). Hoisted here so any new
+ * surface (or non-feature consumer) can fork text against the
+ * cosmic backdrop without re-implementing.
+ *
+ *   ink       — primary ink. Full-opacity title/heading text.
+ *   inkSub    — secondary ink. Body / caption / sub-headings.
+ *   inkFaint  — tertiary ink. Footnotes, eyebrows, faint helper copy.
+ *
+ * Light path: deep purple #3A0E66 (PURPLE_INK), with light-bumped
+ * inkFaint at 0.65 (from 0.5) per so-cn9 — clears AA on the lavender
+ * cosmic wash.
+ *
+ * Dark path: white at 1.0/0.72/0.5 — clears AA on void/night/dawn.
+ */
+export type ThemeMode = 'dark' | 'light';
+
+export const ink = (t: ThemeMode) => (t === 'dark' ? '#FFFFFF' : '#3A0E66');
+export const inkSub = (t: ThemeMode) =>
+  t === 'dark' ? 'rgba(255,255,255,0.72)' : 'rgba(58,14,102,0.7)';
+export const inkFaint = (t: ThemeMode) =>
+  t === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.65)';
 
 /**
  * Screen-specific mood gradients & glass surface tokens
