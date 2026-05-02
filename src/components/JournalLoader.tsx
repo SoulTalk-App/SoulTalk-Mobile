@@ -9,7 +9,7 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import { fonts } from '../theme';
+import { colors, fonts } from '../theme';
 
 const SoulPalChar = require('../../assets/images/journal/JournalSoulPalChar.png');
 const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
@@ -181,9 +181,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#59168B',
   },
   messageText: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 13pt body was P1 per audit floor — bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
-    color: '#59168B',
+    // #59168B → colors.primary (#4F1786, brand canonical) per so-9tg.
+    color: colors.primary,
     fontStyle: 'italic',
   },
 });

@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { ShiftDetail, SoulpalVariant, STAGES } from './types';
 import { PURPLE_INK, Theme, inkSub } from './tokens';
 
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     marginTop: 10,
     fontFamily: fonts.outfit.bold,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     fontSize: 38,
     lineHeight: 38 * 1.05,
     letterSpacing: -0.4,
-    color: '#FFFFFF',
+    color: colors.white,
     textAlign: 'center',
   },
   // Editorial variant — short titles keep the Edensor italic feel.
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   // Sans variant for long instructional titles (so-ozf). Outfit Light at
   // 14 reads cleanly inside the celebration's center column.
   sublineSans: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.5,
   },
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   transitionText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
-    color: '#FFFFFF',
+    color: colors.white,
   },
   transitionTextStrong: {
     fontFamily: fonts.outfit.bold,
@@ -353,6 +353,6 @@ const styles = StyleSheet.create({
   ctaSecondaryText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 });

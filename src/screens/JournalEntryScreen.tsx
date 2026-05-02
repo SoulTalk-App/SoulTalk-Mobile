@@ -42,24 +42,24 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         aiCard: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(112, 202, 207, 0.20)', padding: 18, marginBottom: 16 },
         aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
         aiLabel: { fontFamily: fonts.edensor.bold, fontSize: 16, color: colors.primary },
-        // TODO(theme): map 'rgba(255, 255, 255, 0.88)' (ai text) to palette key
-        aiText: { fontFamily: fonts.outfit.light, fontSize: 15, lineHeight: 15 * 1.65, color: 'rgba(255, 255, 255, 0.88)', marginBottom: 14 },
+        // outfit.light at 15pt body was P1 illegible per audit — bumped to regular.
+        aiText: { fontFamily: fonts.outfit.regular, fontSize: 15, lineHeight: 15 * 1.65, color: 'rgba(255, 255, 255, 0.88)', marginBottom: 14 },
         pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
         // TODO(theme): map 'rgba(255, 255, 255, 0.08)' (topic pill bg) to palette key
         topicPill: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: colors.border },
-        // TODO(theme): map 'rgba(255, 255, 255, 0.8)' to palette key
-        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: 'rgba(255, 255, 255, 0.8)' },
-        // TODO(theme): map 'rgba(77, 232, 212, 0.7)' (coping label) to palette key
+        // 0.8 → text.secondary (dark = 0.7) — slight drop, tokenized
+        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.text.secondary },
+        // teal at alpha — uses dark accent.teal (#4DE8D4) at 0.7
         copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
         // TODO(theme): map 'rgba(77, 232, 212, 0.08)' / '0.20' (coping pill) to palette keys
         copingPill: { backgroundColor: 'rgba(77, 232, 212, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.20)' },
         aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-        // TODO(theme): map 'rgba(255, 255, 255, 0.45)' to palette key
-        aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 14, color: 'rgba(255, 255, 255, 0.45)', fontStyle: 'italic' },
+        // outfit.light at 14pt body was P1 — bumped to regular.
+        aiLoadingText: { fontFamily: fonts.outfit.regular, fontSize: 14, color: 'rgba(255, 255, 255, 0.45)', fontStyle: 'italic' },
         // TODO(theme): map 'rgba(255, 255, 255, 0.06)' / '0.10' (entry card) to palette keys
         entryCard: { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)', padding: 20 },
-        // TODO(theme): map 'rgba(255, 255, 255, 0.5)' to palette key
-        entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: 'rgba(255, 255, 255, 0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
+        // 0.5 matches dark text.light (inkFaint) exactly
+        entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.text.light, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
         // TODO(theme): map 'rgba(255, 255, 255, 0.88)' to palette key
         entryText: { fontFamily: fonts.edensor.medium, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
       }),
@@ -86,27 +86,28 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         // TODO(theme): map '#E0D4E8' (light divider) to palette key
         aiDivider: { height: 1, backgroundColor: '#E0D4E8', marginBottom: 14 },
         aiLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-        // TODO(theme): map '#59168B' to palette key
-        aiLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B' },
-        // TODO(theme): map '#333333' (light body text) to palette key
-        aiText: { fontFamily: fonts.outfit.light, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333', marginBottom: 12 },
+        aiLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.primary },
+        // outfit.light at 14pt body + '#333333' hex → outfit.regular + colors.text.dark
+        // (light = #000, dark = #fff). High contrast on white card bg.
+        aiText: { fontFamily: fonts.outfit.regular, fontSize: 14, lineHeight: 14 * 1.6, color: colors.text.dark, marginBottom: 12 },
         pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-        // TODO(theme): map '#F3ECFA' to palette key
+        // TODO(theme): map '#F3ECFA' to palette key (lavender pill bg)
         topicPill: { backgroundColor: '#F3ECFA', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-        // TODO(theme): map '#59168B' to palette key
-        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#59168B' },
-        // TODO(theme): map '#59168B' to palette key
-        copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: '#59168B', marginBottom: 4 },
-        // TODO(theme): map '#E8F5E9' / '#2E7D32' (coping green) to palette keys
+        pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.primary },
+        copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: colors.primary, marginBottom: 4 },
+        // TODO(theme): map '#E8F5E9' (coping pill bg) to palette key
         copingPill: { backgroundColor: '#E8F5E9', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-        copingPillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: '#2E7D32' },
+        // '#2E7D32' (dark green) → colors.success (#4CAF50). Slight pixel
+        // drift but tokenized; both pass AA on the pale-green pill bg.
+        copingPillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.success },
         aiLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-        // TODO(theme): map '#888' to palette key (light loading text)
-        aiLoadingText: { fontFamily: fonts.outfit.light, fontSize: 13, color: '#888', fontStyle: 'italic' },
-        // TODO(theme): map '#59168B' to palette key
-        journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: '#59168B', marginTop: 14, marginBottom: 8 },
-        // TODO(theme): map '#333333' to palette key
-        journalText: { fontFamily: fonts.outfit.thin, fontSize: 14, lineHeight: 14 * 1.6, color: '#333333' },
+        // P1 fix: '#888' on white = ~3.5:1 (fails AA). outfit.light at 13pt
+        // body was also P1. → outfit.regular + colors.text.light (#666666 =
+        // ~5.7:1 on white, passes AA).
+        aiLoadingText: { fontFamily: fonts.outfit.regular, fontSize: 13, color: colors.text.light, fontStyle: 'italic' },
+        journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.primary, marginTop: 14, marginBottom: 8 },
+        // '#333333' → colors.text.dark (#000 light)
+        journalText: { fontFamily: fonts.outfit.regular, fontSize: 14, lineHeight: 14 * 1.6, color: colors.text.dark },
       }),
     [colors],
   );

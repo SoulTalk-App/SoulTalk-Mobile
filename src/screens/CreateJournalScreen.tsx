@@ -194,7 +194,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               <TextInput
                 style={dkS.textInput}
                 placeholder="Write your thoughts here..."
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor="rgba(255,255,255,0.50)"
                 multiline
                 textAlignVertical="top"
                 value={displayValue}
@@ -245,7 +245,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             <TextInput
               style={ltS.textInput}
               placeholder="Write your thoughts here..."
-              placeholderTextColor="rgba(51, 51, 51, 0.4)"
+              placeholderTextColor="rgba(51, 51, 51, 0.7)"
               multiline
               textAlignVertical="top"
               value={displayValue}

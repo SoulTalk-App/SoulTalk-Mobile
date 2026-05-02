@@ -264,7 +264,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
                   <TextInput
                     style={styles.input}
                     placeholder="SoulPal"
-                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    placeholderTextColor="rgba(255,255,255,0.50)"
                     value={soulPalName}
                     onChangeText={setSoulPalName}
                     onFocus={() => setInputFocused(true)}

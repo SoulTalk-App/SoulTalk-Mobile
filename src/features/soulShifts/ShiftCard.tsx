@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   sub: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 2,
   },
   statusPill: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 10,
+    fontSize: 12,
   },
   stepperWrap: {
     marginTop: 14,
@@ -267,11 +267,11 @@ const styles = StyleSheet.create({
   stageLabel: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 9,
+    fontSize: 12,
   },
   processingNote: {
     marginTop: 10,
     fontFamily: fonts.edensor.lightItalic,
-    fontSize: 11,
+    fontSize: 12,
   },
 });

@@ -234,7 +234,7 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
                     <TextInput
                       style={styles.input}
                       placeholder="Username"
-                      placeholderTextColor="#D3C5E1"
+                      placeholderTextColor="rgba(0,0,0,0.55)"
                       value={username}
                       onChangeText={setUsername}
                       onFocus={() => setIsFocused(true)}

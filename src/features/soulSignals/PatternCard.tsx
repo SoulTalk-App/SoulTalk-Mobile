@@ -267,13 +267,13 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
   metaCaption: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   detail: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.45,
     marginTop: 6,
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   relatedLabel: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   relatedWhen: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 9,
+    fontSize: 12,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   fedText: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 11,
+    fontSize: 12,
   },
   fedSightName: {
     fontFamily: fonts.outfit.semiBold,

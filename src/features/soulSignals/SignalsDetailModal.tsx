@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     flex: 1,
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   },
   detail: {
     marginTop: 12,
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.45,
   },
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   sourcesLabel: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   },
   sourceDate: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   },
   resonanceTitle: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     marginBottom: 8,
   },
   resonanceRow: {

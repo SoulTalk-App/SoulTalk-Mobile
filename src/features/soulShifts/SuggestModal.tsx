@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import {
   ShiftSuggestionCandidate,
   ShiftSuggestionResponse,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   candidateCat: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: 2,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   candidateSrc: {
     marginTop: 4,
     fontFamily: fonts.outfit.regular,
-    fontSize: 11,
+    fontSize: 12,
   },
   checkBubble: {
     width: 22,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkBubbleText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontSize: 13,
     lineHeight: 14,
     fontFamily: fonts.outfit.bold,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 14,
     letterSpacing: 0.3,
@@ -418,6 +418,6 @@ const styles = StyleSheet.create({
     marginTop: 14,
     textAlign: 'center',
     fontFamily: fonts.outfit.regular,
-    fontSize: 11,
+    fontSize: 12,
   },
 });

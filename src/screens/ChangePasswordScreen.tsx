@@ -14,11 +14,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, fonts } from '../theme';
+import { fonts, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const { changePassword } = useAuth();
+  const { isDarkMode } = useTheme();
+  const colors = useThemeColors();
+  const styles = useMemo(() => buildStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const iconColor = isDarkMode ? colors.white : colors.text.primary;
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -100,7 +105,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={colors.white} />
+          <Ionicons name="chevron-back" size={24} color={iconColor} />
         </TouchableOpacity>
 
         <ScrollView
@@ -109,7 +114,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
         >
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <Ionicons name="lock-closed-outline" size={60} color={colors.white} />
+              <Ionicons name="lock-closed-outline" size={60} color={iconColor} />
             </View>
 
             <Text style={styles.title}>Change Password</Text>
@@ -195,97 +200,100 @@ const ChangePasswordScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  backButton: {
-    padding: 16,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: -40,
-  },
-  iconContainer: {
-    marginBottom: 24,
-  },
-  title: {
-    fontFamily: fonts.edensor.bold,
-    fontSize: 28,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 14,
-    color: colors.white,
-    textAlign: 'center',
-    opacity: 0.8,
-    marginBottom: 32,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    height: 56,
-    backgroundColor: colors.white,
-    width: '100%',
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontFamily: fonts.outfit.regular,
-    fontSize: 16,
-    color: colors.text.dark,
-  },
-  passwordInput: {
-    paddingRight: 40,
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 12,
-    padding: 4,
-  },
-  errorText: {
-    fontFamily: fonts.outfit.regular,
-    fontSize: 12,
-    color: '#FF6B6B',
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  submitButton: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.7,
-  },
-  submitButtonText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 16,
-    color: colors.primary,
-  },
-});
+function buildStyles(colors: ReturnType<typeof useThemeColors>, isDark: boolean) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    backButton: {
+      padding: 16,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      marginTop: -40,
+    },
+    iconContainer: {
+      marginBottom: 24,
+    },
+    title: {
+      fontFamily: fonts.edensor.bold,
+      fontSize: 28,
+      color: isDark ? colors.white : colors.text.primary,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    subtitle: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      color: isDark ? colors.white : colors.text.primary,
+      textAlign: 'center',
+      opacity: 0.8,
+      marginBottom: 32,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1.5,
+      // Theme-aware surface (so-iao parity).
+      borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.10)',
+      borderRadius: 12,
+      marginBottom: 16,
+      paddingHorizontal: 12,
+      height: 56,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : colors.white,
+      width: '100%',
+    },
+    inputIcon: {
+      marginRight: 12,
+    },
+    input: {
+      flex: 1,
+      fontFamily: fonts.outfit.regular,
+      fontSize: 16,
+      color: colors.text.dark,
+    },
+    passwordInput: {
+      paddingRight: 40,
+    },
+    eyeIcon: {
+      position: 'absolute',
+      right: 12,
+      padding: 4,
+    },
+    errorText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 12,
+      color: colors.error,
+      marginBottom: 8,
+      alignSelf: 'flex-start',
+    },
+    submitButton: {
+      backgroundColor: colors.white,
+      borderRadius: 12,
+      height: 56,
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      marginTop: 8,
+    },
+    submitButtonDisabled: {
+      opacity: 0.7,
+    },
+    submitButtonText: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 16,
+      color: colors.primary,
+    },
+  });
+}
 
 export default ChangePasswordScreen;

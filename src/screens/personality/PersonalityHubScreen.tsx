@@ -488,7 +488,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     ringLabel: {
       fontFamily: fonts.outfit.semiBold,
-      fontSize: 8,
+      fontSize: 11,
       letterSpacing: 0.4,
       textTransform: 'uppercase',
       color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(58,14,102,0.6)',
@@ -614,9 +614,11 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     badgePillTextWhite: {
       fontFamily: fonts.outfit.bold,
-      fontSize: 10,
+      // 10pt → 11pt for badge legibility (audit floor; badge sits on
+      // gradient pill so contrast is fine).
+      fontSize: 11,
       letterSpacing: 0.4,
-      color: '#FFFFFF',
+      color: colors.white,
     },
   });
 

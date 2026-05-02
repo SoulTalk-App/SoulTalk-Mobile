@@ -209,10 +209,12 @@ const dk = StyleSheet.create({
     marginBottom: 4,
   },
   taglineText: {
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 15pt body — P1. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.5,
-    color: 'rgba(255,255,255,0.75)',
+    // 0.75 → text.secondary (dark = 0.7) — slight drop, tokenized
+    color: colors.text.secondary,
     marginBottom: 20,
   },
 
@@ -221,7 +223,8 @@ const dk = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
-    color: 'rgba(255,255,255,0.9)',
+    // 0.9 → ink (#fff) — slight lift, tokenized
+    color: colors.white,
   },
 
   howItWorksCard: { padding: 18, marginBottom: 14 },
@@ -229,7 +232,7 @@ const dk = StyleSheet.create({
   sectionHeader: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: colors.white,
     marginBottom: 10,
   },
 
@@ -248,7 +251,8 @@ const dk = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    fontFamily: fonts.outfit.light,
+    // outfit.light at 14pt body — P1. Bumped to regular.
+    fontFamily: fonts.outfit.regular,
     fontSize: 14,
     lineHeight: 14 * 1.5,
     color: 'rgba(255,255,255,0.85)',
@@ -270,7 +274,7 @@ const dk = StyleSheet.create({
   categoryPillText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
-    color: '#FFFFFF',
+    color: colors.white,
   },
 
   ctaRow: {
@@ -301,7 +305,8 @@ const lt = StyleSheet.create({
   backText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 24,
-    color: '#3A0E66',
+    // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
+    color: colors.text.primary,
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -309,7 +314,7 @@ const lt = StyleSheet.create({
   titleText: {
     fontFamily: fonts.edensor.bold,
     fontSize: 32,
-    color: '#3A0E66',
+    color: colors.text.primary,
     marginBottom: 6,
   },
   taglineText: {
@@ -331,7 +336,7 @@ const lt = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.55,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   sectionCard: {
@@ -352,7 +357,7 @@ const lt = StyleSheet.create({
   sectionHeader: {
     fontFamily: fonts.edensor.bold,
     fontSize: 15,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   bulletRow: {
@@ -373,7 +378,7 @@ const lt = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.55,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   categoryRow: {
@@ -390,7 +395,7 @@ const lt = StyleSheet.create({
   categoryPillText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
-    color: '#59168B',
+    color: colors.primary,
   },
 
   ctaRow: {
@@ -408,7 +413,7 @@ const lt = StyleSheet.create({
   startButtonText: {
     fontFamily: fonts.outfit.bold,
     fontSize: 16,
-    color: '#59168B',
+    color: colors.primary,
   },
 });
 

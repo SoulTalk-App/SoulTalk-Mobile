@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   countCap: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },

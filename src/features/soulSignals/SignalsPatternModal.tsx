@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     flex: 1,
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   noticingsLabel: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   turnCtaText: {
     fontFamily: fonts.outfit.medium,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.3,
   },
   loadingShell: {
@@ -398,7 +398,7 @@ const miniStyles = StyleSheet.create({
   },
   when: {
     fontFamily: fonts.outfit.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
     marginBottom: 3,

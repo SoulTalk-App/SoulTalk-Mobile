@@ -95,44 +95,58 @@ export const typography = {
   // OUTFIT STYLES - Functional UI
   // ============================================
 
-  // Section titles, UI headers (Outfit Light)
+  // Section titles, UI headers (Outfit Regular — was Light, raised to AA
+  // floor on the cosmic backdrops per so-cn9).
   subheading: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: fontSizes.xl,
     lineHeight: fontSizes.xl * lineHeights.normal,
   } as TextStyle,
 
-  // Subsections, smaller UI headers (Outfit ExtraLight)
+  // Subsections, smaller UI headers (Outfit Light — was ExtraLight, raised
+  // floor per so-cn9; ExtraLight is too thin for sub-section heads).
   subheadingSmall: {
-    fontFamily: fonts.outfit.extraLight,
+    fontFamily: fonts.outfit.light,
     fontSize: fontSizes.lg,
     lineHeight: fontSizes.lg * lineHeights.normal,
   } as TextStyle,
 
-  // Main text and instructions (Outfit Thin)
+  // Main text and instructions (Outfit Regular — was Thin (weight 100),
+  // far below WCAG body floor on the cosmic backdrops per so-cn9).
   body: {
-    fontFamily: fonts.outfit.thin,
+    fontFamily: fonts.outfit.regular,
     fontSize: fontSizes.md,
     lineHeight: fontSizes.md * lineHeights.normal,
   } as TextStyle,
 
-  // Body with regular weight for better readability
+  // Body with regular weight for better readability — alias of `body`
+  // post so-cn9. Retained for back-compat; new code can use either.
   bodyRegular: {
     fontFamily: fonts.outfit.regular,
     fontSize: fontSizes.md,
     lineHeight: fontSizes.md * lineHeights.normal,
   } as TextStyle,
 
-  // Small body text
+  // Body for read-heavy screens (Settings, Help, Terms). One step above
+  // body for comfort during sustained reading. Added per so-cn9.
+  bodyLarge: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 17,
+    lineHeight: 17 * lineHeights.normal,
+  } as TextStyle,
+
+  // Small body text — Outfit Regular (was Thin) per so-cn9.
   bodySmall: {
-    fontFamily: fonts.outfit.thin,
+    fontFamily: fonts.outfit.regular,
     fontSize: fontSizes.sm,
     lineHeight: fontSizes.sm * lineHeights.normal,
   } as TextStyle,
 
-  // Caption text
+  // Caption text — Outfit Medium for legibility at 12pt (was Thin) per
+  // so-cn9. Medium gives the visual weight 12pt body needs against the
+  // cosmic atmosphere without bumping the size.
   caption: {
-    fontFamily: fonts.outfit.thin,
+    fontFamily: fonts.outfit.medium,
     fontSize: fontSizes.xs,
     lineHeight: fontSizes.xs * lineHeights.normal,
   } as TextStyle,

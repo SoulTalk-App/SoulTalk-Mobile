@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fonts } from '../../theme';
+import { colors, fonts } from '../../theme';
 import { Eligibility } from './types';
 import {
   PINK,
@@ -164,6 +164,9 @@ const styles = StyleSheet.create({
   ctaText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 13,
-    color: '#fff',
+    // CTA pill bg is opaque PURPLE (#4F1786) — white text reads ~9:1 on
+    // it in both themes, so theme-fork isn't needed. Tokenize via
+    // colors.white instead of '#fff' literal per so-c2f audit.
+    color: colors.white,
   },
 });
