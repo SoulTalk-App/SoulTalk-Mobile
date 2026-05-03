@@ -162,7 +162,7 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'center',
         },
 
-        // I'm Feeling block
+        // Daily feeling block
         moodBlock: {
           marginTop: 18,
         },
@@ -554,7 +554,7 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'center',
         },
 
-        // I'm Feeling block
+        // Daily feeling block
         moodBlock: {
           marginTop: 18,
         },
@@ -1042,9 +1042,9 @@ const HomeScreen = ({ navigation }: any) => {
               </Pressable>
             </View>
 
-            {/* I'm Feeling block */}
+            {/* Daily feeling block */}
             <View style={dk.moodBlock}>
-              <Text style={dk.moodLabel}>I'm Feeling</Text>
+              <Text style={dk.moodLabel}>Today, I am feeling…</Text>
               <View style={dk.moodInputRow}>
                 <TextInput
                   style={dk.moodInput}
@@ -1288,9 +1288,9 @@ const HomeScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* I'm Feeling block */}
+          {/* Daily feeling block */}
           <View style={lt.moodBlock}>
-            <Text style={lt.moodLabel}>I'm Feeling</Text>
+            <Text style={lt.moodLabel}>Today, I am feeling…</Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
