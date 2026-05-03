@@ -147,20 +147,14 @@ export function ShiftsDetailModal({
     fullTitle.length > TITLE_TRUNCATE_THRESHOLD
       ? fullTitle.slice(0, TITLE_TRUNCATE_THRESHOLD - 1).trimEnd() + '…'
       : fullTitle;
-  /**
-   * Stitch the practice body so it reads as a coherent sentence (so-3m0).
-   * Migration 036 split title/practice at the em-dash, leaving the practice
-   * body as a fragment that doesn't stand alone (e.g. "with specifics. Tell
-   * your partner..."). Re-prepend the title + em-dash when the practice
-   * doesn't already start with the title.
-   */
-  const stitchedPractice = (() => {
+  // BE returns standalone practice bodies post-PR-#11 (so-ttk), so no longer
+  // prepend the title (so-cuu — was producing a visible duplicate header). The
+  // long-title fallback stays for shifts where BE didn't supply a practice body.
+  const practiceBody = (() => {
     const practice = detail?.practice ?? null;
-    if (!practice) return isLongTitle ? fullTitle : null;
-    if (!fullTitle || practice.startsWith(fullTitle)) return practice;
-    return `${fullTitle} — ${practice}`;
+    if (practice) return practice;
+    return isLongTitle ? fullTitle : null;
   })();
-  const practiceBody = stitchedPractice;
 
   // The Modal is always mounted while `visible` so React doesn't unmount the
   // animation; render-blank when there's no detail yet (e.g. mid-fetch).
