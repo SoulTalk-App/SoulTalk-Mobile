@@ -117,7 +117,11 @@ export function ShiftsA({
           </Text>
         </View>
 
-        <View style={styles.chipsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
           {/* All pill (always present, shows total count) */}
           <Pressable
             onPress={() => onPillTap('all')}
@@ -178,7 +182,7 @@ export function ShiftsA({
               </Text>
             </Pressable>
           )}
-        </View>
+        </ScrollView>
 
         <View style={styles.list}>
           {visibleShifts.map((shift) => (
@@ -238,12 +242,14 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     paddingTop: 8,
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 12,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
   },
   chip: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
