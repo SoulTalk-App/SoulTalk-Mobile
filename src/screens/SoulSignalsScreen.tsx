@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -254,10 +254,45 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       handleClose();
       navigation.navigate('SoulShifts');
     } catch (err: any) {
-      console.log('[SoulSignals] TurnToShift error:', err?.message);
+      // 409 = signal already linked to a non-released shift (be_core so-c9f).
+      // Defense-in-depth: the gate on PatternModal should prevent this, but
+      // races/stale state can still trigger it. Land softly.
+      if (err?.response?.status === 409) {
+        const existingShiftId: string | undefined =
+          err.response.data?.existing_shift_id;
+        Alert.alert(
+          'Already turned into a shift',
+          err.response.data?.message ??
+            'This pattern already has an active shift.',
+          existingShiftId
+            ? [
+                { text: 'Dismiss', style: 'cancel' },
+                {
+                  text: 'View shift',
+                  onPress: () => {
+                    handleCloseTurnToShift();
+                    handleClosePattern();
+                    handleClose();
+                    navigation.navigate('SoulShifts', {
+                      openShiftId: existingShiftId,
+                    });
+                  },
+                },
+              ]
+            : [{ text: 'OK', style: 'cancel' }],
+        );
+      } else {
+        console.log('[SoulSignals] TurnToShift error:', err?.message);
+      }
     } finally {
       setTurnSubmitting(false);
     }
+  };
+
+  const handleViewExistingShift = (shiftId: string) => {
+    handleClosePattern();
+    handleClose();
+    navigation.navigate('SoulShifts', { openShiftId: shiftId });
   };
 
   const handleToggleSaved = async (id: string, nextSaved: boolean) => {
@@ -326,6 +361,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         onClose={handleClosePattern}
         onNoticingPress={handlePatternNoticingPress}
         onTurnToShift={handleOpenTurnToShift}
+        onViewExistingShift={handleViewExistingShift}
       />
 
       <SignalsTurnToShiftModal

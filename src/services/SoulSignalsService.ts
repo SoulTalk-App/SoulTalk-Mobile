@@ -33,6 +33,8 @@ export interface SignalWire {
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
+  // be_core so-c9f: id of the non-released shift fed by this signal, or null.
+  linked_shift_id?: string | null;
 }
 
 export interface SignalListResponse {
@@ -85,6 +87,7 @@ function normalizeSignal(w: SignalWire & {
     isSaved: w.is_saved ?? false,
     muteUntil: w.muted_until ?? null,
     mutedForever: w.muted_forever ?? false,
+    linkedShiftId: w.linked_shift_id ?? null,
   };
 }
 

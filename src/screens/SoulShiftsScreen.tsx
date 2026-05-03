@@ -22,7 +22,7 @@ import {
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
 
-const SoulShiftsScreen = ({ navigation }: any) => {
+const SoulShiftsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
@@ -91,6 +91,18 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       .catch((err) => console.log('[SoulShifts] Detail fetch error:', err.message))
       .finally(() => setDetailLoading(false));
   };
+
+  // Deep-link from Signals (so-8uf): when navigated with { openShiftId },
+  // open that shift's detail modal once after mount. Ref-tracked so we don't
+  // re-trigger on every focus.
+  const openedDeepLinkRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    const id: string | undefined = route?.params?.openShiftId;
+    if (id && openedDeepLinkRef.current !== id) {
+      openedDeepLinkRef.current = id;
+      handleShiftPress(id);
+    }
+  }, [route?.params?.openShiftId]);
 
   const handleClose = () => {
     setSelectedId(null);

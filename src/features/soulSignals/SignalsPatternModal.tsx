@@ -42,6 +42,12 @@ type Props = {
   onNoticingPress?: (id: string) => void;
   /** Inert per so-7e0 pattern until so-axs (TurnToShift) lands. */
   onTurnToShift?: (aggregate: SignalPatternAggregate) => void;
+  /**
+   * Open the existing Soul Shift that one of this pattern's noticings already
+   * feeds (so-8uf). When set + at least one noticing has linkedShiftId, the
+   * Turn CTA disables and a "↗ View existing shift" link appears in its place.
+   */
+  onViewExistingShift?: (shiftId: string) => void;
 };
 
 export function SignalsPatternModal({
@@ -52,6 +58,7 @@ export function SignalsPatternModal({
   onClose,
   onNoticingPress,
   onTurnToShift,
+  onViewExistingShift,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
@@ -60,7 +67,13 @@ export function SignalsPatternModal({
   const hasNoticings = (aggregate?.noticings?.length ?? 0) > 0;
   const headlineIsLong =
     (aggregate?.headline?.length ?? 0) > HEADLINE_LONG_THRESHOLD;
-  const turnInert = !onTurnToShift;
+  // Existing-shift gate (so-8uf): if any noticing already feeds a non-released
+  // shift, the pattern is already turned; surface that shift instead of
+  // creating a duplicate. BE dedupe (so-c9f) blocks duplicates anyway, but
+  // gating here gives the user clearer UX.
+  const linkedShiftId =
+    aggregate?.noticings.find((n) => n.linkedShiftId)?.linkedShiftId ?? null;
+  const turnInert = !onTurnToShift || linkedShiftId != null;
 
   return (
     <Modal
@@ -207,6 +220,17 @@ export function SignalsPatternModal({
                       Turn pattern into a Shift →
                     </Text>
                   </Pressable>
+                  {linkedShiftId != null && onViewExistingShift && (
+                    <Pressable
+                      onPress={() => onViewExistingShift(linkedShiftId)}
+                      style={styles.viewExistingLink}
+                      accessibilityLabel="View existing shift"
+                    >
+                      <Text style={[styles.viewExistingText, { color: tone }]}>
+                        ↗ View existing shift
+                      </Text>
+                    </Pressable>
+                  )}
                 </>
               ) : (
                 <View style={styles.loadingShell}>
@@ -379,6 +403,15 @@ const styles = StyleSheet.create({
   },
   turnCtaText: {
     fontFamily: fonts.outfit.medium,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  viewExistingLink: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  viewExistingText: {
+    fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
     letterSpacing: 0.3,
   },
