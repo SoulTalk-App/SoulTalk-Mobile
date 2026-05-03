@@ -549,22 +549,22 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     marginTop: -34,
     marginBottom: 2,
   },
-  // so-k3d: synced with light mode — same size, same solid teal bg.
-  // Border softened to 18% white so it doesn't read as a hard ring on cosmic.
+  // so-3ya: both themes use the original dark treatment — compact 100x100
+  // circle with translucent teal bg and soft translucent teal border.
   avatarCircle: {
-    width: 109,
-    height: 109,
-    borderRadius: 55,
-    backgroundColor: '#70CACF',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.18)',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(112, 202, 207, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(112, 202, 207, 0.3)',
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 109,
-    height: 109,
+    width: 100,
+    height: 100,
   },
 
   // Display Name
@@ -947,20 +947,22 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     marginTop: -34,
     marginBottom: 2,
   },
+  // so-3ya: light mode now mirrors dark — original compact translucent
+  // treatment for both themes.
   avatarCircle: {
-    width: 109,
-    height: 109,
-    borderRadius: 55,
-    backgroundColor: '#70CACF',
-    borderWidth: 2,
-    borderColor: colors.white,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(112, 202, 207, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(112, 202, 207, 0.3)',
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 109,
-    height: 109,
+    width: 100,
+    height: 100,
   },
 
   // Display Name
