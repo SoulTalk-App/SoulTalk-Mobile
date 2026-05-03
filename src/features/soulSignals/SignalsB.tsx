@@ -1,6 +1,7 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
 import { ListeningState } from './ListeningState';
 import { LockedState } from './LockedState';
@@ -13,9 +14,6 @@ import {
   inkSub,
 } from './tokens';
 import { Eligibility, Group, SignalsStatus } from './types';
-
-const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 type Props = {
   theme: Theme;
@@ -30,6 +28,12 @@ type Props = {
   /** When set, the matching card renders focused; all other cards dim.
    *  Used while a detail / mute / turn-to-shift modal is over the feed. */
   focusId?: string;
+  /**
+   * Drawer filter (so-8ho). 'all' renders the default pattern groups; 'muted'
+   * renders muted signals as pseudo-groups (one card each, no siblings).
+   */
+  filter?: 'all' | 'muted';
+  onFilterChange?: (next: 'all' | 'muted') => void;
 };
 
 export function SignalsB({
@@ -42,6 +46,8 @@ export function SignalsB({
   onBack,
   onPatternPress,
   focusId,
+  filter = 'all',
+  onFilterChange,
 }: Props) {
   const insets = useSafeAreaInsets();
   // Single-row header (so-rlz): back + title + counter ride the same row,
@@ -77,10 +83,10 @@ export function SignalsB({
                     hitSlop={12}
                     style={styles.backInline}
                   >
-                    <Image
-                      source={theme === 'dark' ? BackIconDark : BackIconLight}
-                      style={styles.backIcon}
-                      resizeMode="contain"
+                    <Feather
+                      name="chevron-left"
+                      size={28}
+                      color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
                     />
                   </Pressable>
                 ) : null}
@@ -98,17 +104,78 @@ export function SignalsB({
                 Recurring threads, with the noticings that make them visible.
               </Text>
             </View>
+            {/* Drawer filter (so-8ho). All vs Muted; muted is lazy-fetched
+                upstream and rendered as pseudo-groups. */}
+            {onFilterChange && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsRow}
+              >
+                {(['all', 'muted'] as const).map((k) => {
+                  const active = filter === k;
+                  return (
+                    <Pressable
+                      key={k}
+                      onPress={() => onFilterChange(k)}
+                      style={[
+                        styles.chip,
+                        active
+                          ? {
+                              backgroundColor:
+                                theme === 'dark' ? '#fff' : '#3A0E66',
+                              borderColor:
+                                theme === 'dark' ? '#fff' : '#3A0E66',
+                            }
+                          : {
+                              backgroundColor:
+                                theme === 'dark'
+                                  ? 'rgba(255,255,255,0.06)'
+                                  : '#fff',
+                              borderColor:
+                                theme === 'dark'
+                                  ? 'rgba(255,255,255,0.14)'
+                                  : 'rgba(58,14,102,0.08)',
+                            },
+                      ]}
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          {
+                            color: active
+                              ? theme === 'dark'
+                                ? '#3A0E66'
+                                : '#fff'
+                              : ink(theme),
+                          },
+                        ]}
+                      >
+                        {k === 'all' ? 'All' : 'Muted'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
             <View style={styles.list}>
-              {groups.map((g) => (
-                <PatternCard
-                  key={g.pattern.id}
-                  group={g}
-                  theme={theme}
-                  focused={focusId === g.pattern.id}
-                  dim={focusId != null && focusId !== g.pattern.id}
-                  onPress={onPatternPress}
-                />
-              ))}
+              {groups.length === 0 && filter === 'muted' ? (
+                <Text style={[styles.emptyMuted, { color: inkSub(theme) }]}>
+                  No muted threads yet.
+                </Text>
+              ) : (
+                groups.map((g) => (
+                  <PatternCard
+                    key={g.pattern.id}
+                    group={g}
+                    theme={theme}
+                    focused={focusId === g.pattern.id}
+                    dim={focusId != null && focusId !== g.pattern.id}
+                    onPress={onPatternPress}
+                  />
+                ))
+              )}
             </View>
           </>
         )}
@@ -134,10 +201,6 @@ const styles = StyleSheet.create({
   },
   backInline: {
     flexShrink: 0,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -168,5 +231,30 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingHorizontal: 20,
     gap: 16,
+  },
+  chipsRow: {
+    paddingTop: 8,
+    paddingLeft: 20,
+    paddingRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chip: {
+    flexShrink: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 12,
+  },
+  emptyMuted: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingTop: 24,
   },
 });

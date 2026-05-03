@@ -150,8 +150,14 @@ class SoulShiftsService {
     );
   }
 
-  async list(): Promise<Shift[]> {
-    const response = await this.axiosInstance.get('/soul-shifts/');
+  async list(opts?: {
+    statusFilter?: ShiftStatus;
+    includeReleased?: boolean;
+  }): Promise<Shift[]> {
+    const params: Record<string, any> = {};
+    if (opts?.statusFilter) params.status_filter = opts.statusFilter;
+    if (opts?.includeReleased) params.include_released = true;
+    const response = await this.axiosInstance.get('/soul-shifts/', { params });
     const data = response.data as ShiftListResponse;
     return (data.shifts ?? []).map(normalizeShift);
   }
@@ -272,6 +278,14 @@ class SoulShiftsService {
    */
   async markIntegrated(id: string): Promise<Shift> {
     return this.update(id, { status: 'integrated' });
+  }
+
+  /**
+   * Un-release a shift back to active status (so-8wj). Thin wrapper over
+   * update() — single canonical write path for state transitions.
+   */
+  async restore(id: string): Promise<Shift> {
+    return this.update(id, { status: 'active' });
   }
 
   /**

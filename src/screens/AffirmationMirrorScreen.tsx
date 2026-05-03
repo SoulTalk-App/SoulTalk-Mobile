@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,35 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+
+// Lazy-mounted revealed player — only instantiated after idle player's onLoad
+// fires (or on auto-reveal from storage), keeping the initial render cheap.
+type RevealedPlayerHandle = { play: () => void };
+const RevealedVideoPlayer = forwardRef<RevealedPlayerHandle, {
+  source: any;
+  style: any;
+}>(({ source, style }, ref) => {
+  const player = useVideoPlayer(source, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+  useImperativeHandle(ref, () => ({ play: () => player.play() }));
+  return (
+    <VideoView
+      player={player}
+      style={style}
+      contentFit="contain"
+      nativeControls={false}
+      allowsPictureInPicture={false}
+    />
+  );
+});
 
 // Star field for dark mode — sprinkled over the cosmic video.
 const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
@@ -32,8 +56,6 @@ const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const BackIconDark = require('../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../assets/images/common/BackIconPink.png');
 const CloudsBg = require('../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../assets/images/home/CloudsRight.png');
@@ -122,10 +144,6 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           justifyContent: 'center',
           alignItems: 'center',
         },
-        backIcon: {
-          width: 32,
-          height: 32,
-        },
 
         // Affirmation text area
         textArea: {
@@ -193,6 +211,11 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   const affirmation = route.params?.affirmation_text ?? null;
   const dateKey = route.params?.date_key ?? null;
   const [isRevealed, setIsRevealed] = useState(false);
+  // Revealed player mounts only after idle player has loaded or on auto-reveal
+  const [isRevealedMounted, setIsRevealedMounted] = useState(false);
+  const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
+  // Signals that revealed player should play as soon as it mounts
+  const playRevealedOnMountRef = useRef(false);
 
   // Video players — pick dark or light video based on theme
   const idleSource = isDarkMode ? IdleVideoDark : IdleVideo;
@@ -202,12 +225,11 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
     p.loop = true;
     p.muted = true;
     p.play();
-  });
-
-  const revealedPlayer = useVideoPlayer(revealedSource, (p) => {
-    p.loop = true;
-    p.muted = true;
-    // Don't auto-play — starts on reveal
+    p.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        setIsRevealedMounted(true);
+      }
+    });
   });
 
   // --- Animation values ---
@@ -254,6 +276,9 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
         if (revealedDate === dateKey) {
           isRevealedRef.current = true;
           setIsRevealed(true);
+          // Mount revealed player immediately since we're already in revealed state
+          setIsRevealedMounted(true);
+          playRevealedOnMountRef.current = true;
           textOpacity.value = 1;
           textScale.value = 1;
           buttonOpacity.value = 0;
@@ -267,12 +292,19 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           revealedVideoOpacity.value = 1;
           videoZoom.value = 1.08;
           idlePlayer.pause();
-          revealedPlayer.play();
         }
       } catch {}
     };
     if (dateKey) checkRevealed();
   }, []);
+
+  // Play revealed video once it mounts (handles the race where reveal is tapped
+  // before idle player fires readyToPlay, so isRevealedMounted was false)
+  useEffect(() => {
+    if (isRevealedMounted && playRevealedOnMountRef.current) {
+      revealedPlayerRef.current?.play();
+    }
+  }, [isRevealedMounted]);
 
   // --- Reveal handler ---
   const handleReveal = async () => {
@@ -326,8 +358,10 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
       withTiming(1, { duration: 800, easing: Easing.out(Easing.ease) }),
     );
 
-    // Start the revealed video
-    revealedPlayer.play();
+    // Mount revealed player if not yet loaded; play once mounted
+    setIsRevealedMounted(true);
+    playRevealedOnMountRef.current = true;
+    revealedPlayerRef.current?.play();
 
     // 4. Affirmation text fades in
     textOpacity.value = withDelay(
@@ -399,7 +433,6 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   // pink — clouds layer over it pre-reveal, pink shows through on reveal.
   // TODO(theme): map '#33335B' / '#2B2B54' to palette keys (dark mirror bg).
   const containerBg = isDarkMode ? '#33335B' : colors.accent.pink;
-  const backIcon = isDarkMode ? BackIconDark : BackIconLight;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
@@ -428,15 +461,15 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           />
         </Animated.View>
 
-        <Animated.View style={[styles.videoContainer, revealedVideoAnimStyle]}>
-          <VideoView
-            player={revealedPlayer}
-            style={styles.video}
-            contentFit="contain"
-            nativeControls={false}
-            allowsPictureInPicture={false}
-          />
-        </Animated.View>
+        {isRevealedMounted && (
+          <Animated.View style={[styles.videoContainer, revealedVideoAnimStyle]}>
+            <RevealedVideoPlayer
+              ref={revealedPlayerRef}
+              source={revealedSource}
+              style={styles.video}
+            />
+          </Animated.View>
+        )}
 
         {/* Seam-fade strip (dark only): overlays the top edge of the video,
             fading from solid containerBg → transparent over 56px. Source-frame
@@ -502,7 +535,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
       >
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
           <View style={styles.backIconCircle}>
-            <Image source={backIcon} style={styles.backIcon} resizeMode="contain" />
+            <Feather name="chevron-left" size={26} color="#3A0E66" />
           </View>
         </Pressable>
       </Animated.View>

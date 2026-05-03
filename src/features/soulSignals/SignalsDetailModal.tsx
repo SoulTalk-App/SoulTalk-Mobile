@@ -53,6 +53,9 @@ type Props = {
   onResonance?: (id: string, value: ResonanceVote) => void;
   onToggleSaved?: (id: string, nextSaved: boolean) => void;
   onMute?: (id: string) => void;
+  /** Unmute a currently-muted thread (so-8ho). Replaces the Mute button when
+   *  signal.muteUntil != null || signal.mutedForever. */
+  onUnmute?: (id: string) => void;
   /** Tap on "View pattern" — visible only for kind='pattern' signals with
    *  a tag. Forwards the tag for /soul-signals/patterns/{tag} fetch. */
   onViewPattern?: (tag: string) => void;
@@ -71,6 +74,7 @@ export function SignalsDetailModal({
   onResonance,
   onToggleSaved,
   onMute,
+  onUnmute,
   onViewPattern,
   resonanceSubmitting = null,
   saveSubmitting = false,
@@ -124,7 +128,11 @@ export function SignalsDetailModal({
   // Drop "From SoulSight..." legacy provenance from the body slot.
   const visibleDetail = isMetadataDetail(display.detail) ? null : display.detail;
 
-  const isMuteInert = !onMute;
+  // so-8ho: when the signal is currently muted, swap the Mute button for an
+  // Unmute affordance. Save stays enabled — a user may still want to save a
+  // muted thread for later.
+  const isMuted = display.muteUntil != null || display.mutedForever === true;
+  const isMuteInert = isMuted ? !onUnmute : !onMute;
   // Pattern signals expose an aggregation; observation signals don't.
   const showViewPattern =
     !!onViewPattern && display.kind === 'pattern' && !!display.tag;
@@ -382,7 +390,11 @@ export function SignalsDetailModal({
                   </Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => onMute?.(display.id)}
+                  onPress={
+                    isMuted
+                      ? () => onUnmute?.(display.id)
+                      : () => onMute?.(display.id)
+                  }
                   disabled={isMuteInert}
                   style={[
                     styles.actionBtn,
@@ -396,11 +408,11 @@ export function SignalsDetailModal({
                       opacity: isMuteInert ? 0.55 : 1,
                     },
                   ]}
-                  accessibilityLabel="Mute thread"
+                  accessibilityLabel={isMuted ? 'Unmute thread' : 'Mute thread'}
                   accessibilityState={{ disabled: isMuteInert }}
                 >
                   <Text style={[styles.actionText, { color: ink(theme) }]}>
-                    🤫 Mute thread
+                    {isMuted ? '🔔 Unmute thread' : '🤫 Mute thread'}
                   </Text>
                 </Pressable>
               </View>

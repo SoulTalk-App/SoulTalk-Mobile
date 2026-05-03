@@ -7,16 +7,14 @@ import {
   Pressable,
   Linking,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { fonts, typography, useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService from '../services/JournalService';
 
-const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
 interface CrisisResource {
   id: string;
@@ -229,7 +227,11 @@ const HelpScreen = ({ navigation }: any) => {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Image source={BackButtonIcon} style={styles.backIcon} resizeMode="contain" />
+            <Feather
+              name="chevron-left"
+              size={28}
+              color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
+            />
           </Pressable>
           <Text style={styles.headerTitle}>Help</Text>
         </View>

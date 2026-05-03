@@ -19,6 +19,13 @@ export type Signal = {
   isSaved?: boolean;
   muteUntil?: string | null;
   mutedForever?: boolean;
+  /**
+   * Id of the non-released Soul Shift this signal already feeds, or null
+   * (be_core so-c9f). Used to gate Turn-to-Shift and surface a "View existing
+   * shift" affordance. Released-shift carve-out: a signal previously linked
+   * to a now-released shift returns null here.
+   */
+  linkedShiftId?: string | null;
 };
 
 /**

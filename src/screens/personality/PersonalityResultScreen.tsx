@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Image,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { colors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -19,9 +19,6 @@ import PersonalityService, {
 import { getTest } from '../../data/personalityTests';
 import { ResultProfile, WatchOut } from '../../data/personalityTests/types';
 import { usePersonality } from '../../contexts/PersonalityContext';
-
-const BackIcon = require('../../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 const PersonalityResultScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -77,8 +74,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
       <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
-            <Text style={dk.backText}>Back</Text>
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
           </Pressable>
           {message ? (
             <Text style={dk.errorText}>{message}</Text>
@@ -106,8 +102,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
       <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={goHome}>
-            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
-            <Text style={dk.backText}>Back</Text>
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
           </Pressable>
 
           <ScrollView
@@ -225,8 +220,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
-          <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
-          <Text style={lt.backText}>Back</Text>
+          <Feather name="chevron-left" size={28} color="#3A0E66" />
         </Pressable>
         {message ? (
           <Text style={lt.errorText}>{message}</Text>
@@ -254,8 +248,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={goHome}>
-          <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
-          <Text style={lt.backText}>Back</Text>
+          <Feather name="chevron-left" size={28} color="#3A0E66" />
         </Pressable>
 
         <ScrollView
@@ -463,12 +456,6 @@ const dk = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 8,
-  },
-  backIcon: { width: 36, height: 36 },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -683,14 +670,6 @@ const lt = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 8,
-  },
-  backIcon: { width: 36, height: 36 },
-  // Light path: page-bg ink for AA on the so-u1k lavender wash.
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    // #3A0E66 (PURPLE_INK) → colors.text.primary (#4F1786, brand canonical)
-    color: colors.text.primary,
   },
 
   scrollContent: { paddingBottom: 20 },

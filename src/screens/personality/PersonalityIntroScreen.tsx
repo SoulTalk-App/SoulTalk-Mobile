@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Image,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { colors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -15,9 +15,6 @@ import GlassCard from '../../components/GlassCard';
 import AnimatedButton from '../../components/AnimatedButton';
 import { getTest } from '../../data/personalityTests';
 import { TestType } from '../../data/personalityTests/types';
-
-const BackIcon = require('../../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 const PersonalityIntroScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -32,9 +29,8 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
     return (
       <CosmicScreen tone="dusk">
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
-            <Text style={dk.backText}>Back</Text>
+          <Pressable style={dk.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
           </Pressable>
 
           <ScrollView
@@ -105,9 +101,8 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
   return (
     <CosmicScreen tone="dusk">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
-        <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
-          <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
-          <Text style={lt.backText}>Back</Text>
+        <Pressable style={lt.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
+          <Feather name="chevron-left" size={28} color="#3A0E66" />
         </Pressable>
 
         <ScrollView
@@ -193,13 +188,6 @@ const dk = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  backIcon: { width: 36, height: 36 },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
-  },
-
   scrollContent: { paddingBottom: 20 },
 
   titleText: {
@@ -300,15 +288,6 @@ const lt = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  backIcon: { width: 36, height: 36 },
-  // Light path: page-bg ink for AA on the so-u1k lavender wash.
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
-    color: colors.text.primary,
-  },
-
   scrollContent: { paddingBottom: 20 },
 
   titleText: {

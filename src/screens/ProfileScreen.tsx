@@ -14,6 +14,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { fonts, useThemeColors } from '../theme';
@@ -41,7 +42,6 @@ function formatTakenAt(iso: string): string {
 
 // Assets — light mode
 const LockIcon = require('../../assets/images/home/LockIcon.png');
-const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 const ProfileGearIcon = require('../../assets/images/profile/ProfileGearIcon.png');
 const ProfileAvatar = require('../../assets/images/profile/ProfileAvatar-f054e3.png');
 const ProfileSoulPalChar = require('../../assets/images/profile/ProfileSoulPalChar.png');
@@ -136,8 +136,8 @@ const ProfileScreen = ({ navigation }: any) => {
         >
           {/* Top Row: Back & Gear */}
           <View style={dk.topRow}>
-            <Pressable onPress={() => navigation.goBack()}>
-              <Image source={ProfileBackIcon} style={dk.topIcon} resizeMode="contain" />
+            <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+              <Feather name="chevron-left" size={32} color="#FFFFFF" />
             </Pressable>
             <Pressable onPress={() => navigation.navigate('Settings')}>
               <Image source={ProfileGearIcon} style={dk.topIcon} resizeMode="contain" />
@@ -332,8 +332,8 @@ const ProfileScreen = ({ navigation }: any) => {
       >
         {/* Top Row: Back & Gear */}
         <View style={lt.topRow}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Image source={ProfileBackIcon} style={lt.topIcon} resizeMode="contain" />
+          <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+            <Feather name="chevron-left" size={32} color="#3A0E66" />
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Settings')}>
             <Image source={ProfileGearIcon} style={lt.topIcon} resizeMode="contain" />
@@ -549,6 +549,8 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     marginTop: -34,
     marginBottom: 2,
   },
+  // so-3ya: both themes use the original dark treatment — compact 100x100
+  // circle with translucent teal bg and soft translucent teal border.
   avatarCircle: {
     width: 100,
     height: 100,
@@ -945,20 +947,22 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     marginTop: -34,
     marginBottom: 2,
   },
+  // so-3ya: light mode now mirrors dark — original compact translucent
+  // treatment for both themes.
   avatarCircle: {
-    width: 109,
-    height: 109,
-    borderRadius: 55,
-    backgroundColor: '#70CACF',
-    borderWidth: 2,
-    borderColor: colors.white,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(112, 202, 207, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(112, 202, 207, 0.3)',
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 109,
-    height: 109,
+    width: 100,
+    height: 100,
   },
 
   // Display Name

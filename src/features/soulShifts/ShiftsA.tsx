@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
 import { PageBg } from './PageBg';
 import { ShiftCard } from './ShiftCard';
@@ -17,8 +18,6 @@ import {
   inkSub,
 } from './tokens';
 
-const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 type FilterKey = 'all' | ShiftStatus;
 
@@ -36,6 +35,18 @@ type Props = {
   focusId?: string;
   /** Tap handler for the "✨ Suggestions" pill at the end of the chips row. */
   onSuggestionsPress?: () => void;
+  /**
+   * Released shifts (so-2pm). Default list response excludes status='released',
+   * so the screen lazy-fetches these via SoulShiftsService.list({ statusFilter:
+   * 'released' }) on first Released-pill tap and passes them in. When the
+   * Released filter is active, this list is rendered instead of `shifts`.
+   */
+  releasedShifts?: Shift[];
+  /**
+   * Fires when the Released pill is tapped, signalling the screen to fetch
+   * (or refetch) released shifts. Cached on the screen — fetch is one-shot.
+   */
+  onReleasedRequested?: () => void;
 };
 
 type StatusChip = {
@@ -51,6 +62,8 @@ export function ShiftsA({
   onShiftPress,
   focusId,
   onSuggestionsPress,
+  releasedShifts,
+  onReleasedRequested,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
@@ -64,8 +77,15 @@ export function ShiftsA({
     { k: 'integrated', n: shifts.filter((s) => s.status === 'integrated').length, color: TEAL },
   ];
 
+  // Released uses its own lazy-fetched list; the default `shifts` array
+  // excludes released items per BE default. Other filters still scope to
+  // `shifts` (active/processing/integrated all live in the default list).
   const visibleShifts =
-    filter === 'all' ? shifts : shifts.filter((s) => s.status === filter);
+    filter === 'released'
+      ? releasedShifts ?? []
+      : filter === 'all'
+      ? shifts
+      : shifts.filter((s) => s.status === filter);
 
   const chipBg = isDark ? 'rgba(255,255,255,0.06)' : '#fff';
   const chipBorder = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.08)';
@@ -75,6 +95,9 @@ export function ShiftsA({
   const onPillTap = (k: FilterKey) => {
     // Tapping the active pill clears the filter — toggle behavior per design.
     setFilter((prev) => (prev === k ? 'all' : k));
+    // Released list is lazy-fetched on first tap (and refresh-on-reentry):
+    // the screen owns the cache + fetch state.
+    if (k === 'released') onReleasedRequested?.();
   };
 
   return (
@@ -98,10 +121,10 @@ export function ShiftsA({
                 hitSlop={12}
                 style={styles.backInline}
               >
-                <Image
-                  source={theme === 'dark' ? BackIconDark : BackIconLight}
-                  style={styles.backIcon}
-                  resizeMode="contain"
+                <Feather
+                  name="chevron-left"
+                  size={28}
+                  color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
                 />
               </Pressable>
             ) : null}
@@ -117,7 +140,11 @@ export function ShiftsA({
           </Text>
         </View>
 
-        <View style={styles.chipsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
           {/* All pill (always present, shows total count) */}
           <Pressable
             onPress={() => onPillTap('all')}
@@ -164,6 +191,27 @@ export function ShiftsA({
               </Pressable>
             );
           })}
+          {/* Released pill (so-2pm). No count for v1 — would require a
+              separate fetch on mount; deferred to a follow-up if asked. */}
+          <Pressable
+            onPress={() => onPillTap('released')}
+            style={[
+              styles.chip,
+              filter === 'released'
+                ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+                : { backgroundColor: chipBg, borderColor: chipBorder },
+            ]}
+            accessibilityState={{ selected: filter === 'released' }}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                { color: filter === 'released' ? activeChipFg : ink(theme) },
+              ]}
+            >
+              Released
+            </Text>
+          </Pressable>
           {onSuggestionsPress && (
             <Pressable
               onPress={onSuggestionsPress}
@@ -178,7 +226,7 @@ export function ShiftsA({
               </Text>
             </Pressable>
           )}
-        </View>
+        </ScrollView>
 
         <View style={styles.list}>
           {visibleShifts.map((shift) => (
@@ -220,10 +268,6 @@ const styles = StyleSheet.create({
   backInline: {
     flexShrink: 0,
   },
-  backIcon: {
-    width: 36,
-    height: 36,
-  },
   title: {
     flex: 1,
     minWidth: 0,
@@ -238,12 +282,14 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     paddingTop: 8,
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 12,
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
   },
   chip: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,

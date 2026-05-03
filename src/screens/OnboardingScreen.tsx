@@ -22,7 +22,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -427,7 +427,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         disabled={disabled}
         style={[styles.prevButton, animatedStyle]}
       >
-        <Ionicons name="chevron-back" size={22} color={colors.white} />
+        <Feather name="chevron-left" size={26} color={colors.white} />
       </AnimatedPressable>
     );
   };

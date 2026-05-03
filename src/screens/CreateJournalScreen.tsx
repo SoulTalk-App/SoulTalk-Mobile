@@ -1,11 +1,10 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   Pressable,
-  Image,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -16,14 +15,18 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAutoSave } from '../hooks/useAutoSave';
+import {
+  useLocalDraft,
+  loadLocalDraft,
+  clearLocalDraft,
+} from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
+import { Feather } from '@expo/vector-icons';
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -38,7 +41,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         flex: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
-        backIcon: { width: 32, height: 32 },
         headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.text.primary },
         soulPal: { marginRight: 4 },
         contentCard: { flex: 1, borderRadius: 14, padding: 18, backgroundColor: 'rgba(255, 255, 255, 0.07)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)' },
@@ -58,7 +60,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         flex: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-        backIcon: { width: 36, height: 36 },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
@@ -93,6 +94,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     setDraftId,
     enabled: !isEdit || (isEdit && editEntry.is_draft),
   });
+
+  // Local-storage draft persistence (so-skm). Crash-recovery for voice-to-text
+  // and force-quits — captures every change on a 500ms debounce, far tighter
+  // than the 30s server save above. Disabled in edit mode of finalized entries
+  // since those aren't drafts being authored.
+  const localDraftEnabled = !isEdit;
 
   // Voice recording with live transcription
   const {
@@ -148,6 +155,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         entryId = result?.id || null;
       }
       savedEntryIdRef.current = entryId;
+      // Clear the local crash-recovery draft (so-skm) on successful submit so
+      // the next New Entry session starts clean.
+      clearLocalDraft();
       setShowSaveAnimation(true);
     } catch (error: any) {
       const status = error?.response?.status;
@@ -174,6 +184,52 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     ? (textBeforeRecordingRef.current.trim() ? textBeforeRecordingRef.current + ' ' : '') + liveTranscript
     : text;
 
+  // Persist displayValue (text + interim live transcript when dictating) on
+  // every change, debounced. Catches crashes mid-dictation since live partials
+  // flow through this same value.
+  useLocalDraft({
+    value: displayValue,
+    draftId,
+    enabled: localDraftEnabled,
+  });
+
+  // Restore-on-mount prompt (so-skm). Run once for new entries only — edit
+  // mode opens a specific entry and shouldn't be hijacked by a stale local
+  // draft. Reconcile with the server-side draft via updatedAt: if the local
+  // copy is newer (typical post-crash), prefer it.
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    (async () => {
+      const local = await loadLocalDraft();
+      if (cancelled || !local || !local.text.trim()) return;
+      Alert.alert(
+        'Restore unfinished entry?',
+        "We saved your last entry locally before it was interrupted. Want to pick up where you left off?",
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              clearLocalDraft();
+            },
+          },
+          {
+            text: 'Restore',
+            onPress: () => {
+              setText(local.text);
+              if (local.draftId) setDraftId(local.draftId);
+            },
+          },
+        ],
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ════════════════════════════════════════
   // DARK MODE
   // ════════════════════════════════════════
@@ -183,8 +239,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         <KeyboardAvoidingView style={dkS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[dkS.content, { paddingTop: insets.top + 16 }]}>
             <View style={dkS.headerRow}>
-              <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-                <Image source={BackIcon} style={dkS.backIcon} resizeMode="contain" />
+              <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+                <Feather name="chevron-left" size={28} color="#FFFFFF" />
               </Pressable>
               <Text style={dkS.headerTitle}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
               <SoulPalAnimated pose="default" size={32} animate showEyes={false} style={dkS.soulPal} />
@@ -236,8 +292,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dawn">
       <KeyboardAvoidingView style={ltS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[ltS.content, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={ltS.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={ltS.backIcon} resizeMode="contain" />
+          <Pressable style={ltS.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
+            <Feather name="chevron-left" size={28} color="#3A0E66" />
             <Text style={ltS.backText}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
           </Pressable>
           <InspirationDropdown />

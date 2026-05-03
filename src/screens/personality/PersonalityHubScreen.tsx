@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
@@ -54,8 +55,6 @@ const TEST_VISUALS: Record<TestType, {
   focus_factor: { tone: PINK, soulpal: 5, glyph: 'spiral' },
 };
 
-const BackIcon = require('../../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 function TestGlyph({
   label,
@@ -195,10 +194,10 @@ const PersonalityHubScreen = ({ navigation }: any) => {
           hitSlop={12}
           style={styles.backInline}
         >
-          <Image
-            source={isDark ? BackIcon : ProfileBackIcon}
-            style={styles.backIcon}
-            resizeMode="contain"
+          <Feather
+            name="chevron-left"
+            size={28}
+            color={isDark ? '#FFFFFF' : '#3A0E66'}
           />
         </Pressable>
         <Text style={styles.heroTitle} numberOfLines={1}>
@@ -432,7 +431,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
   StyleSheet.create({
     root: { flex: 1 },
     content: { flex: 1 },
-    backIcon: { width: 36, height: 36 },
     backInline: {
       flexShrink: 0,
     },

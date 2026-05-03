@@ -22,13 +22,19 @@ import {
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
 
-const SoulShiftsScreen = ({ navigation }: any) => {
+const SoulShiftsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
 
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Released shifts (so-2pm). Lazy-fetched on first Released-pill tap; reused
+  // across re-entries for the session. `releasedFetched` tracks whether the
+  // fetch has been kicked off so we don't re-fetch on every tap.
+  const [releasedShifts, setReleasedShifts] = useState<Shift[]>([]);
+  const [releasedFetched, setReleasedFetched] = useState(false);
 
   // Detail-modal state. `selectedId` is the source of truth: it drives both
   // the list's focusId (for dim/glow) and the modal's visibility.
@@ -86,9 +92,42 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       .finally(() => setDetailLoading(false));
   };
 
+  // Deep-link from Signals (so-8uf): when navigated with { openShiftId },
+  // open that shift's detail modal once after mount. Ref-tracked so we don't
+  // re-trigger on every focus.
+  const openedDeepLinkRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    const id: string | undefined = route?.params?.openShiftId;
+    if (id && openedDeepLinkRef.current !== id) {
+      openedDeepLinkRef.current = id;
+      handleShiftPress(id);
+    }
+  }, [route?.params?.openShiftId]);
+
   const handleClose = () => {
     setSelectedId(null);
     setDetail(null);
+  };
+
+  const handleReleasedRequested = () => {
+    if (releasedFetched) return;
+    setReleasedFetched(true);
+    SoulShiftsService.list({ statusFilter: 'released' })
+      .then(setReleasedShifts)
+      .catch((err) => console.log('[SoulShifts] Released list error:', err.message));
+  };
+
+  const handleRestore = async () => {
+    if (!detail) return;
+    try {
+      const restored = await SoulShiftsService.restore(detail.id);
+      // Move from releasedShifts back into the active list (so-8wj).
+      setReleasedShifts((prev) => prev.filter((s) => s.id !== restored.id));
+      setShifts((prev) => [restored, ...prev]);
+      handleClose();
+    } catch (err: any) {
+      console.log('[SoulShifts] Restore error:', err?.message);
+    }
   };
 
   const handleOpenTend = () => {
@@ -111,8 +150,12 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       setShifts((prev) =>
         prev.map((s) => (s.id === result.shift.id ? result.shift : s)),
       );
-      setDetail(updatedDetail);
       setTendOpen(false);
+      // Dismiss the entire flow (so-lbw): without this, the underlying detail
+      // modal re-appears once TendModal hides because all the gating booleans
+      // flip back. Toast + StageAdvance carry their own data snapshots, so
+      // nulling selectedId/detail here is safe.
+      handleClose();
 
       setToastShift(result.shift);
       setToastTendCount(result.tendCount);
@@ -185,14 +228,13 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       setShifts((prev) =>
         prev.map((s) => (s.id === updated.id ? updated : s)),
       );
-      setDetail(updatedDetail);
       setIntegratedOpen(false);
+      // Dismiss the entire flow (so-h76, sibling of so-lbw): without this, the
+      // detail modal re-appears once IntegratedModal hides — and again after
+      // StageAdvance dismisses. StageAdvance carries its own data snapshot.
+      handleClose();
       if (prevStage < 3) {
         setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
-      } else {
-        // Already at integrate stage — just close the detail so the user
-        // sees the list-level reflection of the new status.
-        handleClose();
       }
     } catch (err: any) {
       console.log('[SoulShifts] markIntegrated error:', err?.message);
@@ -300,6 +342,8 @@ const SoulShiftsScreen = ({ navigation }: any) => {
           onShiftPress={handleShiftPress}
           focusId={selectedId ?? undefined}
           onSuggestionsPress={handleOpenSuggest}
+          releasedShifts={releasedShifts}
+          onReleasedRequested={handleReleasedRequested}
         />
       )}
 
@@ -319,6 +363,7 @@ const SoulShiftsScreen = ({ navigation }: any) => {
         onRelease={handleOpenRelease}
         onIntegrated={handleOpenIntegrated}
         onSnooze={handleOpenSnooze}
+        onRestore={handleRestore}
       />
 
       <ReleaseModal
