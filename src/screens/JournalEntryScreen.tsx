@@ -28,7 +28,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
         titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
         // TODO(theme): map 'rgba(77, 232, 212, 0.10)' to palette key (edit btn bg)
@@ -69,7 +68,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
-        backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
         titleText: { fontFamily: fonts.outfit.regular, fontSize: 24, color: colors.text.primary, flex: 1 },
         // TODO(theme): map 'rgba(255, 255, 255, 0.15)' to palette key
@@ -229,7 +227,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
               size={28}
               color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
             />
-            <Text style={isDarkMode ? dk.backText : lt.backText}>Back</Text>
           </Pressable>
           <ActivityIndicator
             color={isDarkMode ? colors.primary : colors.white}
@@ -254,7 +251,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         >
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
             <Feather name="chevron-left" size={28} color="#FFFFFF" />
-            <Text style={dk.backText}>Back</Text>
           </Pressable>
           <View style={dk.titleRow}>
             <Text style={dk.titleText}>Journal Entry</Text>
@@ -286,7 +282,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
           <Feather name="chevron-left" size={28} color="#3A0E66" />
-          <Text style={lt.backText}>Back</Text>
         </Pressable>
         <View style={lt.titleRow}>
           <Text style={lt.titleText}>Journal Entry</Text>

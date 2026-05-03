@@ -171,7 +171,6 @@ const SettingsScreen = ({ navigation }: any) => {
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
             <Feather name="chevron-left" size={28} color={isDarkMode ? '#FFFFFF' : '#3A0E66'} />
           </Pressable>
-          <Text style={styles.backText}>Back</Text>
         </View>
 
         {/* Signed in as */}
@@ -364,12 +363,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     backButton: {
       marginRight: 12,
-    },
-    backText: {
-      fontFamily: fonts.outfit.semiBold,
-      fontSize: 24,
-      lineHeight: 24 * 1.26,
-      color: ink,
     },
 
     // Signed in

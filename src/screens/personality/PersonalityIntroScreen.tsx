@@ -31,7 +31,6 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
             <Feather name="chevron-left" size={28} color="#FFFFFF" />
-            <Text style={dk.backText}>Back</Text>
           </Pressable>
 
           <ScrollView
@@ -104,7 +103,6 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
           <Feather name="chevron-left" size={28} color="#3A0E66" />
-          <Text style={lt.backText}>Back</Text>
         </Pressable>
 
         <ScrollView
@@ -190,12 +188,6 @@ const dk = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
-  },
-
   scrollContent: { paddingBottom: 20 },
 
   titleText: {
@@ -296,14 +288,6 @@ const lt = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  // Light path: page-bg ink for AA on the so-u1k lavender wash.
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
-    color: colors.text.primary,
-  },
-
   scrollContent: { paddingBottom: 20 },
 
   titleText: {

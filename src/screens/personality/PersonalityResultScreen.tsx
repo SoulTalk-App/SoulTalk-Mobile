@@ -75,7 +75,6 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
             <Feather name="chevron-left" size={28} color="#FFFFFF" />
-            <Text style={dk.backText}>Back</Text>
           </Pressable>
           {message ? (
             <Text style={dk.errorText}>{message}</Text>
@@ -104,7 +103,6 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           <Pressable style={dk.backRow} onPress={goHome}>
             <Feather name="chevron-left" size={28} color="#FFFFFF" />
-            <Text style={dk.backText}>Back</Text>
           </Pressable>
 
           <ScrollView
@@ -223,7 +221,6 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
           <Feather name="chevron-left" size={28} color="#3A0E66" />
-          <Text style={lt.backText}>Back</Text>
         </Pressable>
         {message ? (
           <Text style={lt.errorText}>{message}</Text>
@@ -252,7 +249,6 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={goHome}>
           <Feather name="chevron-left" size={28} color="#3A0E66" />
-          <Text style={lt.backText}>Back</Text>
         </Pressable>
 
         <ScrollView
@@ -460,11 +456,6 @@ const dk = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 8,
-  },
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    color: colors.white,
   },
 
   scrollContent: { paddingBottom: 20 },
@@ -679,13 +670,6 @@ const lt = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom: 8,
-  },
-  // Light path: page-bg ink for AA on the so-u1k lavender wash.
-  backText: {
-    fontFamily: fonts.outfit.semiBold,
-    fontSize: 24,
-    // #3A0E66 (PURPLE_INK) → colors.text.primary (#4F1786, brand canonical)
-    color: colors.text.primary,
   },
 
   scrollContent: { paddingBottom: 20 },
