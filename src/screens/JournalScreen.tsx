@@ -167,9 +167,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     pillText: { fontFamily: fonts.outfit.regular, fontSize: 13, color: colors.text.secondary },
     pillTextActive: { color: colors.white, fontFamily: fonts.outfit.medium },
-    reflectedPill: { borderWidth: 1.5, borderColor: colors.success, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-    reflectedPillActive: { backgroundColor: colors.success },
-    reflectedText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.success },
 
     entriesScroll: { flex: 1 },
     entriesList: { gap: 12, paddingTop: 4 },
@@ -273,17 +270,15 @@ const JournalScreen = ({ navigation }: any) => {
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [appliedYears, setAppliedYears] = useState<number[]>([]);
   const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
-  const [selectedReflected, setSelectedReflected] = useState<boolean | null>(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
   // --- Filter logic (auto-apply on toggle) ---
-  const buildParams = (years: number[], months: number[], reflected: boolean | null) => {
+  const buildParams = (years: number[], months: number[]) => {
     const params: any = {};
     if (years.length === 1) params.year = years[0];
     if (months.length === 1) params.month = months[0] + 1;
-    if (reflected !== null) params.ai_processing_status = reflected ? 'complete' : 'pending';
     return params;
   };
 
@@ -291,20 +286,14 @@ const JournalScreen = ({ navigation }: any) => {
     const next = selectedYears.includes(year) ? selectedYears.filter(y => y !== year) : [...selectedYears, year];
     setSelectedYears(next);
     setAppliedYears(next);
-    fetchEntries(buildParams(next, appliedMonths, selectedReflected));
+    fetchEntries(buildParams(next, appliedMonths));
   };
 
   const toggleMonth = (month: number) => {
     const next = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month) : [...selectedMonths, month];
     setSelectedMonths(next);
     setAppliedMonths(next);
-    fetchEntries(buildParams(appliedYears, next, selectedReflected));
-  };
-
-  const toggleReflected = (val: boolean) => {
-    const next = selectedReflected === val ? null : val;
-    setSelectedReflected(next);
-    fetchEntries(buildParams(appliedYears, appliedMonths, next));
+    fetchEntries(buildParams(appliedYears, next));
   };
 
   const removePill = (type: 'year' | 'month', value: number) => {
@@ -322,7 +311,7 @@ const JournalScreen = ({ navigation }: any) => {
     setFiltersExpanded(!filtersExpanded);
   };
 
-  const activeFilterCount = appliedYears.length + appliedMonths.length + (selectedReflected !== null ? 1 : 0);
+  const activeFilterCount = appliedYears.length + appliedMonths.length;
 
   // --- Tab bar animations ---
   const tabTranslateY = useSharedValue(0);
@@ -424,13 +413,6 @@ const JournalScreen = ({ navigation }: any) => {
                 <Text style={styles.activeFilterText}>{MONTHS[m]} {'✕'}</Text>
               </Pressable>
             ))}
-            {selectedReflected !== null && (
-              <Pressable style={styles.activeFilterPill} onPress={() => toggleReflected(selectedReflected)}>
-                <Text style={styles.activeFilterText}>
-                  {selectedReflected ? 'Reflected' : 'Unreflected'} {'✕'}
-                </Text>
-              </Pressable>
-            )}
           </View>
         )}
 
@@ -463,20 +445,6 @@ const JournalScreen = ({ navigation }: any) => {
                 ))}
               </View>
             </ScrollView>
-            <View style={[styles.pillRow, { marginTop: 10 }]}>
-              <Pressable
-                style={[styles.reflectedPill, selectedReflected === true && styles.reflectedPillActive]}
-                onPress={() => toggleReflected(true)}
-              >
-                <Text style={[styles.reflectedText, selectedReflected === true && { color: colors.white }]}>Reflected</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.reflectedPill, selectedReflected === false && styles.reflectedPillActive]}
-                onPress={() => toggleReflected(false)}
-              >
-                <Text style={[styles.reflectedText, selectedReflected === false && { color: colors.white }]}>Unreflected</Text>
-              </Pressable>
-            </View>
           </View>
         )}
 
