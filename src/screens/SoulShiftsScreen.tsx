@@ -105,6 +105,19 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       .catch((err) => console.log('[SoulShifts] Released list error:', err.message));
   };
 
+  const handleRestore = async () => {
+    if (!detail) return;
+    try {
+      const restored = await SoulShiftsService.restore(detail.id);
+      // Move from releasedShifts back into the active list (so-8wj).
+      setReleasedShifts((prev) => prev.filter((s) => s.id !== restored.id));
+      setShifts((prev) => [restored, ...prev]);
+      handleClose();
+    } catch (err: any) {
+      console.log('[SoulShifts] Restore error:', err?.message);
+    }
+  };
+
   const handleOpenTend = () => {
     if (!detail) return;
     setTendOpen(true);
@@ -338,6 +351,7 @@ const SoulShiftsScreen = ({ navigation }: any) => {
         onRelease={handleOpenRelease}
         onIntegrated={handleOpenIntegrated}
         onSnooze={handleOpenSnooze}
+        onRestore={handleRestore}
       />
 
       <ReleaseModal

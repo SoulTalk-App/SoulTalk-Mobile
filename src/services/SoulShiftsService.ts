@@ -281,6 +281,14 @@ class SoulShiftsService {
   }
 
   /**
+   * Un-release a shift back to active status (so-8wj). Thin wrapper over
+   * update() — single canonical write path for state transitions.
+   */
+  async restore(id: string): Promise<Shift> {
+    return this.update(id, { status: 'active' });
+  }
+
+  /**
    * Snooze a shift until the given timestamp, or pass `null` to clear an
    * existing snooze (so-trc). Pydantic on the BE side distinguishes "omit"
    * from "set to null" via model_fields_set, so explicit null is required

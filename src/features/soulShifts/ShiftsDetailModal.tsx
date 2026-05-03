@@ -116,6 +116,12 @@ type Props = {
   onSnooze?: (id: string) => void;
   onIntegrated?: (id: string) => void;
   onRelease?: (id: string) => void;
+  /**
+   * Restore a released shift back to active (so-8wj). When detail.status ===
+   * 'released', the four standard CTAs are hidden and a single Restore CTA
+   * takes their place.
+   */
+  onRestore?: (id: string) => void;
 };
 
 // Long-title threshold: above this, display-serif Italiana becomes unreadable.
@@ -133,6 +139,7 @@ export function ShiftsDetailModal({
   onSnooze,
   onIntegrated,
   onRelease,
+  onRestore,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
@@ -318,64 +325,87 @@ export function ShiftsDetailModal({
                 </View>
               </View>
 
-              <Pressable
-                onPress={onTend ? () => onTend(detail.id) : undefined}
-                style={styles.tendCtaWrap}
-                accessibilityLabel="Tend this shift"
-              >
-                <LinearGradient
-                  colors={[detail.mood, PINK]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.tendCta}
+              {/* Released shifts (so-8wj): the four standard CTAs make no
+                  sense once a shift is in the archive. Show only Restore in
+                  the same primary slot. Other statuses keep the existing
+                  Tend + Snooze/Integrated/Release row. */}
+              {detail.status === 'released' ? (
+                <Pressable
+                  onPress={onRestore ? () => onRestore(detail.id) : undefined}
+                  style={styles.tendCtaWrap}
+                  accessibilityLabel="Restore this shift"
                 >
-                  <Text style={styles.tendCtaText}>＋ Tend this shift</Text>
-                </LinearGradient>
-              </Pressable>
-
-              <View style={styles.secondaryRow}>
-                {[
-                  { label: 'Snooze', icon: '☾', cb: onSnooze },
-                  { label: 'Integrated', icon: '✓', cb: onIntegrated },
-                  { label: 'Release', icon: '✿', cb: onRelease },
-                ].map((b) => {
-                  // Buttons render visibly inert until the corresponding handler
-                  // bead lands (so-7hw / so-idb / so-pjv). Drop opacity + leave
-                  // onPress undefined so taps no-op without flashing pressed
-                  // state.
-                  const inert = !b.cb;
-                  return (
-                    <Pressable
-                      key={b.label}
-                      style={[
-                        styles.secondaryBtn,
-                        {
-                          backgroundColor: isDark
-                            ? 'rgba(255,255,255,0.05)'
-                            : '#FFFFFF',
-                          borderColor: isDark
-                            ? 'rgba(255,255,255,0.10)'
-                            : 'rgba(58,14,102,0.08)',
-                          opacity: inert ? 0.55 : 1,
-                        },
-                      ]}
-                      onPress={
-                        inert ? undefined : () => b.cb && b.cb(detail.id)
-                      }
-                      disabled={inert}
-                      accessibilityLabel={b.label}
-                      accessibilityState={{ disabled: inert }}
+                  <LinearGradient
+                    colors={[detail.mood, PINK]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.tendCta}
+                  >
+                    <Text style={styles.tendCtaText}>↻ Restore</Text>
+                  </LinearGradient>
+                </Pressable>
+              ) : (
+                <>
+                  <Pressable
+                    onPress={onTend ? () => onTend(detail.id) : undefined}
+                    style={styles.tendCtaWrap}
+                    accessibilityLabel="Tend this shift"
+                  >
+                    <LinearGradient
+                      colors={[detail.mood, PINK]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.tendCta}
                     >
-                      <Text style={[styles.secondaryIcon, { color: ink(theme) }]}>
-                        {b.icon}
-                      </Text>
-                      <Text style={[styles.secondaryLabel, { color: ink(theme) }]}>
-                        {b.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                      <Text style={styles.tendCtaText}>＋ Tend this shift</Text>
+                    </LinearGradient>
+                  </Pressable>
+
+                  <View style={styles.secondaryRow}>
+                    {[
+                      { label: 'Snooze', icon: '☾', cb: onSnooze },
+                      { label: 'Integrated', icon: '✓', cb: onIntegrated },
+                      { label: 'Release', icon: '✿', cb: onRelease },
+                    ].map((b) => {
+                      // Buttons render visibly inert until the corresponding handler
+                      // bead lands (so-7hw / so-idb / so-pjv). Drop opacity + leave
+                      // onPress undefined so taps no-op without flashing pressed
+                      // state.
+                      const inert = !b.cb;
+                      return (
+                        <Pressable
+                          key={b.label}
+                          style={[
+                            styles.secondaryBtn,
+                            {
+                              backgroundColor: isDark
+                                ? 'rgba(255,255,255,0.05)'
+                                : '#FFFFFF',
+                              borderColor: isDark
+                                ? 'rgba(255,255,255,0.10)'
+                                : 'rgba(58,14,102,0.08)',
+                              opacity: inert ? 0.55 : 1,
+                            },
+                          ]}
+                          onPress={
+                            inert ? undefined : () => b.cb && b.cb(detail.id)
+                          }
+                          disabled={inert}
+                          accessibilityLabel={b.label}
+                          accessibilityState={{ disabled: inert }}
+                        >
+                          <Text style={[styles.secondaryIcon, { color: ink(theme) }]}>
+                            {b.icon}
+                          </Text>
+                          <Text style={[styles.secondaryLabel, { color: ink(theme) }]}>
+                            {b.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
             </ScrollView>
             </View>
           </View>
