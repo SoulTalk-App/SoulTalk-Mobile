@@ -64,6 +64,12 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     useState<TurnToShiftCandidate | null>(null);
   const [turnSubmitting, setTurnSubmitting] = useState(false);
 
+  // Muted-signals filter state (so-8ho). Default-list excludes muted signals
+  // per BE; this is the "drawer you open" filter mirroring so-2pm Released.
+  const [filter, setFilter] = useState<'all' | 'muted'>('all');
+  const [mutedSignals, setMutedSignals] = useState<Signal[]>([]);
+  const [mutedFetched, setMutedFetched] = useState(false);
+
   useEffect(() => {
     Promise.allSettled([
       SoulSignalsService.list(),
@@ -85,6 +91,12 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   }, []);
 
   const groups = useMemo(() => buildGroups(signals, 6), [signals]);
+  // Muted view renders each muted signal as its own pseudo-group (no related
+  // siblings) so the existing PatternCard render path stays unchanged.
+  const mutedGroups = useMemo(
+    () => mutedSignals.map((s) => ({ pattern: s, related: [] })),
+    [mutedSignals],
+  );
   const patternsCount = useMemo(
     () => signals.filter((s) => s.kind === 'pattern').length,
     [signals],
@@ -156,6 +168,43 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       console.log('[SoulSignals] Mute error:', err?.message);
     } finally {
       setMuteSubmitting(false);
+    }
+  };
+
+  // so-8ho: lazy-fetch muted signals on first Muted-pill tap. BE doesn't have
+  // a muted_only mode (only include_muted=true mixes muted into the default
+  // list); FE filters client-side by mutedUntil/mutedForever.
+  const handleFilterChange = (next: 'all' | 'muted') => {
+    setFilter(next);
+    if (next === 'muted' && !mutedFetched) {
+      setMutedFetched(true);
+      SoulSignalsService.list({ includeMuted: true })
+        .then((all) => {
+          setMutedSignals(
+            all.filter((s) => s.muteUntil != null || s.mutedForever === true),
+          );
+        })
+        .catch((err) =>
+          console.log('[SoulSignals] Muted list error:', err?.message),
+        );
+    }
+  };
+
+  const handleUnmute = async () => {
+    if (!detail) return;
+    try {
+      const updated = await SoulSignalsService.unmuteSignal(detail.id);
+      // Drop from the muted view; add back into the default feed so the user
+      // sees it immediately when they switch back.
+      setMutedSignals((prev) => prev.filter((s) => s.id !== updated.id));
+      setSignals((prev) =>
+        prev.find((s) => s.id === updated.id)
+          ? prev.map((s) => (s.id === updated.id ? updated : s))
+          : [updated, ...prev],
+      );
+      handleClose();
+    } catch (err: any) {
+      console.log('[SoulSignals] Unmute error:', err?.message);
     }
   };
 
@@ -320,13 +369,15 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         <SignalsB
           theme={theme}
           status={status}
-          groups={groups}
+          groups={filter === 'muted' ? mutedGroups : groups}
           eligibility={{ current: entriesSinceSight, needed: ENTRIES_NEEDED }}
           listeningMeta={{ entries: entriesSinceSight, patterns: patternsCount }}
           onOpenJournal={handleOpenJournal}
           onBack={() => navigation.goBack()}
           onPatternPress={handlePatternPress}
           focusId={selectedId ?? undefined}
+          filter={filter}
+          onFilterChange={handleFilterChange}
         />
       )}
 
@@ -339,6 +390,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         onResonance={handleResonance}
         onToggleSaved={handleToggleSaved}
         onMute={handleOpenMute}
+        onUnmute={handleUnmute}
         onViewPattern={handleViewPattern}
         resonanceSubmitting={resonanceSubmitting}
         saveSubmitting={saveSubmitting}

@@ -141,8 +141,13 @@ class SoulSignalsService {
     );
   }
 
-  async list(opts?: { saved?: boolean }): Promise<Signal[]> {
-    const params = opts?.saved ? { saved: true } : undefined;
+  async list(opts?: {
+    saved?: boolean;
+    includeMuted?: boolean;
+  }): Promise<Signal[]> {
+    const params: Record<string, any> = {};
+    if (opts?.saved) params.saved = true;
+    if (opts?.includeMuted) params.include_muted = true;
     const response = await this.axiosInstance.get('/soul-signals/', { params });
     const data = response.data as SignalListResponse;
     return (data.signals ?? []).map(normalizeSignal);
