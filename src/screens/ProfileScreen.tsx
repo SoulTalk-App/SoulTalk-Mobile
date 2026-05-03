@@ -538,9 +538,11 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     alignItems: 'center',
     marginBottom: 0,
   },
+  // so-3zw: tint monochrome ProfileBackIcon white in dark mode for AA contrast.
   topIcon: {
     width: 42,
     height: 42,
+    tintColor: '#FFFFFF',
   },
 
   // Avatar
@@ -934,9 +936,11 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     alignItems: 'center',
     marginBottom: 0,
   },
+  // so-3zw: tint monochrome ProfileBackIcon deep purple in light mode for AA contrast.
   topIcon: {
     width: 42,
     height: 42,
+    tintColor: '#3A0E66',
   },
 
   // Avatar

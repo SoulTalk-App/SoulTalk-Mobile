@@ -18,7 +18,6 @@ import {
 } from './tokens';
 
 const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 type FilterKey = 'all' | ShiftStatus;
 
@@ -123,8 +122,11 @@ export function ShiftsA({
                 style={styles.backInline}
               >
                 <Image
-                  source={theme === 'dark' ? BackIconDark : BackIconLight}
-                  style={styles.backIcon}
+                  source={BackIconDark}
+                  style={[
+                    styles.backIcon,
+                    { tintColor: theme === 'dark' ? '#FFFFFF' : '#3A0E66' },
+                  ]}
                   resizeMode="contain"
                 />
               </Pressable>

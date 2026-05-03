@@ -30,7 +30,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-        backIcon: { width: 36, height: 36 },
+        // so-3zw: tint the monochrome BackIcon white in dark mode for AA contrast on cosmic bg.
+        backIcon: { width: 36, height: 36, tintColor: '#FFFFFF' },
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
         titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
@@ -71,7 +72,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-        backIcon: { width: 36, height: 36 },
+        // so-3zw: tint the monochrome BackIcon deep purple in light mode for AA contrast on lavender bg.
+        backIcon: { width: 36, height: 36, tintColor: '#3A0E66' },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },

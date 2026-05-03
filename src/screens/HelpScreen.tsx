@@ -229,7 +229,14 @@ const HelpScreen = ({ navigation }: any) => {
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Image source={BackButtonIcon} style={styles.backIcon} resizeMode="contain" />
+            <Image
+              source={BackButtonIcon}
+              style={[
+                styles.backIcon,
+                { tintColor: isDarkMode ? '#FFFFFF' : '#3A0E66' },
+              ]}
+              resizeMode="contain"
+            />
           </Pressable>
           <Text style={styles.headerTitle}>Help</Text>
         </View>

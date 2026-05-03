@@ -80,7 +80,6 @@ function bucketSights(summaries: SoulsightSummary[]) {
 }
 
 const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 
 const SoulSightScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -392,8 +391,11 @@ const SoulSightScreen = ({ navigation }: any) => {
           style={styles.backInline}
         >
           <Image
-            source={isDark ? BackIcon : ProfileBackIcon}
-            style={styles.backIcon}
+            source={BackIcon}
+            style={[
+              styles.backIcon,
+              { tintColor: isDark ? '#FFFFFF' : '#3A0E66' },
+            ]}
             resizeMode="contain"
           />
         </Pressable>

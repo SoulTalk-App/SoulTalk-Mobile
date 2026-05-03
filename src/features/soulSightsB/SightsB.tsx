@@ -17,7 +17,6 @@ import {
 import { Eligibility, SightDetail, SightStatus } from './types';
 
 const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 type Props = {
   theme: Theme;
@@ -67,8 +66,11 @@ export function SightsB({
             style={styles.backInlineRow}
           >
             <Image
-              source={theme === 'dark' ? BackIconDark : BackIconLight}
-              style={styles.backIcon}
+              source={BackIconDark}
+              style={[
+                styles.backIcon,
+                { tintColor: theme === 'dark' ? '#FFFFFF' : '#3A0E66' },
+              ]}
               resizeMode="contain"
             />
           </Pressable>
