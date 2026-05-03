@@ -30,6 +30,12 @@ const SoulShiftsScreen = ({ navigation }: any) => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Released shifts (so-2pm). Lazy-fetched on first Released-pill tap; reused
+  // across re-entries for the session. `releasedFetched` tracks whether the
+  // fetch has been kicked off so we don't re-fetch on every tap.
+  const [releasedShifts, setReleasedShifts] = useState<Shift[]>([]);
+  const [releasedFetched, setReleasedFetched] = useState(false);
+
   // Detail-modal state. `selectedId` is the source of truth: it drives both
   // the list's focusId (for dim/glow) and the modal's visibility.
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,6 +95,14 @@ const SoulShiftsScreen = ({ navigation }: any) => {
   const handleClose = () => {
     setSelectedId(null);
     setDetail(null);
+  };
+
+  const handleReleasedRequested = () => {
+    if (releasedFetched) return;
+    setReleasedFetched(true);
+    SoulShiftsService.list({ statusFilter: 'released' })
+      .then(setReleasedShifts)
+      .catch((err) => console.log('[SoulShifts] Released list error:', err.message));
   };
 
   const handleOpenTend = () => {
@@ -303,6 +317,8 @@ const SoulShiftsScreen = ({ navigation }: any) => {
           onShiftPress={handleShiftPress}
           focusId={selectedId ?? undefined}
           onSuggestionsPress={handleOpenSuggest}
+          releasedShifts={releasedShifts}
+          onReleasedRequested={handleReleasedRequested}
         />
       )}
 

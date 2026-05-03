@@ -36,6 +36,18 @@ type Props = {
   focusId?: string;
   /** Tap handler for the "✨ Suggestions" pill at the end of the chips row. */
   onSuggestionsPress?: () => void;
+  /**
+   * Released shifts (so-2pm). Default list response excludes status='released',
+   * so the screen lazy-fetches these via SoulShiftsService.list({ statusFilter:
+   * 'released' }) on first Released-pill tap and passes them in. When the
+   * Released filter is active, this list is rendered instead of `shifts`.
+   */
+  releasedShifts?: Shift[];
+  /**
+   * Fires when the Released pill is tapped, signalling the screen to fetch
+   * (or refetch) released shifts. Cached on the screen — fetch is one-shot.
+   */
+  onReleasedRequested?: () => void;
 };
 
 type StatusChip = {
@@ -51,6 +63,8 @@ export function ShiftsA({
   onShiftPress,
   focusId,
   onSuggestionsPress,
+  releasedShifts,
+  onReleasedRequested,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
@@ -64,8 +78,15 @@ export function ShiftsA({
     { k: 'integrated', n: shifts.filter((s) => s.status === 'integrated').length, color: TEAL },
   ];
 
+  // Released uses its own lazy-fetched list; the default `shifts` array
+  // excludes released items per BE default. Other filters still scope to
+  // `shifts` (active/processing/integrated all live in the default list).
   const visibleShifts =
-    filter === 'all' ? shifts : shifts.filter((s) => s.status === filter);
+    filter === 'released'
+      ? releasedShifts ?? []
+      : filter === 'all'
+      ? shifts
+      : shifts.filter((s) => s.status === filter);
 
   const chipBg = isDark ? 'rgba(255,255,255,0.06)' : '#fff';
   const chipBorder = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(58,14,102,0.08)';
@@ -75,6 +96,9 @@ export function ShiftsA({
   const onPillTap = (k: FilterKey) => {
     // Tapping the active pill clears the filter — toggle behavior per design.
     setFilter((prev) => (prev === k ? 'all' : k));
+    // Released list is lazy-fetched on first tap (and refresh-on-reentry):
+    // the screen owns the cache + fetch state.
+    if (k === 'released') onReleasedRequested?.();
   };
 
   return (
@@ -168,6 +192,27 @@ export function ShiftsA({
               </Pressable>
             );
           })}
+          {/* Released pill (so-2pm). No count for v1 — would require a
+              separate fetch on mount; deferred to a follow-up if asked. */}
+          <Pressable
+            onPress={() => onPillTap('released')}
+            style={[
+              styles.chip,
+              filter === 'released'
+                ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+                : { backgroundColor: chipBg, borderColor: chipBorder },
+            ]}
+            accessibilityState={{ selected: filter === 'released' }}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                { color: filter === 'released' ? activeChipFg : ink(theme) },
+              ]}
+            >
+              Released
+            </Text>
+          </Pressable>
           {onSuggestionsPress && (
             <Pressable
               onPress={onSuggestionsPress}
