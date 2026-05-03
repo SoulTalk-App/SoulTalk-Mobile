@@ -189,14 +189,13 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       setShifts((prev) =>
         prev.map((s) => (s.id === updated.id ? updated : s)),
       );
-      setDetail(updatedDetail);
       setIntegratedOpen(false);
+      // Dismiss the entire flow (so-h76, sibling of so-lbw): without this, the
+      // detail modal re-appears once IntegratedModal hides — and again after
+      // StageAdvance dismisses. StageAdvance carries its own data snapshot.
+      handleClose();
       if (prevStage < 3) {
         setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
-      } else {
-        // Already at integrate stage — just close the detail so the user
-        // sees the list-level reflection of the new status.
-        handleClose();
       }
     } catch (err: any) {
       console.log('[SoulShifts] markIntegrated error:', err?.message);
