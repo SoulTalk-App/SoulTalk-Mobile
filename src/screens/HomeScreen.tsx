@@ -78,7 +78,10 @@ const HomeScreen = ({ navigation }: any) => {
   const [moodWord, setMoodWord] = useState('');
   const [moodSaved, setMoodSaved] = useState(false);
   const [affirmationLoading, setAffirmationLoading] = useState(false);
-  const { soulBar, fetchSoulBar } = useJournal();
+  // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
+  // description copy in-place; tap again to collapse.
+  const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
+  const { soulBar, fetchSoulBar, hasEntryToday } = useJournal();
 
   // SoulBar wiring (canonical GreetingHero).
   const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
@@ -159,7 +162,7 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'center',
         },
 
-        // I'm Feeling block
+        // Daily feeling block
         moodBlock: {
           marginTop: 18,
         },
@@ -312,6 +315,26 @@ const HomeScreen = ({ navigation }: any) => {
         soulBarFooterRight: {
           fontFamily: fonts.edensor.italic,
           fontSize: 12,
+          color: colors.text.secondary,
+        },
+        // so-o61: visible only when SoulBar is full (6/6). Sits above the
+        // footer row so the user gets explicit cue beyond the counter.
+        soulBarAvailableText: {
+          marginTop: 10,
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 13,
+          color: SOULBAR_TEAL,
+          textAlign: 'center',
+        },
+        // so-o61: in-place expand of the (i) badge — collapsed by default.
+        soulBarInfoCopy: {
+          marginTop: 10,
+          paddingTop: 10,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.10)',
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 13 * 1.5,
           color: colors.text.secondary,
         },
 
@@ -531,7 +554,7 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'center',
         },
 
-        // I'm Feeling block
+        // Daily feeling block
         moodBlock: {
           marginTop: 18,
         },
@@ -682,6 +705,25 @@ const HomeScreen = ({ navigation }: any) => {
           fontFamily: fonts.edensor.italic,
           fontSize: 12,
           color: 'rgba(58, 14, 102, 0.7)',
+        },
+        // so-o61: visible only when SoulBar is full (6/6).
+        soulBarAvailableText: {
+          marginTop: 10,
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 13,
+          color: colors.primary,
+          textAlign: 'center',
+        },
+        // so-o61: in-place expand of the (i) badge — collapsed by default.
+        soulBarInfoCopy: {
+          marginTop: 10,
+          paddingTop: 10,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(58,14,102,0.10)',
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 13 * 1.5,
+          color: 'rgba(58, 14, 102, 0.85)',
         },
 
         // Charge Up grid wrap
@@ -1000,27 +1042,39 @@ const HomeScreen = ({ navigation }: any) => {
               </Pressable>
             </View>
 
-            {/* I'm Feeling block */}
+            {/* Daily feeling block */}
             <View style={dk.moodBlock}>
-              <Text style={dk.moodLabel}>I'm Feeling</Text>
+              <Text style={dk.moodLabel}>
+                {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
+              </Text>
               <View style={dk.moodInputRow}>
                 <TextInput
                   style={dk.moodInput}
-                  placeholder="One word…"
+                  placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
                   placeholderTextColor="rgba(255, 255, 255, 0.45)"
-                  value={moodWord}
+                  value={hasEntryToday ? '' : moodWord}
                   onChangeText={handleMoodChange}
                   onSubmitEditing={submitMoodWord}
                   onBlur={() => moodWord.trim() && submitMoodWord()}
                   maxLength={50}
                   returnKeyType="done"
-                  editable={!moodSaved}
+                  editable={!moodSaved && !hasEntryToday}
                   autoCorrect={false}
                 />
                 <Pressable
-                  style={dk.notebookBtn}
-                  onPress={() => navigation.navigate('CreateJournal')}
-                  accessibilityLabel="Open journal"
+                  style={[dk.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
+                  onPress={
+                    hasEntryToday
+                      ? undefined
+                      : () => navigation.navigate('CreateJournal')
+                  }
+                  disabled={hasEntryToday}
+                  accessibilityLabel={
+                    hasEntryToday
+                      ? 'Already journaled today, come back tomorrow'
+                      : 'Open journal'
+                  }
+                  accessibilityState={{ disabled: hasEntryToday }}
                 >
                   <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                     <Rect
@@ -1071,12 +1125,20 @@ const HomeScreen = ({ navigation }: any) => {
               <View style={dk.soulBarHeaderRow}>
                 <View style={dk.soulBarTitleGroup}>
                   <Text style={dk.soulBarTitle}>SoulBar</Text>
-                  <View
+                  <Pressable
+                    onPress={() => setSoulBarInfoOpen((prev) => !prev)}
+                    hitSlop={8}
                     style={dk.soulBarInfoBadge}
-                    accessibilityLabel="Daily charge — fill all 6 to complete a soul cycle"
+                    accessibilityLabel={
+                      soulBarInfoOpen
+                        ? 'Hide SoulBar description'
+                        : 'Show SoulBar description'
+                    }
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: soulBarInfoOpen }}
                   >
                     <Text style={dk.soulBarInfoText}>i</Text>
-                  </View>
+                  </Pressable>
                 </View>
                 <Text style={dk.soulBarCounter}>
                   {soulBarFilled}
@@ -1098,6 +1160,11 @@ const HomeScreen = ({ navigation }: any) => {
                   )
                 )}
               </View>
+              {soulBarFilled >= SOUL_BAR_SEGMENTS && (
+                <Text style={dk.soulBarAvailableText}>
+                  You have a SoulSight available!
+                </Text>
+              )}
               <View style={dk.soulBarFooter}>
                 <Text style={dk.soulBarFooterLabel}>
                   Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
@@ -1108,6 +1175,11 @@ const HomeScreen = ({ navigation }: any) => {
                     : `${soulBarRemaining} more to charge`}
                 </Text>
               </View>
+              {soulBarInfoOpen && (
+                <Text style={dk.soulBarInfoCopy}>
+                  Each reflection fills a bar. After six, your SoulSight is ready when you are. Read it now, let entries keep stacking, or wait for a moment that feels meaningful. There's no right time, only yours.
+                </Text>
+              )}
             </LinearGradient>
           </View>
 
@@ -1228,27 +1300,39 @@ const HomeScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* I'm Feeling block */}
+          {/* Daily feeling block */}
           <View style={lt.moodBlock}>
-            <Text style={lt.moodLabel}>I'm Feeling</Text>
+            <Text style={lt.moodLabel}>
+              {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
+            </Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
-                placeholder="One word…"
+                placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
                 placeholderTextColor="rgba(79, 23, 134, 0.45)"
-                value={moodWord}
+                value={hasEntryToday ? '' : moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
                 onBlur={() => moodWord.trim() && submitMoodWord()}
                 maxLength={50}
                 returnKeyType="done"
-                editable={!moodSaved}
+                editable={!moodSaved && !hasEntryToday}
                 autoCorrect={false}
               />
               <Pressable
-                style={lt.notebookBtn}
-                onPress={() => navigation.navigate('CreateJournal')}
-                accessibilityLabel="Open journal"
+                style={[lt.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
+                onPress={
+                  hasEntryToday
+                    ? undefined
+                    : () => navigation.navigate('CreateJournal')
+                }
+                disabled={hasEntryToday}
+                accessibilityLabel={
+                  hasEntryToday
+                    ? 'Already journaled today, come back tomorrow'
+                    : 'Open journal'
+                }
+                accessibilityState={{ disabled: hasEntryToday }}
               >
                 <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                   <Rect
@@ -1299,12 +1383,20 @@ const HomeScreen = ({ navigation }: any) => {
             <View style={lt.soulBarHeaderRow}>
               <View style={lt.soulBarTitleGroup}>
                 <Text style={lt.soulBarTitle}>SoulBar</Text>
-                <View
+                <Pressable
+                  onPress={() => setSoulBarInfoOpen((prev) => !prev)}
+                  hitSlop={8}
                   style={lt.soulBarInfoBadge}
-                  accessibilityLabel="Daily charge — fill all 6 to complete a soul cycle"
+                  accessibilityLabel={
+                    soulBarInfoOpen
+                      ? 'Hide SoulBar description'
+                      : 'Show SoulBar description'
+                  }
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: soulBarInfoOpen }}
                 >
                   <Text style={lt.soulBarInfoText}>i</Text>
-                </View>
+                </Pressable>
               </View>
               <Text style={lt.soulBarCounter}>
                 {soulBarFilled}
@@ -1326,6 +1418,11 @@ const HomeScreen = ({ navigation }: any) => {
                 )
               )}
             </View>
+            {soulBarFilled >= SOUL_BAR_SEGMENTS && (
+              <Text style={lt.soulBarAvailableText}>
+                You have a SoulSight available!
+              </Text>
+            )}
             <View style={lt.soulBarFooter}>
               <Text style={lt.soulBarFooterLabel}>
                 Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
@@ -1336,6 +1433,11 @@ const HomeScreen = ({ navigation }: any) => {
                   : `${soulBarRemaining} more to charge`}
               </Text>
             </View>
+            {soulBarInfoOpen && (
+              <Text style={lt.soulBarInfoCopy}>
+                Each reflection fills a bar. After six, your SoulSight is ready when you are. Read it now, let entries keep stacking, or wait for a moment that feels meaningful. There's no right time, only yours.
+              </Text>
+            )}
           </LinearGradient>
         </View>
 
