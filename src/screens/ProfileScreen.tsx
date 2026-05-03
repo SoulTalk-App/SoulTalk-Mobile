@@ -14,6 +14,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { fonts, useThemeColors } from '../theme';
@@ -41,7 +42,6 @@ function formatTakenAt(iso: string): string {
 
 // Assets — light mode
 const LockIcon = require('../../assets/images/home/LockIcon.png');
-const ProfileBackIcon = require('../../assets/images/profile/ProfileBackIcon.png');
 const ProfileGearIcon = require('../../assets/images/profile/ProfileGearIcon.png');
 const ProfileAvatar = require('../../assets/images/profile/ProfileAvatar-f054e3.png');
 const ProfileSoulPalChar = require('../../assets/images/profile/ProfileSoulPalChar.png');
@@ -136,8 +136,8 @@ const ProfileScreen = ({ navigation }: any) => {
         >
           {/* Top Row: Back & Gear */}
           <View style={dk.topRow}>
-            <Pressable onPress={() => navigation.goBack()}>
-              <Image source={ProfileBackIcon} style={dk.topIcon} resizeMode="contain" />
+            <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+              <Feather name="chevron-left" size={32} color="#FFFFFF" />
             </Pressable>
             <Pressable onPress={() => navigation.navigate('Settings')}>
               <Image source={ProfileGearIcon} style={dk.topIcon} resizeMode="contain" />
@@ -332,8 +332,8 @@ const ProfileScreen = ({ navigation }: any) => {
       >
         {/* Top Row: Back & Gear */}
         <View style={lt.topRow}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Image source={ProfileBackIcon} style={lt.topIcon} resizeMode="contain" />
+          <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+            <Feather name="chevron-left" size={32} color="#3A0E66" />
           </Pressable>
           <Pressable onPress={() => navigation.navigate('Settings')}>
             <Image source={ProfileGearIcon} style={lt.topIcon} resizeMode="contain" />
@@ -538,11 +538,9 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     alignItems: 'center',
     marginBottom: 0,
   },
-  // so-3zw: tint monochrome ProfileBackIcon white in dark mode for AA contrast.
   topIcon: {
     width: 42,
     height: 42,
-    tintColor: '#FFFFFF',
   },
 
   // Avatar
@@ -936,11 +934,9 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     alignItems: 'center',
     marginBottom: 0,
   },
-  // so-3zw: tint monochrome ProfileBackIcon deep purple in light mode for AA contrast.
   topIcon: {
     width: 42,
     height: 42,
-    tintColor: '#3A0E66',
   },
 
   // Avatar

@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -79,7 +80,6 @@ function bucketSights(summaries: SoulsightSummary[]) {
   return { current, past };
 }
 
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
 const SoulSightScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -390,13 +390,10 @@ const SoulSightScreen = ({ navigation }: any) => {
           hitSlop={12}
           style={styles.backInline}
         >
-          <Image
-            source={BackIcon}
-            style={[
-              styles.backIcon,
-              { tintColor: isDark ? '#FFFFFF' : '#3A0E66' },
-            ]}
-            resizeMode="contain"
+          <Feather
+            name="chevron-left"
+            size={28}
+            color={isDark ? '#FFFFFF' : '#3A0E66'}
           />
         </Pressable>
         <Text style={styles.heroTitle} numberOfLines={1}>
@@ -493,7 +490,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     root: { flex: 1 },
     content: { flex: 1 },
     backInline: { flexShrink: 0 },
-    backIcon: { width: 36, height: 36 },
     scrollContent: {
       paddingHorizontal: 20,
       paddingTop: 8,

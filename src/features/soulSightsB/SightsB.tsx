@@ -1,6 +1,8 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
 import { HeroOrb } from './HeroOrb';
 import { LockedState } from './LockedState';
@@ -15,8 +17,6 @@ import {
   inkSub,
 } from './tokens';
 import { Eligibility, SightDetail, SightStatus } from './types';
-
-const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
 
 type Props = {
   theme: Theme;
@@ -47,34 +47,37 @@ export function SightsB({
 }: Props) {
   const insets = useSafeAreaInsets();
 
+  // so-13y: top atmosphere extends the orb's gradient up under the safe area
+  // so the back button floats within the cosmic scene (no seam at the safe-
+  // area edge). Color-matched to the orb's outer radial stop per theme.
+  const topAtmosphereColors: [string, string] =
+    theme === 'dark'
+      ? ['#0F0840', 'rgba(15,8,64,0)']
+      : ['#C8A6FF', 'rgba(200,166,255,0)'];
+
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
+
+      {/* Top atmosphere overlay (so-13y) — sits above PageBg, fades to
+          transparent over the safe-area + first slice of the orb so the
+          backdrop reads continuous from notch to orb. */}
+      <LinearGradient
+        colors={topAtmosphereColors}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[
+          styles.topAtmosphere,
+          { height: insets.top + 180 },
+        ]}
+        pointerEvents="none"
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 14 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Single-row header (so-rlz): back chevron sits inline at the top
-            of the scroll content so it doesn't claim its own band above the
-            hero orb. The centered hero+title aesthetic below stays intact. */}
-        {onBack ? (
-          <Pressable
-            onPress={onBack}
-            hitSlop={12}
-            style={styles.backInlineRow}
-          >
-            <Image
-              source={BackIconDark}
-              style={[
-                styles.backIcon,
-                { tintColor: theme === 'dark' ? '#FFFFFF' : '#3A0E66' },
-              ]}
-              resizeMode="contain"
-            />
-          </Pressable>
-        ) : null}
         {status === 'locked' || status === 'processing' || !sight ? (
           <View style={styles.stateWrap}>
             <StarsBg theme={theme} />
@@ -130,6 +133,24 @@ export function SightsB({
           </>
         )}
       </ScrollView>
+
+      {/* Floating back button (so-13y) — absolute-positioned over the orb
+          atmosphere so it stays clear of the notch and visually belongs to
+          the cosmic backdrop rather than a separate header band. */}
+      {onBack ? (
+        <Pressable
+          onPress={onBack}
+          hitSlop={12}
+          style={[styles.backFloat, { top: insets.top + 8 }]}
+          accessibilityLabel="Back"
+        >
+          <Feather
+            name="chevron-left"
+            size={28}
+            color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -145,15 +166,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 80,
   },
-  backInlineRow: {
-    paddingLeft: 16,
-    paddingBottom: 8,
-    flexShrink: 0,
-    alignSelf: 'flex-start',
+  topAtmosphere: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
-  backIcon: {
+  backFloat: {
+    position: 'absolute',
+    left: 16,
     width: 36,
     height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   stateWrap: {
     minHeight: 600,

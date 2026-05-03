@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
 import { PageBg } from './PageBg';
 import { ShiftCard } from './ShiftCard';
@@ -17,7 +18,6 @@ import {
   inkSub,
 } from './tokens';
 
-const BackIconDark = require('../../../assets/images/settings/BackButtonIcon.png');
 
 type FilterKey = 'all' | ShiftStatus;
 
@@ -121,13 +121,10 @@ export function ShiftsA({
                 hitSlop={12}
                 style={styles.backInline}
               >
-                <Image
-                  source={BackIconDark}
-                  style={[
-                    styles.backIcon,
-                    { tintColor: theme === 'dark' ? '#FFFFFF' : '#3A0E66' },
-                  ]}
-                  resizeMode="contain"
+                <Feather
+                  name="chevron-left"
+                  size={28}
+                  color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
                 />
               </Pressable>
             ) : null}
@@ -270,10 +267,6 @@ const styles = StyleSheet.create({
   },
   backInline: {
     flexShrink: 0,
-  },
-  backIcon: {
-    width: 36,
-    height: 36,
   },
   title: {
     flex: 1,

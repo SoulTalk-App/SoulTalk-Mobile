@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
@@ -16,8 +16,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
 
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -30,8 +28,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-        // so-3zw: tint the monochrome BackIcon white in dark mode for AA contrast on cosmic bg.
-        backIcon: { width: 36, height: 36, tintColor: '#FFFFFF' },
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.white },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
         titleText: { fontFamily: fonts.edensor.bold, fontSize: 26, color: colors.white, flex: 1 },
@@ -72,8 +68,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         container: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-        // so-3zw: tint the monochrome BackIcon deep purple in light mode for AA contrast on lavender bg.
-        backIcon: { width: 36, height: 36, tintColor: '#3A0E66' },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
@@ -230,10 +224,10 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             style={isDarkMode ? dk.backRow : lt.backRow}
             onPress={() => navigation.goBack()}
           >
-            <Image
-              source={BackIcon}
-              style={isDarkMode ? dk.backIcon : lt.backIcon}
-              resizeMode="contain"
+            <Feather
+              name="chevron-left"
+              size={28}
+              color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
             />
             <Text style={isDarkMode ? dk.backText : lt.backText}>Back</Text>
           </Pressable>
@@ -259,7 +253,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           showsVerticalScrollIndicator={false}
         >
           <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
             <Text style={dk.backText}>Back</Text>
           </Pressable>
           <View style={dk.titleRow}>
@@ -291,7 +285,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dawn">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
-          <Image source={BackIcon} style={lt.backIcon} resizeMode="contain" />
+          <Feather name="chevron-left" size={28} color="#3A0E66" />
           <Text style={lt.backText}>Back</Text>
         </Pressable>
         <View style={lt.titleRow}>
