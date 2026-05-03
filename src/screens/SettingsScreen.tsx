@@ -13,14 +13,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import SecureStorage from '../utils/SecureStorage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme, ThemePref } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 
-const BackButtonIcon = require('../../assets/images/settings/BackButtonIcon.png');
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
 const PRONOUN_OPTIONS = [
@@ -169,8 +168,8 @@ const SettingsScreen = ({ navigation }: any) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Image source={BackButtonIcon} style={styles.backIcon} resizeMode="contain" />
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
+            <Feather name="chevron-left" size={28} color={isDarkMode ? '#FFFFFF' : '#3A0E66'} />
           </Pressable>
           <Text style={styles.backText}>Back</Text>
         </View>
@@ -365,10 +364,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     backButton: {
       marginRight: 12,
-    },
-    backIcon: {
-      width: 36,
-      height: 36,
     },
     backText: {
       fontFamily: fonts.outfit.semiBold,

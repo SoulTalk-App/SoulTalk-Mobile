@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -287,7 +287,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity style={styles.backButton} onPress={handleBackToLogin}>
-          <Ionicons name="chevron-back" size={24} color={isDarkMode ? colors.white : colors.text.primary} />
+          <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.text.primary} />
         </TouchableOpacity>
 
         <View style={styles.content}>

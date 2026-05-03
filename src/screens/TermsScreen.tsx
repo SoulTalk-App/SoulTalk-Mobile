@@ -14,7 +14,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { privacyPolicy, termsOfService } from "../mocks/content";
 import { fonts, typography, useThemeColors } from "../theme";
@@ -248,7 +248,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           onPressOut={handleBackPressOut}
         >
           <View style={styles.backButtonCircle}>
-            <Ionicons name="chevron-back" size={20} color={colors.primary} />
+            <Feather name="chevron-left" size={22} color={colors.primary} />
           </View>
         </AnimatedPressable>
         <Text style={styles.title}>Terms and Privacy</Text>

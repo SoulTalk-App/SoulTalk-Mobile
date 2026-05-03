@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Image,
   ActivityIndicator,
   Alert,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -28,9 +28,6 @@ import {
 } from '../../data/personalityTests/types';
 import PersonalityService from '../../services/PersonalityService';
 import { usePersonality } from '../../contexts/PersonalityContext';
-
-const BackIcon = require('../../../assets/images/settings/BackButtonIcon.png');
-const ProfileBackIcon = require('../../../assets/images/profile/ProfileBackIcon.png');
 
 const LIKERT_ORDER: LikertValue[] = [1, 2, 3, 4, 5];
 
@@ -150,8 +147,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
         <View style={[dk.content, { paddingTop: insets.top + 16 }]}>
           {/* Header: back + progress + exit */}
           <View style={dk.headerRow}>
-            <Pressable style={dk.backRow} onPress={handleBack}>
-              <Image source={BackIcon} style={dk.backIcon} resizeMode="contain" />
+            <Pressable style={dk.backRow} onPress={handleBack} hitSlop={12}>
+              <Feather name="chevron-left" size={28} color="#FFFFFF" />
             </Pressable>
             <Text style={dk.progressText}>
               {currentIndex + 1} of {def.questions.length}
@@ -247,8 +244,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
         {/* Header: back + progress + exit */}
         <View style={lt.headerRow}>
-          <Pressable style={lt.backRow} onPress={handleBack}>
-            <Image source={ProfileBackIcon} style={lt.backIcon} resizeMode="contain" />
+          <Pressable style={lt.backRow} onPress={handleBack} hitSlop={12}>
+            <Feather name="chevron-left" size={28} color="#3A0E66" />
           </Pressable>
           <Text style={lt.progressText}>
             {currentIndex + 1} of {def.questions.length}
@@ -349,7 +346,6 @@ const dk = StyleSheet.create({
     marginBottom: 10,
   },
   backRow: { padding: 4 },
-  backIcon: { width: 36, height: 36 },
   progressText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
@@ -477,7 +473,6 @@ const lt = StyleSheet.create({
     marginBottom: 10,
   },
   backRow: { padding: 4 },
-  backIcon: { width: 36, height: 36 },
   // Light path: page-bg ink for AA on the so-u1k lavender wash.
   progressText: {
     fontFamily: fonts.outfit.medium,

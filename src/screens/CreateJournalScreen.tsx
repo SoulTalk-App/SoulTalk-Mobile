@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   Pressable,
-  Image,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -27,8 +26,7 @@ import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-
-const BackIcon = require('../../assets/images/settings/BackButtonIcon.png');
+import { Feather } from '@expo/vector-icons';
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -43,7 +41,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         flex: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
-        backIcon: { width: 32, height: 32 },
         headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.text.primary },
         soulPal: { marginRight: 4 },
         contentCard: { flex: 1, borderRadius: 14, padding: 18, backgroundColor: 'rgba(255, 255, 255, 0.07)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)' },
@@ -63,7 +60,6 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         flex: { flex: 1 },
         content: { flex: 1, paddingHorizontal: 22 },
         backRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-        backIcon: { width: 36, height: 36 },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
@@ -243,8 +239,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         <KeyboardAvoidingView style={dkS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={[dkS.content, { paddingTop: insets.top + 16 }]}>
             <View style={dkS.headerRow}>
-              <Pressable onPress={() => navigation.goBack()} hitSlop={8}>
-                <Image source={BackIcon} style={dkS.backIcon} resizeMode="contain" />
+              <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+                <Feather name="chevron-left" size={28} color="#FFFFFF" />
               </Pressable>
               <Text style={dkS.headerTitle}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
               <SoulPalAnimated pose="default" size={32} animate showEyes={false} style={dkS.soulPal} />
@@ -296,8 +292,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dawn">
       <KeyboardAvoidingView style={ltS.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[ltS.content, { paddingTop: insets.top + 16 }]}>
-          <Pressable style={ltS.backRow} onPress={() => navigation.goBack()}>
-            <Image source={BackIcon} style={ltS.backIcon} resizeMode="contain" />
+          <Pressable style={ltS.backRow} onPress={() => navigation.goBack()} hitSlop={12}>
+            <Feather name="chevron-left" size={28} color="#3A0E66" />
             <Text style={ltS.backText}>{isEdit ? 'Edit Entry' : 'New Entry'}</Text>
           </Pressable>
           <InspirationDropdown />

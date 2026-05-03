@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
@@ -490,7 +490,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       {/* Purple Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
-          <Ionicons name="chevron-back" size={24} color={colors.white} />
+          <Feather name="chevron-left" size={28} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SoulTalk</Text>
         <View style={styles.backButton} />

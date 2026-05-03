@@ -15,6 +15,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -55,8 +56,6 @@ const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const BackIconDark = require('../../assets/images/settings/BackButtonIcon.png');
-const BackIconLight = require('../../assets/images/common/BackIconPink.png');
 const CloudsBg = require('../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../assets/images/home/CloudsRight.png');
@@ -144,10 +143,6 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
           backgroundColor: colors.white,
           justifyContent: 'center',
           alignItems: 'center',
-        },
-        backIcon: {
-          width: 32,
-          height: 32,
         },
 
         // Affirmation text area
@@ -438,7 +433,6 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
   // pink — clouds layer over it pre-reveal, pink shows through on reveal.
   // TODO(theme): map '#33335B' / '#2B2B54' to palette keys (dark mirror bg).
   const containerBg = isDarkMode ? '#33335B' : colors.accent.pink;
-  const backIcon = isDarkMode ? BackIconDark : BackIconLight;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
@@ -541,7 +535,7 @@ const AffirmationMirrorScreen = ({ navigation, route }: any) => {
       >
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
           <View style={styles.backIconCircle}>
-            <Image source={backIcon} style={styles.backIcon} resizeMode="contain" />
+            <Feather name="chevron-left" size={26} color="#3A0E66" />
           </View>
         </Pressable>
       </Animated.View>
