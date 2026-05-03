@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,11 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAutoSave } from '../hooks/useAutoSave';
+import {
+  useLocalDraft,
+  loadLocalDraft,
+  clearLocalDraft,
+} from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
@@ -94,6 +99,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     enabled: !isEdit || (isEdit && editEntry.is_draft),
   });
 
+  // Local-storage draft persistence (so-skm). Crash-recovery for voice-to-text
+  // and force-quits — captures every change on a 500ms debounce, far tighter
+  // than the 30s server save above. Disabled in edit mode of finalized entries
+  // since those aren't drafts being authored.
+  const localDraftEnabled = !isEdit;
+
   // Voice recording with live transcription
   const {
     isRecording,
@@ -148,6 +159,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         entryId = result?.id || null;
       }
       savedEntryIdRef.current = entryId;
+      // Clear the local crash-recovery draft (so-skm) on successful submit so
+      // the next New Entry session starts clean.
+      clearLocalDraft();
       setShowSaveAnimation(true);
     } catch (error: any) {
       const status = error?.response?.status;
@@ -173,6 +187,52 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const displayValue = isRecording && liveTranscript
     ? (textBeforeRecordingRef.current.trim() ? textBeforeRecordingRef.current + ' ' : '') + liveTranscript
     : text;
+
+  // Persist displayValue (text + interim live transcript when dictating) on
+  // every change, debounced. Catches crashes mid-dictation since live partials
+  // flow through this same value.
+  useLocalDraft({
+    value: displayValue,
+    draftId,
+    enabled: localDraftEnabled,
+  });
+
+  // Restore-on-mount prompt (so-skm). Run once for new entries only — edit
+  // mode opens a specific entry and shouldn't be hijacked by a stale local
+  // draft. Reconcile with the server-side draft via updatedAt: if the local
+  // copy is newer (typical post-crash), prefer it.
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    (async () => {
+      const local = await loadLocalDraft();
+      if (cancelled || !local || !local.text.trim()) return;
+      Alert.alert(
+        'Restore unfinished entry?',
+        "We saved your last entry locally before it was interrupted. Want to pick up where you left off?",
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              clearLocalDraft();
+            },
+          },
+          {
+            text: 'Restore',
+            onPress: () => {
+              setText(local.text);
+              if (local.draftId) setDraftId(local.draftId);
+            },
+          },
+        ],
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ════════════════════════════════════════
   // DARK MODE
