@@ -81,7 +81,7 @@ const HomeScreen = ({ navigation }: any) => {
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
-  const { soulBar, fetchSoulBar } = useJournal();
+  const { soulBar, fetchSoulBar, hasEntryToday } = useJournal();
 
   // SoulBar wiring (canonical GreetingHero).
   const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
@@ -1044,25 +1044,37 @@ const HomeScreen = ({ navigation }: any) => {
 
             {/* Daily feeling block */}
             <View style={dk.moodBlock}>
-              <Text style={dk.moodLabel}>Today, I am feeling…</Text>
+              <Text style={dk.moodLabel}>
+                {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
+              </Text>
               <View style={dk.moodInputRow}>
                 <TextInput
                   style={dk.moodInput}
-                  placeholder="One word…"
+                  placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
                   placeholderTextColor="rgba(255, 255, 255, 0.45)"
-                  value={moodWord}
+                  value={hasEntryToday ? '' : moodWord}
                   onChangeText={handleMoodChange}
                   onSubmitEditing={submitMoodWord}
                   onBlur={() => moodWord.trim() && submitMoodWord()}
                   maxLength={50}
                   returnKeyType="done"
-                  editable={!moodSaved}
+                  editable={!moodSaved && !hasEntryToday}
                   autoCorrect={false}
                 />
                 <Pressable
-                  style={dk.notebookBtn}
-                  onPress={() => navigation.navigate('CreateJournal')}
-                  accessibilityLabel="Open journal"
+                  style={[dk.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
+                  onPress={
+                    hasEntryToday
+                      ? undefined
+                      : () => navigation.navigate('CreateJournal')
+                  }
+                  disabled={hasEntryToday}
+                  accessibilityLabel={
+                    hasEntryToday
+                      ? 'Already journaled today, come back tomorrow'
+                      : 'Open journal'
+                  }
+                  accessibilityState={{ disabled: hasEntryToday }}
                 >
                   <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                     <Rect
@@ -1290,25 +1302,37 @@ const HomeScreen = ({ navigation }: any) => {
 
           {/* Daily feeling block */}
           <View style={lt.moodBlock}>
-            <Text style={lt.moodLabel}>Today, I am feeling…</Text>
+            <Text style={lt.moodLabel}>
+              {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
+            </Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
-                placeholder="One word…"
+                placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
                 placeholderTextColor="rgba(79, 23, 134, 0.45)"
-                value={moodWord}
+                value={hasEntryToday ? '' : moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
                 onBlur={() => moodWord.trim() && submitMoodWord()}
                 maxLength={50}
                 returnKeyType="done"
-                editable={!moodSaved}
+                editable={!moodSaved && !hasEntryToday}
                 autoCorrect={false}
               />
               <Pressable
-                style={lt.notebookBtn}
-                onPress={() => navigation.navigate('CreateJournal')}
-                accessibilityLabel="Open journal"
+                style={[lt.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
+                onPress={
+                  hasEntryToday
+                    ? undefined
+                    : () => navigation.navigate('CreateJournal')
+                }
+                disabled={hasEntryToday}
+                accessibilityLabel={
+                  hasEntryToday
+                    ? 'Already journaled today, come back tomorrow'
+                    : 'Open journal'
+                }
+                accessibilityState={{ disabled: hasEntryToday }}
               >
                 <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
                   <Rect
