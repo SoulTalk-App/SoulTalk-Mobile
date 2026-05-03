@@ -542,7 +542,9 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       fontFamily: fonts.outfit.medium,
       fontSize: 12,
       lineHeight: 28,
-      color: colors.accent.cyan,
+      // so-9cw: cyan reads clashy on the light lavender bg; fork to brand
+      // purple in light. Dark mode keeps cyan to match the so-iao input chrome.
+      color: isDark ? colors.accent.cyan : colors.primary,
       textDecorationLine: 'underline',
     },
     footerSeparator: {
