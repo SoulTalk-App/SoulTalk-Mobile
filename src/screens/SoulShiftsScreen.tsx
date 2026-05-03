@@ -111,8 +111,12 @@ const SoulShiftsScreen = ({ navigation }: any) => {
       setShifts((prev) =>
         prev.map((s) => (s.id === result.shift.id ? result.shift : s)),
       );
-      setDetail(updatedDetail);
       setTendOpen(false);
+      // Dismiss the entire flow (so-lbw): without this, the underlying detail
+      // modal re-appears once TendModal hides because all the gating booleans
+      // flip back. Toast + StageAdvance carry their own data snapshots, so
+      // nulling selectedId/detail here is safe.
+      handleClose();
 
       setToastShift(result.shift);
       setToastTendCount(result.tendCount);
