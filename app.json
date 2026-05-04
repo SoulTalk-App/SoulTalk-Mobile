@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soultalk.mobile",
-      "buildNumber": "30",
+      "buildNumber": "31",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to authenticate with SoulTalk",
         "NSMicrophoneUsageDescription": "SoulTalk needs microphone access for voice-to-text journaling",
