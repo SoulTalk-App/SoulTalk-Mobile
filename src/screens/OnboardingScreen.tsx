@@ -66,21 +66,24 @@ const slides = [
     id: '1',
     titleStart: 'Welcome to ',
     titleHighlight: 'SoulTalk',
-    tagline: 'Your space to slow down, reflect, and reconnect with your inner world',
+    tagline:
+      "A private space to slow down, reflect, and get to know the deeper parts of yourself. Tune into what's really going on inside",
     characterType: 'welcome',
   },
   {
     id: '2',
     titleStart: 'Meet your ',
     titleHighlight: 'SoulPal',
-    tagline: 'Your tiny companion for the journey inward',
+    tagline:
+      "Your tiny companion for the journey inward. SoulPal listens, remembers what matters to you, and helps you make sense of what you're feeling",
     characterType: 'soulpal',
   },
   {
     id: '3',
     titleStart: "What You'll ",
     titleHighlight: 'Discover',
-    tagline: 'A gentler way to understand yourself, one reflection at a time',
+    tagline:
+      "Patterns you've been missing. Shifts you didn't know you were making. A gentler way to understand yourself, one reflection at a time.",
     characterType: 'discover',
   },
 ];
