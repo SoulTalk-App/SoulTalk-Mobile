@@ -245,6 +245,10 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
+                {/* so-cjr: replaced the full-card Under Construction overlay
+                    (so-2cy) with a small text label. No tap-blocking; color
+                    picker is interactive again. */}
+                <Text style={dk.underConstructionLabel}>Under Construction</Text>
                 <View style={dk.colorPickerGrid}>
                   {soulPalPalette.map((c) => (
                     <Pressable
@@ -259,13 +263,6 @@ const ProfileScreen = ({ navigation }: any) => {
                   ))}
                 </View>
               </View>
-            </View>
-            {/* Under Construction overlay (so-2cy) — same pattern as the
-                achievements card above; absolute-fill blocks taps on the
-                color picker until the customization feature ships. */}
-            <View style={dk.comingSoonOverlay}>
-              <Image source={LockIconDark} style={dk.comingSoonLock} resizeMode="contain" />
-              <Text style={dk.comingSoonLabel}>Under Construction</Text>
             </View>
           </GlassCard>
         </ScrollView>
@@ -448,6 +445,8 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>
+              {/* so-cjr: small text label replaces the full-card overlay. */}
+              <Text style={lt.underConstructionLabel}>Under Construction</Text>
               <View style={lt.colorPickerGrid}>
                 {soulPalPalette.map((c) => (
                   <Pressable
@@ -462,12 +461,6 @@ const ProfileScreen = ({ navigation }: any) => {
                 ))}
               </View>
             </View>
-          </View>
-          {/* Under Construction overlay (so-2cy) — mirrors dk + the
-              achievements pattern; absolute-fill blocks taps on the picker. */}
-          <View style={lt.comingSoonOverlay}>
-            <Image source={LockIcon} style={lt.comingSoonLock} resizeMode="contain" />
-            <Text style={lt.comingSoonLabel}>Under Construction</Text>
           </View>
         </View>
       </ScrollView>
@@ -826,6 +819,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     lineHeight: 16 * 1.4,
     color: colors.white,
     marginBottom: 10,
+  },
+  // so-cjr: small caps subline replacing the full-card overlay from so-2cy.
+  underConstructionLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: -4,
+    marginBottom: 8,
   },
   colorPickerGrid: {
     flexDirection: 'row',
@@ -1219,6 +1222,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     lineHeight: 16 * 1.4,
     color: colors.primary,
     marginBottom: 10,
+  },
+  // so-cjr: small caps subline replacing the full-card overlay from so-2cy.
+  underConstructionLabel: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 11,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: 'rgba(58,14,102,0.5)',
+    marginTop: -4,
+    marginBottom: 8,
   },
   colorPickerGrid: {
     flexDirection: 'row',
