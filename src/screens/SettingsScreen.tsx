@@ -35,7 +35,7 @@ const PRONOUN_OPTIONS = [
 
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, deleteAccount } = useAuth();
   const { isDarkMode, themePref, setThemePref } = useTheme();
   const colors = useThemeColors();
   const styles = useMemo(() => buildStyles(colors, isDarkMode), [colors, isDarkMode]);
@@ -157,6 +157,45 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
+  const performDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+    } catch (error: any) {
+      Alert.alert(
+        'Deletion Failed',
+        error?.message || 'Could not delete your account. Please try again.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Retry', style: 'destructive', onPress: performDeleteAccount },
+        ],
+      );
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your SoulTalk account?',
+      'This permanently removes your journal entries, soul signals, soul shifts, soulsights, mood history, and personality test results. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your account and all related data will be permanently deleted.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete forever', style: 'destructive', onPress: performDeleteAccount },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <CosmicScreen tone="void">
       <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
@@ -274,6 +313,11 @@ const SettingsScreen = ({ navigation }: any) => {
         {/* Log Out */}
         <Pressable onPress={handleLogout}>
           <Text style={styles.logoutText}>LOG OUT</Text>
+        </Pressable>
+
+        {/* Delete Account */}
+        <Pressable onPress={handleDeleteAccount}>
+          <Text style={styles.deleteAccountText}>DELETE ACCOUNT</Text>
         </Pressable>
 
         {/* Spacer */}
@@ -530,6 +574,15 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       lineHeight: 46,
       color: colors.error,
       marginTop: 4,
+    },
+
+    // Delete Account (destructive — Apple 5.1.1(v) requirement)
+    deleteAccountText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 15,
+      lineHeight: 32,
+      color: colors.error,
+      textDecorationLine: 'underline',
     },
 
     // Footer

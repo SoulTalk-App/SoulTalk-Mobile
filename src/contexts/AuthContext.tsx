@@ -67,6 +67,8 @@ interface AuthContextType {
   setPassword: (password: string) => Promise<void>;
   // Logout all devices
   logoutAllDevices: () => Promise<void>;
+  // Account deletion
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -394,6 +396,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    try {
+      try {
+        await NotificationService.unregisterPushToken();
+      } catch (_e) {
+        console.log('Push token unregister failed, continuing delete');
+      }
+      await AuthService.deleteAccount();
+      setUser(null);
+      setIsAuthenticated(false);
+      await AsyncStorage.removeItem('user_logged_in');
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      throw error;
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -416,6 +435,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     changePassword,
     setPassword,
     logoutAllDevices,
+    deleteAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
