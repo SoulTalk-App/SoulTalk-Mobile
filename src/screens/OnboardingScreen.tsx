@@ -60,8 +60,26 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+type FeatherName = React.ComponentProps<typeof Feather>['name'];
+
+interface SlideFeature {
+  name: string;
+  desc: string;
+  icon: FeatherName;
+}
+
+interface Slide {
+  id: string;
+  titleStart: string;
+  titleHighlight: string;
+  tagline: string | null;
+  characterType: 'welcome' | 'soulpal' | 'discover' | 'features';
+  features?: SlideFeature[];
+  privacyLine?: string;
+}
+
 // Slide data
-const slides = [
+const slides: Slide[] = [
   {
     id: '1',
     titleStart: 'Welcome to ',
@@ -85,6 +103,22 @@ const slides = [
     tagline:
       "Patterns you've been missing. Shifts you didn't know you were making. A gentler way to understand yourself, one reflection at a time.",
     characterType: 'discover',
+  },
+  {
+    id: '4',
+    titleStart: "What's ",
+    titleHighlight: 'Inside',
+    tagline: null,
+    characterType: 'features',
+    features: [
+      { name: 'Daily Reflection', desc: "Write or speak what's on your mind.", icon: 'edit-3' },
+      { name: 'Affirmation Mirror', desc: 'Grounded reminders that meet you where you are.', icon: 'sun' },
+      { name: 'SoulSight', desc: 'Deeper insights into yourself over time.', icon: 'eye' },
+      { name: 'SoulSignals', desc: 'Patterns and narratives that surface as you reflect.', icon: 'activity' },
+      { name: 'SoulShifts', desc: 'Suggestions to implement change in your daily life.', icon: 'shuffle' },
+      { name: 'Personality Tests', desc: 'A starting map of how you move through the world.', icon: 'compass' },
+    ],
+    privacyLine: 'Everything you share stays private. Always.',
   },
 ];
 
@@ -275,6 +309,44 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           lineHeight: 24,
           paddingHorizontal: 10,
           marginBottom: 40,
+        },
+        // so-c6h: Slide 4 'What's Inside' feature list + privacy footer.
+        featuresList: {
+          flex: 1,
+          paddingTop: 24,
+          paddingBottom: 16,
+        },
+        featureRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 14,
+          marginBottom: 14,
+        },
+        featureIcon: {
+          marginTop: 2,
+        },
+        featureText: {
+          flex: 1,
+          minWidth: 0,
+        },
+        featureName: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 15,
+          color: isDarkMode ? colors.white : colors.text.primary,
+          marginBottom: 2,
+        },
+        featureDesc: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 13 * 1.45,
+          color: isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(58, 14, 102, 0.7)',
+        },
+        privacyLine: {
+          marginTop: 12,
+          fontFamily: fonts.edensor.italic,
+          fontSize: 12,
+          color: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(58, 14, 102, 0.6)',
+          textAlign: 'center',
         },
         bottomBar: {
           // Dark: translucent deep-cosmic so the CosmicScreen night atmosphere
@@ -537,6 +609,39 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           );
       }
     };
+
+    if (slide.characterType === 'features') {
+      // so-c6h: Slide 4 ('What's Inside') swaps the floating character for a
+      // feature list + privacy footer. No decoration animations, no tagline —
+      // the list itself is the body.
+      return (
+        <Animated.View style={[styles.slideContent, containerStyle]}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleStart}>{slide.titleStart}</Text>
+            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+          </View>
+          <View style={styles.featuresList}>
+            {slide.features?.map((f) => (
+              <View key={f.name} style={styles.featureRow}>
+                <Feather
+                  name={f.icon}
+                  size={20}
+                  color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
+                  style={styles.featureIcon}
+                />
+                <View style={styles.featureText}>
+                  <Text style={styles.featureName}>{f.name}</Text>
+                  <Text style={styles.featureDesc}>{f.desc}</Text>
+                </View>
+              </View>
+            ))}
+            {slide.privacyLine && (
+              <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
+            )}
+          </View>
+        </Animated.View>
+      );
+    }
 
     return (
       <Animated.View style={[styles.slideContent, containerStyle]}>
