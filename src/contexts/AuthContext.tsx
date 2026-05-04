@@ -53,6 +53,7 @@ interface AuthContextType {
   // Social auth methods
   loginWithGoogle: (idToken: string) => Promise<void>;
   loginWithFacebook: (accessToken: string) => Promise<void>;
+  loginWithApple: (identityToken: string, fullName?: string | null) => Promise<void>;
   // Account linking
   linkGoogleAccount: (idToken: string) => Promise<void>;
   linkFacebookAccount: (accessToken: string) => Promise<void>;
@@ -262,6 +263,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null) => {
+    try {
+      setIsLoading(true);
+      await AuthService.loginWithApple(identityToken, fullName);
+
+      const userInfo = await AuthService.getCurrentUser();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+      ensureCountryCode(userInfo);
+
+      await AsyncStorage.setItem('user_logged_in', 'true');
+    } catch (error) {
+      console.error('Apple login failed:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const loginWithFacebook = useCallback(async (accessToken: string) => {
     try {
       setIsLoading(true);
@@ -425,6 +447,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     loginWithGoogle,
     loginWithFacebook,
+    loginWithApple,
     linkGoogleAccount,
     linkFacebookAccount,
     unlinkProvider,
