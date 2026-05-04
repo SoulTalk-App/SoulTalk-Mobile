@@ -134,6 +134,37 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   };
 
   const handleResonance = async (id: string, value: ResonanceVote) => {
+    if (value === 'not_quite') {
+      // so-xli: 'Not quite' now means mute indefinitely. Confirm first; on
+      // confirm, record the vote AND mute forever, then drop from the active
+      // feed. Cancel is a true no-op (no vote recorded).
+      Alert.alert(
+        'Mute this signal?',
+        "We'll stop showing this signal. You can unmute it later from the Muted filter.",
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Mute',
+            style: 'destructive',
+            onPress: async () => {
+              setResonanceSubmitting('not_quite');
+              try {
+                await SoulSignalsService.setResonance(id, 'not_quite');
+                await SoulSignalsService.muteSignal(id, 'forever');
+                // Default list excludes muted, mirror that locally.
+                setSignals((prev) => prev.filter((s) => s.id !== id));
+                handleClose();
+              } catch (err: any) {
+                console.log('[SoulSignals] not_quite + mute error:', err?.message);
+              } finally {
+                setResonanceSubmitting(null);
+              }
+            },
+          },
+        ],
+      );
+      return;
+    }
     setResonanceSubmitting(value);
     try {
       const updated = await SoulSignalsService.setResonance(id, value);
