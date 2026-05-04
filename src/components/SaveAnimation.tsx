@@ -6,19 +6,35 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
+  withRepeat,
+  cancelAnimation,
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
 
 interface SaveAnimationProps {
   visible: boolean;
+  /**
+   * When false, the star loader loops indefinitely (analysis still in
+   * progress). When it flips true, stars settle to a converged state and
+   * the checkmark fades in (so-apy).
+   */
+  done: boolean;
   onComplete: () => void;
 }
 
 const STAR_COUNT = 8;
 const DURATION = 1500;
 
-const StarShape = ({ index, total }: { index: number; total: number }) => {
+const StarShape = ({
+  index,
+  total,
+  done,
+}: {
+  index: number;
+  total: number;
+  done: boolean;
+}) => {
   const angle = (index / total) * Math.PI * 2;
   const startRadius = 120;
   const startX = Math.cos(angle) * startRadius;
@@ -29,22 +45,59 @@ const StarShape = ({ index, total }: { index: number; total: number }) => {
   const scale = useSharedValue(0.3);
   const rotation = useSharedValue(0);
 
+  // so-apy: loop the converge cycle while analysis is in flight. Each cycle
+  // fades stars in at the far position, converges to center, then fades out
+  // and instantly resets so the next cycle starts fresh outside the visible
+  // frame.
   useEffect(() => {
     const delay = index * 40;
-    opacity.value = withDelay(delay, withTiming(1, { duration: 200 }));
+
     scale.value = withDelay(delay, withTiming(1, { duration: 300 }));
-    rotation.value = withDelay(
+
+    opacity.value = withDelay(
       delay,
-      withTiming(360 + index * 45, { duration: DURATION - 200, easing: Easing.inOut(Easing.ease) }),
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 200 }),
+          withDelay(DURATION - 400, withTiming(0, { duration: 200 })),
+        ),
+        -1,
+        false,
+      ),
     );
+
+    rotation.value = withRepeat(
+      withTiming(360 + index * 45, {
+        duration: DURATION,
+        easing: Easing.linear,
+      }),
+      -1,
+      false,
+    );
+
     progress.value = withDelay(
       delay,
-      withSequence(
-        withTiming(0.3, { duration: 400, easing: Easing.out(Easing.ease) }),
-        withTiming(1, { duration: DURATION - 600, easing: Easing.in(Easing.ease) }),
+      withRepeat(
+        withSequence(
+          withTiming(0.3, { duration: 400, easing: Easing.out(Easing.ease) }),
+          withTiming(1, { duration: DURATION - 600, easing: Easing.in(Easing.ease) }),
+          withTiming(0, { duration: 1 }),
+        ),
+        -1,
+        false,
       ),
     );
   }, []);
+
+  // When analysis completes, settle stars to converged + faded so the
+  // checkmark has a clean stage to pop in.
+  useEffect(() => {
+    if (!done) return;
+    cancelAnimation(progress);
+    cancelAnimation(opacity);
+    progress.value = withTiming(1, { duration: 280, easing: Easing.out(Easing.ease) });
+    opacity.value = withTiming(0, { duration: 360 });
+  }, [done]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const x = startX * (1 - progress.value);
@@ -70,31 +123,43 @@ const StarShape = ({ index, total }: { index: number; total: number }) => {
   );
 };
 
-const SaveAnimation: React.FC<SaveAnimationProps> = ({ visible, onComplete }) => {
+const SaveAnimation: React.FC<SaveAnimationProps> = ({ visible, done, onComplete }) => {
   const checkOpacity = useSharedValue(0);
   const checkScale = useSharedValue(0);
   const overlayOpacity = useSharedValue(0);
 
+  // Fade the overlay in on mount.
   useEffect(() => {
     if (visible) {
       overlayOpacity.value = withTiming(1, { duration: 200 });
-      // Show checkmark after stars converge
-      checkOpacity.value = withDelay(DURATION - 300, withTiming(1, { duration: 300 }));
-      checkScale.value = withDelay(
-        DURATION - 300,
-        withSequence(
-          withTiming(1.2, { duration: 200, easing: Easing.out(Easing.ease) }),
-          withTiming(1, { duration: 150 }),
-        ),
-      );
-      // Fade out and complete
-      const timeout = setTimeout(() => {
-        overlayOpacity.value = withTiming(0, { duration: 300 });
-        setTimeout(() => runOnJS(onComplete)(), 300);
-      }, DURATION + 200);
-      return () => clearTimeout(timeout);
     }
   }, [visible]);
+
+  // Trigger the checkmark + fade-out only once analysis is done (so-apy).
+  useEffect(() => {
+    if (!visible || !done) return;
+    // Brief settle window so the converging stars have a beat to clear before
+    // the checkmark pops in.
+    const SETTLE = 380;
+    checkOpacity.value = withDelay(SETTLE, withTiming(1, { duration: 300 }));
+    checkScale.value = withDelay(
+      SETTLE,
+      withSequence(
+        withTiming(1.2, { duration: 200, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 150 }),
+      ),
+    );
+    const fadeAt = SETTLE + 700;
+    const completeAt = fadeAt + 320;
+    const fade = setTimeout(() => {
+      overlayOpacity.value = withTiming(0, { duration: 300 });
+    }, fadeAt);
+    const complete = setTimeout(() => onComplete(), completeAt);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(complete);
+    };
+  }, [done, visible]);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
@@ -111,7 +176,7 @@ const SaveAnimation: React.FC<SaveAnimationProps> = ({ visible, onComplete }) =>
     <Animated.View style={[styles.overlay, overlayStyle]}>
       <View style={styles.center}>
         {Array.from({ length: STAR_COUNT }).map((_, i) => (
-          <StarShape key={i} index={i} total={STAR_COUNT} />
+          <StarShape key={i} index={i} total={STAR_COUNT} done={done} />
         ))}
         <Animated.View style={[styles.checkContainer, checkStyle]}>
           <View style={styles.checkmark}>

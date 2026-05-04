@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -93,6 +95,12 @@ export function SignalsTurnToShiftModal({
           onPress={onClose}
           accessibilityLabel="Dismiss"
         />
+        {/* so-4g1: KeyboardAvoidingView lifts the sheet above the keyboard. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreen}
+          pointerEvents="box-none"
+        >
         <View
           style={[
             styles.sheetWrap,
@@ -267,6 +275,7 @@ export function SignalsTurnToShiftModal({
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

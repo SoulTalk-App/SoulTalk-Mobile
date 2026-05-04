@@ -60,28 +60,65 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+type FeatherName = React.ComponentProps<typeof Feather>['name'];
+
+interface SlideFeature {
+  name: string;
+  desc: string;
+  icon: FeatherName;
+}
+
+interface Slide {
+  id: string;
+  titleStart: string;
+  titleHighlight: string;
+  tagline: string | null;
+  characterType: 'welcome' | 'soulpal' | 'discover' | 'features';
+  features?: SlideFeature[];
+  privacyLine?: string;
+}
+
 // Slide data
-const slides = [
+const slides: Slide[] = [
   {
     id: '1',
     titleStart: 'Welcome to ',
     titleHighlight: 'SoulTalk',
-    tagline: 'Your space to slow down, reflect, and reconnect with your inner world',
+    tagline:
+      "A private space to slow down, reflect, and get to know the deeper parts of yourself. Tune into what's really going on inside",
     characterType: 'welcome',
   },
   {
     id: '2',
     titleStart: 'Meet your ',
     titleHighlight: 'SoulPal',
-    tagline: 'Your tiny companion for the journey inward',
+    tagline:
+      "Your tiny companion for the journey inward. SoulPal listens, remembers what matters to you, and helps you make sense of what you're feeling",
     characterType: 'soulpal',
   },
   {
     id: '3',
     titleStart: "What You'll ",
     titleHighlight: 'Discover',
-    tagline: 'A gentler way to understand yourself, one reflection at a time',
+    tagline:
+      "Patterns you've been missing. Shifts you didn't know you were making. A gentler way to understand yourself, one reflection at a time.",
     characterType: 'discover',
+  },
+  {
+    id: '4',
+    titleStart: "What's ",
+    titleHighlight: 'Inside',
+    tagline: null,
+    characterType: 'features',
+    features: [
+      { name: 'Daily Reflection', desc: "Write or speak what's on your mind.", icon: 'edit-3' },
+      { name: 'Affirmation Mirror', desc: 'Grounded reminders that meet you where you are.', icon: 'sun' },
+      { name: 'SoulSight', desc: 'Deeper insights into yourself over time.', icon: 'eye' },
+      { name: 'SoulSignals', desc: 'Patterns and narratives that surface as you reflect.', icon: 'activity' },
+      { name: 'SoulShifts', desc: 'Suggestions to implement change in your daily life.', icon: 'shuffle' },
+      { name: 'Personality Tests', desc: 'A starting map of how you move through the world.', icon: 'compass' },
+    ],
+    privacyLine: 'Everything you share stays private. Always.',
   },
 ];
 
@@ -272,6 +309,80 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           lineHeight: 24,
           paddingHorizontal: 10,
           marginBottom: 40,
+        },
+        // so-c6h + so-6rj: Slide 4 'What's Inside' feature list + privacy promise.
+        featuresSlideContent: {
+          // Override slideContent's default 'space-between' so the inner block
+          // can center vertically without leaving big bottom whitespace.
+          justifyContent: 'center',
+          paddingTop: 60,
+        },
+        featuresInner: {
+          width: '100%',
+        },
+        featuresTitleContainer: {
+          // Center the title to match slides 1-3's centered chrome (so-6rj).
+          justifyContent: 'center',
+          alignSelf: 'center',
+          marginBottom: 24,
+        },
+        featuresList: {
+          paddingBottom: 4,
+        },
+        featureRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 14,
+          marginBottom: 16,
+        },
+        featureIcon: {
+          marginTop: 1,
+        },
+        featureText: {
+          flex: 1,
+          minWidth: 0,
+        },
+        featureName: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 15,
+          color: isDarkMode ? colors.white : colors.text.primary,
+          marginBottom: 2,
+        },
+        featureDesc: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 13 * 1.45,
+          color: isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(58, 14, 102, 0.7)',
+        },
+        // Privacy promise block — divider + lock leading-icon + larger
+        // higher-contrast italic so it reads as a deliberate promise (so-6rj).
+        privacyBlock: {
+          marginTop: 14,
+        },
+        privacyDivider: {
+          height: 1,
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.16)'
+            : 'rgba(58, 14, 102, 0.14)',
+          marginBottom: 12,
+        },
+        privacyRow: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+          paddingHorizontal: 16,
+        },
+        privacyLeadIcon: {
+          marginTop: 1,
+        },
+        privacyLine: {
+          fontFamily: fonts.edensor.italic,
+          fontSize: 14,
+          letterSpacing: 0.3,
+          color: isDarkMode ? 'rgba(255,255,255,0.92)' : colors.text.primary,
+          textAlign: 'center',
+          flexShrink: 1,
         },
         bottomBar: {
           // Dark: translucent deep-cosmic so the CosmicScreen night atmosphere
@@ -535,6 +646,54 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       }
     };
 
+    if (slide.characterType === 'features') {
+      // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
+      // emphasized privacy promise, all centered vertically in the available
+      // space between the safe-area top and the bottom bar.
+      return (
+        <Animated.View
+          style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
+        >
+          <View style={styles.featuresInner}>
+            <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
+              <Text style={styles.titleStart}>{slide.titleStart}</Text>
+              <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+            </View>
+            <View style={styles.featuresList}>
+              {slide.features?.map((f) => (
+                <View key={f.name} style={styles.featureRow}>
+                  <Feather
+                    name={f.icon}
+                    size={24}
+                    color={isDarkMode ? colors.white : colors.text.primary}
+                    style={styles.featureIcon}
+                  />
+                  <View style={styles.featureText}>
+                    <Text style={styles.featureName}>{f.name}</Text>
+                    <Text style={styles.featureDesc}>{f.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            {slide.privacyLine && (
+              <View style={styles.privacyBlock}>
+                <View style={styles.privacyDivider} />
+                <View style={styles.privacyRow}>
+                  <Feather
+                    name="lock"
+                    size={14}
+                    color={isDarkMode ? colors.white : colors.text.primary}
+                    style={styles.privacyLeadIcon}
+                  />
+                  <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      );
+    }
+
     return (
       <Animated.View style={[styles.slideContent, containerStyle]}>
         {/* Title */}
@@ -605,12 +764,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slideOpacity0 = useSharedValue(1);
   const slideOpacity1 = useSharedValue(0);
   const slideOpacity2 = useSharedValue(0);
+  const slideOpacity3 = useSharedValue(0);  // so-uy3: 'What's Inside' slide
 
   // Scale values for morph effect
   // Slides 0 & 2 (Welcome & Discover) are smaller, Slide 1 (SoulPal) is larger
   const slideScale0 = useSharedValue(0.9);  // Welcome - smaller
   const slideScale1 = useSharedValue(1.5);  // SoulPal - large (grouped characters)
   const slideScale2 = useSharedValue(0.9);  // Discover - smaller
+  const slideScale3 = useSharedValue(0.9);  // so-uy3: features list — default size, no character to morph
 
   // Shared floating animation values (all slides share these)
   const floatY = useSharedValue(0);
@@ -633,15 +794,17 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const getOpacityForSlide = useCallback((index: number) => {
     if (index === 0) return slideOpacity0;
     if (index === 1) return slideOpacity1;
-    return slideOpacity2;
-  }, [slideOpacity0, slideOpacity1, slideOpacity2]);
+    if (index === 2) return slideOpacity2;
+    return slideOpacity3;
+  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3]);
 
   // Get scale shared value for a slide index
   const getScaleForSlide = useCallback((index: number) => {
     if (index === 0) return slideScale0;
     if (index === 1) return slideScale1;
-    return slideScale2;
-  }, [slideScale0, slideScale1, slideScale2]);
+    if (index === 2) return slideScale2;
+    return slideScale3;
+  }, [slideScale0, slideScale1, slideScale2, slideScale3]);
 
   // Initialize floating animations
   useEffect(() => {
@@ -733,9 +896,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       slideOpacity0.value = 1;
       slideOpacity1.value = 0;
       slideOpacity2.value = 0;
+      slideOpacity3.value = 0;
       slideScale0.value = 0.9;
       slideScale1.value = 1.5;
       slideScale2.value = 0.9;
+      slideScale3.value = 0.9;
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;

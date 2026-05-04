@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -63,6 +65,12 @@ export function ReleaseModal({
           onPress={onClose}
           accessibilityLabel="Dismiss"
         />
+        {/* so-4g1: KeyboardAvoidingView lifts the sheet above the keyboard. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreen}
+          pointerEvents="box-none"
+        >
         <View
           style={[
             styles.sheetWrap,
@@ -190,6 +198,7 @@ export function ReleaseModal({
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

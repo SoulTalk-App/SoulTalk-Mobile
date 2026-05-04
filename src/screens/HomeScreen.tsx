@@ -86,7 +86,6 @@ const HomeScreen = ({ navigation }: any) => {
   // SoulBar wiring (canonical GreetingHero).
   const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
   const soulBarRemaining = Math.max(0, SOUL_BAR_SEGMENTS - soulBarFilled);
-  const soulBarTotalFilled = soulBar?.total_filled ?? 0;
 
   const dk = useMemo(
     () =>
@@ -304,13 +303,9 @@ const HomeScreen = ({ navigation }: any) => {
         soulBarFooter: {
           marginTop: 8,
           flexDirection: 'row',
-          justifyContent: 'space-between',
-        },
-        soulBarFooterLabel: {
-          fontFamily: fonts.outfit.regular,
-          // 11 → 12 per typography.caption floor (so-cn9)
-          fontSize: 12,
-          color: colors.text.secondary,
+          // so-cvs: footer is single-cell after dropping the 'Filled X time(s)
+          // this week' label — anchor the remaining status message to the right.
+          justifyContent: 'flex-end',
         },
         soulBarFooterRight: {
           fontFamily: fonts.edensor.italic,
@@ -692,14 +687,8 @@ const HomeScreen = ({ navigation }: any) => {
         soulBarFooter: {
           marginTop: 8,
           flexDirection: 'row',
-          justifyContent: 'space-between',
-        },
-        soulBarFooterLabel: {
-          fontFamily: fonts.outfit.regular,
-          // 11 → 12 per typography.caption floor
-          fontSize: 12,
-          // matches light inkSub exactly
-          color: 'rgba(58, 14, 102, 0.7)',
+          // so-cvs: single-cell footer post-label-removal — right-anchor the status.
+          justifyContent: 'flex-end',
         },
         soulBarFooterRight: {
           fontFamily: fonts.edensor.italic,
@@ -1166,9 +1155,6 @@ const HomeScreen = ({ navigation }: any) => {
                 </Text>
               )}
               <View style={dk.soulBarFooter}>
-                <Text style={dk.soulBarFooterLabel}>
-                  Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
-                </Text>
                 <Text style={dk.soulBarFooterRight}>
                   {soulBarFilled >= SOUL_BAR_SEGMENTS
                     ? 'cycle complete ✦'
@@ -1424,9 +1410,6 @@ const HomeScreen = ({ navigation }: any) => {
               </Text>
             )}
             <View style={lt.soulBarFooter}>
-              <Text style={lt.soulBarFooterLabel}>
-                Filled {soulBarTotalFilled} time{soulBarTotalFilled === 1 ? '' : 's'} this week
-              </Text>
               <Text style={lt.soulBarFooterRight}>
                 {soulBarFilled >= SOUL_BAR_SEGMENTS
                   ? 'cycle complete ✦'

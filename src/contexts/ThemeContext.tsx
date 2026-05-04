@@ -17,8 +17,8 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  themePref: 'system',
-  isDarkMode: false,
+  themePref: 'dark',
+  isDarkMode: true,
   themeLoaded: false,
   setThemePref: () => {},
   toggleTheme: () => {},
@@ -28,7 +28,8 @@ const isThemePref = (val: unknown): val is ThemePref =>
   val === 'system' || val === 'light' || val === 'dark';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [themePref, setThemePrefState] = useState<ThemePref>('system');
+  // so-33w: first-launch default is dark — user manually opts into light/system.
+  const [themePref, setThemePrefState] = useState<ThemePref>('dark');
   const [systemScheme, setSystemScheme] = useState<ColorSchemeName>(
     Appearance.getColorScheme()
   );
@@ -41,7 +42,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setThemePrefState(stored);
       } else {
         const legacy = await AsyncStorage.getItem(LEGACY_DARK_KEY);
-        const migrated: ThemePref = legacy === 'true' ? 'dark' : 'system';
+        // so-33w: no legacy flag either → genuine first-launch → default to dark.
+        const migrated: ThemePref = legacy === 'true' ? 'dark' : 'dark';
         setThemePrefState(migrated);
         await AsyncStorage.setItem(THEME_PREF_KEY, migrated);
       }

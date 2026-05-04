@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -105,6 +107,14 @@ export function TendModal({
           onPress={onClose}
           accessibilityLabel="Dismiss"
         />
+        {/* so-4g1: KeyboardAvoidingView lifts the sheet so the keyboard
+            doesn't cover the Submit / confirm CTA. pointerEvents='box-none'
+            so taps fall through to the scrim where the sheet doesn't cover. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreen}
+          pointerEvents="box-none"
+        >
         {detail && (
           <View
             style={[
@@ -258,6 +268,7 @@ export function TendModal({
             </View>
           </View>
         )}
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -356,12 +367,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 6,
   },
-  // Body-length Edensor italic per so-6a7.
+  // so-5an: unified to outfit.regular to match the journal-entry input font.
+  // Dropped letterSpacing — Outfit doesn't need the tracking that Edensor did.
   noteInput: {
-    fontFamily: fonts.edensor.italic,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 16 * 1.45,
-    letterSpacing: 0.2,
     minHeight: 48,
     padding: 0,
   },

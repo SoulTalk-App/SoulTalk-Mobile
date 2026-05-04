@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -96,6 +98,12 @@ export function SnoozeModal({
           onPress={onClose}
           accessibilityLabel="Dismiss"
         />
+        {/* so-4g1: KeyboardAvoidingView lifts the sheet above the keyboard. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreen}
+          pointerEvents="box-none"
+        >
         <View
           style={[
             styles.sheetWrap,
@@ -282,6 +290,7 @@ export function SnoozeModal({
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
