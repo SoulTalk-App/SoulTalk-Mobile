@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
+import { useAppleAuth } from '../hooks/useAppleAuth';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -61,7 +62,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     confirmPassword: '',
   });
 
-  const { register, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { register, loginWithGoogle, loginWithFacebook, loginWithApple } = useAuth();
 
   // Social auth hooks
   const {
@@ -75,6 +76,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     promptAsync: promptFacebookAsync,
     getAccessToken: getFacebookAccessToken,
   } = useFacebookAuth();
+
+  const {
+    response: appleResponse,
+    promptAsync: promptAppleAsync,
+    getIdentityToken: getAppleIdentityToken,
+    getFullName: getAppleFullName,
+    isAvailable: isAppleAvailable,
+    isLoading: isAppleLoading,
+  } = useAppleAuth();
 
   const styles = useMemo(
     () =>
@@ -281,6 +291,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         facebookButton: {
           backgroundColor: '#1877F2',
         },
+        // Apple HIG: black on light, white on dark; equal prominence to other socials.
+        appleButton: {
+          backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
+        },
         footer: {
           alignItems: 'center',
           marginTop: -30,
@@ -322,6 +336,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
   }, [facebookResponse]);
 
+  // Handle Apple auth response
+  useEffect(() => {
+    if (appleResponse?.type === 'success') {
+      const identityToken = getAppleIdentityToken();
+      if (identityToken) {
+        handleAppleSignUp(identityToken, getAppleFullName());
+      }
+    } else if (appleResponse?.type === 'error') {
+      Alert.alert('Apple Sign-Up Failed', appleResponse.error?.message || 'An error occurred');
+    }
+  }, [appleResponse]);
+
   const handleGoogleSignUp = async (idToken: string) => {
     try {
       setIsLoading(true);
@@ -341,6 +367,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       // Navigation will be handled by the auth state change
     } catch (error: any) {
       Alert.alert('Facebook Sign-Up Failed', error.message || 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignUp = async (identityToken: string, fullName: string | null) => {
+    try {
+      setIsLoading(true);
+      await loginWithApple(identityToken, fullName);
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
+      Alert.alert('Apple Sign-Up Failed', error.message || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -482,6 +520,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
       await promptFacebookAsync();
+    } else if (provider === 'Apple') {
+      await promptAppleAsync();
     }
   };
 
@@ -697,6 +737,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               >
                 <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
               </TouchableOpacity>
+
+              {isAppleAvailable && (
+                <TouchableOpacity
+                  style={[styles.socialButton, styles.appleButton]}
+                  onPress={() => handleSocialLogin('Apple')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign up with Apple"
+                  disabled={isAppleLoading}
+                >
+                  <FontAwesome5 name="apple" size={24} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                </TouchableOpacity>
+              )}
 
             </View>
           </View>

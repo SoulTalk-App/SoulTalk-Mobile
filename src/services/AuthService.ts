@@ -291,6 +291,22 @@ class AuthService {
     }
   }
 
+  async loginWithApple(identityToken: string, fullName?: string | null): Promise<TokenResponse> {
+    try {
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/apple', {
+        identity_token: identityToken,
+        full_name: fullName ?? null,
+      });
+
+      const tokenData = response.data;
+      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
+
+      return tokenData;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Apple login failed');
+    }
+  }
+
   async loginWithFacebook(accessToken: string): Promise<TokenResponse> {
     try {
       const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', {
