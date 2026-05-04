@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -105,6 +107,14 @@ export function TendModal({
           onPress={onClose}
           accessibilityLabel="Dismiss"
         />
+        {/* so-4g1: KeyboardAvoidingView lifts the sheet so the keyboard
+            doesn't cover the Submit / confirm CTA. pointerEvents='box-none'
+            so taps fall through to the scrim where the sheet doesn't cover. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.fullScreen}
+          pointerEvents="box-none"
+        >
         {detail && (
           <View
             style={[
@@ -258,6 +268,7 @@ export function TendModal({
             </View>
           </View>
         )}
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
