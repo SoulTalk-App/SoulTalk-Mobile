@@ -310,20 +310,33 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           paddingHorizontal: 10,
           marginBottom: 40,
         },
-        // so-c6h: Slide 4 'What's Inside' feature list + privacy footer.
+        // so-c6h + so-6rj: Slide 4 'What's Inside' feature list + privacy promise.
+        featuresSlideContent: {
+          // Override slideContent's default 'space-between' so the inner block
+          // can center vertically without leaving big bottom whitespace.
+          justifyContent: 'center',
+          paddingTop: 60,
+        },
+        featuresInner: {
+          width: '100%',
+        },
+        featuresTitleContainer: {
+          // Center the title to match slides 1-3's centered chrome (so-6rj).
+          justifyContent: 'center',
+          alignSelf: 'center',
+          marginBottom: 24,
+        },
         featuresList: {
-          flex: 1,
-          paddingTop: 24,
-          paddingBottom: 16,
+          paddingBottom: 4,
         },
         featureRow: {
           flexDirection: 'row',
           alignItems: 'flex-start',
           gap: 14,
-          marginBottom: 14,
+          marginBottom: 16,
         },
         featureIcon: {
-          marginTop: 2,
+          marginTop: 1,
         },
         featureText: {
           flex: 1,
@@ -341,12 +354,35 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           lineHeight: 13 * 1.45,
           color: isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(58, 14, 102, 0.7)',
         },
+        // Privacy promise block — divider + lock leading-icon + larger
+        // higher-contrast italic so it reads as a deliberate promise (so-6rj).
+        privacyBlock: {
+          marginTop: 14,
+        },
+        privacyDivider: {
+          height: 1,
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.16)'
+            : 'rgba(58, 14, 102, 0.14)',
+          marginBottom: 12,
+        },
+        privacyRow: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+          paddingHorizontal: 16,
+        },
+        privacyLeadIcon: {
+          marginTop: 1,
+        },
         privacyLine: {
-          marginTop: 12,
           fontFamily: fonts.edensor.italic,
-          fontSize: 12,
-          color: isDarkMode ? 'rgba(255,255,255,0.55)' : 'rgba(58, 14, 102, 0.6)',
+          fontSize: 14,
+          letterSpacing: 0.3,
+          color: isDarkMode ? 'rgba(255,255,255,0.92)' : colors.text.primary,
           textAlign: 'center',
+          flexShrink: 1,
         },
         bottomBar: {
           // Dark: translucent deep-cosmic so the CosmicScreen night atmosphere
@@ -611,32 +647,47 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     };
 
     if (slide.characterType === 'features') {
-      // so-c6h: Slide 4 ('What's Inside') swaps the floating character for a
-      // feature list + privacy footer. No decoration animations, no tagline —
-      // the list itself is the body.
+      // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
+      // emphasized privacy promise, all centered vertically in the available
+      // space between the safe-area top and the bottom bar.
       return (
-        <Animated.View style={[styles.slideContent, containerStyle]}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.titleStart}>{slide.titleStart}</Text>
-            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-          </View>
-          <View style={styles.featuresList}>
-            {slide.features?.map((f) => (
-              <View key={f.name} style={styles.featureRow}>
-                <Feather
-                  name={f.icon}
-                  size={20}
-                  color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
-                  style={styles.featureIcon}
-                />
-                <View style={styles.featureText}>
-                  <Text style={styles.featureName}>{f.name}</Text>
-                  <Text style={styles.featureDesc}>{f.desc}</Text>
+        <Animated.View
+          style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
+        >
+          <View style={styles.featuresInner}>
+            <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
+              <Text style={styles.titleStart}>{slide.titleStart}</Text>
+              <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+            </View>
+            <View style={styles.featuresList}>
+              {slide.features?.map((f) => (
+                <View key={f.name} style={styles.featureRow}>
+                  <Feather
+                    name={f.icon}
+                    size={24}
+                    color={isDarkMode ? colors.white : colors.text.primary}
+                    style={styles.featureIcon}
+                  />
+                  <View style={styles.featureText}>
+                    <Text style={styles.featureName}>{f.name}</Text>
+                    <Text style={styles.featureDesc}>{f.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+            {slide.privacyLine && (
+              <View style={styles.privacyBlock}>
+                <View style={styles.privacyDivider} />
+                <View style={styles.privacyRow}>
+                  <Feather
+                    name="lock"
+                    size={14}
+                    color={isDarkMode ? colors.white : colors.text.primary}
+                    style={styles.privacyLeadIcon}
+                  />
+                  <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
                 </View>
               </View>
-            ))}
-            {slide.privacyLine && (
-              <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
             )}
           </View>
         </Animated.View>
