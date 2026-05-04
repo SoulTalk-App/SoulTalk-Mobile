@@ -639,10 +639,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
             </View>
 
-            {/* Terms and Privacy Checkbox */}
+            {/* Terms and Privacy Checkbox. so-9qi: tapping the row toggles
+                consent AND opens the Terms screen — surfaces terms at the
+                moment of consent so users don't agree blindly. */}
             <TouchableOpacity
               style={styles.termsContainer}
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
+              onPress={() => {
+                setAgreedToTerms(!agreedToTerms);
+                handleTermsPress();
+              }}
               activeOpacity={0.7}
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
