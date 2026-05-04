@@ -383,7 +383,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-      <SaveAnimation visible={showSaveAnimation} onComplete={handleSaveAnimationComplete} />
+      <SaveAnimation visible={showSaveAnimation} done={analysisDone} onComplete={handleSaveAnimationComplete} />
     </CosmicScreen>
   );
 };
