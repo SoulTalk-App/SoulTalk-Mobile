@@ -208,6 +208,15 @@ class AuthService {
     }
   }
 
+  async deleteAccount(): Promise<void> {
+    try {
+      await this.axiosInstance.delete('/auth/me');
+      await this.clearStoredTokens();
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Account deletion failed');
+    }
+  }
+
   async refreshTokens(): Promise<boolean> {
     try {
       const refreshToken = await this.getStoredRefreshToken();
