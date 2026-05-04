@@ -234,13 +234,20 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   };
 
   const handleClosePattern = () => {
+    // so-ans: dismiss the entire modal stack — the visibility gate would
+    // otherwise let the detail modal re-show under the pattern as soon as
+    // patternTag flips null. Same close-cascade pattern as so-lbw/so-h76.
     setPatternTag(null);
     setPatternAggregate(null);
+    handleClose();
   };
 
   const handlePatternNoticingPress = (id: string) => {
-    // Crossfade: close pattern, open detail with the chosen noticing.
-    handleClosePattern();
+    // Crossfade: clear pattern state and open the chosen noticing's detail.
+    // Doesn't call handleClosePattern — that would also null selectedId, and
+    // we want to swap the detail to a new signal, not dismiss it.
+    setPatternTag(null);
+    setPatternAggregate(null);
     handlePatternPress(id);
   };
 
