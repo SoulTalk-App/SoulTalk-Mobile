@@ -36,13 +36,13 @@ export function ChargeUpGrid({
       </View>
       <View style={styles.row2}>
         <View style={styles.row2Cell}>
-          <SoulShiftsCard theme={theme} onPress={onShiftsPress} />
+          <SoulSightsCard theme={theme} onPress={onSightsPress} />
         </View>
         <View style={styles.row2Cell}>
           <SoulSignalsCard theme={theme} onPress={onSignalsPress} />
         </View>
         <View style={styles.row2Cell}>
-          <SoulSightsCard theme={theme} onPress={onSightsPress} />
+          <SoulShiftsCard theme={theme} onPress={onShiftsPress} />
         </View>
       </View>
     </View>

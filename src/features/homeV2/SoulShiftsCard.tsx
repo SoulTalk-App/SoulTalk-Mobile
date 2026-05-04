@@ -1,10 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, G, Path } from 'react-native-svg';
-import { fonts } from '../../theme';
 import { CardShell } from './CardShell';
-import { PURPLE, PURPLE_INK, TEAL_DEEP, Theme } from './tokens';
+import { PURPLE, TEAL_DEEP, Theme } from './tokens';
 
 type Props = { theme: Theme; onPress?: () => void };
 
@@ -32,15 +31,6 @@ export function SoulShiftsCard({ theme, onPress }: Props) {
         end={GRAD_END}
         style={StyleSheet.absoluteFill}
       />
-
-      <Text
-        style={[
-          styles.title,
-          { color: isDark ? '#fff' : PURPLE_INK },
-        ]}
-      >
-        Soul Shifts
-      </Text>
 
       <Svg
         style={StyleSheet.absoluteFill}
@@ -77,13 +67,3 @@ export function SoulShiftsCard({ theme, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    fontFamily: fonts.outfit.bold,
-    fontSize: 11,
-    letterSpacing: 0.4,
-  },
-});

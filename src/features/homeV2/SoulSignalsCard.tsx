@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, G, RadialGradient, Rect, Stop } from 'react-native-svg';
 import Animated, {
@@ -9,9 +9,8 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { fonts } from '../../theme';
 import { CardShell } from './CardShell';
-import { ORANGE, ORANGE_DEEP, PURPLE_INK, Theme, YELLOW } from './tokens';
+import { ORANGE, ORANGE_DEEP, Theme, YELLOW } from './tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -84,8 +83,6 @@ export function SoulSignalsCard({ theme, onPress }: Props) {
         />
       )}
 
-      <Text style={[styles.title, { color: isDark ? '#fff' : PURPLE_INK }]}>Soul Signals</Text>
-
       <Svg
         style={StyleSheet.absoluteFill}
         viewBox="0 0 120 140"
@@ -105,13 +102,3 @@ export function SoulSignalsCard({ theme, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    fontFamily: fonts.outfit.bold,
-    fontSize: 11,
-    letterSpacing: 0.4,
-  },
-});
