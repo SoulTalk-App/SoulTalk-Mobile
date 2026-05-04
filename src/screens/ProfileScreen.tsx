@@ -260,6 +260,13 @@ const ProfileScreen = ({ navigation }: any) => {
                 </View>
               </View>
             </View>
+            {/* Under Construction overlay (so-2cy) — same pattern as the
+                achievements card above; absolute-fill blocks taps on the
+                color picker until the customization feature ships. */}
+            <View style={dk.comingSoonOverlay}>
+              <Image source={LockIconDark} style={dk.comingSoonLock} resizeMode="contain" />
+              <Text style={dk.comingSoonLabel}>Under Construction</Text>
+            </View>
           </GlassCard>
         </ScrollView>
 
@@ -455,6 +462,12 @@ const ProfileScreen = ({ navigation }: any) => {
                 ))}
               </View>
             </View>
+          </View>
+          {/* Under Construction overlay (so-2cy) — mirrors dk + the
+              achievements pattern; absolute-fill blocks taps on the picker. */}
+          <View style={lt.comingSoonOverlay}>
+            <Image source={LockIcon} style={lt.comingSoonLock} resizeMode="contain" />
+            <Text style={lt.comingSoonLabel}>Under Construction</Text>
           </View>
         </View>
       </ScrollView>
