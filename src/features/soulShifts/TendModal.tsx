@@ -356,12 +356,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 6,
   },
-  // Body-length Edensor italic per so-6a7.
+  // so-5an: unified to outfit.regular to match the journal-entry input font.
+  // Dropped letterSpacing — Outfit doesn't need the tracking that Edensor did.
   noteInput: {
-    fontFamily: fonts.edensor.italic,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 16 * 1.45,
-    letterSpacing: 0.2,
     minHeight: 48,
     padding: 0,
   },

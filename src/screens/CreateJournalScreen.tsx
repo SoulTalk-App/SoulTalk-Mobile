@@ -44,7 +44,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         headerTitle: { flex: 1, fontFamily: fonts.edensor.bold, fontSize: 24, color: colors.text.primary },
         soulPal: { marginRight: 4 },
         contentCard: { flex: 1, borderRadius: 14, padding: 18, backgroundColor: 'rgba(255, 255, 255, 0.07)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.10)' },
-        textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: colors.text.primary },
+        textInput: { flex: 1, fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.6, color: colors.text.primary },
         bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
         saveButton: { flex: 1, height: 52, backgroundColor: colors.primary, borderRadius: 26, justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
         saveButtonDisabled: { opacity: 0.3 },
@@ -63,7 +63,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
         backText: { fontFamily: fonts.outfit.semiBold, fontSize: 24, color: colors.text.primary },
         contentCard: { flex: 1, backgroundColor: colors.white, borderRadius: 10, padding: 20 },
-        textInput: { flex: 1, fontFamily: fonts.outfit.light, fontSize: 16, lineHeight: 16 * 1.6, color: '#333333' },
+        textInput: { flex: 1, fontFamily: fonts.outfit.regular, fontSize: 16, lineHeight: 16 * 1.6, color: '#333333' },
         bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingTop: 16, gap: 16 },
         saveButton: { flex: 1, height: 56, backgroundColor: '#59168B', borderRadius: 28, borderWidth: 2, borderColor: colors.white, justifyContent: 'center', alignItems: 'center' },
         saveButtonDisabled: { opacity: 0.5 },
