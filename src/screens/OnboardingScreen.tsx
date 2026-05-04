@@ -713,12 +713,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slideOpacity0 = useSharedValue(1);
   const slideOpacity1 = useSharedValue(0);
   const slideOpacity2 = useSharedValue(0);
+  const slideOpacity3 = useSharedValue(0);  // so-uy3: 'What's Inside' slide
 
   // Scale values for morph effect
   // Slides 0 & 2 (Welcome & Discover) are smaller, Slide 1 (SoulPal) is larger
   const slideScale0 = useSharedValue(0.9);  // Welcome - smaller
   const slideScale1 = useSharedValue(1.5);  // SoulPal - large (grouped characters)
   const slideScale2 = useSharedValue(0.9);  // Discover - smaller
+  const slideScale3 = useSharedValue(0.9);  // so-uy3: features list — default size, no character to morph
 
   // Shared floating animation values (all slides share these)
   const floatY = useSharedValue(0);
@@ -741,15 +743,17 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const getOpacityForSlide = useCallback((index: number) => {
     if (index === 0) return slideOpacity0;
     if (index === 1) return slideOpacity1;
-    return slideOpacity2;
-  }, [slideOpacity0, slideOpacity1, slideOpacity2]);
+    if (index === 2) return slideOpacity2;
+    return slideOpacity3;
+  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3]);
 
   // Get scale shared value for a slide index
   const getScaleForSlide = useCallback((index: number) => {
     if (index === 0) return slideScale0;
     if (index === 1) return slideScale1;
-    return slideScale2;
-  }, [slideScale0, slideScale1, slideScale2]);
+    if (index === 2) return slideScale2;
+    return slideScale3;
+  }, [slideScale0, slideScale1, slideScale2, slideScale3]);
 
   // Initialize floating animations
   useEffect(() => {
@@ -841,9 +845,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       slideOpacity0.value = 1;
       slideOpacity1.value = 0;
       slideOpacity2.value = 0;
+      slideOpacity3.value = 0;
       slideScale0.value = 0.9;
       slideScale1.value = 1.5;
       slideScale2.value = 0.9;
+      slideScale3.value = 0.9;
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;
