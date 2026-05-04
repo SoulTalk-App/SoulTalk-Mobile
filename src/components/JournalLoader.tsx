@@ -92,8 +92,18 @@ const JournalLoader: React.FC = () => {
     transform: [{ translateY: bob.value }],
   }));
 
+  // so-bxy: pivot the right-arm rotation from its shoulder corner (top-left
+  // of the asset, where it meets the torso) instead of the geometric center.
+  // RN has no transformOrigin, so the standard trick is translate → rotate →
+  // translate-back. For a 26×27 image, half-extents are (13, 13.5).
   const armStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${armRotate.value}deg` }],
+    transform: [
+      { translateX: -13 },
+      { translateY: -13.5 },
+      { rotate: `${armRotate.value}deg` },
+      { translateX: 13 },
+      { translateY: 13.5 },
+    ],
   }));
 
   const dot1Style = useAnimatedStyle(() => ({
@@ -154,19 +164,21 @@ const styles = StyleSheet.create({
     width: 60,
     height: 84,
   },
+  // so-bxy: tops symmetric (was 50/51 — visible 1px misalignment), arms
+  // pulled tighter against the body silhouette (was 2 — left visible gap).
   armLeft: {
     position: 'absolute',
     width: 24,
     height: 28,
-    left: 2,
-    top: 50,
+    left: 6,
+    top: 52,
   },
   armRight: {
     position: 'absolute',
     width: 26,
     height: 27,
-    right: 2,
-    top: 51,
+    right: 6,
+    top: 52,
   },
   dotsRow: {
     flexDirection: 'row',
