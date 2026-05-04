@@ -43,12 +43,16 @@ const JournalLoader: React.FC = () => {
       -1,
     );
 
-    // Right arm "writing" wiggle
+    // Right arm "writing" wiggle. so-5u5: reduced magnitudes (was 12/-8/6) so
+    // the center-pivot rotation reads as a subtle wrist twitch rather than a
+    // wide arm spin. Translate-rotate-translate from so-bxy was a no-op (RN
+    // rotate ignores surrounding translates and always pivots around the
+    // rendered center) — simplified back to a plain rotate.
     armRotate.value = withRepeat(
       withSequence(
-        withTiming(12, { duration: 300, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-8, { duration: 300, easing: Easing.inOut(Easing.ease) }),
-        withTiming(6, { duration: 250, easing: Easing.inOut(Easing.ease) }),
+        withTiming(5, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-3, { duration: 300, easing: Easing.inOut(Easing.ease) }),
+        withTiming(3, { duration: 250, easing: Easing.inOut(Easing.ease) }),
         withTiming(0, { duration: 250, easing: Easing.inOut(Easing.ease) }),
         withDelay(400, withTiming(0, { duration: 1 })),
       ),
@@ -92,18 +96,8 @@ const JournalLoader: React.FC = () => {
     transform: [{ translateY: bob.value }],
   }));
 
-  // so-bxy: pivot the right-arm rotation from its shoulder corner (top-left
-  // of the asset, where it meets the torso) instead of the geometric center.
-  // RN has no transformOrigin, so the standard trick is translate → rotate →
-  // translate-back. For a 26×27 image, half-extents are (13, 13.5).
   const armStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -13 },
-      { translateY: -13.5 },
-      { rotate: `${armRotate.value}deg` },
-      { translateX: 13 },
-      { translateY: 13.5 },
-    ],
+    transform: [{ rotate: `${armRotate.value}deg` }],
   }));
 
   const dot1Style = useAnimatedStyle(() => ({
@@ -164,21 +158,21 @@ const styles = StyleSheet.create({
     width: 60,
     height: 84,
   },
-  // so-bxy: tops symmetric (was 50/51 — visible 1px misalignment), arms
-  // pulled tighter against the body silhouette (was 2 — left visible gap).
+  // so-bxy + so-5u5: tops symmetric, arms pulled tighter to the body, top:38
+  // lands them at the shoulder line (lead-verified in sim — was waist at 52).
   armLeft: {
     position: 'absolute',
     width: 24,
     height: 28,
     left: 6,
-    top: 52,
+    top: 38,
   },
   armRight: {
     position: 'absolute',
     width: 26,
     height: 27,
     right: 6,
-    top: 52,
+    top: 38,
   },
   dotsRow: {
     flexDirection: 'row',
