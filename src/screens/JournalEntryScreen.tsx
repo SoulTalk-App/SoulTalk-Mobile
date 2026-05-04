@@ -57,7 +57,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         // 0.5 matches dark text.light (inkFaint) exactly
         entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.text.light, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
         // TODO(theme): map 'rgba(255, 255, 255, 0.88)' to palette key
-        entryText: { fontFamily: fonts.edensor.medium, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
+        entryText: { fontFamily: fonts.outfit.regular, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
       }),
     [colors],
   );

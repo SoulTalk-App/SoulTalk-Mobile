@@ -163,14 +163,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       // Clear the local crash-recovery draft (so-skm) on successful submit so
       // the next New Entry session starts clean.
       clearLocalDraft();
-      // so-apy: edit-mode (non-draft) doesn't trigger fresh AI analysis, so
-      // skip the polling and show the checkmark immediately. Fresh entries +
-      // draft-finalize fall through to the polling effect below.
-      if (isEdit && !editEntry.is_draft) {
-        setAnalysisDone(true);
-      } else {
-        setAnalysisDone(false);
-      }
+      setAnalysisDone(false);
       setShowSaveAnimation(true);
     } catch (error: any) {
       const status = error?.response?.status;
@@ -383,7 +376,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-      <SaveAnimation visible={showSaveAnimation} onComplete={handleSaveAnimationComplete} />
+      <SaveAnimation visible={showSaveAnimation} done={analysisDone} onComplete={handleSaveAnimationComplete} />
     </CosmicScreen>
   );
 };
