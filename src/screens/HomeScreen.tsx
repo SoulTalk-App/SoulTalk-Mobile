@@ -32,6 +32,7 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { MoodToast, MoodToastKind } from '../components/MoodToast';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -77,6 +78,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [moodWord, setMoodWord] = useState('');
   const [moodSaved, setMoodSaved] = useState(false);
+  const [moodToast, setMoodToast] = useState<MoodToastKind | null>(null);
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
@@ -916,13 +918,19 @@ const HomeScreen = ({ navigation }: any) => {
     const word = moodWord.trim();
     if (!word) return;
     try {
-      await JournalService.upsertTodayMood(word);
+      const res = await JournalService.upsertTodayMood(word);
       setMoodSaved(true);
       fetchSoulBar();
+      // so-3yb: differentiate the first save of the day (charges SoulBar)
+      // from a same-day update; BE returns is_first_fill on PUT only.
+      setMoodToast(res.is_first_fill ? 'first-fill' : 'update');
     } catch (e) {
       console.warn('[Mood] Failed to persist mood:', e);
+      setMoodToast('error');
     }
-  }, [fetchSoulBar]);
+  }, [fetchSoulBar, moodWord]);
+
+  const dismissMoodToast = useCallback(() => setMoodToast(null), []);
 
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Profile') {
@@ -1237,6 +1245,7 @@ const HomeScreen = ({ navigation }: any) => {
             </Animated.View>
           </View>
         </Animated.View>
+        <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
       </CosmicScreen>
     );
   }
@@ -1492,6 +1501,7 @@ const HomeScreen = ({ navigation }: any) => {
           </Animated.View>
         </View>
       </Animated.View>
+      <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
     </CosmicScreen>
   );
 };

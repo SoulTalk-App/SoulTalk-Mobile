@@ -76,6 +76,9 @@ export interface SoulBarResponse {
 export interface DailyMoodResponse {
   date: string;
   mood_word: string | null;
+  // so-3yb: PUT returns true on the first save of the day (charges SoulBar);
+  // GET always returns false. Used by HomeScreen to differentiate the toast.
+  is_first_fill: boolean;
 }
 
 class JournalService {
