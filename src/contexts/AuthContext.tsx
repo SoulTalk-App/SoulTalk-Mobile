@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
 import NotificationService from '../services/NotificationService';
+import { getDeviceTimezone } from '../utils/timezone';
 
 interface UserInfo {
   id: string;
@@ -15,6 +16,7 @@ interface UserInfo {
   bio?: string | null;
   pronoun?: string | null;
   country_code?: string | null;
+  timezone?: string | null;
   email_verified: boolean;
   providers: string[];
 }
@@ -27,6 +29,7 @@ interface ProfileUpdate {
   bio?: string | null;
   pronoun?: string | null;
   country_code?: string | null;
+  timezone?: string | null;
 }
 
 interface LinkedAccount {
@@ -107,6 +110,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // so-byw: keep users.timezone aligned with the device. Backfills NULLs
+  // (existing users from before this PR) and re-syncs after travel.
+  // Idempotent: only fires PUT when stored TZ differs from device TZ.
+  const ensureTimezone = useCallback(async (userInfo: UserInfo) => {
+    const deviceTz = getDeviceTimezone();
+    if (userInfo.timezone === deviceTz) return;
+    try {
+      const updated = await AuthService.updateProfile({ timezone: deviceTz });
+      setUser(updated);
+    } catch (_e) {
+      // Silent — don't block auth flow for TZ sync. Will retry on next
+      // cold-start. 422 surfaces here for unknown IANA strings (shouldn't
+      // happen with Intl-derived values).
+    }
+  }, []);
+
   const checkAuthState = useCallback(async () => {
     if (initializingRef.current) {
       return; // Prevent multiple simultaneous auth checks
@@ -127,6 +146,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(userInfo);
           setIsAuthenticated(true);
           ensureCountryCode(userInfo);
+          ensureTimezone(userInfo);
         } catch (userError) {
           console.error('Failed to get user info:', userError);
           // If we can't get user info, clear auth state
@@ -161,6 +181,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
+      ensureTimezone(userInfo);
 
       // Store login state for offline check
       await AsyncStorage.setItem('user_logged_in', 'true');
@@ -179,7 +200,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     last_name: string;
   }) => {
     try {
-      await AuthService.register(userData);
+      // so-byw: include device TZ from row-zero so daily rollovers are
+      // local-correct on first login (no need to wait for the cold-start
+      // backfill cycle).
+      await AuthService.register({ ...userData, timezone: getDeviceTimezone() });
       // Note: User will need to verify email via OTP before they can login
     } catch (error) {
       console.error('Registration failed:', error);
@@ -251,6 +275,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
+      ensureTimezone(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -272,6 +297,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
+      ensureTimezone(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -293,6 +319,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
+      ensureTimezone(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -357,6 +384,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo);
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
+      ensureTimezone(userInfo);
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
       console.error('Email verification failed:', error);
