@@ -200,7 +200,10 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
   const handleAccept = async () => {
     await AsyncStorage.setItem('@terms_accepted', 'true');
     await completeOnboarding();
-    navigation.replace("Register");
+    // so-37a: goBack() preserves the existing Register instance + form state.
+    // From Onboarding, user re-taps Next which now reads @terms_accepted=true
+    // and forwards to Register.
+    navigation.goBack();
   };
 
   const handleButtonPressIn = useCallback(() => {
