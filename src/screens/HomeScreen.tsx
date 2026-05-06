@@ -79,6 +79,11 @@ const HomeScreen = ({ navigation }: any) => {
   const [moodWord, setMoodWord] = useState('');
   const [moodSaved, setMoodSaved] = useState(false);
   const [moodToast, setMoodToast] = useState<MoodToastKind | null>(null);
+  // so-0nwv: tracks the in-flight PUT /mood/today so the Save chip can show
+  // a spinner before MoodToast lands. Ref-backed for synchronous dedupe
+  // (the Pressable's onPress + a fast double-tap can both queue otherwise).
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
@@ -192,6 +197,15 @@ const HomeScreen = ({ navigation }: any) => {
           fontSize: 16,
           color: colors.white,
           padding: 0,
+        },
+        saveBtn: {
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: SOULBAR_PINK,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         notebookBtn: {
           flexShrink: 0,
@@ -580,6 +594,15 @@ const HomeScreen = ({ navigation }: any) => {
           color: colors.text.primary,
           padding: 0,
         },
+        saveBtn: {
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: 9,
+          backgroundColor: SOULBAR_PINK,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
         notebookBtn: {
           flexShrink: 0,
           width: 30,
@@ -912,11 +935,16 @@ const HomeScreen = ({ navigation }: any) => {
     // Allow only alphabetic characters, no spaces or special chars
     const sanitized = text.replace(/[^a-zA-Z]/g, '');
     setMoodWord(sanitized);
+    // so-0nwv: typing after a save flips the chip back to its "ready to
+    // submit" state so the user sees the affordance is live again.
+    setMoodSaved(false);
   }, []);
 
   const submitMoodWord = useCallback(async () => {
     const word = moodWord.trim();
-    if (!word) return;
+    if (!word || submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       const res = await JournalService.upsertTodayMood(word);
       setMoodSaved(true);
@@ -927,10 +955,14 @@ const HomeScreen = ({ navigation }: any) => {
     } catch (e) {
       console.warn('[Mood] Failed to persist mood:', e);
       setMoodToast('error');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }, [fetchSoulBar, moodWord]);
 
   const dismissMoodToast = useCallback(() => setMoodToast(null), []);
+  const canSubmitMood = moodWord.trim().length > 0 && !submitting;
 
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Profile') {
@@ -1039,25 +1071,55 @@ const HomeScreen = ({ navigation }: any) => {
               </Pressable>
             </View>
 
-            {/* Daily feeling block */}
+            {/* Daily feeling block — so-0nwv: mood + journal are independent
+                surfaces. Label/placeholder/editability no longer key off
+                hasEntryToday; the Save chip is the primary submit affordance. */}
             <View style={dk.moodBlock}>
-              <Text style={dk.moodLabel}>
-                {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
-              </Text>
+              <Text style={dk.moodLabel}>Today, I am feeling…</Text>
               <View style={dk.moodInputRow}>
                 <TextInput
                   style={dk.moodInput}
-                  placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
+                  placeholder="One word…"
                   placeholderTextColor="rgba(255, 255, 255, 0.45)"
-                  value={hasEntryToday ? '' : moodWord}
+                  value={moodWord}
                   onChangeText={handleMoodChange}
                   onSubmitEditing={submitMoodWord}
-                  onBlur={() => moodWord.trim() && submitMoodWord()}
                   maxLength={50}
                   returnKeyType="done"
-                  editable={!moodSaved && !hasEntryToday}
+                  editable={!submitting}
                   autoCorrect={false}
                 />
+                <Pressable
+                  style={[dk.saveBtn, !canSubmitMood && { opacity: 0.45 }]}
+                  onPress={submitMoodWord}
+                  disabled={!canSubmitMood}
+                  accessibilityLabel="Save mood word"
+                  accessibilityState={{ disabled: !canSubmitMood, busy: submitting }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : moodSaved ? (
+                    <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                      <Path
+                        d="M3 7.5L6 10.5L11 4.5"
+                        stroke="#fff"
+                        strokeWidth={1.6}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  ) : (
+                    <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                      <Path
+                        d="M3 7H11M11 7L7.5 3.5M11 7L7.5 10.5"
+                        stroke="#fff"
+                        strokeWidth={1.6}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  )}
+                </Pressable>
                 <Pressable
                   style={[dk.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
                   onPress={
@@ -1295,25 +1357,55 @@ const HomeScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* Daily feeling block */}
+          {/* Daily feeling block — so-0nwv: mood + journal are independent
+              surfaces. Label/placeholder/editability no longer key off
+              hasEntryToday; the Save chip is the primary submit affordance. */}
           <View style={lt.moodBlock}>
-            <Text style={lt.moodLabel}>
-              {hasEntryToday ? "You've written today!" : 'Today, I am feeling…'}
-            </Text>
+            <Text style={lt.moodLabel}>Today, I am feeling…</Text>
             <View style={lt.moodInputRow}>
               <TextInput
                 style={lt.moodInput}
-                placeholder={hasEntryToday ? 'Come back tomorrow' : 'One word…'}
+                placeholder="One word…"
                 placeholderTextColor="rgba(79, 23, 134, 0.45)"
-                value={hasEntryToday ? '' : moodWord}
+                value={moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
-                onBlur={() => moodWord.trim() && submitMoodWord()}
                 maxLength={50}
                 returnKeyType="done"
-                editable={!moodSaved && !hasEntryToday}
+                editable={!submitting}
                 autoCorrect={false}
               />
+              <Pressable
+                style={[lt.saveBtn, !canSubmitMood && { opacity: 0.45 }]}
+                onPress={submitMoodWord}
+                disabled={!canSubmitMood}
+                accessibilityLabel="Save mood word"
+                accessibilityState={{ disabled: !canSubmitMood, busy: submitting }}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : moodSaved ? (
+                  <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                    <Path
+                      d="M3 7.5L6 10.5L11 4.5"
+                      stroke="#fff"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                ) : (
+                  <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+                    <Path
+                      d="M3 7H11M11 7L7.5 3.5M11 7L7.5 10.5"
+                      stroke="#fff"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </Svg>
+                )}
+              </Pressable>
               <Pressable
                 style={[lt.notebookBtn, hasEntryToday && { opacity: 0.45 }]}
                 onPress={
