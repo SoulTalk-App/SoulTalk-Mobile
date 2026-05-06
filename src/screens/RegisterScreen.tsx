@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -85,6 +86,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     isAvailable: isAppleAvailable,
     isLoading: isAppleLoading,
   } = useAppleAuth();
+
+  // so-37a: sync the checkbox from AsyncStorage on every screen focus so
+  // returning from Terms after Accept reflects the new state without remount.
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem('@terms_accepted')
+        .then((value) => setAgreedToTerms(value === 'true'))
+        .catch(() => {});
+    }, [])
+  );
 
   const styles = useMemo(
     () =>
@@ -515,7 +526,34 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Terms');
   };
 
+  // so-37a: clear consent (state + AsyncStorage) so subsequent gates re-fire.
+  const clearTermsAcceptance = async () => {
+    setAgreedToTerms(false);
+    try {
+      await AsyncStorage.removeItem('@terms_accepted');
+    } catch {}
+  };
+
+  const handleTermsRowPress = () => {
+    if (agreedToTerms) {
+      clearTermsAcceptance();
+    } else {
+      handleTermsPress();
+    }
+  };
+
   const handleSocialLogin = async (provider: string) => {
+    if (!agreedToTerms) {
+      Alert.alert(
+        'Accept Terms First',
+        `Please review and accept our Terms and Privacy Policy before signing up with ${provider}.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Review Terms', onPress: handleTermsPress },
+        ]
+      );
+      return;
+    }
     if (provider === 'Google') {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
@@ -679,15 +717,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
             </View>
 
-            {/* Terms and Privacy Checkbox. so-9qi: tapping the row toggles
-                consent AND opens the Terms screen — surfaces terms at the
-                moment of consent so users don't agree blindly. */}
+            {/* Terms and Privacy Checkbox. so-9qi opens Terms on tap;
+                so-37a: state only flips true via the AsyncStorage round-trip
+                from Accept on Terms (synced via useFocusEffect). Tapping a
+                checked row clears consent. */}
             <TouchableOpacity
               style={styles.termsContainer}
-              onPress={() => {
-                setAgreedToTerms(!agreedToTerms);
-                handleTermsPress();
-              }}
+              onPress={handleTermsRowPress}
               activeOpacity={0.7}
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
