@@ -29,6 +29,9 @@ interface UserRegistration {
   password: string;
   first_name: string;
   last_name: string;
+  // so-byw: IANA timezone (e.g. "Asia/Kolkata"). Optional on the wire;
+  // we always send it so the user row has it from row-zero.
+  timezone?: string;
 }
 
 interface UserLogin {
@@ -46,6 +49,8 @@ interface UserInfo {
   bio?: string | null;
   pronoun?: string | null;
   country_code?: string | null;
+  // so-byw: IANA timezone string or null when never set (BE falls back to UTC).
+  timezone?: string | null;
   email_verified: boolean;
   providers: string[];  // ['google', 'facebook', 'email']
 }
@@ -58,6 +63,8 @@ interface ProfileUpdate {
   bio?: string | null;
   pronoun?: string | null;
   country_code?: string | null;
+  // so-byw: empty string "" or null both clear back to NULL on the BE.
+  timezone?: string | null;
 }
 
 interface LinkedAccount {
