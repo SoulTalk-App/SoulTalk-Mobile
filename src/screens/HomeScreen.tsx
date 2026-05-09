@@ -1220,16 +1220,32 @@ const HomeScreen = ({ navigation }: any) => {
                 )}
               </View>
               {soulBarFilled >= SOUL_BAR_SEGMENTS && (
-                <Text style={dk.soulBarAvailableText}>
-                  You have a SoulSight available!
-                </Text>
+                <Pressable
+                  onPress={() => navigation.navigate('SoulSight')}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Open your SoulSight"
+                >
+                  <Text style={dk.soulBarAvailableText}>
+                    You have a SoulSight available! ›
+                  </Text>
+                </Pressable>
               )}
               <View style={dk.soulBarFooter}>
-                <Text style={dk.soulBarFooterRight}>
-                  {soulBarFilled >= SOUL_BAR_SEGMENTS
-                    ? 'cycle complete ✦'
-                    : `${soulBarRemaining} more to charge`}
-                </Text>
+                {soulBarFilled >= SOUL_BAR_SEGMENTS ? (
+                  <Pressable
+                    onPress={() => navigation.navigate('SoulSight')}
+                    hitSlop={8}
+                    accessibilityRole="link"
+                    accessibilityLabel="Open your SoulSight"
+                  >
+                    <Text style={dk.soulBarFooterRight}>cycle complete ✦</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={dk.soulBarFooterRight}>
+                    {`${soulBarRemaining} more to charge`}
+                  </Text>
+                )}
               </View>
               {soulBarInfoOpen && (
                 <Text style={dk.soulBarInfoCopy}>
@@ -1506,16 +1522,32 @@ const HomeScreen = ({ navigation }: any) => {
               )}
             </View>
             {soulBarFilled >= SOUL_BAR_SEGMENTS && (
-              <Text style={lt.soulBarAvailableText}>
-                You have a SoulSight available!
-              </Text>
+              <Pressable
+                onPress={() => navigation.navigate('SoulSight')}
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel="Open your SoulSight"
+              >
+                <Text style={lt.soulBarAvailableText}>
+                  You have a SoulSight available! ›
+                </Text>
+              </Pressable>
             )}
             <View style={lt.soulBarFooter}>
-              <Text style={lt.soulBarFooterRight}>
-                {soulBarFilled >= SOUL_BAR_SEGMENTS
-                  ? 'cycle complete ✦'
-                  : `${soulBarRemaining} more to charge`}
-              </Text>
+              {soulBarFilled >= SOUL_BAR_SEGMENTS ? (
+                <Pressable
+                  onPress={() => navigation.navigate('SoulSight')}
+                  hitSlop={8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Open your SoulSight"
+                >
+                  <Text style={lt.soulBarFooterRight}>cycle complete ✦</Text>
+                </Pressable>
+              ) : (
+                <Text style={lt.soulBarFooterRight}>
+                  {`${soulBarRemaining} more to charge`}
+                </Text>
+              )}
             </View>
             {soulBarInfoOpen && (
               <Text style={lt.soulBarInfoCopy}>

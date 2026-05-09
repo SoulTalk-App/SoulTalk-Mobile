@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -39,6 +39,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  // so-jokw: TOS checkbox parity with RegisterScreen. Default FALSE — a
+  // user landing on Login directly (reinstall, deep link, never finished
+  // onboarding) must explicitly check the box. Acceptance writes the
+  // same @terms_accepted AsyncStorage key onboarding uses.
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@terms_accepted')
+      .then((value) => setAgreedToTerms(value === 'true'))
+      .catch(() => {});
+  }, []);
+
+  const handleTermsRowPress = useCallback(async () => {
+    if (agreedToTerms) {
+      setAgreedToTerms(false);
+      try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
+    } else {
+      setAgreedToTerms(true);
+      try { await AsyncStorage.setItem('@terms_accepted', 'true'); } catch {}
+    }
+  }, [agreedToTerms]);
 
   // Focus states
   const [emailFocused, setEmailFocused] = useState(false);
@@ -170,6 +191,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         forgotPassword: {
           alignSelf: "flex-end",
           marginBottom: 24,
+        },
+        // so-jokw: TOS checkbox row, mirrors RegisterScreen pattern.
+        termsContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 24,
+          marginTop: 2,
+        },
+        checkbox: {
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: colors.primary,
+          marginRight: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        checkboxChecked: {
+          backgroundColor: colors.primary,
+        },
+        termsText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          color: colors.text.secondary,
+          flex: 1,
         },
         forgotPasswordText: {
           fontFamily: fonts.outfit.medium,
@@ -447,6 +494,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleSocialLogin = async (provider: string) => {
+    // so-jokw: defensive guard — buttons are hidden when !agreedToTerms,
+    // so this should never fire unchecked.
+    if (!agreedToTerms) return;
     if (provider === 'Google') {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
@@ -543,13 +593,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
+            {/* so-jokw: TOS checkbox + gating, parity with RegisterScreen.
+                Hydrated true on mount when @terms_accepted is set; default
+                FALSE for fresh installs landing here directly. */}
+            <TouchableOpacity
+              style={styles.termsContainer}
+              onPress={handleTermsRowPress}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
+              </View>
+              <Text style={styles.termsText}>
+                I agree to the Terms and Privacy
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.loginButton,
-                isLoading && styles.loginButtonDisabled,
+                (isLoading || !agreedToTerms) && styles.loginButtonDisabled,
               ]}
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={isLoading || !agreedToTerms}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
@@ -570,41 +636,46 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
             )}
 
-            {/* Social Login Section */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.divider} />
-            </View>
+            {/* Social Login Section. so-jokw: entire block hidden when
+                terms unchecked — overseer wants buttons to disappear, not
+                show as disabled. */}
+            {agreedToTerms && (
+              <>
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>or continue with</Text>
+                  <View style={styles.divider} />
+                </View>
 
-            <View style={styles.socialContainer}>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={() => handleSocialLogin("Google")}
-              >
-                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+                <View style={styles.socialContainer}>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.googleButton]}
+                    onPress={() => handleSocialLogin("Google")}
+                  >
+                    <FontAwesome5 name="google" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.socialButton, styles.facebookButton]}
-                onPress={() => handleSocialLogin("Facebook")}
-              >
-                <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.facebookButton]}
+                    onPress={() => handleSocialLogin("Facebook")}
+                  >
+                    <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
 
-              {isAppleAvailable && (
-                <TouchableOpacity
-                  style={[styles.socialButton, styles.appleButton]}
-                  onPress={() => handleSocialLogin("Apple")}
-                  accessibilityRole="button"
-                  accessibilityLabel="Sign in with Apple"
-                  disabled={isAppleLoading}
-                >
-                  <FontAwesome5 name="apple" size={24} color={isDarkMode ? "#000000" : "#FFFFFF"} />
-                </TouchableOpacity>
-              )}
-
-            </View>
+                  {isAppleAvailable && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, styles.appleButton]}
+                      onPress={() => handleSocialLogin("Apple")}
+                      accessibilityRole="button"
+                      accessibilityLabel="Sign in with Apple"
+                      disabled={isAppleLoading}
+                    >
+                      <FontAwesome5 name="apple" size={24} color={isDarkMode ? "#000000" : "#FFFFFF"} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
           </View>
 
           <View style={styles.footer}>

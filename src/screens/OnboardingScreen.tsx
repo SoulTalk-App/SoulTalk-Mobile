@@ -6,6 +6,7 @@ import {
   Dimensions,
   Image,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -28,6 +29,7 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
+import { privacyPolicy, termsOfService } from '../mocks/content';
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
 const FIGMA_SPRING_CONFIG = {
@@ -73,7 +75,7 @@ interface Slide {
   titleStart: string;
   titleHighlight: string;
   tagline: string | null;
-  characterType: 'welcome' | 'soulpal' | 'discover' | 'features';
+  characterType: 'welcome' | 'soulpal' | 'discover' | 'features' | 'terms';
   features?: SlideFeature[];
   privacyLine?: string;
 }
@@ -120,6 +122,16 @@ const slides: Slide[] = [
     ],
     privacyLine: 'Everything you share stays private. Always.',
   },
+  // so-jokw: required terms slide. The user MUST tap "I Accept" before they
+  // can advance to Register — this replaces the prior so-37a checkbox-on-
+  // RegisterScreen consent gate which had bounce-and-erase regressions.
+  {
+    id: '5',
+    titleStart: 'Terms & ',
+    titleHighlight: 'Privacy',
+    tagline: null,
+    characterType: 'terms',
+  },
 ];
 
 interface OnboardingScreenProps {
@@ -151,9 +163,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayIndices, setDisplayIndices] = useState<[number, number]>([0, -1]); // [current, outgoing]
   const isTransitioning = useRef(false);
+  // so-jokw: explicit consent for slide 5. Hydrated from AsyncStorage on
+  // mount so a returning user who already accepted on a prior session can
+  // walk through onboarding without being blocked again.
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@terms_accepted')
+      .then((v) => setTermsAccepted(v === 'true'))
+      .catch(() => {});
+  }, []);
 
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === slides.length - 1;
+  const isTermsSlide = slides[activeIndex]?.characterType === 'terms';
 
   const styles = useMemo(
     () =>
@@ -432,6 +455,71 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           alignItems: 'center',
           gap: 14,
         },
+        // so-jokw: terms slide ditches the centered character chrome —
+        // text-heavy, scrollable, full-bleed within slide padding.
+        termsSlideContent: {
+          justifyContent: 'flex-start',
+          paddingTop: 80,
+        },
+        termsScrollFrame: {
+          flex: 1,
+          marginTop: 16,
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.05)'
+            : 'rgba(255,255,255,0.7)',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: isDarkMode
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(58,14,102,0.10)',
+          overflow: 'hidden',
+        },
+        termsScrollContent: {
+          padding: 16,
+          paddingBottom: 32,
+        },
+        termsHeading: {
+          fontFamily: fonts.edensor.bold,
+          fontSize: 18,
+          color: isDarkMode ? colors.white : colors.text.primary,
+          marginBottom: 4,
+        },
+        termsHeadingSpaced: {
+          marginTop: 24,
+        },
+        termsEffective: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 12,
+          color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(58,14,102,0.65)',
+          marginBottom: 10,
+        },
+        termsBody: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          lineHeight: 13 * 1.55,
+          color: isDarkMode ? 'rgba(255,255,255,0.85)' : colors.text.primary,
+        },
+        // Slide-5 Accept button — fills the navigationRow's right-side
+        // affordance slot. Sized similar to the existing acceptButton on
+        // TermsScreen but tuned for the bottom-bar context.
+        acceptCta: {
+          paddingHorizontal: 20,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.white,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDarkMode ? 0 : 0.12,
+          shadowRadius: 4,
+          elevation: isDarkMode ? 0 : 3,
+        },
+        acceptCtaText: {
+          fontFamily: fonts.outfit.bold,
+          fontSize: 15,
+          color: colors.primary,
+        },
         dotTouchable: {
           padding: 4,
         },
@@ -645,6 +733,36 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           );
       }
     };
+
+    if (slide.characterType === 'terms') {
+      // so-jokw: terms slide. Renders the same combined Privacy + Terms
+      // text shown by the standalone TermsScreen, in a vertical scroll
+      // inside the slide chrome. The actual "I Accept" CTA lives in the
+      // navigationRow at the bottom (rendered by the parent screen, not
+      // here) so it sits where the user's eye expects forward navigation.
+      return (
+        <Animated.View style={[styles.slideContent, styles.termsSlideContent, containerStyle]}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleStart}>{slide.titleStart}</Text>
+            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+          </View>
+          <View style={styles.termsScrollFrame}>
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.termsScrollContent}
+              nestedScrollEnabled
+            >
+              <Text style={styles.termsHeading}>Privacy Policy</Text>
+              <Text style={styles.termsEffective}>Effective: {privacyPolicy.effectiveDate}</Text>
+              <Text style={styles.termsBody}>{privacyPolicy.content}</Text>
+              <Text style={[styles.termsHeading, styles.termsHeadingSpaced]}>Terms of Service</Text>
+              <Text style={styles.termsEffective}>Effective: {termsOfService.effectiveDate}</Text>
+              <Text style={styles.termsBody}>{termsOfService.content}</Text>
+            </ScrollView>
+          </View>
+        </Animated.View>
+      );
+    }
 
     if (slide.characterType === 'features') {
       // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
@@ -1006,20 +1124,31 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     }
   }, [activeIndex, isFirstSlide, transitionToSlide]);
 
+  // so-jokw: from the terms slide, "Next" only proceeds if the user has
+  // tapped Accept. Acceptance writes AsyncStorage and is the single signal
+  // the auth screens read on mount. The right-arrow on slide 5 is hidden
+  // until accepted (replaced by the I Accept button rendered in the
+  // navigationRow), so this guard is the safety net for swipe.
   const handleNext = useCallback(async () => {
     if (isTransitioning.current) return;
 
     if (isLastSlide) {
-      const termsAccepted = await AsyncStorage.getItem('@terms_accepted');
-      if (termsAccepted === 'true') {
+      if (termsAccepted) {
         navigation.navigate('Register');
-      } else {
-        navigation.navigate('Terms');
       }
+      // No-op when not accepted — the slide-5 UI shows an Accept button.
     } else {
       transitionToSlide(activeIndex + 1);
     }
-  }, [activeIndex, isLastSlide, navigation, transitionToSlide]);
+  }, [activeIndex, isLastSlide, navigation, termsAccepted, transitionToSlide]);
+
+  const handleAcceptTerms = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem('@terms_accepted', 'true');
+    } catch {}
+    setTermsAccepted(true);
+    navigation.navigate('Register');
+  }, [navigation]);
 
   const handleDotPress = useCallback((index: number) => {
     if (index !== activeIndex && !isTransitioning.current) {
@@ -1043,6 +1172,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
       gestureTranslateX.value = withSpring(0, FIGMA_SPRING_CONFIG);
 
+      // so-jokw: swipes between slides 1↔5 still allowed (re-read prior
+      // slides). Forward-swipe from terms slide is governed by handleNext,
+      // which no-ops when terms aren't accepted yet.
       if (event.translationX < -threshold && currentIndex < slides.length - 1) {
         runOnJS(handleNext)();
       } else if (event.translationX > threshold && currentIndex > 0) {
@@ -1101,7 +1233,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
             ))}
           </View>
 
-          <NavArrow direction="right" onPress={handleNext} />
+          {isTermsSlide && !termsAccepted ? (
+            <Pressable
+              onPress={handleAcceptTerms}
+              style={styles.acceptCta}
+              accessibilityRole="button"
+              accessibilityLabel="Accept Terms and Privacy"
+            >
+              <Text style={styles.acceptCtaText}>I Accept</Text>
+            </Pressable>
+          ) : (
+            <NavArrow direction="right" onPress={handleNext} />
+          )}
         </View>
       </View>
     </CosmicScreen>
