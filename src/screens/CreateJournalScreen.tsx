@@ -29,6 +29,14 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { Feather } from '@expo/vector-icons';
 
+// so-irkq: BE caps raw_text at 5000 chars (app/schemas/journal.py). Mirror
+// that here so the OS keyboard stops accepting input at the limit instead
+// of letting the user write past it and crash on submit. Warn threshold
+// gives ~10% headroom so they see the counter before it bites.
+const MAX_ENTRY_CHARS = 5000;
+const COUNTER_VISIBLE_AT = 4500;
+const COUNTER_WARN_AT = 4900;
+
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
@@ -50,6 +58,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         saveButton: { flex: 1, height: 52, backgroundColor: colors.primary, borderRadius: 26, justifyContent: 'center', alignItems: 'center', shadowColor: colors.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
         saveButtonDisabled: { opacity: 0.3 },
         saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 17, color: colors.background },
+        counterRow: { paddingTop: 8, alignItems: 'flex-end' },
+        counterText: { fontFamily: fonts.outfit.regular, fontSize: 12, color: 'rgba(255,255,255,0.55)' },
+        counterTextWarn: { color: '#FF8A8A' },
       }),
     [colors]
   );
@@ -69,6 +80,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         saveButton: { flex: 1, height: 56, backgroundColor: '#59168B', borderRadius: 28, borderWidth: 2, borderColor: colors.white, justifyContent: 'center', alignItems: 'center' },
         saveButtonDisabled: { opacity: 0.5 },
         saveText: { fontFamily: fonts.outfit.semiBold, fontSize: 18, color: colors.white },
+        counterRow: { paddingTop: 8, alignItems: 'flex-end' },
+        counterText: { fontFamily: fonts.outfit.regular, fontSize: 12, color: 'rgba(51,51,51,0.6)' },
+        counterTextWarn: { color: '#B00020' },
       }),
     [colors]
   );
@@ -168,10 +182,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       const status = error?.response?.status;
       const detail = error?.response?.data?.detail;
+      // so-irkq: Pydantic 422 returns `detail` as an array of {loc,msg,type}.
+      // Stringifying it raw produces "[object Object]" and the user sees
+      // nothing useful — flatten to a readable message.
+      const detailMsg = Array.isArray(detail)
+        ? detail.map((d) => d?.msg || JSON.stringify(d)).join('; ')
+        : detail;
       if (status === 409) {
-        Alert.alert('Daily Limit', detail || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
+        Alert.alert('Daily Limit', detailMsg || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
       } else {
-        Alert.alert('Error', detail || error.message || 'Failed to save entry');
+        Alert.alert('Error', detailMsg || error.message || 'Failed to save entry');
       }
       setIsSaving(false);
     }
@@ -302,8 +322,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
                 onChangeText={setText}
                 autoFocus={!isEdit}
                 editable={!isRecording}
+                maxLength={MAX_ENTRY_CHARS}
               />
             </View>
+            {text.length >= COUNTER_VISIBLE_AT && (
+              <View style={dkS.counterRow}>
+                <Text style={[dkS.counterText, text.length >= COUNTER_WARN_AT && dkS.counterTextWarn]}>
+                  {text.length}/{MAX_ENTRY_CHARS}
+                </Text>
+              </View>
+            )}
             <View style={[dkS.bottomRow, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
               <VoiceRecordingIndicator
                 isRecording={isRecording}
@@ -353,8 +381,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               onChangeText={setText}
               autoFocus={!isEdit}
               editable={!isRecording}
+              maxLength={MAX_ENTRY_CHARS}
             />
           </View>
+          {text.length >= COUNTER_VISIBLE_AT && (
+            <View style={ltS.counterRow}>
+              <Text style={[ltS.counterText, text.length >= COUNTER_WARN_AT && ltS.counterTextWarn]}>
+                {text.length}/{MAX_ENTRY_CHARS}
+              </Text>
+            </View>
+          )}
           <View style={[ltS.bottomRow, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
             <VoiceRecordingIndicator
               isRecording={isRecording}

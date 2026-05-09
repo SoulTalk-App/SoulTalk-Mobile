@@ -109,7 +109,11 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
         input: {
           fontFamily: fonts.outfit.regular,
           fontSize: 18,
-          color: colors.text.dark,
+          // so-1g0u: inputContainer bg is hardcoded white in both themes, but
+          // colors.text.dark resolves to '#FFFFFF' under dark mode → invisible
+          // text on a white field. Field bg never theme-flips here, so the
+          // text color shouldn't either.
+          color: '#000000',
         },
         iconButton: {
           width: 55,
