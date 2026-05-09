@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -46,7 +45,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
+  // initialize true (the onboarding flow guarantees @terms_accepted=true
+  // by the time we land here) but also hydrate from AsyncStorage on mount
+  // for safety — covers users who reach Register via deep-link or fall
+  // through some path that skipped onboarding.
+  const [agreedToTerms, setAgreedToTerms] = useState(true);
 
   // Ref to track latest password for cross-field validation during rapid autofill
   const passwordRef = useRef('');
@@ -87,15 +91,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     isLoading: isAppleLoading,
   } = useAppleAuth();
 
-  // so-37a: sync the checkbox from AsyncStorage on every screen focus so
-  // returning from Terms after Accept reflects the new state without remount.
-  useFocusEffect(
-    useCallback(() => {
-      AsyncStorage.getItem('@terms_accepted')
-        .then((value) => setAgreedToTerms(value === 'true'))
-        .catch(() => {});
-    }, [])
-  );
+  // so-jokw: hydrate consent from AsyncStorage on mount only. The user no
+  // longer navigates to a separate Terms screen and back, so per-focus
+  // re-reads are unnecessary (and were the source of so-37a races).
+  useEffect(() => {
+    AsyncStorage.getItem('@terms_accepted')
+      .then((value) => setAgreedToTerms(value === 'true'))
+      .catch(() => {});
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -522,38 +525,24 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Welcome');
   };
 
-  const handleTermsPress = () => {
-    navigation.navigate('Terms');
-  };
-
-  // so-37a: clear consent (state + AsyncStorage) so subsequent gates re-fire.
-  const clearTermsAcceptance = async () => {
-    setAgreedToTerms(false);
-    try {
-      await AsyncStorage.removeItem('@terms_accepted');
-    } catch {}
-  };
-
-  const handleTermsRowPress = () => {
+  // so-jokw: tap toggles consent in-place. Terms content is no longer
+  // reachable from this screen (it lives on onboarding slide 5 and in
+  // Settings); unchecking here removes the AsyncStorage flag, re-checking
+  // restores it. Sign Up + social buttons gate on this state.
+  const handleTermsRowPress = useCallback(async () => {
     if (agreedToTerms) {
-      clearTermsAcceptance();
+      setAgreedToTerms(false);
+      try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
     } else {
-      handleTermsPress();
+      setAgreedToTerms(true);
+      try { await AsyncStorage.setItem('@terms_accepted', 'true'); } catch {}
     }
-  };
+  }, [agreedToTerms]);
 
   const handleSocialLogin = async (provider: string) => {
-    if (!agreedToTerms) {
-      Alert.alert(
-        'Accept Terms First',
-        `Please review and accept our Terms and Privacy Policy before signing up with ${provider}.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Review Terms', onPress: handleTermsPress },
-        ]
-      );
-      return;
-    }
+    // Buttons are hidden when !agreedToTerms (so-jokw); guard kept as
+    // a defensive no-op for safety.
+    if (!agreedToTerms) return;
     if (provider === 'Google') {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
@@ -717,10 +706,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
             </View>
 
-            {/* Terms and Privacy Checkbox. so-9qi opens Terms on tap;
-                so-37a: state only flips true via the AsyncStorage round-trip
-                from Accept on Terms (synced via useFocusEffect). Tapping a
-                checked row clears consent. */}
+            {/* so-jokw: Terms checkbox. Tap toggles in-place — no
+                navigation. Acceptance is normally pre-set by onboarding
+                slide 5; users who unchecked can re-check here without
+                leaving the screen. Sign Up + social buttons gate on
+                this state. */}
             <TouchableOpacity
               style={styles.termsContainer}
               onPress={handleTermsRowPress}
@@ -730,20 +720,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
               </View>
               <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.termsLink} onPress={handleTermsPress}>
-                  Terms and Privacy
-                </Text>
+                I agree to the Terms and Privacy
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                !isFormValid && styles.registerButtonDisabled,
+                (!isFormValid || !agreedToTerms) && styles.registerButtonDisabled,
               ]}
               onPress={handleRegister}
-              disabled={!isFormValid || isLoading}
+              disabled={!isFormValid || !agreedToTerms || isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
@@ -752,41 +739,46 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               )}
             </TouchableOpacity>
 
-            {/* Social Login Section */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.divider} />
-            </View>
+            {/* Social Login Section. so-jokw: entire block hidden when
+                terms unchecked — overseer wants the buttons to disappear,
+                not show as disabled. */}
+            {agreedToTerms && (
+              <>
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>or continue with</Text>
+                  <View style={styles.divider} />
+                </View>
 
-            <View style={styles.socialContainer}>
-              <TouchableOpacity
-                style={[styles.socialButton, styles.googleButton]}
-                onPress={() => handleSocialLogin('Google')}
-              >
-                <FontAwesome5 name="google" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
+                <View style={styles.socialContainer}>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.googleButton]}
+                    onPress={() => handleSocialLogin('Google')}
+                  >
+                    <FontAwesome5 name="google" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.socialButton, styles.facebookButton]}
-                onPress={() => handleSocialLogin('Facebook')}
-              >
-                <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.socialButton, styles.facebookButton]}
+                    onPress={() => handleSocialLogin('Facebook')}
+                  >
+                    <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
+                  </TouchableOpacity>
 
-              {isAppleAvailable && (
-                <TouchableOpacity
-                  style={[styles.socialButton, styles.appleButton]}
-                  onPress={() => handleSocialLogin('Apple')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Sign up with Apple"
-                  disabled={isAppleLoading}
-                >
-                  <FontAwesome5 name="apple" size={24} color={isDarkMode ? '#000000' : '#FFFFFF'} />
-                </TouchableOpacity>
-              )}
-
-            </View>
+                  {isAppleAvailable && (
+                    <TouchableOpacity
+                      style={[styles.socialButton, styles.appleButton]}
+                      onPress={() => handleSocialLogin('Apple')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Sign up with Apple"
+                      disabled={isAppleLoading}
+                    >
+                      <FontAwesome5 name="apple" size={24} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </>
+            )}
           </View>
 
           <View style={styles.footer}>
