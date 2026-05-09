@@ -65,14 +65,32 @@ export function SignalsB({
         contentContainerStyle={[styles.scrollContent, { paddingTop: scrollTopPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {status === 'locked' ? (
-          <LockedState
-            theme={theme}
-            eligibility={eligibility}
-            onOpenJournal={onOpenJournal}
-          />
-        ) : status === 'processing' || status === 'listening' ? (
-          <ListeningState theme={theme} meta={listeningMeta} />
+        {status === 'locked' || status === 'processing' || status === 'listening' ? (
+          <>
+            {/* so-1tbl: empty/locked/listening states render full-card with no
+                surrounding header — without this back chevron, users hit a
+                dead end (only CTA is "Open Journal", no escape to home). */}
+            {onBack ? (
+              <View style={styles.emptyBackRow}>
+                <Pressable onPress={onBack} hitSlop={12} style={styles.backInline}>
+                  <Feather
+                    name="chevron-left"
+                    size={28}
+                    color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
+                  />
+                </Pressable>
+              </View>
+            ) : null}
+            {status === 'locked' ? (
+              <LockedState
+                theme={theme}
+                eligibility={eligibility}
+                onOpenJournal={onOpenJournal}
+              />
+            ) : (
+              <ListeningState theme={theme} meta={listeningMeta} />
+            )}
+          </>
         ) : (
           <>
             <View style={styles.header}>
@@ -201,6 +219,10 @@ const styles = StyleSheet.create({
   },
   backInline: {
     flexShrink: 0,
+  },
+  emptyBackRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
   },
   headerTopRow: {
     flexDirection: 'row',

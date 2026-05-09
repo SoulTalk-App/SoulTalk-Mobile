@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
@@ -171,6 +172,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuthState();
   }, [checkAuthState]);
+
+  // so-u0w1: existing-logged-in users on TF≤34 may have NULL users.timezone.
+  // The 6 auth-completion call sites only fire when the user signs in again,
+  // so users who just resume a stored session never get backfilled. Re-run
+  // ensureTimezone on every foreground transition — idempotent (helper
+  // early-returns when device TZ already matches the stored value).
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') return;
+      ensureTimezone(user);
+    });
+    return () => sub.remove();
+  }, [isAuthenticated, user, ensureTimezone]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {

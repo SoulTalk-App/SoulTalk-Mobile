@@ -7,6 +7,8 @@ import JournalService, {
   SoulBarResponse,
 } from '../services/JournalService';
 import { useWS } from './WebSocketContext';
+import { useAuth } from './AuthContext';
+import { getDeviceTimezone } from '../utils/timezone';
 
 interface JournalContextType {
   entries: JournalEntry[];
@@ -51,6 +53,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [soulBar, setSoulBar] = useState<SoulBarResponse | null>(null);
   const { subscribe } = useWS();
+  const { user } = useAuth();
 
   // Subscribe to AI processing completion events
   useEffect(() => {
@@ -180,13 +183,25 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     return updated;
   }, [fetchStreak, fetchSoulBar]);
 
-  // Check if user already has a non-draft entry today
+  // so-j2h9: compare against the user's local IANA day, not UTC. The BE
+  // (so-byw) computes has_entry_today against users.timezone; an FE that
+  // diffs UTC date strings locks the UI on legitimate next-day journals
+  // whenever evening-UTC and morning-user-local fall on the same UTC date.
+  // Prefer the BE-authoritative user.timezone (set by ensureTimezone), fall
+  // back to the device zone if the user record hasn't hydrated yet.
   const hasEntryToday = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const userTz = user?.timezone || getDeviceTimezone() || 'UTC';
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: userTz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const todayStr = fmt.format(new Date());
     return entries.some(
-      (e) => !e.is_draft && e.created_at.slice(0, 10) === todayStr,
+      (e) => !e.is_draft && fmt.format(new Date(e.created_at)) === todayStr,
     );
-  }, [entries]);
+  }, [entries, user?.timezone]);
 
   const value: JournalContextType = {
     entries,
