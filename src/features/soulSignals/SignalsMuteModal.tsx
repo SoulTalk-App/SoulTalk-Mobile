@@ -57,6 +57,10 @@ export function SignalsMuteModal({
     return 'for the next 30 days';
   };
 
+  // so-bl51: bail before mounting the Modal portal subtree when not visible
+  // — see soulShifts/TendModal for the architectural rationale.
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}

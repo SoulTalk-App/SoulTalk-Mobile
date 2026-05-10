@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
+import { cosmicTextShadow } from '../../components/CosmicText';
 import { SightDetail } from './types';
 import {
   PURPLE,
@@ -41,14 +42,31 @@ export function ReadingBody({
       <Text style={[styles.sectionLabel, { color: accent }]}>
         A reading from your SoulPal
       </Text>
+      {/* so-jkgo: opening + body paragraphs sit directly over StarsBg in
+          dark theme. Apply cosmic shadow halo for dyslexic-readability. */}
       {opening ? (
-        <Text style={[styles.opening, { color: ink(theme) }]}>{opening}</Text>
+        <Text
+          style={[
+            styles.opening,
+            { color: ink(theme) },
+            isDark && cosmicTextShadow,
+          ]}
+        >
+          {opening}
+        </Text>
       ) : null}
 
       {rest.length > 0 ? (
         <View style={styles.bodyParagraphs}>
           {rest.map((p, i) => (
-            <Text key={i} style={[styles.paragraph, { color: ink(theme) }]}>
+            <Text
+              key={i}
+              style={[
+                styles.paragraph,
+                { color: ink(theme) },
+                isDark && cosmicTextShadow,
+              ]}
+            >
               {p}
             </Text>
           ))}

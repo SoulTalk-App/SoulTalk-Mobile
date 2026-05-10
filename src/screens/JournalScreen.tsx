@@ -10,6 +10,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  FlatList,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,6 +27,7 @@ import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { cosmicTextShadow } from '../components/CosmicText';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -97,6 +99,10 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       fontSize: 20,
       lineHeight: 26,
       color: colors.text.primary,
+      // so-jkgo: dark-mode header card is rgba(255,255,255,0.10) — nearly
+      // transparent, so stars from the cosmic backdrop pass under the
+      // title text. Halo-shadow separates glyphs from any star pixels.
+      ...(isDark ? cosmicTextShadow : {}),
     },
     headerSubtitle: {
       fontFamily: fonts.outfit.regular,
@@ -448,18 +454,33 @@ const JournalScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Entry list */}
-        <ScrollView
-          style={styles.entriesScroll}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.entriesList, { paddingBottom: tabBarHeight + 20 }]}
-          refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
-          }
-        >
-          {isLoading && entries.length === 0 ? (
+        {/* Entry list — so-bl51: FlatList virtualizes off-screen rows so the
+            simultaneously-mounted ShadowNode tree stays small even with
+            50+ entries. Previously a ScrollView+entries.map kept all
+            GlassCards (~10 nested layers each) in the live tree, so when
+            JournalScreen sat in the background and a downstream .map()
+            triggered Hermes GC, the recursive ShadowNode destructor
+            blew the JS-thread stack tearing down the deep tree. */}
+        {isLoading && entries.length === 0 ? (
+          <ScrollView
+            style={styles.entriesScroll}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.entriesList, { paddingBottom: tabBarHeight + 20 }]}
+            refreshControl={
+              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
+            }
+          >
             <JournalLoader />
-          ) : entries.length === 0 ? (
+          </ScrollView>
+        ) : entries.length === 0 ? (
+          <ScrollView
+            style={styles.entriesScroll}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.entriesList, { paddingBottom: tabBarHeight + 20 }]}
+            refreshControl={
+              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
+            }
+          >
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>
                 {activeFilterCount > 0 ? 'No entries found' : 'No journal entries yet'}
@@ -468,12 +489,25 @@ const JournalScreen = ({ navigation }: any) => {
                 {activeFilterCount > 0 ? 'Try different filters' : 'Tap + to start writing'}
               </Text>
             </View>
-          ) : (
-            entries.map((item, index) => {
+          </ScrollView>
+        ) : (
+          <FlatList
+            style={styles.entriesScroll}
+            data={entries}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.entriesList, { paddingBottom: tabBarHeight + 20 }]}
+            refreshControl={
+              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
+            }
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews
+            renderItem={({ item, index }) => {
               const emotionColor = getEmotionColor(item);
               return (
                 <GlassCard
-                  key={item.id}
                   intensity="light"
                   style={[styles.entryCard, {
                     shadowColor: emotionColor,
@@ -483,7 +517,6 @@ const JournalScreen = ({ navigation }: any) => {
                   }] as any}
                   onPress={() => navigation.navigate('JournalEntry', { entryId: item.id, isLatest: index === 0 })}
                 >
-                  {/* Top accent strip */}
                   <View style={[styles.accentStrip, { backgroundColor: emotionColor }]} />
                   <View style={styles.entryContent}>
                     <View style={styles.entryHeader}>
@@ -493,9 +526,9 @@ const JournalScreen = ({ navigation }: any) => {
                   </View>
                 </GlassCard>
               );
-            })
-          )}
-        </ScrollView>
+            }}
+          />
+        )}
 
       </View>
 

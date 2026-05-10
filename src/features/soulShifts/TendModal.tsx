@@ -93,6 +93,17 @@ export function TendModal({
 
   const canSubmit = selected.size > 0 || note.trim().length > 0;
 
+  // so-bl51: SoulShiftsScreen mounts all 5 shift modals (Tend/Snooze/Suggest/
+  // Integrated/Release) simultaneously, gated only by `visible`. RN <Modal>
+  // keeps its children's ShadowNodes in the tree even when visible=false,
+  // so all 5 deep subtrees coexist in memory and Hermes GC walks all of
+  // them during finalization. Crash 3's trace shows the recursive C++
+  // ShadowNode dtor blowing the stack with TWO ModalHostViewShadowNode
+  // frames in the chain — i.e. multiple modals deeply nested at GC time.
+  // Bailing here when not visible removes this modal's subtree entirely
+  // until it actually opens.
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}

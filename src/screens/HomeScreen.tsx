@@ -32,6 +32,7 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { cosmicTextShadow } from '../components/CosmicText';
 import { MoodToast, MoodToastKind } from '../components/MoodToast';
 
 // Assets — light mode (original)
@@ -155,6 +156,11 @@ const HomeScreen = ({ navigation }: any) => {
           lineHeight: 28 * 1.05,
           color: colors.white,
           letterSpacing: -0.2,
+          // so-jkgo: cosmic-backdrop stars overlap text glyphs and read as
+          // false strokes for dyslexic users; the shadow halo separates
+          // glyphs from any star pixels behind them. Dark-mode only —
+          // light-mode lavender wash has no stars.
+          ...cosmicTextShadow,
         },
         settingsBtn: {
           flexShrink: 0,
