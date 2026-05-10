@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
@@ -229,16 +229,60 @@ export function ShiftsA({
         </ScrollView>
 
         <View style={styles.list}>
-          {visibleShifts.map((shift) => (
-            <ShiftCard
-              key={shift.id}
-              shift={shift}
-              theme={theme}
-              focused={focusId === shift.id}
-              dim={focusId != null && focusId !== shift.id}
-              onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
-            />
-          ))}
+          {visibleShifts.length === 0 ? (
+            // so-yabx: explanatory empty state — without this, users see only
+            // the chip row and a starry void and have no idea why. Branch
+            // copy on whether the list is globally empty (pre-first-Sight)
+            // vs. just empty-for-this-filter (less alarming).
+            <View
+              style={[
+                emptyStyles.card,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.92)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(58,14,102,0.14)',
+                },
+              ]}
+            >
+              <Image
+                source={require('../../../assets/images/home-v2/soulpal-4.png')}
+                style={emptyStyles.soulpal}
+                resizeMode="contain"
+              />
+              {filter !== 'all' && shifts.length > 0 ? (
+                <>
+                  <Text style={[emptyStyles.title, { color: ink(theme) }]}>
+                    No Shifts in this state yet.
+                  </Text>
+                  <Text style={[emptyStyles.subtitle, { color: inkSub(theme) }]}>
+                    Try another filter. Your other Shifts are in different
+                    stages.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[emptyStyles.title, { color: ink(theme) }]}>
+                    No Soul Shifts yet.
+                  </Text>
+                  <Text style={[emptyStyles.subtitle, { color: inkSub(theme) }]}>
+                    Soul Shifts surface from patterns SoulPal notices in your
+                    entries and Sights. Keep journaling. Your first Shift
+                    will appear after your first SoulSight.
+                  </Text>
+                </>
+              )}
+            </View>
+          ) : (
+            visibleShifts.map((shift) => (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                theme={theme}
+                focused={focusId === shift.id}
+                dim={focusId != null && focusId !== shift.id}
+                onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -312,5 +356,35 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 20,
     gap: 12,
+  },
+});
+
+// so-yabx: empty-state styles patterned on SoulSightScreen's emptyCard
+// (dashed border, centered SoulPal + title + subtitle). Kept in a
+// separate StyleSheet so the theme-dependent surface colors are still
+// applied inline above (matching the rest of this file's pattern of
+// inline color overrides + StyleSheet for layout).
+const emptyStyles = StyleSheet.create({
+  card: {
+    paddingVertical: 32,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  soulpal: { width: 70, height: 70, marginBottom: 10 },
+  title: {
+    fontFamily: fonts.edensor.regular,
+    fontSize: 19,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    lineHeight: 14 * 1.5,
+    textAlign: 'center',
+    maxWidth: 280,
   },
 });

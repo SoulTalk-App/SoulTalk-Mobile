@@ -199,27 +199,39 @@ export function SignalsPatternModal({
                     )}
                   </View>
 
-                  <Pressable
-                    onPress={
-                      turnInert ? undefined : () => onTurnToShift!(aggregate)
-                    }
-                    disabled={turnInert}
-                    style={[
-                      styles.turnCta,
-                      {
-                        borderColor: isDark
-                          ? 'rgba(255,255,255,0.25)'
-                          : 'rgba(58,14,102,0.20)',
-                        opacity: turnInert ? 0.55 : 1,
-                      },
-                    ]}
-                    accessibilityLabel="Turn pattern into a shift"
-                    accessibilityState={{ disabled: turnInert }}
-                  >
-                    <Text style={[styles.turnCtaText, { color: inkSub(theme) }]}>
-                      Turn pattern into a Shift →
-                    </Text>
-                  </Pressable>
+                  {/*
+                    so-1qyt: once the pattern has already been turned into
+                    a Shift (linkedShiftId != null), hide the Turn CTA
+                    entirely instead of showing it disabled. Chey reported
+                    the still-visible-but-inert affordance reads as broken.
+                    The "View existing shift" link below replaces it.
+                    The disabled-but-visible state remains for the pre-handler
+                    case (!onTurnToShift) so users still see the future
+                    capability before the feature is wired up.
+                  */}
+                  {linkedShiftId == null && (
+                    <Pressable
+                      onPress={
+                        turnInert ? undefined : () => onTurnToShift!(aggregate)
+                      }
+                      disabled={turnInert}
+                      style={[
+                        styles.turnCta,
+                        {
+                          borderColor: isDark
+                            ? 'rgba(255,255,255,0.25)'
+                            : 'rgba(58,14,102,0.20)',
+                          opacity: turnInert ? 0.55 : 1,
+                        },
+                      ]}
+                      accessibilityLabel="Turn pattern into a shift"
+                      accessibilityState={{ disabled: turnInert }}
+                    >
+                      <Text style={[styles.turnCtaText, { color: inkSub(theme) }]}>
+                        Turn pattern into a Shift →
+                      </Text>
+                    </Pressable>
+                  )}
                   {linkedShiftId != null && onViewExistingShift && (
                     <Pressable
                       onPress={() => onViewExistingShift(linkedShiftId)}

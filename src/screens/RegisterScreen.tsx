@@ -322,6 +322,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           fontFamily: fonts.outfit.semiBold,
           color: colors.primary,
         },
+        signinLinkDisabled: {
+          opacity: 0.4,
+        },
       }),
     [colors, isDarkMode]
   );
@@ -518,6 +521,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const handleSignIn = () => {
+    // so-ebsm: gate the Sign In footer link on terms acceptance, matching
+    // the Sign Up button + social buttons. Prevents users from sneaking
+    // around the consent gate by tapping through to Login.
+    if (!agreedToTerms) return;
     navigation.navigate('Login');
   };
 
@@ -784,7 +791,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           <View style={styles.footer}>
             <Text style={styles.signinText}>
               Already have an account?{' '}
-              <Text style={styles.signinLink} onPress={handleSignIn}>
+              <Text
+                style={[styles.signinLink, !agreedToTerms && styles.signinLinkDisabled]}
+                onPress={handleSignIn}
+              >
                 Sign In
               </Text>
             </Text>
