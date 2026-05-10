@@ -1006,8 +1006,19 @@ const HomeScreen = ({ navigation }: any) => {
   const displayName = user?.display_first_name || user?.first_name || localName;
 
   // Shared affirmation press handler
+  // so-epcm: pre-flight on hasEntryToday so the new-user case (no entries
+  // yet today) routes to Journal instead of triggering the BE "please write
+  // a journal entry first" detail message that the old code surfaced as an
+  // Alert.alert popup. The popup framing read like an app error to Chey
+  // and was inconsistent with how Sights / Signals / Shifts handle their
+  // pre-data states (inline empty cards). Genuine errors past this gate
+  // (network, server) still show Alert.alert as a real error path.
   const handleAffirmationPress = useCallback(async () => {
     if (affirmationLoading) return;
+    if (!hasEntryToday) {
+      navigation.navigate('Journal');
+      return;
+    }
     setAffirmationLoading(true);
     try {
       const data = await JournalService.getTodayAffirmation();
@@ -1023,7 +1034,7 @@ const HomeScreen = ({ navigation }: any) => {
     } finally {
       setAffirmationLoading(false);
     }
-  }, [affirmationLoading, navigation]);
+  }, [affirmationLoading, hasEntryToday, navigation]);
 
   // ─── DARK MODE (current liquid glass design) ─────────────────────────
   if (isDarkMode) {

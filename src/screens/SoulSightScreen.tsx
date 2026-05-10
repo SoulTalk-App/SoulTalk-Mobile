@@ -227,7 +227,7 @@ const SoulSightScreen = ({ navigation }: any) => {
     const title = current.title || 'A new chapter is forming';
     const blurb =
       current.content_preview ||
-      `${current.entry_count} entries · ${current.active_days} active days this week.`;
+      `${current.entry_count} entries · ${current.active_days} active days.`;
     return (
       <Pressable
         onPress={() =>
@@ -321,7 +321,7 @@ const SoulSightScreen = ({ navigation }: any) => {
           end={{ x: 1, y: 1 }}
           style={styles.generateBtnGradient}
         >
-          <Text style={styles.currentOpenBtnText}>Generate this week's Sight</Text>
+          <Text style={styles.currentOpenBtnText}>Generate your next Sight</Text>
         </LinearGradient>
       </Pressable>
     </View>
@@ -374,7 +374,7 @@ const SoulSightScreen = ({ navigation }: any) => {
       <Image source={SOULPAL_SRC[4]} style={styles.emptySoulpal} resizeMode="contain" />
       <Text style={styles.emptyTitle}>Your first Sight is forming.</Text>
       <Text style={styles.emptySubtitle}>
-        Keep writing. After 5 entries this week, SoulPal will draft your first chapter.
+        Keep writing. After your first 6 entries, SoulPal will draft your first chapter.
       </Text>
     </View>
   );
