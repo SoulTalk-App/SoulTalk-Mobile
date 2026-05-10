@@ -166,9 +166,12 @@ export function SoulSightsCard({ theme, onPress }: Props) {
 
 const styles = StyleSheet.create({
   orbWrap: {
+    // so-0teh: lifted from 42% → 35% so the orb clears the bottom label
+    // chip (bottom:8 + chip height ~24px on a 1:1.25 aspect tile). Sam
+    // reported the artwork being blocked by the title banner.
     position: 'absolute',
     left: '50%',
-    top: '42%',
+    top: '35%',
     width: 104,
     height: 104,
     marginLeft: -52,
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
   soulpalWrap: {
     position: 'absolute',
     left: '50%',
-    top: '42%',
+    top: '35%',
     width: 36,
     height: 36,
     marginLeft: -18,

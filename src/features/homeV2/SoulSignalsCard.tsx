@@ -88,7 +88,9 @@ export function SoulSignalsCard({ theme, onPress }: Props) {
         viewBox="0 0 120 140"
         preserveAspectRatio="xMidYMid meet"
       >
-        <G transform="translate(60 75)">
+        {/* so-0teh: rings group lifted from y=75 → y=58 so the outer pulse ring
+            (R≈38) clears the bottom label chip on the 1:1.25 aspect tile. */}
+        <G transform="translate(60 58)">
           {RING_RADII.map((r, i) => (
             <PulseRing key={i} baseR={r} index={i} stroke={ringStroke} />
           ))}

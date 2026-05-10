@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -27,6 +28,7 @@ interface WelcomeSplashScreenProps {
 const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
+  const { updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const [username, setUsername] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -170,10 +172,17 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
   }, []);
 
   const handleContinue = async () => {
-    if (username.trim()) {
-      await AsyncStorage.setItem('@soultalk_username', username.trim());
-      navigation.navigate('SoulPalName');
-    }
+    const trimmed = username.trim();
+    if (!trimmed) return;
+    await AsyncStorage.setItem('@soultalk_username', trimmed);
+    // so-idbs: persist the typed display name to the user record so HomeScreen's
+    // greeting (user.display_first_name || user.first_name || localName) picks
+    // it up. Previously only the AsyncStorage fallback was set, which loses to
+    // user.first_name from the BE. Don't block navigation on the BE round-trip
+    // — the AsyncStorage value remains as a fallback if the call fails (e.g.
+    // mid-flight network drop).
+    updateProfile({ display_first_name: trimmed }).catch(() => {});
+    navigation.navigate('SoulPalName');
   };
 
   const handlePressIn = () => {

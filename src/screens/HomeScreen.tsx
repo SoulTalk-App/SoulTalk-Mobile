@@ -890,8 +890,13 @@ const HomeScreen = ({ navigation }: any) => {
   const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
   // SoulPal avatar animation — bob (3.6s ease-in-out) + blink every ~4.2s
+  // so-02lh: previously animated scaleY 1 → 0.05 on the whole avatar, which
+  // squished the entire SoulPal figure (Sam reported the visible "blink and
+  // squish"). The home avatar is a single composite (Soulpal5) with no
+  // separate eye layer to scale, so we fade opacity instead — reads as a
+  // brief "wink" without distorting the figure.
   const palBobY = useSharedValue(0);
-  const palBlinkScaleY = useSharedValue(1);
+  const palBlinkOpacity = useSharedValue(1);
 
 
   useEffect(() => {
@@ -913,10 +918,10 @@ const HomeScreen = ({ navigation }: any) => {
       true,
     );
 
-    // Blink: every 4.2s, eyes squeeze shut for 140ms.
+    // Blink: every 4.2s, opacity dips for 140ms.
     const blinkId = setInterval(() => {
-      palBlinkScaleY.value = withSequence(
-        withTiming(0.05, { duration: 70 }),
+      palBlinkOpacity.value = withSequence(
+        withTiming(0.4, { duration: 70 }),
         withTiming(1, { duration: 70 }),
       );
     }, 4200);
@@ -928,7 +933,7 @@ const HomeScreen = ({ navigation }: any) => {
     transform: [{ translateY: palBobY.value }],
   }));
   const palBlinkStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleY: palBlinkScaleY.value }],
+    opacity: palBlinkOpacity.value,
   }));
 
   const handleMoodChange = useCallback((text: string) => {

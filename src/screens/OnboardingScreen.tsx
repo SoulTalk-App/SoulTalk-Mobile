@@ -87,7 +87,7 @@ const slides: Slide[] = [
     titleStart: 'Welcome to ',
     titleHighlight: 'SoulTalk',
     tagline:
-      "A private space to slow down, reflect, and get to know the deeper parts of yourself. Tune into what's really going on inside",
+      "A private space to slow down, reflect, and get to know the deeper parts of yourself. Tune into what's really going on inside.",
     characterType: 'welcome',
   },
   {
@@ -95,7 +95,7 @@ const slides: Slide[] = [
     titleStart: 'Meet your ',
     titleHighlight: 'SoulPal',
     tagline:
-      "Your tiny companion for the journey inward. SoulPal listens, remembers what matters to you, and helps you make sense of what you're feeling",
+      "Your tiny companion for the journey inward. SoulPal listens, remembers what matters to you, and helps you make sense of what you're feeling.",
     characterType: 'soulpal',
   },
   {
