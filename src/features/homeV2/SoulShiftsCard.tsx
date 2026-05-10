@@ -37,7 +37,9 @@ export function SoulShiftsCard({ theme, onPress }: Props) {
         viewBox="0 0 120 140"
         preserveAspectRatio="xMidYMid meet"
       >
-        <G transform="translate(60 70)">
+        {/* so-0teh: phases group lifted from y=70 → y=55 so the moon arc
+            (orbit r=36) clears the bottom label chip on the 1:1.25 tile. */}
+        <G transform="translate(60 55)">
           {[0, 1, 2, 3, 4].map((i) => {
             const angle = -Math.PI / 2 + (i / 4) * Math.PI;
             const r = 36;

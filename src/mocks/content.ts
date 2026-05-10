@@ -90,7 +90,7 @@ Depending on your jurisdiction, you may have the right to:
 • Obtain a copy of your data
 • Object to or restrict certain processing
 
-Users may delete their account directly within the app or by contacting: privacy@soultalkapp.com
+Users may delete their account directly within the app or by contacting: info@soultalkapp.com
 
 9. INTERNATIONAL DATA TRANSFERS
 
@@ -106,7 +106,7 @@ We may update this Privacy Policy from time to time. Changes will be posted with
 
 12. CONTACT
 
-Privacy questions or requests may be sent to: privacy@soultalkapp.com`,
+Privacy questions or requests may be sent to: info@soultalkapp.com`,
 };
 
 export const termsOfService = {
@@ -207,7 +207,7 @@ If any provision of these Terms is found unenforceable, the remaining provisions
 
 15. CONTACT
 
-Questions regarding these Terms may be sent to: privacy@soultalkapp.com`,
+Questions regarding these Terms may be sent to: info@soultalkapp.com`,
 };
 
 export const termsAndConditions = {
@@ -240,7 +240,7 @@ export const onboardingSlides = [
 
 // Welcome screen content
 export const welcomeContent = {
-  tagline: 'Your space to slow down, reflect, and reconnect with your inner world',
+  tagline: 'Your space to slow down, reflect, and reconnect with your inner world.',
   primaryButton: 'Get Started',
   secondaryButton: 'I Already Have An Account',
 };
