@@ -359,14 +359,19 @@ const Navigation = () => {
 // Keep splash screen visible while loading fonts
 ExpoSplashScreen.preventAutoHideAsync();
 
-// Don't interrupt external audio (Spotify, Apple Music, etc.) when playing videos
+// Don't interrupt external audio (Spotify, Apple Music, etc.) on cold launch.
+// `allowsRecordingIOS: false` keeps category at .ambient; recording flows must
+// flip it to true while active and back to false when done.
+// Note: prop is `playsInSilentModeIOS`, not `playsInSilentModeOnIOS` — the
+// latter was silently ignored, leaving the iOS audio session in .soloAmbient.
 Audio.setAudioModeAsync({
-  playsInSilentModeOnIOS: false,
+  allowsRecordingIOS: false,
+  playsInSilentModeIOS: false,
   staysActiveInBackground: false,
   interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
   shouldDuckAndroid: true,
   interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-});
+}).catch((err) => console.warn('Failed to set audio mode:', err));
 
 export default function App() {
   const [fontsLoaded] = useFonts({

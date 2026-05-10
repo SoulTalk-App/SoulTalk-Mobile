@@ -470,7 +470,14 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* Appearance — tri-state System / Light / Dark */}
         <View style={styles.appearanceRow}>
-          <Text style={styles.toggleLabel}>Appearance</Text>
+          <View style={styles.appearanceLabelGroup}>
+            <Text style={styles.toggleLabel}>Appearance</Text>
+            {themePref === 'system' && (
+              <Text style={styles.appearanceHint}>
+                Following system · {isDarkMode ? 'Dark' : 'Light'}
+              </Text>
+            )}
+          </View>
           <View style={styles.themeSegment}>
             {(['system', 'light', 'dark'] as const).map((opt) => {
               const active = themePref === opt;
@@ -722,6 +729,16 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) =>
       justifyContent: 'space-between',
       minHeight: 46,
       paddingVertical: 6,
+    },
+    appearanceLabelGroup: {
+      flexShrink: 1,
+      paddingRight: 8,
+    },
+    appearanceHint: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 11,
+      color: 'rgba(255, 255, 255, 0.55)',
+      marginTop: -10,
     },
     themeSegment: {
       flexDirection: 'row',
