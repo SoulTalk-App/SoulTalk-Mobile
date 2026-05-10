@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { fonts } from '../../theme';
+import { cosmicTextShadow } from '../../components/CosmicText';
 import {
   PINK,
   TEAL,
@@ -106,8 +107,24 @@ export function ProcessingState({ theme, meta = { entries: 9, signals: 3 } }: Pr
         </Animated.View>
       </View>
 
-      <Text style={[styles.title, { color: ink(theme) }]}>Sensing your week…</Text>
-      <Text style={[styles.copy, { color: inkSub(theme) }]}>
+      {/* so-jkgo: text sits directly over StarsBg in dark theme; cosmic
+          shadow halo separates glyphs from any star pixels behind them. */}
+      <Text
+        style={[
+          styles.title,
+          { color: ink(theme) },
+          theme === 'dark' && cosmicTextShadow,
+        ]}
+      >
+        Sensing your week…
+      </Text>
+      <Text
+        style={[
+          styles.copy,
+          { color: inkSub(theme) },
+          theme === 'dark' && cosmicTextShadow,
+        ]}
+      >
         SoulPal is reading between the lines of your entries. This may take a
         moment.
       </Text>

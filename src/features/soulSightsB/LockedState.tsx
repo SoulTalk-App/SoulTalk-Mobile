@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts } from '../../theme';
+import { cosmicTextShadow } from '../../components/CosmicText';
 import { Eligibility } from './types';
 import {
   PINK,
@@ -50,10 +51,24 @@ export function LockedState({
         <Text style={styles.lockEmoji}>🔒</Text>
       </View>
 
-      <Text style={[styles.title, { color: ink(theme) }]}>
+      {/* so-jkgo: dark-mode text sits over StarsBg; cosmic shadow halo
+          separates glyphs from any star pixels behind them. */}
+      <Text
+        style={[
+          styles.title,
+          { color: ink(theme) },
+          isDark && cosmicTextShadow,
+        ]}
+      >
         Your first Sight is forming
       </Text>
-      <Text style={[styles.copy, { color: inkSub(theme) }]}>
+      <Text
+        style={[
+          styles.copy,
+          { color: inkSub(theme) },
+          isDark && cosmicTextShadow,
+        ]}
+      >
         Soul Sights need a few entries to draw from. Keep journaling — yours
         unlocks soon.
       </Text>

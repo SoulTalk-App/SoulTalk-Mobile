@@ -10,6 +10,7 @@ import { PageBg } from './PageBg';
 import { ProcessingState } from './ProcessingState';
 import { ReadingBody } from './ReadingBody';
 import { StarsBg } from './StarsBg';
+import { cosmicTextShadow } from '../../components/CosmicText';
 import {
   PINK,
   Theme,
@@ -99,7 +100,15 @@ export function SightsB({
               <Text style={[styles.window, { color: inkSub(theme) }]}>
                 {sight.window}
               </Text>
-              <Text style={[styles.title, { color: ink(theme) }]}>
+              <Text
+                style={[
+                  styles.title,
+                  { color: ink(theme) },
+                  // so-jkgo: title sits over StarsBg in dark theme; shadow
+                  // halo separates glyphs from any star pixels behind them.
+                  theme === 'dark' && cosmicTextShadow,
+                ]}
+              >
                 {sight.title}
               </Text>
               <View style={styles.chipRow}>

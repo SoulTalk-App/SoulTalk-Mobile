@@ -75,6 +75,10 @@ export function SignalsPatternModal({
     aggregate?.noticings.find((n) => n.linkedShiftId)?.linkedShiftId ?? null;
   const turnInert = !onTurnToShift || linkedShiftId != null;
 
+  // so-bl51: bail before mounting the Modal portal subtree when not visible
+  // — see soulShifts/TendModal for the architectural rationale.
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}

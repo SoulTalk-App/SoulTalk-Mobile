@@ -41,6 +41,9 @@ export function ReleaseModal({
     if (!visible) setReason('');
   }, [visible]);
 
+  // so-bl51: bail before building the modal subtree when not visible — see
+  // TendModal for the architectural rationale.
+  if (!visible) return null;
   if (!detail) return null;
 
   const tone = detail.mood;

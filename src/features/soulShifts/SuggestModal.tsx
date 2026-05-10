@@ -89,6 +89,10 @@ export function SuggestModal({
       ? `Begin tending “${candidates[selectedIdx].title}”`
       : 'Begin this shift';
 
+  // so-bl51: bail before building the modal subtree when not visible — see
+  // TendModal for the architectural rationale.
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}

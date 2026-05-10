@@ -168,10 +168,21 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   // walk through onboarding without being blocked again.
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // so-hqu6: tabbed Privacy/Terms on slide 5 (matches the Settings-accessed
+  // TermsScreen pattern). Scroll ref resets to top on tab switch so the new
+  // doc starts at the heading.
+  const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('privacy');
+  const legalScrollRef = useRef<ScrollView>(null);
+
   useEffect(() => {
     AsyncStorage.getItem('@terms_accepted')
       .then((v) => setTermsAccepted(v === 'true'))
       .catch(() => {});
+  }, []);
+
+  const handleLegalTabSwitch = useCallback((tab: 'privacy' | 'terms') => {
+    setActiveLegalTab(tab);
+    legalScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, []);
 
   const isFirstSlide = activeIndex === 0;
@@ -461,9 +472,43 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           justifyContent: 'flex-start',
           paddingTop: 80,
         },
+        // so-hqu6: tab row sits between the title and the scroll frame.
+        // Translucent-glass styling so the white-on-purple TermsScreen
+        // pills don't fight with the cosmic backdrop.
+        termsTabRow: {
+          flexDirection: 'row',
+          gap: 8,
+          marginTop: 16,
+        },
+        termsTab: {
+          flex: 1,
+          paddingVertical: 10,
+          borderRadius: 8,
+          alignItems: 'center',
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.06)'
+            : 'rgba(255,255,255,0.7)',
+          borderWidth: 1,
+          borderColor: isDarkMode
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(58,14,102,0.10)',
+        },
+        termsTabActive: {
+          backgroundColor: isDarkMode ? colors.white : colors.primary,
+          borderColor: isDarkMode ? colors.white : colors.primary,
+        },
+        termsTabText: {
+          fontFamily: fonts.outfit.medium,
+          fontSize: 13,
+          color: isDarkMode ? 'rgba(255,255,255,0.78)' : colors.text.primary,
+        },
+        termsTabTextActive: {
+          color: isDarkMode ? colors.text.primary : colors.white,
+          fontFamily: fonts.outfit.semiBold,
+        },
         termsScrollFrame: {
           flex: 1,
-          marginTop: 16,
+          marginTop: 12,
           backgroundColor: isDarkMode
             ? 'rgba(255,255,255,0.05)'
             : 'rgba(255,255,255,0.7)',
@@ -477,15 +522,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         termsScrollContent: {
           padding: 16,
           paddingBottom: 32,
-        },
-        termsHeading: {
-          fontFamily: fonts.edensor.bold,
-          fontSize: 18,
-          color: isDarkMode ? colors.white : colors.text.primary,
-          marginBottom: 4,
-        },
-        termsHeadingSpaced: {
-          marginTop: 24,
         },
         termsEffective: {
           fontFamily: fonts.outfit.regular,
@@ -735,29 +771,69 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     };
 
     if (slide.characterType === 'terms') {
-      // so-jokw: terms slide. Renders the same combined Privacy + Terms
-      // text shown by the standalone TermsScreen, in a vertical scroll
-      // inside the slide chrome. The actual "I Accept" CTA lives in the
-      // navigationRow at the bottom (rendered by the parent screen, not
-      // here) so it sits where the user's eye expects forward navigation.
+      // so-jokw + so-hqu6: terms slide with tabbed Privacy/Terms UX matching
+      // the Settings-accessed TermsScreen. Single ScrollView shows only the
+      // active doc; tab switch resets scroll to top. The "I Accept" CTA
+      // lives in the navigationRow at the bottom (rendered by the parent),
+      // and acceptance covers both docs ("by tapping Accept, you agree to
+      // our Terms and Privacy Policy"). Tab is reset to 'privacy' on
+      // every onboarding entry via the useFocusEffect above.
+      const currentDoc = activeLegalTab === 'privacy' ? privacyPolicy : termsOfService;
       return (
         <Animated.View style={[styles.slideContent, styles.termsSlideContent, containerStyle]}>
           <View style={styles.titleContainer}>
             <Text style={styles.titleStart}>{slide.titleStart}</Text>
             <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
           </View>
+          <View style={styles.termsTabRow}>
+            <Pressable
+              style={[
+                styles.termsTab,
+                activeLegalTab === 'privacy' && styles.termsTabActive,
+              ]}
+              onPress={() => handleLegalTabSwitch('privacy')}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeLegalTab === 'privacy' }}
+            >
+              <Text
+                style={[
+                  styles.termsTabText,
+                  activeLegalTab === 'privacy' && styles.termsTabTextActive,
+                ]}
+              >
+                Privacy Policy
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.termsTab,
+                activeLegalTab === 'terms' && styles.termsTabActive,
+              ]}
+              onPress={() => handleLegalTabSwitch('terms')}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeLegalTab === 'terms' }}
+            >
+              <Text
+                style={[
+                  styles.termsTabText,
+                  activeLegalTab === 'terms' && styles.termsTabTextActive,
+                ]}
+              >
+                Terms of Service
+              </Text>
+            </Pressable>
+          </View>
           <View style={styles.termsScrollFrame}>
             <ScrollView
+              ref={legalScrollRef}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.termsScrollContent}
               nestedScrollEnabled
             >
-              <Text style={styles.termsHeading}>Privacy Policy</Text>
-              <Text style={styles.termsEffective}>Effective: {privacyPolicy.effectiveDate}</Text>
-              <Text style={styles.termsBody}>{privacyPolicy.content}</Text>
-              <Text style={[styles.termsHeading, styles.termsHeadingSpaced]}>Terms of Service</Text>
-              <Text style={styles.termsEffective}>Effective: {termsOfService.effectiveDate}</Text>
-              <Text style={styles.termsBody}>{termsOfService.content}</Text>
+              <Text style={styles.termsEffective}>
+                Effective: {currentDoc.effectiveDate}
+              </Text>
+              <Text style={styles.termsBody}>{currentDoc.content}</Text>
             </ScrollView>
           </View>
         </Animated.View>
@@ -1028,6 +1104,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;
+      // so-hqu6: reset slide-5 tab to Privacy on every onboarding entry
+      // so users always see the Privacy doc first (not whichever tab the
+      // last session left active).
+      setActiveLegalTab('privacy');
     }, [])
   );
 
@@ -1165,6 +1245,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   // Swipe gesture handler
   const startX = useSharedValue(0);
   const panGesture = Gesture.Pan()
+    // so-wdvc: constrain to horizontal pans so vertical pans inside the
+    // slide-5 Terms ScrollView reach the inner scroller. Without these,
+    // the parent Pan grabs any direction and the Terms-of-Service section
+    // (rendered after the Privacy Policy) was unreachable. activeOffsetX
+    // requires ~15px of horizontal travel before the slide swipe takes
+    // over; failOffsetY hard-disables the parent gesture once the user
+    // has clearly committed to a vertical pan.
+    .activeOffsetX([-15, 15])
+    .failOffsetY([-12, 12])
     .onStart(() => {
       startX.value = gestureTranslateX.value;
     })
