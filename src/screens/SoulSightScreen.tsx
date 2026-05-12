@@ -175,7 +175,9 @@ const SoulSightScreen = ({ navigation }: any) => {
     if (!q) return past;
     return past.filter((s) => {
       const title = (s.title || formatRange(s.window_start, s.window_end)).toLowerCase();
-      return title.includes(q);
+      const headline = (s.headline || '').toLowerCase();
+      const preview = (s.content_preview || '').toLowerCase();
+      return title.includes(q) || headline.includes(q) || preview.includes(q);
     });
   }, [past, query]);
 
