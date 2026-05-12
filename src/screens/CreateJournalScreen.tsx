@@ -140,7 +140,15 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         const transcribedText = await stopRecording();
         const base = textBeforeRecordingRef.current;
         const separator = base.trim() ? ' ' : '';
-        setText(base + separator + transcribedText);
+        let combined = base + separator + transcribedText;
+        if (combined.length > MAX_ENTRY_CHARS) {
+          combined = combined.slice(0, MAX_ENTRY_CHARS);
+          Alert.alert(
+            'Entry truncated',
+            `Voice transcription would have exceeded the ${MAX_ENTRY_CHARS}-character limit. Your entry was trimmed to fit.`,
+          );
+        }
+        setText(combined);
         setLiveTranscript(null);
       } catch (error: any) {
         setLiveTranscript(null);

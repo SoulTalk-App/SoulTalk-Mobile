@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Svg, {
   Circle,
   Defs,
@@ -9,7 +9,6 @@ import Svg, {
   Rect,
   Stop,
 } from 'react-native-svg';
-import { fonts } from '../../theme';
 import { CardShell } from './CardShell';
 import { PURPLE, Theme } from './tokens';
 
@@ -182,10 +181,6 @@ export function PersonalityCard({ theme, onPress }: Props) {
           <View style={styles.pedestalBottom} />
         </View>
       </View>
-
-      <Text style={[styles.subLabel, { color: isDark ? 'rgba(255,255,255,0.78)' : 'rgba(58,14,102,0.7)' }]}>
-        Which one are you?
-      </Text>
     </CardShell>
   );
 }
@@ -233,14 +228,5 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#000',
-  },
-  subLabel: {
-    position: 'absolute',
-    bottom: 36,
-    left: 0,
-    right: 0,
-    textAlign: 'center',
-    fontFamily: fonts.edensor.lightItalic,
-    fontSize: 11,
   },
 });

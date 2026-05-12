@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
   Image,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -176,12 +177,19 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
     if (!trimmed) return;
     await AsyncStorage.setItem('@soultalk_username', trimmed);
     // so-idbs: persist the typed display name to the user record so HomeScreen's
-    // greeting (user.display_first_name || user.first_name || localName) picks
-    // it up. Previously only the AsyncStorage fallback was set, which loses to
-    // user.first_name from the BE. Don't block navigation on the BE round-trip
-    // — the AsyncStorage value remains as a fallback if the call fails (e.g.
-    // mid-flight network drop).
-    updateProfile({ display_first_name: trimmed }).catch(() => {});
+    // greeting picks it up. AsyncStorage above is the fallback if the BE call
+    // fails.
+    // so-x0dp: surface the real error instead of swallowing it; the silent
+    // catch let "Save Failed" toasts surface on later screens with no context.
+    try {
+      await updateProfile({ display_first_name: trimmed });
+    } catch (error: any) {
+      Alert.alert(
+        'Could not save your name',
+        error?.message ||
+          'Your name is saved on this device and will sync when you reconnect.',
+      );
+    }
     navigation.navigate('SoulPalName');
   };
 
