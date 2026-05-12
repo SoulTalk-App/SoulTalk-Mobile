@@ -74,10 +74,20 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
     ? parseContent(detail.content)
     : { title: undefined, paragraphs: [] };
   const window = formatWindow(detail.window_start, detail.window_end);
-  const paragraphs =
-    detail.reading_paragraphs && detail.reading_paragraphs.length > 0
-      ? detail.reading_paragraphs
+  // so-knjv: BE-provided reading_paragraphs has truncated mid-analysis in the
+  // wild (lead-confirmed 7k+ chars in detail.content vs a shorter array). The
+  // raw `content` is canonical, so parse from it when present and fall back
+  // to the BE split only if content is absent. Dedupe paragraphs that equal
+  // the pull-quote text so the body doesn't render the quoted sentence twice.
+  const pullQuoteText = (detail.pull_quote?.text ?? '').trim();
+  let paragraphs: string[];
+  if (parsed.paragraphs.length > 0) {
+    paragraphs = pullQuoteText
+      ? parsed.paragraphs.filter((p) => p.trim() !== pullQuoteText)
       : parsed.paragraphs;
+  } else {
+    paragraphs = detail.reading_paragraphs ?? [];
+  }
   return {
     id: detail.id,
     title: detail.title ?? parsed.title ?? 'Your weekly Sight',
