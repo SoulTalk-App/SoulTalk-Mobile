@@ -462,7 +462,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           elevation: isDarkMode ? 0 : 3,
         },
         dotsContainer: {
+          // so-mw8e: claim the middle slot via flex:1 + justifyContent:center
+          // so the dots cluster sits centered between prevButton and the
+          // right-side affordance (NavArrow on slides 1-4, acceptCta on
+          // slide 5). Without this, space-between + a wider acceptCta could
+          // squeeze the dots into thin vertical pills ("barcode").
+          flex: 1,
           flexDirection: 'row',
+          justifyContent: 'center',
           alignItems: 'center',
           gap: 14,
         },
@@ -495,7 +502,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         },
         termsTabActive: {
           backgroundColor: isDarkMode ? colors.white : colors.primary,
-          borderColor: isDarkMode ? colors.white : colors.primary,
+          borderColor: isDarkMode ? 'transparent' : colors.primary,
         },
         termsTabText: {
           fontFamily: fonts.outfit.medium,
@@ -503,7 +510,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           color: isDarkMode ? 'rgba(255,255,255,0.78)' : colors.text.primary,
         },
         termsTabTextActive: {
-          color: isDarkMode ? colors.text.primary : colors.white,
+          color: isDarkMode ? '#3A0E66' : colors.white,
           fontFamily: fonts.outfit.semiBold,
         },
         termsScrollFrame: {
@@ -558,6 +565,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         },
         dotTouchable: {
           padding: 4,
+          flexShrink: 0,
         },
         dotOuter: {
           width: 18,
@@ -567,12 +575,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           borderColor: colors.white,
           justifyContent: 'center',
           alignItems: 'center',
+          flexShrink: 0,
         },
         dotInner: {
           width: 10,
           height: 10,
           borderRadius: 5,
           backgroundColor: colors.white,
+          flexShrink: 0,
         },
       }),
     [colors, isDarkMode]
