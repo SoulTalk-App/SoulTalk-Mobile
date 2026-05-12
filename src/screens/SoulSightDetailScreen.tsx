@@ -143,11 +143,18 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
 
   const handleShare = async () => {
     if (!sight) return;
+    const body = sight.reading_paragraphs.filter(Boolean).join('\n\n');
+    const message = [sight.title, body, 'Shared from SoulTalk']
+      .filter(Boolean)
+      .join('\n\n');
     try {
-      await Share.share({
-        title: sight.title,
-        message: `${sight.title}\n\n${sight.reading_paragraphs[0] ?? ''}`,
-      });
+      await Share.share(
+        {
+          title: sight.title,
+          message,
+        },
+        { subject: sight.title },
+      );
     } catch (e: any) {
       console.log('[SoulSight] Share error:', e?.message);
     }
