@@ -37,7 +37,9 @@ const SOULPAL_HEX_LIGHT: Record<SoulPalColorId, string> = {
   coral: '#E8B89A',
   gold: '#D8C088',
   mint: '#A8C8A0',
-  slate: '#C8B8D0',
+  // so-pz1x: was '#C8B8D0' (lavender) — body_slate.png renders as sage-teal,
+  // so the swatch must match the body, not the lilac blush on the cheeks.
+  slate: '#8FA9A8',
 };
 
 const SOULPAL_HEX_DARK: Record<SoulPalColorId, string> = {
@@ -48,7 +50,9 @@ const SOULPAL_HEX_DARK: Record<SoulPalColorId, string> = {
   coral: '#FF8855',
   gold: '#FFD757',
   mint: '#70CC8A',
-  slate: '#D8B0FF',
+  // so-pz1x: was '#D8B0FF' (vibrant lavender). The body_slate.png asset is
+  // shared across themes and renders sage-teal, so use the same hex here.
+  slate: '#8FA9A8',
 };
 
 const SOULPAL_LABELS: Record<SoulPalColorId, { light: string; dark: string }> = {
@@ -59,7 +63,9 @@ const SOULPAL_LABELS: Record<SoulPalColorId, { light: string; dark: string }> = 
   coral: { light: 'Peach', dark: 'Ember' },
   gold: { light: 'Amber', dark: 'Gold' },
   mint: { light: 'Mint', dark: 'Mint' },
-  slate: { light: 'Cream Lilac', dark: 'Lilac' },
+  // so-pz1x: was 'Cream Lilac' / 'Lilac' — labels described the cheek tint,
+  // not the body color. Renamed to match the actual rendered sage-teal body.
+  slate: { light: 'Sage', dark: 'Seafoam' },
 };
 
 // 7 ids per theme. Each set is curated to the vibe and drops one id that
