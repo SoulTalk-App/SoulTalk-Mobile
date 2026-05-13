@@ -16,14 +16,9 @@ import Constants from 'expo-constants';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import SecureStorage from '../utils/SecureStorage';
-<<<<<<< Updated upstream
 import { fonts, useThemeColors } from '../theme';
-import { useTheme, ThemePref } from '../contexts/ThemeContext';
-import { CosmicScreen } from '../components/CosmicBackdrop';
-=======
-import { fonts, surfaces, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
->>>>>>> Stashed changes
+import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
