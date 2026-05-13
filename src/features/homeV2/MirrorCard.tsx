@@ -22,6 +22,11 @@ export function MirrorCard({ theme, onPress }: Props) {
       label="Affirmation Mirror"
       labelColor={PINK}
       onPress={onPress}
+      info={{
+        title: 'Affirmation Mirror',
+        body:
+          'A grounded daily affirmation generated from your recent entries. Read it once, return when you need a steady reminder.',
+      }}
     >
       <View style={[styles.fill, { backgroundColor: bgColor }]}>
         <Image

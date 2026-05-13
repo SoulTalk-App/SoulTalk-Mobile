@@ -77,6 +77,11 @@ export function SoulSightsCard({ theme, onPress }: Props) {
       label="Soul Sights"
       labelColor={PURPLE}
       onPress={onPress}
+      info={{
+        title: 'Soul Sights',
+        body:
+          'Long-form chapters SoulPal writes from your journal entries. Each Sight synthesizes hidden narratives, patterns, and small leverage points across your recent reflections.',
+      }}
     >
       {/* radial bg — matches HeroOrb's hero-orb-bg fork by theme */}
       <Svg
