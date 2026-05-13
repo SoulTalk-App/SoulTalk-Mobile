@@ -16,9 +16,14 @@ import Constants from 'expo-constants';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import SecureStorage from '../utils/SecureStorage';
+<<<<<<< Updated upstream
 import { fonts, useThemeColors } from '../theme';
 import { useTheme, ThemePref } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+=======
+import { fonts, surfaces, useThemeColors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+>>>>>>> Stashed changes
 
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
@@ -286,30 +291,23 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
-        {/* Appearance — tri-state System / Light / Dark */}
+        {/* Appearance — Light / Dark */}
         <View style={styles.appearanceRow}>
-          <View style={styles.appearanceLabelGroup}>
-            <Text style={styles.toggleLabel}>Appearance</Text>
-            {themePref === 'system' && (
-              <Text style={styles.appearanceHint}>
-                Following system · {isDarkMode ? 'Dark' : 'Light'}
-              </Text>
-            )}
-          </View>
+          <Text style={styles.toggleLabel}>Appearance</Text>
           <View style={styles.themeSegment}>
-            {(['system', 'light', 'dark'] as const).map((opt) => {
+            {(['light', 'dark'] as const).map((opt) => {
               const active = themePref === opt;
               return (
                 <Pressable
                   key={opt}
                   style={[styles.themeSegmentItem, active && styles.themeSegmentItemActive]}
-                  onPress={() => setThemePref(opt as ThemePref)}
+                  onPress={() => setThemePref(opt)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={`Appearance ${opt}`}
                 >
                   <Text style={[styles.themeSegmentText, active && styles.themeSegmentTextActive]}>
-                    {opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}
+                    {opt === 'light' ? 'Light' : 'Dark'}
                   </Text>
                 </Pressable>
               );
@@ -539,23 +537,13 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       overflow: 'hidden',
     },
 
-    // Appearance tri-state segmented control
+    // Appearance segmented control
     appearanceRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       minHeight: 46,
       paddingVertical: 6,
-    },
-    appearanceLabelGroup: {
-      flexShrink: 1,
-      paddingRight: 8,
-    },
-    appearanceHint: {
-      fontFamily: fonts.outfit.regular,
-      fontSize: 11,
-      color: 'rgba(255, 255, 255, 0.55)',
-      marginTop: -10,
     },
     themeSegment: {
       flexDirection: 'row',
