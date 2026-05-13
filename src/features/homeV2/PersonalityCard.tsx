@@ -50,6 +50,11 @@ export function PersonalityCard({ theme, onPress }: Props) {
       label="Personality Test"
       labelColor={PURPLE}
       onPress={onPress}
+      info={{
+        title: 'Personality Tests',
+        body:
+          'Short tests that map how you process, focus, and move through the world. Each result adds depth to your SoulPal’s understanding of you.',
+      }}
     >
       <Svg
         style={StyleSheet.absoluteFill}

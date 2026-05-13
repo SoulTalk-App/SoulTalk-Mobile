@@ -63,6 +63,11 @@ export function SoulSignalsCard({ theme, onPress }: Props) {
       label="Soul Signals"
       labelColor={dotColor}
       onPress={onPress}
+      info={{
+        title: 'Soul Signals',
+        body:
+          'Repeating patterns SoulPal notices in your entries. Signals surface the loops and themes shaping your inner life over time.',
+      }}
     >
       {isDark ? (
         <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 100 125">

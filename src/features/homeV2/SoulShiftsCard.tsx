@@ -24,6 +24,11 @@ export function SoulShiftsCard({ theme, onPress }: Props) {
       label="Soul Shifts"
       labelColor={TEAL_DEEP}
       onPress={onPress}
+      info={{
+        title: 'Soul Shifts',
+        body:
+          'Small, concrete behavioral experiments you can try. Shifts move from intention through tending, processing, and integration.',
+      }}
     >
       <LinearGradient
         colors={isDark ? ['#0F1A4F', '#050B2A'] : ['#E5F5F6', '#BFE6E9']}
