@@ -28,6 +28,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, o
   const player = useVideoPlayer(isDarkMode ? IntroVideoDark : IntroVideo, (p) => {
     p.loop = true;
     p.muted = true;
+    p.audioMixingMode = 'mixWithOthers';
     p.play();
   });
 
