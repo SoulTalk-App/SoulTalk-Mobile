@@ -175,8 +175,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   historyText: {
-    fontFamily: fonts.edensor.lightItalic,
-    fontSize: 14,
-    lineHeight: 14 * 1.45,
+    fontFamily: fonts.outfit.regular,
+    fontSize: 15,
+    lineHeight: 15 * 1.5,
   },
 });
