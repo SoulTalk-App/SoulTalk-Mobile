@@ -61,44 +61,32 @@ export function CardShell({
           ]}
         >
           <Text style={[styles.chipText, { color: labelColor || PURPLE }]}>{label}</Text>
+          {info ? (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.();
+                setInfoOpen(true);
+              }}
+              hitSlop={10}
+              style={[styles.infoBadgeInline, { borderColor: labelColor || PURPLE }]}
+              accessibilityRole="button"
+              accessibilityLabel={`About ${info.title}`}
+            >
+              <Text style={[styles.infoBadgeInlineText, { color: labelColor || PURPLE }]}>
+                i
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
       {info ? (
-        <>
-          <Pressable
-            onPress={() => setInfoOpen(true)}
-            hitSlop={10}
-            style={[
-              styles.infoBadge,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(0,0,0,0.35)'
-                  : 'rgba(255,255,255,0.85)',
-                borderColor: isDark
-                  ? 'rgba(255,255,255,0.16)'
-                  : 'rgba(58,14,102,0.10)',
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`About ${info.title}`}
-          >
-            <Text
-              style={[
-                styles.infoBadgeText,
-                { color: isDark ? 'rgba(255,255,255,0.78)' : PURPLE },
-              ]}
-            >
-              i
-            </Text>
-          </Pressable>
-          <CardInfoModal
-            visible={infoOpen}
-            onClose={() => setInfoOpen(false)}
-            theme={theme}
-            title={info.title}
-            body={info.body}
-          />
-        </>
+        <CardInfoModal
+          visible={infoOpen}
+          onClose={() => setInfoOpen(false)}
+          theme={theme}
+          title={info.title}
+          body={info.body}
+        />
       ) : null}
     </Container>
   );
@@ -119,6 +107,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   chipText: {
     fontFamily: fonts.outfit.bold,
@@ -126,20 +118,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     textAlign: 'center',
   },
-  infoBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  infoBadgeInline: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  infoBadgeText: {
+  infoBadgeInlineText: {
     fontFamily: fonts.outfit.semiBold,
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 11,
   },
 });
