@@ -273,7 +273,7 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
           <Stack.Screen name="Journal" component={JournalScreen} options={tabScreenOptions} />
           <Stack.Screen name="JournalEntry" component={JournalEntryScreen} />
           <Stack.Screen name="CreateJournal" component={CreateJournalScreen} />
-          <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} options={{ animation: 'none' }} />
+          <Stack.Screen name="AffirmationMirror" component={AffirmationMirrorScreen} />
           <Stack.Screen name="SoulSight" component={SoulSightScreen} />
           <Stack.Screen name="SoulSightDetail" component={SoulSightDetailScreen} />
           <Stack.Screen name="SoulShifts" component={SoulShiftsScreen} />

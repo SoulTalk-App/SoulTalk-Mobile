@@ -85,7 +85,6 @@ const HomeScreen = ({ navigation }: any) => {
   // (the Pressable's onPress + a fast double-tap can both queue otherwise).
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const [affirmationLoading, setAffirmationLoading] = useState(false);
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
@@ -1017,35 +1016,14 @@ const HomeScreen = ({ navigation }: any) => {
   const displayName = user?.display_first_name || user?.first_name || localName;
 
   // Shared affirmation press handler
-  // so-epcm: pre-flight on hasEntryToday so the new-user case (no entries
-  // yet today) routes to Journal instead of triggering the BE "please write
-  // a journal entry first" detail message that the old code surfaced as an
-  // Alert.alert popup. The popup framing read like an app error to Chey
-  // and was inconsistent with how Sights / Signals / Shifts handle their
-  // pre-data states (inline empty cards). Genuine errors past this gate
-  // (network, server) still show Alert.alert as a real error path.
-  const handleAffirmationPress = useCallback(async () => {
-    if (affirmationLoading) return;
-    if (!hasEntryToday) {
-      navigation.navigate('Journal');
-      return;
-    }
-    setAffirmationLoading(true);
-    try {
-      const data = await JournalService.getTodayAffirmation();
-      if (data?.affirmation_text) {
-        navigation.navigate('AffirmationMirror', {
-          affirmation_text: data.affirmation_text,
-          date_key: data.date_key,
-        });
-      }
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail || 'Something went wrong. Please try again later.';
-      Alert.alert('Affirmation Mirror', msg);
-    } finally {
-      setAffirmationLoading(false);
-    }
-  }, [affirmationLoading, hasEntryToday, navigation]);
+  // so-atde: AffirmationMirror is now a list-first hub that owns its own
+  // data fetching + state machine (locked / generate / ready / revealing).
+  // The Home button just navigates; the destination screen handles the
+  // no-entry-today case via its internal LockedState (supersedes so-epcm's
+  // Home-side pre-flight).
+  const handleAffirmationPress = useCallback(() => {
+    navigation.navigate('AffirmationMirror');
+  }, [navigation]);
 
   // ─── DARK MODE (current liquid glass design) ─────────────────────────
   if (isDarkMode) {

@@ -230,6 +230,22 @@ class JournalService {
     return response.data;
   }
 
+  // so-atde: history feed for the new list-first AffirmationMirror hub.
+  // BE [CONTRACT] confirmed by be_core: GET /api/affirmation-mirror/history,
+  // ORDER BY generated_at DESC, includes today's row at index 0 once /today
+  // has been called. `source` is the raw column ("ai" for all current rows).
+  async listAffirmations(limit: number = 30, offset: number = 0): Promise<{
+    items: { date_key: string; affirmation_text: string; source: string; generated_at: string }[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const response = await this.axiosInstance.get('/affirmation-mirror/history', {
+      params: { limit, offset },
+    });
+    return response.data;
+  }
+
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {
     const file = new File(audioUri);
     if (!file.exists) throw new Error('Audio file not found');
