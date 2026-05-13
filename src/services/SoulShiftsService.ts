@@ -27,6 +27,9 @@ export interface ShiftWire {
   // Per [CONTRACT] so-trc (be_core): additive, nullable. Default GET hides
   // shifts where snoozed_until > now().
   snoozed_until?: string | null;
+  // Per be_core so-w4mr FYI: shift-specific tend chips. 0..8 items, each
+  // ≤200 chars. Null on legacy rows / empty generator output.
+  tend_chips?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +100,7 @@ function normalizeShift(w: ShiftWire): Shift {
     description: w.description,
     practice: w.practice ?? null,
     snoozedUntil: w.snoozed_until ?? null,
+    tend_chips: w.tend_chips ?? null,
   };
 }
 
@@ -379,6 +383,9 @@ class SoulShiftsService {
       source_sight_ids: candidate.source_sight_ids,
       from_suggestion_id: suggestionId,
       from_candidate_idx: candidateIdx,
+      // so-w4mr: round-trip per-candidate tend chips so BE persists them on
+      // the resulting shift row (rather than regenerating generic defaults).
+      tend_chips: candidate.tend_chips ?? null,
     });
     return normalizeShift(response.data as ShiftWire);
   }

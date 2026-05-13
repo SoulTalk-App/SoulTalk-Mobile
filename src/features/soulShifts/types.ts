@@ -34,6 +34,13 @@ export type Shift = {
    * so the FE rarely sees a future value here unless include_snoozed=true.
    */
   snoozedUntil?: string | null;
+  /**
+   * Shift-specific tend chips (so-w4mr). BE persists 0..8 items, each ≤200
+   * chars; null on legacy rows pre-migration 051 and on shifts whose
+   * generator output was empty/malformed. The FE TendModal falls back to the
+   * canonical DEFAULT_CHIPS when this is null/empty.
+   */
+  tend_chips?: string[] | null;
 };
 
 /**
@@ -76,6 +83,8 @@ export type ShiftSuggestionCandidate = {
   source_summary: string;
   source_signal_ids: string[];
   source_sight_ids: string[];
+  /** Per-candidate tend chips (so-w4mr); round-tripped to BE on accept. */
+  tend_chips?: string[] | null;
 };
 
 /** GET /soul-shifts/suggestions response shape. */

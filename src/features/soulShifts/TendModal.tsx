@@ -31,8 +31,9 @@ const SOULPAL_SRC: Record<SoulpalVariant, any> = {
   5: require('../../../assets/images/home-v2/soulpal-5.png'),
 };
 
-// Canonical chip set from shifts-states.jsx ShiftsTendModal. Until BE ships
-// shift-specific chips, every shift surfaces this generic vocabulary.
+// Canonical chip set from shifts-states.jsx ShiftsTendModal. Fallback used
+// for legacy rows (pre-migration 051) and any shift where the BE generator
+// produced no tend_chips (per be_core so-w4mr — server returns null then).
 const DEFAULT_CHIPS = [
   'Noticed the impulse',
   'Said something I would have softened',
@@ -182,7 +183,10 @@ export function TendModal({
                 </Text>
 
                 <View style={styles.chipsRow}>
-                  {DEFAULT_CHIPS.map((c) => {
+                  {((detail.tend_chips && detail.tend_chips.length > 0)
+                    ? detail.tend_chips
+                    : DEFAULT_CHIPS
+                  ).map((c) => {
                     const sel = selected.has(c);
                     return (
                       <Pressable
