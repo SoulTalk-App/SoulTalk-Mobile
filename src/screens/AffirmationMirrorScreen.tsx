@@ -113,7 +113,12 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   }, [fetchData]);
 
   const handleOpenJournal = useCallback(() => {
-    navigation.navigate('Journal');
+    // so-jqk1: replace (not navigate/push) so we don't leave AffirmationMirror
+    // sitting under Journal in the stack. If we push, a subsequent Home-tab
+    // tap from Journal would pop two screens at once across two different
+    // transition specs (Journal's fast fade + AffirmationMirror's default
+    // slide), which renders Home half-mounted as a side strip.
+    navigation.replace('Journal');
   }, [navigation]);
 
   // Reveal mode owns its own full-bleed chrome (clouds + videos + back button).
