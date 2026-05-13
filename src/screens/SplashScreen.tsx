@@ -19,11 +19,11 @@ const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> =
 
   const player = useVideoPlayer(isDarkMode ? IntroVideoDark : IntroVideo, (p) => {
     p.loop = false;
-    // so-q95x: keep muted so expo-video doesn't activate iOS audio session
-    // and interrupt Spotify/Apple Music on cold launch. The intro asset is
-    // visual-only animation; expo-av audio config (so-bgur) doesn't help here
-    // because expo-video has its own session and ignores it.
+    // so-nuhl: muted alone doesn't prevent expo-video from activating the iOS
+    // AVAudioSession, which still interrupts Spotify/Apple Music. audioMixingMode
+    // 'mixWithOthers' makes the session share rather than take over.
     p.muted = true;
+    p.audioMixingMode = 'mixWithOthers';
     p.play();
   });
 

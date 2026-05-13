@@ -29,6 +29,7 @@ const RevealedVideoPlayer = forwardRef<RevealedPlayerHandle, {
   const player = useVideoPlayer(source, (p) => {
     p.loop = true;
     p.muted = true;
+    p.audioMixingMode = 'mixWithOthers';
   });
   useImperativeHandle(ref, () => ({ play: () => player.play() }));
   return (
@@ -85,6 +86,7 @@ export function AffirmationReveal({
   const idlePlayer = useVideoPlayer(idleSource, (p) => {
     p.loop = true;
     p.muted = true;
+    p.audioMixingMode = 'mixWithOthers';
     p.play();
     p.addListener('statusChange', ({ status }) => {
       if (status === 'readyToPlay') {
