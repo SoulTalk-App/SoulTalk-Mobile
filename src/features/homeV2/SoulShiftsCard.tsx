@@ -25,9 +25,9 @@ export function SoulShiftsCard({ theme, onPress }: Props) {
       labelColor={TEAL_DEEP}
       onPress={onPress}
       info={{
-        title: 'Soul Shifts',
+        title: 'SoulShifts',
         body:
-          'Small, concrete behavioral experiments you can try. Shifts move from intention through tending, processing, and integration.',
+          "SoulShifts are the micro experiments and actionable suggestions pulled from each SoulSight. Where Signals are about seeing, Shifts are about doing. Every Sight adds new Shifts to your list, and they accumulate over time so nothing gets lost. It is up to you to take action on what calls you, snooze what isn't the right moment, or mute what doesn't fit.\n\nEach Shift moves through four stages: Notice, Practice, Embody, Integrate. You move them forward by tending to them every time you catch yourself running the old pattern or trying the new practice in real life. Tending is how a Shift goes from something you read on a screen to something woven into how you actually live. The more you tend, the more it stops feeling like an experiment and starts feeling like you.",
       }}
     >
       <LinearGradient

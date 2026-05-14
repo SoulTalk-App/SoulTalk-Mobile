@@ -28,6 +28,7 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
+import { CardInfoModal } from '../features/homeV2/CardInfoModal';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -126,11 +127,25 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       textShadowOffset: { width: 0, height: 0 },
       textShadowRadius: 6,
     },
+    filterWrap: { position: 'relative' },
     filterToggle: {
       width: 40, height: 40, borderRadius: 12,
       backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(79, 23, 134, 0.08)',
       borderWidth: 1, borderColor: colors.inputBorder,
       justifyContent: 'center', alignItems: 'center',
+    },
+    journalInfoBadge: {
+      position: 'absolute', top: -8, left: -8,
+      width: 18, height: 18, borderRadius: 9,
+      borderWidth: 1, borderColor: colors.primary,
+      backgroundColor: isDark ? '#0E0820' : '#FFFFFF',
+      justifyContent: 'center', alignItems: 'center',
+      zIndex: 2,
+    },
+    journalInfoBadgeText: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 11, lineHeight: 13,
+      color: colors.primary,
     },
     filterToggleIcon: { width: 20, height: 20, tintColor: colors.primary },
     filterBadge: {
@@ -277,6 +292,7 @@ const JournalScreen = ({ navigation }: any) => {
   const [appliedYears, setAppliedYears] = useState<number[]>([]);
   const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [journalInfoOpen, setJournalInfoOpen] = useState(false);
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
@@ -388,14 +404,25 @@ const JournalScreen = ({ navigation }: any) => {
               <Text style={styles.headerTitle}>{journalTitle}</Text>
               <Text style={styles.headerSubtitle}>{journalSubtitle}</Text>
             </View>
-            <Pressable onPress={toggleFilters} style={styles.filterToggle}>
-              <Image source={FilterIconDark} style={styles.filterToggleIcon} resizeMode="contain" />
-              {activeFilterCount > 0 && (
-                <View style={styles.filterBadge}>
-                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-                </View>
-              )}
-            </Pressable>
+            <View style={styles.filterWrap}>
+              <Pressable onPress={toggleFilters} style={styles.filterToggle}>
+                <Image source={FilterIconDark} style={styles.filterToggleIcon} resizeMode="contain" />
+                {activeFilterCount > 0 && (
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                  </View>
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => setJournalInfoOpen(true)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.journalInfoBadge}
+                accessibilityRole="button"
+                accessibilityLabel="About Daily Reflection"
+              >
+                <Text style={styles.journalInfoBadgeText}>i</Text>
+              </Pressable>
+            </View>
           </View>
           {currentStreak > 0 && (
             <View style={styles.streakRow}>
@@ -559,6 +586,14 @@ const JournalScreen = ({ navigation }: any) => {
           ))}
         </View>
       </Animated.View>
+
+      <CardInfoModal
+        visible={journalInfoOpen}
+        onClose={() => setJournalInfoOpen(false)}
+        theme={isDarkMode ? 'dark' : 'light'}
+        title="Daily Reflection"
+        body={"Every journal entry you submit gets a reflection from your SoulPal. These are meant to be immediate, useful reflections that mirror back what showed up in your writing and gives you something to carry forward.\n\nBuilt on Soulcology, our signature reflection framework, your SoulPal acknowledges the sentiment underneath what you wrote, names patterns, and offers something grounding for you to sit with that day. The more you reflect, the more your SoulPal learns about who you are and what you're moving through, and the richer your insights become in both the journaling reflections and SoulSights."}
+      />
     </CosmicScreen>
   );
 };
