@@ -64,9 +64,9 @@ export function SoulSignalsCard({ theme, onPress }: Props) {
       labelColor={dotColor}
       onPress={onPress}
       info={{
-        title: 'Soul Signals',
+        title: 'SoulSignals',
         body:
-          'Repeating patterns SoulPal notices in your entries. Signals surface the loops and themes shaping your inner life over time.',
+          "Signals are the insights and patterns pulled from your most recent SoulSights. Each one highlights something recurring across your reflections. You'll see up to three at a time, and they refresh with each new SoulSight, so what shows up reflects who you are right now, not who you were six entries ago.\n\nSignals aren't action items, they're mirrors. Sit with them. Mark what resonates, mute what doesn't, and watch how they evolve as your reflections deepen. Some will quiet down. Some will get louder. All of them are meant to bring what's underneath into the light, so you can align with who you're becoming.",
       }}
     >
       {isDark ? (

@@ -78,9 +78,9 @@ export function SoulSightsCard({ theme, onPress }: Props) {
       labelColor={PURPLE}
       onPress={onPress}
       info={{
-        title: 'Soul Sights',
+        title: 'SoulSight',
         body:
-          'Long-form chapters SoulPal writes from your journal entries. Each Sight synthesizes hidden narratives, patterns, and small leverage points across your recent reflections.',
+          "Your SoulSight is a reflection report covering everything you've journaled on in recent entries. You gain access to SoulSights by filling your SoulBar with six entries, and the report analyzes the full window since your last report. Run a SoulSight as soon as your bar fills, or bank them up until you're ready to look at a longer stretch of yourself.\n\nEach analysis is built on Soulcology, our signature coaching framework built around transformation, inner wisdom, and lasting change. It's how your SoulPal surfaces what's hard to see on your own: emotional loops, recurring patterns, hidden narratives, and focus areas worth your attention. Every analysis stays saved and searchable in your library so you can return to any moment of your inner journey whenever you want.",
       }}
     >
       {/* radial bg — matches HeroOrb's hero-orb-bg fork by theme */}

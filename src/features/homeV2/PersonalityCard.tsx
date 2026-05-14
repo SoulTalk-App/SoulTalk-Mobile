@@ -53,7 +53,7 @@ export function PersonalityCard({ theme, onPress }: Props) {
       info={{
         title: 'Personality Tests',
         body:
-          'Short tests that map how you process, focus, and move through the world. Each result adds depth to your SoulPal’s understanding of you.',
+          "Short assessments that help you understand how you think, feel, and process the world. Each one takes a few minutes to complete, and your results stay accessible in your library anytime you want to revisit them. Think of them less as a quiz and more as feeding you and your SoulPal the inputs it needs to reflect you back accurately.",
       }}
     >
       <Svg
