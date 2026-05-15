@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -52,6 +53,8 @@ export function ReleaseModal({
 
   const handleConfirm = () => {
     if (submitting) return;
+    // so-m5oj audit: dismiss the keyboard before closing the sheet.
+    Keyboard.dismiss();
     onConfirm(reason.trim() || undefined);
   };
 

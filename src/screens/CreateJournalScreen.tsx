@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -165,6 +166,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   }, [isRecording, startRecording, stopRecording, text]);
 
   const handleSave = async () => {
+    // so-m5oj: dismiss the keyboard before doing anything else so the
+    // SaveAnimation overlay + nav transition aren't fighting the IME slide.
+    // Cheap no-op when the keyboard is already down.
+    Keyboard.dismiss();
     if (!text.trim()) return;
     setIsSaving(true);
     try {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -63,25 +64,43 @@ const RevealedVideoDark = require('../../../assets/videos/dark/affirmationMirror
 
 type Props = {
   isDarkMode: boolean;
-  affirmation_text: string;
-  date_key: string;
-  // so-dzfx: set when the affirmation was just generated. The user already
-  // tapped "Generate", so the reveal plays automatically — no redundant
-  // second "Click to Reveal" tap.
-  autoReveal?: boolean;
+  // so-dtuh: AffirmationReveal is now the entry screen for the affirmation
+  // flow. Three modes, driven by the prop combination:
+  //   1. !hasEntryToday + no affirmation_text → "Journal to Unlock" button,
+  //      central press routes to onOpenJournal. Idle animation only.
+  //   2. hasEntryToday + no affirmation_text → "Click to Reveal" button,
+  //      press calls onGenerate(), then plays the reveal animation with the
+  //      returned text. Used for cold entry from the Home grid.
+  //   3. affirmation_text supplied → replay-from-ready path. The existing
+  //      AsyncStorage REVEALED_DATE_KEY check auto-jumps to the revealed
+  //      state (preserves so-atde / earlier replay behavior).
+  hasEntryToday: boolean;
+  onOpenJournal: () => void;
+  onGenerate?: () => Promise<{ affirmation_text: string; date_key: string }>;
+  affirmation_text?: string;
+  date_key?: string;
   onClose: () => void;
 };
 
 export function AffirmationReveal({
   isDarkMode,
-  affirmation_text,
-  date_key,
-  autoReveal = false,
+  hasEntryToday,
+  onOpenJournal,
+  onGenerate,
+  affirmation_text: initialText,
+  date_key: initialDateKey,
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [isRevealed, setIsRevealed] = useState(false);
   const [isRevealedMounted, setIsRevealedMounted] = useState(false);
+  // so-dtuh: text/dateKey become local state so the cold-entry generate flow
+  // can populate them after onGenerate resolves. For the replay path the
+  // initial values come straight from props.
+  const [text, setText] = useState<string>(initialText ?? '');
+  const [dateKey, setDateKey] = useState<string>(initialDateKey ?? '');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const isLockedEntry = !initialText && !hasEntryToday;
   const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
   const playRevealedOnMountRef = useRef(false);
 
@@ -117,23 +136,26 @@ export function AffirmationReveal({
   const isRevealedRef = useRef(false);
 
   const { fontSize, lineHeight } = useMemo(() => {
-    const len = affirmation_text?.length ?? 0;
+    const len = text?.length ?? 0;
     if (len <= 60) return { fontSize: 42, lineHeight: 56 };
     if (len <= 100) return { fontSize: 36, lineHeight: 48 };
     if (len <= 160) return { fontSize: 30, lineHeight: 42 };
     if (len <= 220) return { fontSize: 26, lineHeight: 37 };
     return { fontSize: 22, lineHeight: 32 };
-  }, [affirmation_text]);
+  }, [text]);
 
   useEffect(() => {
     buttonOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
   }, []);
 
   useEffect(() => {
+    // so-dtuh: only meaningful on the replay-from-ready path where an
+    // initialDateKey was supplied. Cold entry has no key to compare against.
+    if (!initialDateKey) return;
     const checkRevealed = async () => {
       try {
         const revealedDate = await AsyncStorage.getItem(REVEALED_DATE_KEY);
-        if (revealedDate === date_key) {
+        if (revealedDate === initialDateKey) {
           isRevealedRef.current = true;
           setIsRevealed(true);
           setIsRevealedMounted(true);
@@ -154,7 +176,7 @@ export function AffirmationReveal({
         }
       } catch {}
     };
-    if (date_key) checkRevealed();
+    checkRevealed();
   }, []);
 
   useEffect(() => {
@@ -163,14 +185,24 @@ export function AffirmationReveal({
     }
   }, [isRevealedMounted]);
 
-  const handleReveal = async () => {
-    if (!affirmation_text) return;
+  const handleReveal = async (overrideText?: string, overrideDateKey?: string) => {
+    // so-dtuh: optional overrides let the cold-entry generate flow run the
+    // animation immediately with the freshly returned text/key without
+    // waiting for the local state setters to flush — both setText and
+    // setIsRevealed batch in this handler, so the JSX render after this
+    // event sees the new text alongside isRevealed=true.
+    const revealText = overrideText ?? text;
+    const revealDateKey = overrideDateKey ?? dateKey;
+    if (!revealText) return;
+    if (overrideText !== undefined) setText(overrideText);
+    if (overrideDateKey !== undefined) setDateKey(overrideDateKey);
+
     isRevealedRef.current = true;
     setIsRevealed(true);
 
-    if (date_key) {
+    if (revealDateKey) {
       try {
-        await AsyncStorage.setItem(REVEALED_DATE_KEY, date_key);
+        await AsyncStorage.setItem(REVEALED_DATE_KEY, revealDateKey);
       } catch {}
     }
 
@@ -225,15 +257,31 @@ export function AffirmationReveal({
     }, 1200);
   };
 
-  // so-dzfx: a freshly generated affirmation arrives with autoReveal — the
-  // user already tapped "Generate", so play the reveal immediately rather
-  // than making them tap "Click to Reveal" a second time. The
-  // already-revealed-today path (checkRevealed above) handles replays.
-  useEffect(() => {
-    if (autoReveal && !isRevealedRef.current) {
-      handleReveal();
+  // so-dtuh: cold-entry generate flow — fetch today's affirmation, then
+  // play the reveal animation with the returned text. onGenerate alerts on
+  // failure; we just reset the spinner and stay on idle.
+  const handleGeneratePress = async () => {
+    if (!onGenerate || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      const result = await onGenerate();
+      setIsGenerating(false);
+      handleReveal(result.affirmation_text, result.date_key);
+    } catch {
+      setIsGenerating(false);
     }
-  }, []);
+  };
+
+  // so-dtuh: central-button behavior fans out by mode.
+  //   - locked entry → routes to Journal (no generate, no reveal).
+  //   - cold entry with hasEntryToday → generate then reveal.
+  //   - replay (text already supplied) → reveal immediately.
+  const handleCenterPress = isLockedEntry
+    ? onOpenJournal
+    : text
+      ? () => handleReveal()
+      : handleGeneratePress;
+  const buttonLabel = isLockedEntry ? 'Journal to Unlock' : 'Click to Reveal';
 
   const textAnimStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
@@ -354,15 +402,16 @@ export function AffirmationReveal({
           ]}
         >
           <Animated.Text style={[styles.affirmationText, { fontSize, lineHeight }, textAnimStyle]}>
-            {affirmation_text}
+            {text}
           </Animated.Text>
         </View>
       )}
 
-      {!isRevealed && !autoReveal && (
+      {!isRevealed && (
         <Animated.View style={[styles.revealButtonContainer, buttonAnimStyle]}>
           <Pressable
-            onPress={handleReveal}
+            onPress={handleCenterPress}
+            disabled={isGenerating}
             style={[styles.revealButton, isDarkMode && styles.revealButtonDark]}
           >
             <LinearGradient
@@ -375,9 +424,13 @@ export function AffirmationReveal({
               end={{ x: 0.5, y: 1 }}
               style={styles.revealButtonGradient}
             />
-            <Text style={[styles.revealButtonText, isDarkMode && styles.revealButtonTextDark]}>
-              Click to Reveal
-            </Text>
+            {isGenerating ? (
+              <ActivityIndicator color={isDarkMode ? colors.primary : colors.white} />
+            ) : (
+              <Text style={[styles.revealButtonText, isDarkMode && styles.revealButtonTextDark]}>
+                {buttonLabel}
+              </Text>
+            )}
           </Pressable>
         </Animated.View>
       )}

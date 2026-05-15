@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -68,6 +69,8 @@ export function IntegratedModal({
 
   const handleConfirm = () => {
     if (submitting) return;
+    // so-m5oj audit: dismiss the keyboard before closing the sheet.
+    Keyboard.dismiss();
     onConfirm();
   };
 

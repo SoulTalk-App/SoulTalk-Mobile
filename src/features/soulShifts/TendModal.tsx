@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -86,6 +87,9 @@ export function TendModal({
 
   const handleSubmit = () => {
     if (submitting) return;
+    // so-m5oj audit: dismiss the keyboard so the sheet closes cleanly
+    // without the IME slide overlapping the StageAdvance/toast transition.
+    Keyboard.dismiss();
     onSubmit({
       chips: Array.from(selected),
       note: note.trim() || undefined,
