@@ -9,10 +9,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSoulPalName } from '../contexts/SoulPalContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -109,13 +109,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   const isLatest: boolean = route.params?.isLatest ?? false;
 
   const [entry, setEntry] = useState<JournalEntry | null>(null);
-  const [soulPalName, setSoulPalName] = useState('SoulTalk Reflection');
-
-  useEffect(() => {
-    AsyncStorage.getItem('@soultalk_soulpal_name').then((name) => {
-      if (name) setSoulPalName(`${name}'s Reflection`);
-    });
-  }, []);
+  // so-wuy8: pull from SoulPalContext (was an inline AsyncStorage read).
+  // useSoulPalName falls back to 'SoulPal' when unset, so the reflection
+  // label gracefully reads "SoulPal's Reflection" pre-onboarding.
+  const chosenName = useSoulPalName();
+  const soulPalName = `${chosenName}'s Reflection`;
 
   useEffect(() => {
     JournalService.getEntry(entryId).then(setEntry).catch(() => {

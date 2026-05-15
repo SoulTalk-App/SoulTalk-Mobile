@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { PINK, TEAL, Theme, ink, inkSub } from './tokens';
 
 const VISIBLE_MS = 2500;
@@ -26,6 +27,7 @@ type Props = {
 export function ResonanceToast({ visible, theme, onDismiss }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
 
@@ -87,7 +89,7 @@ export function ResonanceToast({ visible, theme, onDismiss }: Props) {
             Thanks — that helps me listen better.
           </Text>
           <Text style={[styles.subline, { color: ink(theme) }]}>
-            SoulPal will tune future signals.
+            {soulPalName} will tune future signals.
           </Text>
         </View>
       </View>

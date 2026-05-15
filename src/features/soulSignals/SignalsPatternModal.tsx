@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   Signal,
   SignalPatternAggregate,
@@ -62,6 +63,7 @@ export function SignalsPatternModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
 
   const tone = aggregate?.tone ?? '#B89CE0';
   const hasNoticings = (aggregate?.noticings?.length ?? 0) > 0;
@@ -198,7 +200,7 @@ export function SignalsPatternModal({
                         style={[styles.emptyCopy, { color: ink(theme) }]}
                       >
                         No noticings tagged here yet — keep journaling and
-                        SoulPal will surface threads as they form.
+                        {' '}{soulPalName} will surface threads as they form.
                       </Text>
                     )}
                   </View>

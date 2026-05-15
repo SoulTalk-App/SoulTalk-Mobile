@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   TEAL,
   Theme,
@@ -85,6 +86,7 @@ export function ListeningState({
   meta = { entries: 9, patterns: 3 },
 }: Props) {
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const ringColor = isDark
     ? 'rgba(112,202,207,0.5)'
     : 'rgba(126,91,217,0.5)';
@@ -133,8 +135,8 @@ export function ListeningState({
 
       <Text style={[styles.title, { color: ink(theme) }]}>Listening to this week…</Text>
       <Text style={[styles.copy, { color: inkSub(theme) }]}>
-        SoulPal is finding the threads. New signals will surface here as they
-        form.
+        {soulPalName} is finding the threads. New signals will surface here as
+        they form.
       </Text>
 
       <View

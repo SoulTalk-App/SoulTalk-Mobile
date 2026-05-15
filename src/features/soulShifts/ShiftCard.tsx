@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { Shift, SoulpalVariant, STAGES, STATUS_LABEL } from './types';
 import { PURPLE_INK, Theme, ink, inkSub, surfaceBg, surfaceBorder } from './tokens';
 
@@ -32,6 +33,7 @@ type Props = {
 
 export function ShiftCard({ shift, theme, focused = false, dim = false, onPress }: Props) {
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const locked = shift.status === 'locked';
   const processing = shift.status === 'processing';
   const idx = stageIndex(shift);
@@ -200,7 +202,7 @@ export function ShiftCard({ shift, theme, focused = false, dim = false, onPress 
 
       {processing ? (
         <Text style={[styles.processingNote, { color: inkSub(theme) }]}>
-          SoulPal is sensing this pattern in your recent entries…
+          {soulPalName} is sensing this pattern in your recent entries…
         </Text>
       ) : null}
     </>

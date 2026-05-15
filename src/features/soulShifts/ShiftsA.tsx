@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { PageBg } from './PageBg';
 import { ShiftCard } from './ShiftCard';
 import { StarsBg } from './StarsBg';
@@ -67,6 +68,7 @@ export function ShiftsA({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const [filter, setFilter] = useState<FilterKey>('all');
 
   // Counts always reflect unfiltered totals so the pill counters stay stable
@@ -219,7 +221,7 @@ export function ShiftsA({
                 styles.chip,
                 { backgroundColor: chipBg, borderColor: chipBorder },
               ]}
-              accessibilityLabel="See SoulPal suggestions"
+              accessibilityLabel={`See ${soulPalName} suggestions`}
             >
               <Text style={[styles.chipText, { color: ink(theme) }]}>
                 ✨ Suggestions
@@ -264,9 +266,9 @@ export function ShiftsA({
                     No Soul Shifts yet.
                   </Text>
                   <Text style={[emptyStyles.subtitle, { color: inkSub(theme) }]}>
-                    Soul Shifts surface from patterns SoulPal notices in your
-                    entries and SoulSights. Keep journaling. Your first Shift
-                    will appear after your first SoulSight.
+                    Soul Shifts surface from patterns {soulPalName} notices in
+                    your entries and SoulSights. Keep journaling. Your first
+                    Shift will appear after your first SoulSight.
                   </Text>
                 </>
               )}

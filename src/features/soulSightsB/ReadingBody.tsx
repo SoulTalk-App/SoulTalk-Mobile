@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
 import { cosmicTextShadow } from '../../components/CosmicText';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { SightDetail } from './types';
 import {
   PURPLE,
@@ -35,12 +36,13 @@ export function ReadingBody({
   isArchiving = false,
 }: Props) {
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const [opening, ...rest] = sight.reading_paragraphs;
 
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionLabel, { color: accent }]}>
-        A reading from your SoulPal
+        A reading from {soulPalName}
       </Text>
       {/* so-jkgo: opening + body paragraphs sit directly over StarsBg in
           dark theme. Apply cosmic shadow halo for dyslexic-readability. */}
@@ -97,7 +99,7 @@ export function ReadingBody({
       {includeSignals && sight.signals_summary.length > 0 ? (
         <View style={styles.signalsBlock}>
           <Text style={[styles.sectionLabel, { color: accent, marginBottom: 10 }]}>
-            Signals SoulPal noticed
+            Signals {soulPalName} noticed
           </Text>
           <View style={styles.signalsList}>
             {sight.signals_summary.map((s, i) => (
