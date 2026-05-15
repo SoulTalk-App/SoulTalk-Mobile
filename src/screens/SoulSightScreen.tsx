@@ -211,7 +211,7 @@ const SoulSightScreen = ({ navigation }: any) => {
                   Generating
                 </Text>
               </View>
-              <Text style={styles.currentTitle}>Drafting your Sight…</Text>
+              <Text style={styles.currentTitle}>Drafting your SoulSight…</Text>
               <Text style={styles.currentBlurb}>
                 SoulPal is reading the week. This usually takes a minute.
               </Text>
@@ -323,7 +323,7 @@ const SoulSightScreen = ({ navigation }: any) => {
           end={{ x: 1, y: 1 }}
           style={styles.generateBtnGradient}
         >
-          <Text style={styles.currentOpenBtnText}>Generate your next Sight</Text>
+          <Text style={styles.currentOpenBtnText}>Generate your next SoulSight</Text>
         </LinearGradient>
       </Pressable>
     </View>
@@ -374,7 +374,7 @@ const SoulSightScreen = ({ navigation }: any) => {
   const renderEmptyState = () => (
     <View style={styles.emptyCard}>
       <Image source={SOULPAL_SRC[4]} style={styles.emptySoulpal} resizeMode="contain" />
-      <Text style={styles.emptyTitle}>Your first Sight is forming.</Text>
+      <Text style={styles.emptyTitle}>Your first SoulSight is forming.</Text>
       <Text style={styles.emptySubtitle}>
         Keep writing. After your first 6 entries, SoulPal will draft your first chapter.
       </Text>
@@ -408,7 +408,7 @@ const SoulSightScreen = ({ navigation }: any) => {
         ) : null}
       </View>
       <Text style={styles.heroSubtitle}>
-        Each Sight is a chapter SoulPal writes from your entries.
+        Each SoulSight is a chapter SoulPal writes from your entries.
       </Text>
     </View>
   );
@@ -451,7 +451,7 @@ const SoulSightScreen = ({ navigation }: any) => {
                   <TextInput
                     value={query}
                     onChangeText={setQuery}
-                    placeholder="Search past Sights"
+                    placeholder="Search past SoulSights"
                     placeholderTextColor={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.5)'}
                     style={styles.searchInput}
                     autoCapitalize="none"
@@ -467,7 +467,7 @@ const SoulSightScreen = ({ navigation }: any) => {
                     <Text style={styles.sectionHeaderText}>
                       {query.trim()
                         ? `Results (${filteredPast.length})`
-                        : 'Past Sights'}
+                        : 'Past SoulSights'}
                     </Text>
                     {/* Past-sight count moved to the title row in so-rlz; only
                         the search-result count stays here as a contextual cue. */}

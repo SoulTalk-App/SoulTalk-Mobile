@@ -16,7 +16,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-import { LockedState } from '../features/affirmationMirror/LockedState';
 import { GenerateState } from '../features/affirmationMirror/GenerateState';
 import { ReadyState, AffirmationItem } from '../features/affirmationMirror/ReadyState';
 import { AffirmationReveal } from '../features/affirmationMirror/AffirmationReveal';
@@ -24,10 +23,17 @@ import { ink } from '../features/soulSignals/tokens';
 
 type ScreenState =
   | { kind: 'loading' }
-  | { kind: 'locked' }
   | { kind: 'generate' }
   | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[] }
-  | { kind: 'revealing'; affirmation_text: string; date_key: string };
+  | {
+      kind: 'revealing';
+      affirmation_text: string;
+      date_key: string;
+      // so-dzfx: true when the user arrived straight from Generate (no list
+      // screen in between). Drives auto-reveal (skip the redundant second
+      // tap) and the back-button destination on close.
+      autoReveal: boolean;
+    };
 
 const AffirmationMirrorScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -40,10 +46,10 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!hasEntryToday) {
-      setState({ kind: 'locked' });
-      return;
-    }
+    // so-vjzo: the locked-gate page is gone; GenerateState renders the
+    // 'journal to unlock' CTA when hasEntryToday is false. Keep the list
+    // fetch running regardless so a returning user with prior entries
+    // sees their history when they journal later in the session.
     try {
       const list = await JournalService.listAffirmations(30, 0);
       const todayIso = new Date().toISOString().slice(0, 10);
@@ -86,6 +92,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
           kind: 'revealing',
           affirmation_text: data.affirmation_text,
           date_key: data.date_key,
+          autoReveal: true,
         });
       }
     } catch (err: any) {
@@ -102,15 +109,23 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       kind: 'revealing',
       affirmation_text: state.today.affirmation_text,
       date_key: state.today.date_key,
+      autoReveal: false,
     });
   }, [state]);
 
   const handleRevealClose = useCallback(() => {
-    // Refetch on close to capture the freshly-generated affirmation in
-    // history + flip into ready state.
+    // so-dzfx: from a fresh generate the user came straight from Home with
+    // no list screen in between — back should exit the mirror, not drop
+    // them onto a list they never opened. The list still refreshes on the
+    // next focus via useFocusEffect. The replay path keeps the old
+    // behavior: refetch and return to the list the user came from.
+    if (state.kind === 'revealing' && state.autoReveal) {
+      navigation.goBack();
+      return;
+    }
     setState({ kind: 'loading' });
     fetchData();
-  }, [fetchData]);
+  }, [state, fetchData, navigation]);
 
   const handleOpenJournal = useCallback(() => {
     // so-jqk1: replace (not navigate/push) so we don't leave AffirmationMirror
@@ -129,6 +144,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         isDarkMode={isDarkMode}
         affirmation_text={state.affirmation_text}
         date_key={state.date_key}
+        autoReveal={state.autoReveal}
         onClose={handleRevealClose}
       />
     );
@@ -162,11 +178,11 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
               color={isDarkMode ? colors.text.primary : '#3A0E66'}
             />
           </View>
-        ) : state.kind === 'locked' ? (
-          <LockedState theme={theme} onOpenJournal={handleOpenJournal} />
         ) : state.kind === 'generate' ? (
           <GenerateState
             theme={theme}
+            hasEntryToday={hasEntryToday}
+            onOpenJournal={handleOpenJournal}
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
           />

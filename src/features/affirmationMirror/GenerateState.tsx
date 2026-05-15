@@ -16,12 +16,34 @@ import {
 
 type Props = {
   theme: Theme;
+  // so-vjzo: when false, GenerateState renders a 'journal to unlock' CTA in
+  // place of the generate flow — the dedicated locked-gate page used to
+  // serve this purpose and was removed for being redundant.
+  hasEntryToday: boolean;
+  onOpenJournal: () => void;
   onGenerate?: () => void;
   isGenerating?: boolean;
 };
 
-export function GenerateState({ theme, onGenerate, isGenerating = false }: Props) {
+export function GenerateState({
+  theme,
+  hasEntryToday,
+  onOpenJournal,
+  onGenerate,
+  isGenerating = false,
+}: Props) {
   const isDark = theme === 'dark';
+  const locked = !hasEntryToday;
+
+  const title = locked
+    ? "Today's affirmation is waiting"
+    : 'Your affirmation is ready';
+  const copy = locked
+    ? "Write today's journal entry to unlock it."
+    : "SoulPal has woven today's words from what you wrote. Tap to reveal.";
+  const ctaLabel = locked ? 'Journal to unlock' : "Generate today's affirmation";
+  const ctaPress = locked ? onOpenJournal : isGenerating ? undefined : onGenerate;
+  const ctaDisabled = !locked && isGenerating;
 
   return (
     <View
@@ -54,17 +76,13 @@ export function GenerateState({ theme, onGenerate, isGenerating = false }: Props
         </Svg>
       </View>
 
-      <Text style={[styles.title, { color: ink(theme) }]}>
-        Your affirmation is ready
-      </Text>
-      <Text style={[styles.copy, { color: inkSub(theme) }]}>
-        SoulPal has woven today's words from what you wrote. Tap to reveal.
-      </Text>
+      <Text style={[styles.title, { color: ink(theme) }]}>{title}</Text>
+      <Text style={[styles.copy, { color: inkSub(theme) }]}>{copy}</Text>
 
       <Pressable
-        onPress={isGenerating ? undefined : onGenerate}
-        disabled={isGenerating}
-        style={[styles.cta, isGenerating && styles.ctaDisabled]}
+        onPress={ctaPress}
+        disabled={ctaDisabled}
+        style={[styles.cta, ctaDisabled && styles.ctaDisabled]}
       >
         <LinearGradient
           colors={isDark ? [TEAL, PINK] : [PURPLE, PINK]}
@@ -72,10 +90,10 @@ export function GenerateState({ theme, onGenerate, isGenerating = false }: Props
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        {isGenerating ? (
+        {!locked && isGenerating ? (
           <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.ctaText}>Generate today's affirmation</Text>
+          <Text style={styles.ctaText}>{ctaLabel}</Text>
         )}
       </Pressable>
     </View>

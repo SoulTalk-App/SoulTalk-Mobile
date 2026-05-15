@@ -118,6 +118,24 @@ export function ShiftCard({ shift, theme, focused = false, dim = false, onPress 
 
       {/* stepper */}
       <View style={styles.stepperWrap}>
+        {/* so-4q8e: tend progress bar — stage thresholds are 0.25-wide and a
+            tend bumps pct by 0.1, so the stepper above only changes every 3-4
+            tends. Without this thin always-on bar, single tends produce no
+            visible movement in the tracking UI and users (Sam TF May 14)
+            think the action didn't take. Active shifts only. */}
+        {shift.status === 'active' ? (
+          <View style={[styles.tendBarTrack, { backgroundColor: mutedTrack }]}>
+            <View
+              style={[
+                styles.tendBarFill,
+                {
+                  backgroundColor: shift.mood,
+                  width: `${Math.max(0, Math.min(1, shift.pct)) * 100}%`,
+                },
+              ]}
+            />
+          </View>
+        ) : null}
         <View style={styles.stepperRow}>
           {STAGES.map((_, i) => {
             const reached = i < idx;
@@ -246,6 +264,16 @@ const styles = StyleSheet.create({
   },
   stepperWrap: {
     marginTop: 14,
+  },
+  tendBarTrack: {
+    height: 3,
+    borderRadius: 2,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  tendBarFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   stepperRow: {
     flexDirection: 'row',

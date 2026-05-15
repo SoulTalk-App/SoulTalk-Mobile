@@ -894,14 +894,11 @@ const HomeScreen = ({ navigation }: any) => {
   const tabRiseValues = [useSharedValue(-20), useSharedValue(0), useSharedValue(0)];
   const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
-  // SoulPal avatar animation — bob (3.6s ease-in-out) + blink every ~4.2s
-  // so-02lh: previously animated scaleY 1 → 0.05 on the whole avatar, which
-  // squished the entire SoulPal figure (Sam reported the visible "blink and
-  // squish"). The home avatar is a single composite (Soulpal5) with no
-  // separate eye layer to scale, so we fade opacity instead — reads as a
-  // brief "wink" without distorting the figure.
+  // SoulPal avatar animation — float only (gentle translateY bob).
+  // so-9jat: the blink (so-02lh's opacity dip, itself a replacement for an
+  // earlier scaleY squish) still read as a flicker in beta feedback. Per
+  // the recurring report the avatar now simply floats with no blink.
   const palBobY = useSharedValue(0);
-  const palBlinkOpacity = useSharedValue(1);
 
 
   useEffect(() => {
@@ -912,7 +909,7 @@ const HomeScreen = ({ navigation }: any) => {
     loadLocalName();
   }, []);
 
-  // SoulPal bob + blink (canonical GreetingHero).
+  // SoulPal float (canonical GreetingHero).
   useEffect(() => {
     palBobY.value = withRepeat(
       withSequence(
@@ -922,23 +919,10 @@ const HomeScreen = ({ navigation }: any) => {
       -1,
       true,
     );
-
-    // Blink: every 4.2s, opacity dips for 140ms.
-    const blinkId = setInterval(() => {
-      palBlinkOpacity.value = withSequence(
-        withTiming(0.4, { duration: 70 }),
-        withTiming(1, { duration: 70 }),
-      );
-    }, 4200);
-
-    return () => clearInterval(blinkId);
   }, []);
 
   const palBobStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: palBobY.value }],
-  }));
-  const palBlinkStyle = useAnimatedStyle(() => ({
-    opacity: palBlinkOpacity.value,
   }));
 
   const handleMoodChange = useCallback((text: string) => {
@@ -1040,9 +1024,9 @@ const HomeScreen = ({ navigation }: any) => {
             <View style={dk.greetingTopRow}>
               {/* TODO(so-c0o): no SoulPal route exists yet — avatar tap is a no-op for now (FYI lead). */}
               <Animated.View style={[dk.avatarBtn, dk.avatarBtnDark, palBobStyle]}>
-                <Animated.Image
+                <Image
                   source={Soulpal5}
-                  style={[dk.avatarImg, palBlinkStyle]}
+                  style={dk.avatarImg}
                   resizeMode="contain"
                 />
               </Animated.View>
@@ -1342,9 +1326,9 @@ const HomeScreen = ({ navigation }: any) => {
           <View style={lt.greetingTopRow}>
             {/* TODO(so-c0o): no SoulPal route exists yet — avatar tap is a no-op for now (FYI lead). */}
             <Animated.View style={[lt.avatarBtn, lt.avatarBtnLight, palBobStyle]}>
-              <Animated.Image
+              <Image
                 source={Soulpal5}
-                style={[lt.avatarImg, palBlinkStyle]}
+                style={lt.avatarImg}
                 resizeMode="contain"
               />
             </Animated.View>
