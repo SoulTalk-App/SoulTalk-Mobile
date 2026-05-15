@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,24 +16,19 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-import { GenerateState } from '../features/affirmationMirror/GenerateState';
 import { ReadyState, AffirmationItem } from '../features/affirmationMirror/ReadyState';
 import { AffirmationReveal } from '../features/affirmationMirror/AffirmationReveal';
 import { ink } from '../features/soulSignals/tokens';
 
+// so-dtuh: state machine collapsed to loading | reveal | ready. The 'reveal'
+// kind covers both cold entry (from the Home grid, with no affirmation_text
+// yet — AffirmationReveal renders idle + a context-aware central button) and
+// the replay-from-ready path (with affirmation_text supplied — AffirmationReveal
+// auto-jumps via its existing AsyncStorage REVEALED_DATE_KEY check).
 type ScreenState =
   | { kind: 'loading' }
-  | { kind: 'generate' }
-  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[] }
-  | {
-      kind: 'revealing';
-      affirmation_text: string;
-      date_key: string;
-      // so-dzfx: true when the user arrived straight from Generate (no list
-      // screen in between). Drives auto-reveal (skip the redundant second
-      // tap) and the back-button destination on close.
-      autoReveal: boolean;
-    };
+  | { kind: 'reveal'; affirmation_text?: string; date_key?: string }
+  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[] };
 
 const AffirmationMirrorScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -43,13 +38,12 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const { hasEntryToday } = useJournal();
 
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const fetchData = useCallback(async () => {
-    // so-vjzo: the locked-gate page is gone; GenerateState renders the
-    // 'journal to unlock' CTA when hasEntryToday is false. Keep the list
-    // fetch running regardless so a returning user with prior entries
-    // sees their history when they journal later in the session.
+    // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
+    // handles that visually now via its 'Journal to Unlock' button. Always
+    // hit the list endpoint so a returning user with prior entries still
+    // sees their history once they journal.
     try {
       const list = await JournalService.listAffirmations(30, 0);
       const todayIso = new Date().toISOString().slice(0, 10);
@@ -59,21 +53,21 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       if (today) {
         setState({ kind: 'ready', today, history: list.items });
       } else {
-        setState({ kind: 'generate' });
+        setState({ kind: 'reveal' });
       }
     } catch (err: any) {
       // History endpoint may not exist on older BE deploys; fall back to the
-      // generate state so the user can still trigger /today.
+      // reveal entry screen so the user can still trigger /today.
       const status = err?.response?.status;
       if (status === 404 || status === 405) {
-        setState({ kind: 'generate' });
+        setState({ kind: 'reveal' });
       } else {
         const msg = err?.response?.data?.detail || 'Could not load affirmations.';
         Alert.alert('Affirmation Mirror', msg);
-        setState({ kind: 'generate' });
+        setState({ kind: 'reveal' });
       }
     }
-  }, [hasEntryToday]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,44 +76,48 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     }, [fetchData]),
   );
 
-  const handleGenerate = useCallback(async () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
+  // so-dtuh: handleGenerate is now a Promise the AffirmationReveal entry
+  // button awaits — it returns the affirmation payload so AffirmationReveal
+  // can immediately play its reveal animation with the new text. The screen
+  // state stays as `{kind:'reveal'}` (no text), which is also the marker
+  // handleRevealClose uses to know this was a cold-entry generate vs a replay.
+  const handleGenerate = useCallback(async (): Promise<{
+    affirmation_text: string;
+    date_key: string;
+  }> => {
     try {
       const data = await JournalService.getTodayAffirmation();
-      if (data?.affirmation_text) {
-        setState({
-          kind: 'revealing',
-          affirmation_text: data.affirmation_text,
-          date_key: data.date_key,
-          autoReveal: true,
-        });
+      if (!data?.affirmation_text) {
+        throw new Error('Empty affirmation response');
       }
+      return {
+        affirmation_text: data.affirmation_text,
+        date_key: data.date_key,
+      };
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || 'Something went wrong. Please try again later.';
+      const msg =
+        err?.response?.data?.detail || 'Something went wrong. Please try again later.';
       Alert.alert('Affirmation Mirror', msg);
-    } finally {
-      setIsGenerating(false);
+      throw err;
     }
-  }, [isGenerating]);
+  }, []);
 
   const handleReplay = useCallback(() => {
     if (state.kind !== 'ready') return;
     setState({
-      kind: 'revealing',
+      kind: 'reveal',
       affirmation_text: state.today.affirmation_text,
       date_key: state.today.date_key,
-      autoReveal: false,
     });
   }, [state]);
 
   const handleRevealClose = useCallback(() => {
-    // so-dzfx: from a fresh generate the user came straight from Home with
-    // no list screen in between — back should exit the mirror, not drop
-    // them onto a list they never opened. The list still refreshes on the
-    // next focus via useFocusEffect. The replay path keeps the old
-    // behavior: refetch and return to the list the user came from.
-    if (state.kind === 'revealing' && state.autoReveal) {
+    // so-dzfx: from a cold-entry generate the user came straight from Home
+    // with no list screen in between — back should exit the mirror, not drop
+    // them onto a list they never opened. The list refreshes on the next
+    // focus via useFocusEffect. Replay (state.affirmation_text was supplied
+    // upfront) refetches and returns to the list the user came from.
+    if (state.kind === 'reveal' && !state.affirmation_text) {
       navigation.goBack();
       return;
     }
@@ -136,15 +134,17 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     navigation.replace('Journal');
   }, [navigation]);
 
-  // Reveal mode owns its own full-bleed chrome (clouds + videos + back button).
-  // Render it on its own without the hub wrapping.
-  if (state.kind === 'revealing') {
+  // so-dtuh: AffirmationReveal owns its own full-bleed chrome (clouds + videos
+  // + back button), so render it on its own without the CosmicScreen wrapper.
+  if (state.kind === 'reveal') {
     return (
       <AffirmationReveal
         isDarkMode={isDarkMode}
+        hasEntryToday={hasEntryToday}
         affirmation_text={state.affirmation_text}
         date_key={state.date_key}
-        autoReveal={state.autoReveal}
+        onGenerate={handleGenerate}
+        onOpenJournal={handleOpenJournal}
         onClose={handleRevealClose}
       />
     );
@@ -178,14 +178,6 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
               color={isDarkMode ? colors.text.primary : '#3A0E66'}
             />
           </View>
-        ) : state.kind === 'generate' ? (
-          <GenerateState
-            theme={theme}
-            hasEntryToday={hasEntryToday}
-            onOpenJournal={handleOpenJournal}
-            onGenerate={handleGenerate}
-            isGenerating={isGenerating}
-          />
         ) : (
           <ReadyState
             theme={theme}
