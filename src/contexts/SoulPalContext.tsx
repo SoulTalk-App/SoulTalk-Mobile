@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SOULPAL_COLOR_KEY = '@soultalk_soulpal_color';
+const SOULPAL_NAME_KEY = '@soultalk_soulpal_name';
+
+// Fallback when the user hasn't named their SoulPal yet. User-facing strings
+// ("<name> is reading…") render this verbatim, so it must read naturally.
+const DEFAULT_SOULPAL_NAME = 'SoulPal';
 
 // All 8 image-asset ids. The picker shows 7 per theme (one is dropped per
 // vibe — see SOULPAL_PALETTE_LIGHT / _DARK), but the underlying images cover
@@ -148,6 +153,8 @@ const EYES_IMAGES: Record<SoulPalColorId, any> = {
 interface SoulPalContextType {
   colorId: SoulPalColorId;
   setColorId: (id: SoulPalColorId) => void;
+  name: string;
+  setName: (name: string) => void;
   bodyImage: any;
   homeImage: any;
   eyesImage: any;
@@ -156,6 +163,8 @@ interface SoulPalContextType {
 const SoulPalContext = createContext<SoulPalContextType>({
   colorId: 'teal',
   setColorId: () => {},
+  name: DEFAULT_SOULPAL_NAME,
+  setName: () => {},
   bodyImage: BODY_IMAGES.teal,
   homeImage: HOME_IMAGES.teal,
   eyesImage: EYES_IMAGES.teal,
@@ -163,11 +172,17 @@ const SoulPalContext = createContext<SoulPalContextType>({
 
 export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [colorId, setColorIdState] = useState<SoulPalColorId>('teal');
+  const [name, setNameState] = useState<string>(DEFAULT_SOULPAL_NAME);
 
   useEffect(() => {
     AsyncStorage.getItem(SOULPAL_COLOR_KEY).then((val) => {
       if (val && BODY_IMAGES[val as SoulPalColorId]) {
         setColorIdState(val as SoulPalColorId);
+      }
+    });
+    AsyncStorage.getItem(SOULPAL_NAME_KEY).then((val) => {
+      if (val && val.trim()) {
+        setNameState(val.trim());
       }
     });
   }, []);
@@ -177,11 +192,24 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     AsyncStorage.setItem(SOULPAL_COLOR_KEY, id);
   };
 
+  const setName = (next: string) => {
+    const trimmed = next.trim();
+    const resolved = trimmed || DEFAULT_SOULPAL_NAME;
+    setNameState(resolved);
+    if (trimmed) {
+      AsyncStorage.setItem(SOULPAL_NAME_KEY, trimmed);
+    } else {
+      AsyncStorage.removeItem(SOULPAL_NAME_KEY);
+    }
+  };
+
   return (
     <SoulPalContext.Provider
       value={{
         colorId,
         setColorId,
+        name,
+        setName,
         bodyImage: BODY_IMAGES[colorId],
         homeImage: HOME_IMAGES[colorId],
         eyesImage: EYES_IMAGES[colorId],
@@ -193,3 +221,7 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
 };
 
 export const useSoulPal = () => useContext(SoulPalContext);
+
+/** Convenience primitive — the user's chosen SoulPal name, or 'SoulPal' if
+ *  unset. Safe to drop directly into user-facing strings. */
+export const useSoulPalName = (): string => useContext(SoulPalContext).name;
