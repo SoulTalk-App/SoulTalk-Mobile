@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   ShiftSuggestionCandidate,
   ShiftSuggestionResponse,
@@ -59,6 +60,7 @@ export function SuggestModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const candidates = response?.candidates ?? [];
@@ -131,7 +133,7 @@ export function SuggestModal({
             >
               <View style={styles.headerCenter}>
                 <Text style={[styles.eyebrow, { color: TEAL }]}>
-                  SoulPal suggests
+                  {soulPalName} suggests
                 </Text>
                 <Text style={[styles.title, { color: ink(theme) }]}>
                   {hasCandidates
@@ -141,7 +143,7 @@ export function SuggestModal({
                 <Text style={[styles.subtitle, { color: ink(theme) }]}>
                   {hasCandidates
                     ? 'From the patterns in your last two weeks.'
-                    : 'SoulPal hasn’t found patterns yet — keep tending and check back.'}
+                    : `${soulPalName} hasn’t found patterns yet — keep tending and check back.`}
                 </Text>
               </View>
 
@@ -269,7 +271,7 @@ export function SuggestModal({
                     { color: inkSub(theme), opacity: 0.55 },
                   ]}
                 >
-                  Ask SoulPal for different ones
+                  Ask {soulPalName} for different ones
                 </Text>
               </View>
 

@@ -22,9 +22,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSoulPal } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 
 const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
@@ -42,6 +42,10 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [soulPalName, setSoulPalName] = useState('');
+  // so-wuy8: context's setName persists to AsyncStorage AND updates the
+  // live SoulPalContext state, so the chosen name flows through
+  // useSoulPalName() consumers immediately — no remount needed.
+  const { setName } = useSoulPal();
   const [inputFocused, setInputFocused] = useState(false);
 
   const styles = useMemo(
@@ -168,7 +172,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
 
   const handleContinue = async () => {
     if (soulPalName.trim()) {
-      await AsyncStorage.setItem('@soultalk_soulpal_name', soulPalName.trim());
+      setName(soulPalName.trim());
       // Sync SoulPal name to backend AI profile
       try {
         const JournalService = (await import('../services/JournalService')).default;

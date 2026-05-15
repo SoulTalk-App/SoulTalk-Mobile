@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   PINK,
   PURPLE,
@@ -34,13 +35,14 @@ export function GenerateState({
 }: Props) {
   const isDark = theme === 'dark';
   const locked = !hasEntryToday;
+  const soulPalName = useSoulPalName();
 
   const title = locked
     ? "Today's affirmation is waiting"
     : 'Your affirmation is ready';
   const copy = locked
     ? "Write today's journal entry to unlock it."
-    : "SoulPal has woven today's words from what you wrote. Tap to reveal.";
+    : `${soulPalName} has woven today's words from what you wrote. Tap to reveal.`;
   const ctaLabel = locked ? 'Journal to unlock' : "Generate today's affirmation";
   const ctaPress = locked ? onOpenJournal : isGenerating ? undefined : onGenerate;
   const ctaDisabled = !locked && isGenerating;

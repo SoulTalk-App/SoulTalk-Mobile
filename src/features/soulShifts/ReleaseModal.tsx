@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { ShiftDetail } from './types';
 import { PURPLE, Theme, ink, inkSub } from './tokens';
 
@@ -35,6 +36,7 @@ export function ReleaseModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const [reason, setReason] = useState('');
 
   useEffect(() => {
@@ -112,8 +114,8 @@ export function ReleaseModal({
               Release this shift?
             </Text>
             <Text style={[styles.subtitle, { color: ink(theme) }]}>
-              “{detail.title}” will move to your Released list. SoulPal will
-              stop nudging you about it.
+              “{detail.title}” will move to your Released list. {soulPalName}
+              {' '}will stop nudging you about it.
             </Text>
 
             <View

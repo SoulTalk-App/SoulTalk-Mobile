@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { Eligibility } from './types';
 import {
   PINK,
@@ -27,6 +28,7 @@ export function LockedState({
   onOpenJournal,
 }: Props) {
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const pct = Math.min(1, eligibility.current / eligibility.needed);
   const remaining = Math.max(0, eligibility.needed - eligibility.current);
   const stroke = inkSub(theme);
@@ -64,7 +66,7 @@ export function LockedState({
       </View>
 
       <Text style={[styles.title, { color: ink(theme) }]}>
-        SoulPal is still listening
+        {soulPalName} is still listening
       </Text>
       <Text style={[styles.copy, { color: inkSub(theme) }]}>
         Signals appear once you've shared a few entries. Yours will start coming

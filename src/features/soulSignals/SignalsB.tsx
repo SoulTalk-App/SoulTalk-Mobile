@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { ListeningState } from './ListeningState';
 import { LockedState } from './LockedState';
 import { PageBg } from './PageBg';
@@ -50,6 +51,7 @@ export function SignalsB({
   onFilterChange,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const soulPalName = useSoulPalName();
   // Single-row header (so-rlz): back + title + counter ride the same row,
   // no separate back-row band above. Just enough top inset to clear the
   // notch.
@@ -182,7 +184,7 @@ export function SignalsB({
                 <Text style={[styles.emptyMuted, { color: inkSub(theme) }]}>
                   {filter === 'muted'
                     ? 'No muted threads yet.'
-                    : 'No signals yet. SoulPal will surface threads here as patterns emerge across your reflections.'}
+                    : `No signals yet. ${soulPalName} will surface threads here as patterns emerge across your reflections.`}
                 </Text>
               ) : (
                 groups.map((g) => (

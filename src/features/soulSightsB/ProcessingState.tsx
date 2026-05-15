@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { fonts } from '../../theme';
 import { cosmicTextShadow } from '../../components/CosmicText';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   PINK,
   TEAL,
@@ -54,6 +55,7 @@ function BlinkDot({
 
 export function ProcessingState({ theme, meta = { entries: 9, signals: 3 } }: Props) {
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const spin = useSharedValue(0);
 
   useEffect(() => {
@@ -125,8 +127,8 @@ export function ProcessingState({ theme, meta = { entries: 9, signals: 3 } }: Pr
           theme === 'dark' && cosmicTextShadow,
         ]}
       >
-        SoulPal is reading between the lines of your entries. This may take a
-        moment.
+        {soulPalName} is reading between the lines of your entries. This may
+        take a moment.
       </Text>
 
       <View style={styles.dotsRow}>

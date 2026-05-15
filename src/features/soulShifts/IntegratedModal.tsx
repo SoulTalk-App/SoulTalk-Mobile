@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { ShiftDetail, SoulpalVariant } from './types';
 import {
   PINK,
@@ -53,6 +54,7 @@ export function IntegratedModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -161,8 +163,8 @@ export function IntegratedModal({
               >
                 <Text style={[styles.reassureText, { color: inkSub(theme) }]}>
                   You're claiming the practice as part of how you live.
-                  SoulPal will move it to your integrated list and stop
-                  nudging you about it.
+                  {' '}{soulPalName} will move it to your integrated list and
+                  stop nudging you about it.
                 </Text>
               </View>
 

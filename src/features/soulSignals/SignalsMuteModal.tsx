@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
+import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { MuteDuration, SignalDetail } from './types';
 import { PURPLE, Theme, ink, inkSub } from './tokens';
 
@@ -37,6 +38,7 @@ export function SignalsMuteModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+  const soulPalName = useSoulPalName();
   // Default selection mirrors the canonical design: 30 days highlighted.
   const [selected, setSelected] = useState<MuteDuration>('month');
 
@@ -113,8 +115,8 @@ export function SignalsMuteModal({
               Mute this thread?
             </Text>
             <Text style={[styles.subtitle, { color: ink(theme) }]}>
-              SoulPal will keep listening for it but won’t surface signals
-              about “{detail.headline}” {durationCopy(selected)}.
+              {soulPalName} will keep listening for it but won’t surface
+              signals about “{detail.headline}” {durationCopy(selected)}.
             </Text>
 
             <View style={styles.chipsRow}>

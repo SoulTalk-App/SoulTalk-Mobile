@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSoulPalName } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, {
   EligibilityResponse,
@@ -86,6 +87,7 @@ const SoulSightScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const isDark = isDarkMode;
+  const soulPalName = useSoulPalName();
 
   const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
   const [soulsights, setSoulsights] = useState<SoulsightSummary[]>([]);
@@ -213,7 +215,7 @@ const SoulSightScreen = ({ navigation }: any) => {
               </View>
               <Text style={styles.currentTitle}>Drafting your SoulSight…</Text>
               <Text style={styles.currentBlurb}>
-                SoulPal is reading the week. This usually takes a minute.
+                {soulPalName} is reading the week. This usually takes a minute.
               </Text>
             </View>
           </View>
@@ -311,7 +313,7 @@ const SoulSightScreen = ({ navigation }: any) => {
             </Text>
           ) : (
             <Text style={styles.currentBlurb}>
-              You've filled the SoulBar — SoulPal is ready to draft this week's chapter.
+              You've filled the SoulBar — {soulPalName} is ready to draft this week's chapter.
             </Text>
           )}
         </View>
@@ -376,7 +378,7 @@ const SoulSightScreen = ({ navigation }: any) => {
       <Image source={SOULPAL_SRC[4]} style={styles.emptySoulpal} resizeMode="contain" />
       <Text style={styles.emptyTitle}>Your first SoulSight is forming.</Text>
       <Text style={styles.emptySubtitle}>
-        Keep writing. After your first 6 entries, SoulPal will draft your first chapter.
+        Keep writing. After your first 6 entries, {soulPalName} will draft your first chapter.
       </Text>
     </View>
   );
@@ -408,7 +410,7 @@ const SoulSightScreen = ({ navigation }: any) => {
         ) : null}
       </View>
       <Text style={styles.heroSubtitle}>
-        Each SoulSight is a chapter SoulPal writes from your entries.
+        Each SoulSight is a chapter {soulPalName} writes from your entries.
       </Text>
     </View>
   );
