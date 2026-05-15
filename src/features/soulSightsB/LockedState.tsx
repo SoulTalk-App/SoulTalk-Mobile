@@ -60,7 +60,7 @@ export function LockedState({
           isDark && cosmicTextShadow,
         ]}
       >
-        Your first Sight is forming
+        Your first SoulSight is forming
       </Text>
       <Text
         style={[
@@ -69,7 +69,7 @@ export function LockedState({
           isDark && cosmicTextShadow,
         ]}
       >
-        Soul Sights need a few entries to draw from. Keep journaling — yours
+        SoulSights need a few entries to draw from. Keep journaling — yours
         unlocks soon.
       </Text>
 

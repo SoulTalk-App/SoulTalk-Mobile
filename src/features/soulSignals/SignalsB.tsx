@@ -178,9 +178,11 @@ export function SignalsB({
               </ScrollView>
             )}
             <View style={styles.list}>
-              {groups.length === 0 && filter === 'muted' ? (
+              {groups.length === 0 ? (
                 <Text style={[styles.emptyMuted, { color: inkSub(theme) }]}>
-                  No muted threads yet.
+                  {filter === 'muted'
+                    ? 'No muted threads yet.'
+                    : 'No signals yet. SoulPal will surface threads here as patterns emerge across your reflections.'}
                 </Text>
               ) : (
                 groups.map((g) => (

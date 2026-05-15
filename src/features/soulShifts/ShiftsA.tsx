@@ -265,7 +265,7 @@ export function ShiftsA({
                   </Text>
                   <Text style={[emptyStyles.subtitle, { color: inkSub(theme) }]}>
                     Soul Shifts surface from patterns SoulPal notices in your
-                    entries and Sights. Keep journaling. Your first Shift
+                    entries and SoulSights. Keep journaling. Your first Shift
                     will appear after your first SoulSight.
                   </Text>
                 </>

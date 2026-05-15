@@ -65,6 +65,10 @@ type Props = {
   isDarkMode: boolean;
   affirmation_text: string;
   date_key: string;
+  // so-dzfx: set when the affirmation was just generated. The user already
+  // tapped "Generate", so the reveal plays automatically — no redundant
+  // second "Click to Reveal" tap.
+  autoReveal?: boolean;
   onClose: () => void;
 };
 
@@ -72,6 +76,7 @@ export function AffirmationReveal({
   isDarkMode,
   affirmation_text,
   date_key,
+  autoReveal = false,
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -220,6 +225,16 @@ export function AffirmationReveal({
     }, 1200);
   };
 
+  // so-dzfx: a freshly generated affirmation arrives with autoReveal — the
+  // user already tapped "Generate", so play the reveal immediately rather
+  // than making them tap "Click to Reveal" a second time. The
+  // already-revealed-today path (checkRevealed above) handles replays.
+  useEffect(() => {
+    if (autoReveal && !isRevealedRef.current) {
+      handleReveal();
+    }
+  }, []);
+
   const textAnimStyle = useAnimatedStyle(() => ({
     opacity: textOpacity.value,
     transform: [{ scale: textScale.value }],
@@ -344,7 +359,7 @@ export function AffirmationReveal({
         </View>
       )}
 
-      {!isRevealed && (
+      {!isRevealed && !autoReveal && (
         <Animated.View style={[styles.revealButtonContainer, buttonAnimStyle]}>
           <Pressable
             onPress={handleReveal}

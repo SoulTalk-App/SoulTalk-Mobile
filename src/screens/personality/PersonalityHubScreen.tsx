@@ -405,11 +405,25 @@ const PersonalityHubScreen = ({ navigation }: any) => {
     <CosmicScreen tone="dusk">
       <View style={styles.content}>
         {isLoading && !hasLoadedOnce ? (
-          <ActivityIndicator
-            color={isDark ? '#FFFFFF' : '#FFFFFF'}
-            size="large"
-            style={{ flex: 1 }}
-          />
+          <View style={styles.loadingShell}>
+            <Pressable
+              onPress={() => navigation.goBack()}
+              hitSlop={12}
+              style={[styles.loadingBack, { top: insets.top + 8 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Feather
+                name="chevron-left"
+                size={28}
+                color={isDark ? '#FFFFFF' : '#3A0E66'}
+              />
+            </Pressable>
+            <ActivityIndicator
+              color={isDark ? '#FFFFFF' : '#FFFFFF'}
+              size="large"
+            />
+          </View>
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -431,6 +445,15 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
   StyleSheet.create({
     root: { flex: 1 },
     content: { flex: 1 },
+    loadingShell: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingBack: {
+      position: 'absolute',
+      left: 16,
+    },
     backInline: {
       flexShrink: 0,
     },

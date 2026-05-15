@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import {
@@ -401,6 +402,19 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dawn">
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={12}
+            style={[styles.loadingBack, { top: insets.top + 8 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Feather
+              name="chevron-left"
+              size={28}
+              color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
+            />
+          </Pressable>
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
         </View>
       ) : (
@@ -477,6 +491,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingBack: {
+    position: 'absolute',
+    left: 16,
   },
 });
 

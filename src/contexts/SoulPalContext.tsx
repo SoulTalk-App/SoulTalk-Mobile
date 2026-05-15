@@ -31,32 +31,32 @@ export interface SoulPalSwatch {
   hex: string;
 }
 
-// Per-theme hex maps. Light palette is warm pastels tuned to the lavender
-// CosmicBackdrop wash; dark palette is vibrant cosmic accents matching the
-// void/teal accent family.
+// Swatch hexes are sampled directly from the dominant body color of each
+// body_<id>.png asset. so-trs0: the picker swatch must match the rendered
+// body, and since the body PNGs are NOT theme-forked, the hex can't be
+// either — a divergent hex makes one theme's swatch lie about the body
+// (this was the "pink renders greenish-gray" class of bug). Both maps are
+// kept for the getSoulPalHex API surface but hold identical values.
+// Extends the so-pz1x slate fix to the full palette.
 const SOULPAL_HEX_LIGHT: Record<SoulPalColorId, string> = {
-  teal: '#9CC8C2',
-  blue: '#A8B5D8',
-  purple: '#B89FD0',
-  pink: '#D4A5B8',
-  coral: '#E8B89A',
-  gold: '#D8C088',
-  mint: '#A8C8A0',
-  // so-pz1x: was '#C8B8D0' (lavender) — body_slate.png renders as sage-teal,
-  // so the swatch must match the body, not the lilac blush on the cheeks.
+  teal: '#70CACF',
+  blue: '#709ACF',
+  purple: '#A570CF',
+  pink: '#CF709B',
+  coral: '#CF7570',
+  gold: '#CBCF70',
+  mint: '#70CFA4',
   slate: '#8FA9A8',
 };
 
 const SOULPAL_HEX_DARK: Record<SoulPalColorId, string> = {
-  teal: '#4DE8D4',
-  blue: '#5ECEFF',
-  purple: '#B070FF',
-  pink: '#FF5EA0',
-  coral: '#FF8855',
-  gold: '#FFD757',
-  mint: '#70CC8A',
-  // so-pz1x: was '#D8B0FF' (vibrant lavender). The body_slate.png asset is
-  // shared across themes and renders sage-teal, so use the same hex here.
+  teal: '#70CACF',
+  blue: '#709ACF',
+  purple: '#A570CF',
+  pink: '#CF709B',
+  coral: '#CF7570',
+  gold: '#CBCF70',
+  mint: '#70CFA4',
   slate: '#8FA9A8',
 };
 

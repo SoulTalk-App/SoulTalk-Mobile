@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import {
@@ -147,8 +148,15 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         lastTend: result.lastTend,
       };
 
+      // so-mv4t: a tend that carries the shift to status='integrated' is
+      // auto-archived off the active list by the BE (so-soud) — drop the
+      // row locally so it doesn't linger until the next refetch. Every
+      // other tend just updates the row in place.
+      const integrated = result.shift.status === 'integrated';
       setShifts((prev) =>
-        prev.map((s) => (s.id === result.shift.id ? result.shift : s)),
+        integrated
+          ? prev.filter((s) => s.id !== result.shift.id)
+          : prev.map((s) => (s.id === result.shift.id ? result.shift : s)),
       );
       setTendOpen(false);
       // Dismiss the entire flow (so-lbw): without this, the underlying detail
@@ -161,7 +169,17 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setToastTendCount(result.tendCount);
       setToastTendId(result.tendId);
 
-      if (result.stageAdvanced) {
+      // so-mv4t: reaching 'integrated' always gets the celebratory moment
+      // (StageAdvance with nextStage=3 → "You've integrated it."), even
+      // when the BE didn't flag stage_advanced (e.g. pct was already in
+      // the integrate band). Other tends use the normal stage-advance gate.
+      if (integrated) {
+        setAdvance({
+          detail: updatedDetail,
+          prevStage: result.prevStage,
+          nextStage: 3,
+        });
+      } else if (result.stageAdvanced) {
         setAdvance({
           detail: updatedDetail,
           prevStage: result.prevStage,
@@ -332,6 +350,19 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     <CosmicScreen tone="dawn">
       {isLoading ? (
         <View style={[styles.loadingShell, { paddingTop: insets.top + 16 }]}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={12}
+            style={[styles.loadingBack, { top: insets.top + 8 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Feather
+              name="chevron-left"
+              size={28}
+              color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
+            />
+          </Pressable>
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
         </View>
       ) : (
@@ -456,6 +487,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingBack: {
+    position: 'absolute',
+    left: 16,
   },
   detailFetchShell: {
     ...StyleSheet.absoluteFillObject,
