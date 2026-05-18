@@ -17,6 +17,23 @@ import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 
+// so-jb0t: BE appends generate_safety_redirect text to the LLM reflection
+// when mode === 'CRISIS_OVERRIDE'. The redirect block always opens with this
+// phrase (app/services/ai/safety.py:123), so we can deterministically split
+// the combined response_text into reflection + safety to render them on
+// separate surfaces. Legacy responses without the marker fall back to
+// rendering as a single blob.
+const CRISIS_SAFETY_PREFIX = 'What you are feeling right now matters';
+
+const splitCrisisText = (text: string): { reflection: string; safety: string | null } => {
+  const idx = text.indexOf(CRISIS_SAFETY_PREFIX);
+  if (idx < 0) return { reflection: text, safety: null };
+  return {
+    reflection: text.slice(0, idx).trim(),
+    safety: text.slice(idx).trim(),
+  };
+};
+
 const JournalEntryScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { entries } = useJournal();
@@ -58,6 +75,33 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         entryLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.text.light, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
         // TODO(theme): map 'rgba(255, 255, 255, 0.88)' to palette key
         entryText: { fontFamily: fonts.outfit.regular, fontSize: 17, lineHeight: 17 * 1.65, color: 'rgba(255, 255, 255, 0.88)' },
+        // so-jb0t: distinct surface for the appended safety_redirect block.
+        // Warm gold accent reads as steady support rather than alarm; the
+        // separator visually decouples it from the LLM's CRISIS_OVERRIDE
+        // reflection above to combat the so-59ir "wonky and repetitive" feel.
+        crisisCard: {
+          backgroundColor: 'rgba(255, 200, 92, 0.08)',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 200, 92, 0.22)',
+          padding: 14,
+          marginTop: 4,
+          marginBottom: 14,
+        },
+        crisisHeader: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 12,
+          color: '#FFC85C',
+          marginBottom: 8,
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+        },
+        crisisText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          lineHeight: 14 * 1.6,
+          color: 'rgba(255, 255, 255, 0.88)',
+        },
       }),
     [colors],
   );
@@ -102,6 +146,32 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         journalLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 14, color: colors.primary, marginTop: 14, marginBottom: 8 },
         // '#333333' → colors.text.dark (#000 light)
         journalText: { fontFamily: fonts.outfit.regular, fontSize: 14, lineHeight: 14 * 1.6, color: colors.text.dark },
+        // so-jb0t: light-mode safety_redirect surface — soft cream so it
+        // reads as a steadying support panel, not an alarm, while clearly
+        // breaking the visual flow from the LLM reflection above.
+        crisisCard: {
+          backgroundColor: '#FFF6E8',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: '#F2D9A8',
+          padding: 14,
+          marginTop: 4,
+          marginBottom: 12,
+        },
+        crisisHeader: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 12,
+          color: '#8B6914',
+          marginBottom: 8,
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+        },
+        crisisText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 14,
+          lineHeight: 14 * 1.6,
+          color: colors.text.dark,
+        },
       }),
     [colors],
   );
@@ -164,11 +234,29 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             {isDarkMode && <SoulPalAnimated size={32} animate={false} />}
             <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
           </View>
-          {entry!.ai_response?.text ? (
-            <Text style={isDarkMode ? dk.aiText : lt.aiText}>
-              {entry!.ai_response.text.replace(/\*+/g, '')}
-            </Text>
-          ) : (
+          {entry!.ai_response?.text ? (() => {
+            const raw = entry!.ai_response.text.replace(/\*+/g, '');
+            const isCrisis = entry!.ai_response.mode === 'CRISIS_OVERRIDE';
+            if (!isCrisis) {
+              return <Text style={isDarkMode ? dk.aiText : lt.aiText}>{raw}</Text>;
+            }
+            const { reflection, safety } = splitCrisisText(raw);
+            return (
+              <>
+                {reflection ? (
+                  <Text style={isDarkMode ? dk.aiText : lt.aiText}>{reflection}</Text>
+                ) : null}
+                {safety ? (
+                  <View style={isDarkMode ? dk.crisisCard : lt.crisisCard}>
+                    <Text style={isDarkMode ? dk.crisisHeader : lt.crisisHeader}>
+                      Support resources
+                    </Text>
+                    <Text style={isDarkMode ? dk.crisisText : lt.crisisText}>{safety}</Text>
+                  </View>
+                ) : null}
+              </>
+            );
+          })() : (
             <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>No reflection available.</Text>
           )}
           {!entry!.tags?.crisis_flag && entry!.ai_response?.mode !== 'CRISIS_OVERRIDE' &&
