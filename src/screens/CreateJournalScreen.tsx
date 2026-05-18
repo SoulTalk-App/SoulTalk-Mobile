@@ -30,13 +30,22 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { Feather } from '@expo/vector-icons';
 
-// so-irkq: BE caps raw_text at 5000 chars (app/schemas/journal.py). Mirror
-// that here so the OS keyboard stops accepting input at the limit instead
-// of letting the user write past it and crash on submit. Warn threshold
-// gives ~10% headroom so they see the counter before it bites.
-const MAX_ENTRY_CHARS = 5000;
-const COUNTER_VISIBLE_AT = 4500;
-const COUNTER_WARN_AT = 4900;
+// so-t5vg: switched from a 5000-char limit to a 1000-word limit per the
+// May 10 migration doc. Word-based counts read more naturally for a
+// long-form journal entry than a char count. BE schema cap is being
+// raised from 5000 → 10000 chars in a paired ASK to be_core; the
+// TextInput maxLength is set generously so paste/voice don't hard-stop
+// mid-word — the submit gate enforces the word limit instead.
+const MAX_ENTRY_WORDS = 1000;
+const COUNTER_VISIBLE_AT_WORDS = 850;
+const COUNTER_WARN_AT_WORDS = 950;
+const MAX_ENTRY_CHARS = 10000;
+
+const countWords = (s: string): number => {
+  const trimmed = s.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).length;
+};
 
 const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -142,11 +151,27 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         const base = textBeforeRecordingRef.current;
         const separator = base.trim() ? ' ' : '';
         let combined = base + separator + transcribedText;
-        if (combined.length > MAX_ENTRY_CHARS) {
-          combined = combined.slice(0, MAX_ENTRY_CHARS);
+        // so-t5vg: cap on word count, not chars. Walk the combined text and
+        // keep the first MAX_ENTRY_WORDS whitespace-separated tokens (with
+        // their original separators preserved via slice on the source).
+        const wordCount = countWords(combined);
+        if (wordCount > MAX_ENTRY_WORDS) {
+          // Find the offset that ends after the MAX_ENTRY_WORDS-th word.
+          const tokenRe = /\S+/g;
+          let match: RegExpExecArray | null;
+          let kept = 0;
+          let cut = combined.length;
+          while ((match = tokenRe.exec(combined)) !== null) {
+            kept += 1;
+            if (kept === MAX_ENTRY_WORDS) {
+              cut = match.index + match[0].length;
+              break;
+            }
+          }
+          combined = combined.slice(0, cut);
           Alert.alert(
-            'Entry truncated',
-            `Voice transcription would have exceeded the ${MAX_ENTRY_CHARS}-character limit. Your entry was trimmed to fit.`,
+            'Entry trimmed',
+            `Voice transcription would have exceeded the ${MAX_ENTRY_WORDS}-word limit. Your entry was trimmed to fit.`,
           );
         }
         setText(combined);
@@ -171,6 +196,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     // Cheap no-op when the keyboard is already down.
     Keyboard.dismiss();
     if (!text.trim()) return;
+    // so-t5vg: gate submit on word count, not char length. TextInput's
+    // generous maxLength prevents most paste/voice over-runs but a user who
+    // pastes a wall of text could still cross the line.
+    if (countWords(text) > MAX_ENTRY_WORDS) {
+      Alert.alert(
+        'Entry too long',
+        `Journal entries are capped at ${MAX_ENTRY_WORDS} words. Trim a little and try again.`,
+      );
+      return;
+    }
     setIsSaving(true);
     try {
       let entryId: string | null = null;
@@ -338,13 +373,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
                 maxLength={MAX_ENTRY_CHARS}
               />
             </View>
-            {text.length >= COUNTER_VISIBLE_AT && (
-              <View style={dkS.counterRow}>
-                <Text style={[dkS.counterText, text.length >= COUNTER_WARN_AT && dkS.counterTextWarn]}>
-                  {text.length}/{MAX_ENTRY_CHARS}
-                </Text>
-              </View>
-            )}
+            {(() => {
+              const wc = countWords(text);
+              return wc >= COUNTER_VISIBLE_AT_WORDS ? (
+                <View style={dkS.counterRow}>
+                  <Text style={[dkS.counterText, wc >= COUNTER_WARN_AT_WORDS && dkS.counterTextWarn]}>
+                    {wc}/{MAX_ENTRY_WORDS} words
+                  </Text>
+                </View>
+              ) : null;
+            })()}
             <View style={[dkS.bottomRow, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
               <VoiceRecordingIndicator
                 isRecording={isRecording}
@@ -397,13 +435,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               maxLength={MAX_ENTRY_CHARS}
             />
           </View>
-          {text.length >= COUNTER_VISIBLE_AT && (
-            <View style={ltS.counterRow}>
-              <Text style={[ltS.counterText, text.length >= COUNTER_WARN_AT && ltS.counterTextWarn]}>
-                {text.length}/{MAX_ENTRY_CHARS}
-              </Text>
-            </View>
-          )}
+          {(() => {
+            const wc = countWords(text);
+            return wc >= COUNTER_VISIBLE_AT_WORDS ? (
+              <View style={ltS.counterRow}>
+                <Text style={[ltS.counterText, wc >= COUNTER_WARN_AT_WORDS && ltS.counterTextWarn]}>
+                  {wc}/{MAX_ENTRY_WORDS} words
+                </Text>
+              </View>
+            ) : null;
+          })()}
           <View style={[ltS.bottomRow, { paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }]}>
             <VoiceRecordingIndicator
               isRecording={isRecording}

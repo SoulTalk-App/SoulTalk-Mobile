@@ -127,14 +127,33 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
   }, [resendCooldown]);
 
   const handleOtpChange = (value: string, index: number) => {
-    if (value && !/^\d+$/.test(value)) return;
+    // so-nyxy: pasted strings (length > 1) spread across remaining inputs.
+    // Strip non-digits first so "123 456", "code: 123456", or the wrapper
+    // text iOS auto-paste sometimes carries still resolves cleanly.
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length > 1) {
+      const newOtp = [...otp];
+      const slice = digits.slice(0, OTP_LENGTH - index);
+      for (let i = 0; i < slice.length; i++) {
+        newOtp[index + i] = slice[i];
+      }
+      setOtp(newOtp);
+      setError('');
+      const focusIndex = Math.min(index + slice.length, OTP_LENGTH - 1);
+      inputRefs.current[focusIndex]?.focus();
+      return;
+    }
+
+    // Single-char path: empty (deletion) or one digit. Reject letters silently.
+    if (value && !digits) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value;
+    newOtp[index] = digits;
     setOtp(newOtp);
     setError('');
 
-    if (value && index < OTP_LENGTH - 1) {
+    if (digits && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -204,9 +223,18 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
               onChangeText={(value) => handleOtpChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
               keyboardType="number-pad"
-              maxLength={1}
+              // so-nyxy: maxLength left unbounded on the first input so the OS
+              // can paste/auto-fill the full 6-digit code into it — the paste
+              // handler then spreads digits across the rest. Other inputs keep
+              // maxLength=1 since they receive a single char at a time.
+              maxLength={index === 0 ? OTP_LENGTH : 1}
               selectTextOnFocus
               autoFocus={index === 0}
+              // so-nyxy: surface iOS QuickType "from messages" suggestion and
+              // Android sms-otp autofill on the first input — only one input
+              // can advertise these because they correspond to the full code.
+              textContentType={index === 0 ? 'oneTimeCode' : 'none'}
+              autoComplete={index === 0 ? 'sms-otp' : 'off'}
             />
           ))}
         </View>
