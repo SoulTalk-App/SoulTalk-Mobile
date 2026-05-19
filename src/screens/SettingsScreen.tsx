@@ -55,6 +55,25 @@ const SettingsScreen = ({ navigation }: any) => {
     profileRef.current = { displayName, username, pronoun };
   }, [displayName, username, pronoun]);
 
+  // so-punu: defensive guards for the Settings ↔ Home rapid-tab crash.
+  // mountedRef gates async setState + Alert calls so they no-op after
+  // unmount; savingRef collapses overlapping beforeRemove saveSettings
+  // invocations into one in-flight request (rapid pop-push-pop kicks
+  // beforeRemove on each unmount, which fan-fired parallel updateProfile
+  // fetches on prior builds).
+  const mountedRef = useRef(true);
+  const savingRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (usernameDebounceRef.current) {
+        clearTimeout(usernameDebounceRef.current);
+        usernameDebounceRef.current = null;
+      }
+    };
+  }, []);
+
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -68,6 +87,11 @@ const SettingsScreen = ({ navigation }: any) => {
 
   // Save profile to backend + device prefs to AsyncStorage
   const saveSettings = useCallback(async () => {
+    // so-punu: collapse concurrent beforeRemove invocations. Rapid
+    // Settings → Home → Settings → Home fired beforeRemove on each
+    // unmount, racing multiple parallel updateProfile fetches that
+    // could leave the auth context in an inconsistent state.
+    if (savingRef.current) return;
     const current = profileRef.current;
 
     // Save profile fields to backend
@@ -92,13 +116,21 @@ const SettingsScreen = ({ navigation }: any) => {
     }
 
     if (Object.keys(updates).length > 0) {
+      savingRef.current = true;
       try {
         await updateProfile(updates);
       } catch (error: any) {
-        Alert.alert('Save Failed', error.message || 'Could not save profile changes.');
+        // so-punu: only surface the alert if Settings is still mounted —
+        // otherwise the error toast pops on Home and confuses the user
+        // (and can interleave with rapid nav transitions).
+        if (mountedRef.current) {
+          Alert.alert('Save Failed', error.message || 'Could not save profile changes.');
+        }
+      } finally {
+        savingRef.current = false;
       }
     }
-  }, [user, updateProfile]);
+  }, [user, updateProfile, usernameAvailable, usernameIsLocked]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', () => {
@@ -128,14 +160,18 @@ const SettingsScreen = ({ navigation }: any) => {
           `${apiConfig.baseUrl}/auth/check-username?username=${encodeURIComponent(value)}`,
           { headers },
         );
+        // so-punu: gate state writes behind the mounted check so a rapid
+        // unmount during the in-flight fetch doesn't update state on a
+        // discarded component (RN warns + can wedge on some devices).
+        if (!mountedRef.current) return;
         if (resp.ok) {
           const data = await resp.json();
           setUsernameAvailable(data.available);
         }
       } catch {
-        setUsernameAvailable(null);
+        if (mountedRef.current) setUsernameAvailable(null);
       } finally {
-        setUsernameChecking(false);
+        if (mountedRef.current) setUsernameChecking(false);
       }
     }, 500);
   }, [user?.username]);
