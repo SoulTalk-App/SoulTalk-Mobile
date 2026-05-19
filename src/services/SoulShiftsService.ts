@@ -177,35 +177,51 @@ class SoulShiftsService {
    * rollout window).
    */
   async getDetail(id: string): Promise<ShiftDetail | null> {
-    let base: Shift | null = null;
-    let detailWire: Partial<ShiftWire & {
-      tend_count?: number;
-      last_tend?: string | null;
-    }> = {};
-
+    // so-cgjr: BE doesn't expose GET /soul-shifts/{id} — only GET /. The
+    // previous try-on-{id}-then-fallback-to-list pattern always 404'd and
+    // the fallback used this.list() which returns normalized Shifts that
+    // drop tend_count/last_tend, so detailWire stayed empty and
+    // tendCount/lastTend silently defaulted to 0/null on every detail open.
+    // Sam (May 16) + Chelsea (May 15) both flagged the tend count stuck at
+    // zero after tending; so-4q8e shipped a list-level progress bar but
+    // didn't touch this path.
+    //
+    // Fix: fetch the list raw with all status includes so any shift
+    // (active, released, integrated, snoozed) is findable by id AND the
+    // wire's tend_count + last_tend survive into the returned ShiftDetail.
+    // One request per detail open — heavier than a GET /{id} would be but
+    // the lists are O(dozens). [ASK] to be_core to add GET /{id} sent
+    // alongside so this can shrink later.
+    let wire:
+      | (ShiftWire & { tend_count?: number; last_tend?: string | null })
+      | undefined;
     try {
-      const response = await this.axiosInstance.get(`/soul-shifts/${id}`);
-      const wire = response.data as ShiftWire & {
-        tend_count?: number;
-        last_tend?: string | null;
+      const response = await this.axiosInstance.get('/soul-shifts/', {
+        params: {
+          include_released: true,
+          include_snoozed: true,
+          include_integrated: true,
+        },
+      });
+      const data = response.data as {
+        shifts: (ShiftWire & { tend_count?: number; last_tend?: string | null })[];
       };
-      base = normalizeShift(wire);
-      detailWire = wire;
+      wire = (data.shifts ?? []).find((s) => s.id === id);
     } catch {
-      const all = await this.list();
-      base = all.find((s) => s.id === id) ?? null;
+      return null;
     }
 
-    if (!base) return null;
+    if (!wire) return null;
 
+    const base = normalizeShift(wire);
     const practice =
       base.practice ?? (isMetadataDescription(base.description) ? null : base.description ?? null);
 
     return {
       ...base,
       practice,
-      tendCount: detailWire.tend_count ?? 0,
-      lastTend: detailWire.last_tend ?? null,
+      tendCount: wire.tend_count ?? 0,
+      lastTend: wire.last_tend ?? null,
     };
   }
 

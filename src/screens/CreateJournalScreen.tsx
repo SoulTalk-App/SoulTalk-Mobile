@@ -51,7 +51,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { createEntry, updateEntry, finalizeDraft } = useJournal();
+  const { createEntry, updateEntry, finalizeDraft, entries } = useJournal();
 
   const dkS = useMemo(
     () =>
@@ -310,12 +310,33 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // mode opens a specific entry and shouldn't be hijacked by a stale local
   // draft. Reconcile with the server-side draft via updatedAt: if the local
   // copy is newer (typical post-crash), prefer it.
+  //
+  // so-nvyc: defensively drop local.draftId if it resolves to a FINALIZED
+  // entry in the user's current journal. Background — clearLocalDraft on
+  // successful finalize is fire-and-forget (AsyncStorage can fail silently),
+  // so a stale local draft can persist with a draftId that now points at a
+  // committed entry. Without this guard, "Restore" would seat that
+  // finalized-entry id into screen state and the next useAutoSave tick
+  // would PUT is_draft:true on it, hiding the entry from the list and
+  // reverting SoulBar. Restoring the TEXT is still safe — useAutoSave will
+  // create a fresh server draft on next save.
   useEffect(() => {
     if (isEdit) return;
     let cancelled = false;
     (async () => {
       const local = await loadLocalDraft();
       if (cancelled || !local || !local.text.trim()) return;
+      const stalePointsToFinalized =
+        local.draftId &&
+        entries.some((e) => e.id === local.draftId && !e.is_draft);
+      if (stalePointsToFinalized) {
+        // Local draft references a committed entry — never reuse the id.
+        // Discard the local draft entirely; the user's committed work is
+        // already safe on the server, and a stale text body shouldn't
+        // overwrite it.
+        clearLocalDraft();
+        return;
+      }
       Alert.alert(
         'Restore unfinished entry?',
         "We saved your last entry locally before it was interrupted. Want to pick up where you left off?",
@@ -331,7 +352,17 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             text: 'Restore',
             onPress: () => {
               setText(local.text);
-              if (local.draftId) setDraftId(local.draftId);
+              // so-nvyc: only carry forward the draftId if the matching
+              // server-side entry is still a draft. If it isn't in our
+              // current entries list at all (cross-device or stale state),
+              // also drop it — useAutoSave will mint a fresh draft id on
+              // its next tick rather than risk PUTing to an unknown id.
+              const draftStillValid = entries.some(
+                (e) => e.id === local.draftId && e.is_draft,
+              );
+              if (local.draftId && draftStillValid) {
+                setDraftId(local.draftId);
+              }
             },
           },
         ],
