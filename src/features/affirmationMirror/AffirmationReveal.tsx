@@ -104,6 +104,23 @@ export function AffirmationReveal({
   const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
   const playRevealedOnMountRef = useRef(false);
 
+  // so-3i78: P0 crash on TF49 (Chelsea repro) — exiting the mirror before
+  // the in-flight generate request resolves. Several callsites continue to
+  // setState / write Reanimated shared values / poke the expo-video player
+  // refs after the component unmounts (handleGeneratePress's post-await
+  // continuation; idlePlayer.statusChange firing while teardown is in
+  // progress; checkRevealed's AsyncStorage await; the setTimeout in
+  // handleReveal). On iOS this rolls up to a native crash via the video
+  // player teardown. mountedRef gates every async-resolve setState +
+  // reanimated/player call below so they no-op once the screen is gone.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const idleSource = isDarkMode ? IdleVideoDark : IdleVideo;
   const revealedSource = isDarkMode ? RevealedVideoDark : RevealedVideo;
 
@@ -113,7 +130,10 @@ export function AffirmationReveal({
     p.audioMixingMode = 'mixWithOthers';
     p.play();
     p.addListener('statusChange', ({ status }) => {
-      if (status === 'readyToPlay') {
+      // so-3i78: the listener can fire mid-teardown; only flip state if
+      // the component is still mounted, otherwise we update on a disposed
+      // tree.
+      if (status === 'readyToPlay' && mountedRef.current) {
         setIsRevealedMounted(true);
       }
     });
@@ -155,6 +175,8 @@ export function AffirmationReveal({
     const checkRevealed = async () => {
       try {
         const revealedDate = await AsyncStorage.getItem(REVEALED_DATE_KEY);
+        // so-3i78: bail if the user backed out during the AsyncStorage await.
+        if (!mountedRef.current) return;
         if (revealedDate === initialDateKey) {
           isRevealedRef.current = true;
           setIsRevealed(true);
@@ -194,6 +216,10 @@ export function AffirmationReveal({
     const revealText = overrideText ?? text;
     const revealDateKey = overrideDateKey ?? dateKey;
     if (!revealText) return;
+    // so-3i78: don't kick off the reveal animation on an unmounted screen.
+    // Writing to disposed Reanimated shared values + a torn-down expo-video
+    // player has been the crash class.
+    if (!mountedRef.current) return;
     if (overrideText !== undefined) setText(overrideText);
     if (overrideDateKey !== undefined) setDateKey(overrideDateKey);
 
@@ -253,6 +279,9 @@ export function AffirmationReveal({
     backButtonOpacity.value = withDelay(700, withTiming(1, { duration: 400 }));
 
     setTimeout(() => {
+      // so-3i78: skip the deferred pause if the screen has since unmounted —
+      // the player has been torn down by expo-video's cleanup by then.
+      if (!mountedRef.current) return;
       idlePlayer.pause();
     }, 1200);
   };
@@ -265,9 +294,15 @@ export function AffirmationReveal({
     setIsGenerating(true);
     try {
       const result = await onGenerate();
+      // so-3i78: this is the primary crash path Chelsea hit on TF49 —
+      // exiting before the generate resolves leaves the post-await
+      // continuation writing to a disposed tree (setState + Reanimated
+      // worklets + expo-video calls). Bail cleanly if we've unmounted.
+      if (!mountedRef.current) return;
       setIsGenerating(false);
       handleReveal(result.affirmation_text, result.date_key);
     } catch {
+      if (!mountedRef.current) return;
       setIsGenerating(false);
     }
   };

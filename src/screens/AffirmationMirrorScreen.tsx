@@ -39,13 +39,20 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
 
   const [state, setState] = useState<ScreenState>({ kind: 'loading' });
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
     // handles that visually now via its 'Journal to Unlock' button. Always
     // hit the list endpoint so a returning user with prior entries still
     // sees their history once they journal.
+    //
+    // so-3i78: isCancelled is supplied by the useFocusEffect caller so a
+    // mid-fetch blur discards results instead of setting state on a
+    // backgrounded screen (one of the post-#41 P0 crash classes Chelsea
+    // hit on TF49).
+    const cancelled = () => Boolean(isCancelled?.());
     try {
       const list = await JournalService.listAffirmations(30, 0);
+      if (cancelled()) return;
       const todayIso = new Date().toISOString().slice(0, 10);
       // BE includes today's row in history when /today has already generated;
       // detect it by date_key matching today's local date.
@@ -56,6 +63,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         setState({ kind: 'reveal' });
       }
     } catch (err: any) {
+      if (cancelled()) return;
       // History endpoint may not exist on older BE deploys; fall back to the
       // reveal entry screen so the user can still trigger /today.
       const status = err?.response?.status;
@@ -71,8 +79,18 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
 
   useFocusEffect(
     useCallback(() => {
+      // so-3i78: track a cancelled flag scoped to this focus session so a
+      // blur (user backed out before listAffirmations resolved) stops the
+      // post-await setState from landing on a backgrounded/unmounted screen.
+      // The fetchData function itself can't be cancelled — axios in this
+      // codebase has no abort wiring — so we just discard its result on
+      // resolve/reject when the focus session is gone.
+      let cancelled = false;
       setState({ kind: 'loading' });
-      fetchData();
+      fetchData(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
     }, [fetchData]),
   );
 

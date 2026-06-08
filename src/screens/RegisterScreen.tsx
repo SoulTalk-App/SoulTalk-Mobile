@@ -368,6 +368,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const handleGoogleSignUp = async (idToken: string) => {
     try {
       setIsLoading(true);
+      // so-4maw: mirror the email path — clear the device-global setup flag
+      // so a new social user on a previously-used device sees onboarding
+      // (SoulPalName / setup screens) instead of inheriting the prior
+      // account's "complete" state and landing on Home empty.
+      await AsyncStorage.removeItem('@soultalk_setup_complete');
       await loginWithGoogle(idToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
@@ -380,6 +385,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const handleFacebookSignUp = async (accessToken: string) => {
     try {
       setIsLoading(true);
+      // so-4maw: see handleGoogleSignUp.
+      await AsyncStorage.removeItem('@soultalk_setup_complete');
       await loginWithFacebook(accessToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
@@ -392,6 +399,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const handleAppleSignUp = async (identityToken: string, fullName: string | null) => {
     try {
       setIsLoading(true);
+      // so-4maw: see handleGoogleSignUp.
+      await AsyncStorage.removeItem('@soultalk_setup_complete');
       await loginWithApple(identityToken, fullName);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
