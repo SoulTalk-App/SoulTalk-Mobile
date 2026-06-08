@@ -10,7 +10,13 @@ export type SightDetail = {
   signals: number;
   soulpal: SoulpalVariant;
   reading_paragraphs: string[];
-  pull_quote: { text: string; tag: string };
+  // so-dwqk: nullable. Previously the SoulSightDetailScreen forced a
+  // FALLBACK_PULL_QUOTE ("You stopped negotiating with yourself for
+  // permission to rest.") when the BE returned null, which rendered as
+  // the user's own reflection — a P0 trust rupture for a mental-health
+  // product. Drop the fallback at the screen and gate the pull-quote
+  // card in ReadingBody on a truthy value.
+  pull_quote: { text: string; tag: string } | null;
   signals_summary: string[];
 };
 

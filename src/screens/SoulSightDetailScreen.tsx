@@ -12,17 +12,15 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, { SoulsightDetail } from '../services/SoulSightService';
 import { SightsB, SightDetail, SightStatus, SoulpalVariant } from '../features/soulSightsB';
 
-const FALLBACK_PULL_QUOTE = {
-  text: 'You stopped negotiating with yourself for permission to rest.',
-  tag: 'The thread of your week',
-};
-
-const FALLBACK_SIGNALS = [
-  'You wrote about pacing three times this week — twice unprompted.',
-  'Tone in entries softened after Wednesday.',
-  'You named what you wanted, twice. That\'s rare for you.',
-  'You forgave yourself in writing on Friday.',
-];
+// so-dwqk: FALLBACK_PULL_QUOTE + FALLBACK_SIGNALS removed. When BE returned
+// null/empty for these (common on fresh users with sparse data), the FE was
+// rendering hardcoded first-person therapeutic claims AS IF they were the
+// user's own reflection — "You forgave yourself in writing on Friday"
+// attributed to a tester who never wrote on Friday. P0 trust rupture for a
+// mental-health product. Pass through null/empty; ReadingBody now gates
+// both blocks on truthy/non-empty. Paired ASK to be_core to add telemetry
+// on empty pull_quote/signals_summary so the upstream LLM prompt can be
+// tuned (or the eligibility gate tightened) if it's frequent.
 
 function formatWindow(start: string, end: string): string {
   try {
@@ -96,11 +94,8 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
     signals: detail.active_days,
     soulpal: detail.soulpal_variant ?? pickSoulpal(detail.id),
     reading_paragraphs: paragraphs,
-    pull_quote: detail.pull_quote ?? FALLBACK_PULL_QUOTE,
-    signals_summary:
-      detail.signals_summary && detail.signals_summary.length > 0
-        ? detail.signals_summary
-        : FALLBACK_SIGNALS,
+    pull_quote: detail.pull_quote ?? null,
+    signals_summary: detail.signals_summary ?? [],
   };
 }
 
