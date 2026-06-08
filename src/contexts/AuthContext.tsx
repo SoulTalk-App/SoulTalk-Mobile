@@ -154,6 +154,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // If we can't get user info, clear auth state
           setUser(null);
           setIsAuthenticated(false);
+          // so-hq98: mirror logout()'s cleanup — without this the offline
+          // "logged_in" flag set during sign-in lingers, and offline gating
+          // can route a signed-out user as if they were still authenticated.
+          await AsyncStorage.removeItem('user_logged_in');
           await AuthService.logout();
         }
       } else {
@@ -258,6 +262,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // If refresh fails, user might need to re-authenticate
       setUser(null);
       setIsAuthenticated(false);
+      // so-hq98: mirror logout()'s cleanup — see checkAuthState branch above.
+      await AsyncStorage.removeItem('user_logged_in');
       await AuthService.logout();
     }
   }, [isAuthenticated]);
