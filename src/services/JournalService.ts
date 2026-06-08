@@ -1,7 +1,7 @@
-import SecureStorage from '../utils/SecureStorage';
 import Constants from 'expo-constants';
 import axios from 'axios';
 import { File } from 'expo-file-system';
+import { installAuthInterceptors } from '../utils/authClient';
 
 export type Mood =
   | 'Normal'
@@ -94,43 +94,9 @@ class JournalService {
       timeout: 10000,
     });
 
-    // Request interceptor — attach auth token
-    this.axiosInstance.interceptors.request.use(async (config) => {
-      const token = await SecureStorage.getItem('access_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Response interceptor — handle 401 with token refresh
-    this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-          try {
-            const refreshToken = await SecureStorage.getItem('refresh_token');
-            if (!refreshToken) return Promise.reject(error);
-
-            const resp = await axios.post(
-              `${this.axiosInstance.defaults.baseURL}/auth/refresh`,
-              { refresh_token: refreshToken },
-            );
-            const { access_token, refresh_token: newRefresh } = resp.data;
-            await SecureStorage.setItem('access_token', access_token);
-            await SecureStorage.setItem('refresh_token', newRefresh);
-
-            originalRequest.headers.Authorization = `Bearer ${access_token}`;
-            return this.axiosInstance.request(originalRequest);
-          } catch {
-            return Promise.reject(error);
-          }
-        }
-        return Promise.reject(error);
-      },
-    );
+    // so-605p: shared single-flight refresh — coalesces concurrent 401s
+    // across all service clients onto one /auth/refresh round-trip.
+    installAuthInterceptors(this.axiosInstance);
   }
 
   async createEntry(
