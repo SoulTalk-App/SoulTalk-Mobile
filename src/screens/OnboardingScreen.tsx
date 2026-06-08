@@ -62,6 +62,117 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+// so-u41t: PaginationDot + NavArrow were defined inline inside the
+// OnboardingScreen render body, so every parent setState (activeIndex,
+// termsAccepted, legal-tab switches) gave them new function identities and
+// remounted them. That blew away their internal useSharedValues and forced
+// a re-init of their animations each tick. Hoisted to module scope so React
+// keeps them mounted across parent re-renders; closure-bound things
+// (styles, theme bits) flow in as props. SlideContent's hoist is bigger
+// surgery and tracked separately.
+type PaginationDotProps = {
+  isActive: boolean;
+  onPress: () => void;
+  dotTouchableStyle: any;
+  dotOuterStyle: any;
+  dotInnerStyle: any;
+};
+
+const PaginationDot: React.FC<PaginationDotProps> = ({
+  isActive,
+  onPress,
+  dotTouchableStyle,
+  dotOuterStyle,
+  dotInnerStyle,
+}) => {
+  const scale = useSharedValue(isActive ? 1 : 0.85);
+  const fillOpacity = useSharedValue(isActive ? 1 : 0);
+
+  useEffect(() => {
+    fillOpacity.value = withSpring(isActive ? 1 : 0, FIGMA_SPRING_CONFIG);
+    scale.value = withSpring(isActive ? 1 : 0.85, FIGMA_SPRING_CONFIG);
+  }, [isActive]);
+
+  const dotStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: fillOpacity.value,
+  }));
+
+  return (
+    <Pressable onPress={onPress} style={dotTouchableStyle}>
+      <Animated.View style={[dotOuterStyle, dotStyle]}>
+        <Animated.View style={[dotInnerStyle, fillStyle]} />
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+type NavArrowProps = {
+  direction: 'left' | 'right';
+  onPress: () => void;
+  disabled?: boolean;
+  nextButtonStyle: any;
+  prevButtonStyle: any;
+  rightIconColor: string;
+  leftIconColor: string;
+};
+
+const NavArrow: React.FC<NavArrowProps> = ({
+  direction,
+  onPress,
+  disabled,
+  nextButtonStyle,
+  prevButtonStyle,
+  rightIconColor,
+  leftIconColor,
+}) => {
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    if (!disabled) {
+      scale.value = withSpring(0.9, SpringConfigs.snappy);
+    }
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, SpringConfigs.bouncy);
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: disabled ? 0.3 : 1,
+  }));
+
+  if (direction === 'right') {
+    return (
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        style={[nextButtonStyle, animatedStyle]}
+      >
+        <Ionicons name="chevron-forward" size={22} color={rightIconColor} />
+      </AnimatedPressable>
+    );
+  }
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      style={[prevButtonStyle, animatedStyle]}
+    >
+      <Feather name="chevron-left" size={26} color={leftIconColor} />
+    </AnimatedPressable>
+  );
+};
+
 type FeatherName = React.ComponentProps<typeof Feather>['name'];
 
 interface SlideFeature {
@@ -588,94 +699,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     [colors, isDarkMode]
   );
 
-  // ============================================
-  // Pagination Dot Component
-  // ============================================
-  const PaginationDot: React.FC<{ isActive: boolean; onPress: () => void }> = ({
-    isActive,
-    onPress,
-  }) => {
-    const scale = useSharedValue(isActive ? 1 : 0.85);
-    const fillOpacity = useSharedValue(isActive ? 1 : 0);
-
-    useEffect(() => {
-      fillOpacity.value = withSpring(isActive ? 1 : 0, FIGMA_SPRING_CONFIG);
-      scale.value = withSpring(isActive ? 1 : 0.85, FIGMA_SPRING_CONFIG);
-    }, [isActive]);
-
-    const dotStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
-    }));
-
-    const fillStyle = useAnimatedStyle(() => ({
-      opacity: fillOpacity.value,
-    }));
-
-    return (
-      <Pressable onPress={onPress} style={styles.dotTouchable}>
-        <Animated.View style={[styles.dotOuter, dotStyle]}>
-          <Animated.View style={[styles.dotInner, fillStyle]} />
-        </Animated.View>
-      </Pressable>
-    );
-  };
-
-  // ============================================
-  // Navigation Arrow Component
-  // ============================================
-  const NavArrow: React.FC<{
-    direction: 'left' | 'right';
-    onPress: () => void;
-    disabled?: boolean;
-  }> = ({ direction, onPress, disabled }) => {
-    const scale = useSharedValue(1);
-
-    const handlePressIn = () => {
-      if (!disabled) {
-        scale.value = withSpring(0.9, SpringConfigs.snappy);
-      }
-    };
-
-    const handlePressOut = () => {
-      scale.value = withSpring(1, SpringConfigs.bouncy);
-    };
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
-      opacity: disabled ? 0.3 : 1,
-    }));
-
-    // Right arrow has a circular button background
-    if (direction === 'right') {
-      return (
-        <AnimatedPressable
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          disabled={disabled}
-          style={[styles.nextButton, animatedStyle]}
-        >
-          <Ionicons
-            name="chevron-forward"
-            size={22}
-            color={isDarkMode ? colors.white : colors.primary}
-          />
-        </AnimatedPressable>
-      );
-    }
-
-    return (
-      <AnimatedPressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        disabled={disabled}
-        style={[styles.prevButton, animatedStyle]}
-      >
-        <Feather name="chevron-left" size={26} color={colors.white} />
-      </AnimatedPressable>
-    );
-  };
+  // so-u41t: PaginationDot + NavArrow hoisted to module scope above so
+  // their identities stay stable across parent re-renders (Reanimated
+  // shared values are no longer reseeded every keystroke).
 
   // ============================================
   // Slide Content Component (for crossfade)
@@ -1326,7 +1352,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       {/* Purple Bottom Navigation Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.navigationRow}>
-          <NavArrow direction="left" onPress={handlePrev} disabled={isFirstSlide} />
+          <NavArrow
+            direction="left"
+            onPress={handlePrev}
+            disabled={isFirstSlide}
+            nextButtonStyle={styles.nextButton}
+            prevButtonStyle={styles.prevButton}
+            rightIconColor={isDarkMode ? colors.white : colors.primary}
+            leftIconColor={colors.white}
+          />
 
           <View style={styles.dotsContainer}>
             {slides.map((_, index) => (
@@ -1334,6 +1368,9 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 key={index}
                 isActive={index === activeIndex}
                 onPress={() => handleDotPress(index)}
+                dotTouchableStyle={styles.dotTouchable}
+                dotOuterStyle={styles.dotOuter}
+                dotInnerStyle={styles.dotInner}
               />
             ))}
           </View>
@@ -1348,7 +1385,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               <Text style={styles.acceptCtaText}>I Accept</Text>
             </Pressable>
           ) : (
-            <NavArrow direction="right" onPress={handleNext} />
+            <NavArrow
+              direction="right"
+              onPress={handleNext}
+              nextButtonStyle={styles.nextButton}
+              prevButtonStyle={styles.prevButton}
+              rightIconColor={isDarkMode ? colors.white : colors.primary}
+              leftIconColor={colors.white}
+            />
           )}
         </View>
       </View>
