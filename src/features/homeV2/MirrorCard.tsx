@@ -39,15 +39,20 @@ export function MirrorCard({ theme, onPress }: Props) {
   );
 }
 
+const CARD_RADIUS = 18;
+
 const styles = StyleSheet.create({
   fill: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: CARD_RADIUS,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
+    borderRadius: CARD_RADIUS,
   },
 });
