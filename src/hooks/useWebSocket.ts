@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
 import SecureStorage from '../utils/SecureStorage';
 import { refreshAccessToken } from '../utils/authClient';
@@ -104,6 +106,46 @@ export const useWebSocket = (
     }
     return cleanup;
   }, [isAuthenticated, connect, cleanup]);
+
+  // so-3wjm: re-poke the socket on AppState 'active' transition and on
+  // NetInfo connectivity regain. Pre-fix: retriesRef only reset on onopen
+  // or cleanup. After a long background or a flaky network, the exponential
+  // backoff would burn through MAX_RETRIES (8) and the WS would silently
+  // give up — live journal_ai_complete events stopped arriving until app
+  // kill or isAuthenticated toggle.
+  //
+  // Strategy: each external "we might be alive again" signal resets
+  // retriesRef and triggers a connect() if no live socket exists. Wrapped
+  // in a single effect that listens to both sources so they share the same
+  // gate (authenticated + open required).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const refreshSocket = () => {
+      // No-op if a healthy socket is already open. OPEN=1, CONNECTING=0.
+      const ws = wsRef.current;
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      retriesRef.current = 0;
+      connect();
+    };
+
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') refreshSocket();
+    });
+
+    const netInfoUnsub = NetInfo.addEventListener((state) => {
+      // isConnected can be null on first emit — treat unknown as "no signal,
+      // don't act." Only react to a confirmed-true regain.
+      if (state.isConnected === true) refreshSocket();
+    });
+
+    return () => {
+      appStateSub.remove();
+      netInfoUnsub();
+    };
+  }, [isAuthenticated, connect]);
 
   return wsRef;
 };
