@@ -926,8 +926,13 @@ const HomeScreen = ({ navigation }: any) => {
   }));
 
   const handleMoodChange = useCallback((text: string) => {
-    // Allow only alphabetic characters, no spaces or special chars
-    const sanitized = text.replace(/[^a-zA-Z]/g, '');
+    // so-v8w1: keep all Unicode letters across scripts (Latin w/ accents,
+    // Cyrillic, CJK, Hangul, Arabic, etc.) so international beta users
+    // can actually type a mood in their language. Previously /[^a-zA-Z]/g
+    // stripped every non-ASCII-letter char, vanishing entire words.
+    // \p{L} = Unicode letter category; the `u` flag enables it. Spaces,
+    // digits, and punctuation still get dropped per the one-word UX rule.
+    const sanitized = text.replace(/[^\p{L}]/gu, '');
     setMoodWord(sanitized);
     // so-0nwv: typing after a save flips the chip back to its "ready to
     // submit" state so the user sees the affordance is live again.
@@ -1072,6 +1077,12 @@ const HomeScreen = ({ navigation }: any) => {
                   returnKeyType="done"
                   editable={!submitting}
                   autoCorrect={false}
+                  // so-suwq: iOS defaults autoCapitalize to "sentences" and
+                  // capitalizes the first letter ("happy" → "Happy"). Force
+                  // "none" so mood words stay lowercase as typed, matching
+                  // the BE normalize-to-lowercase contract (see paired ASK
+                  // to be_core for confirmation).
+                  autoCapitalize="none"
                 />
                 <Pressable
                   style={[dk.saveBtn, !canSubmitMood && { opacity: 0.45 }]}
@@ -1374,6 +1385,8 @@ const HomeScreen = ({ navigation }: any) => {
                 returnKeyType="done"
                 editable={!submitting}
                 autoCorrect={false}
+                // so-suwq: see dark-mode TextInput above.
+                autoCapitalize="none"
               />
               <Pressable
                 style={[lt.saveBtn, !canSubmitMood && { opacity: 0.45 }]}
