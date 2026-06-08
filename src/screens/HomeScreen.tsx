@@ -34,6 +34,7 @@ import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
 import { MoodToast, MoodToastKind } from '../components/MoodToast';
+import { BottomTabBar } from '../components/BottomTabBar';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -886,13 +887,10 @@ const HomeScreen = ({ navigation }: any) => {
     }, [fetchSoulBar])
   );
 
-  // Tab bar animation
+  // so-loo3: tab raise/label animations moved into BottomTabBar (extracted
+  // as part of the consolidation). Only the outer scroll-hide translateY
+  // stays here so this screen can choose to animate the bar in/out.
   const tabTranslateY = useSharedValue(0);
-
-  // Tab rise and label animations: Home=0, Journal=1, Profile=2
-  const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
-  const tabRiseValues = [useSharedValue(-20), useSharedValue(0), useSharedValue(0)];
-  const tabLabelOpacities = [useSharedValue(1), useSharedValue(0), useSharedValue(0)];
 
   // SoulPal avatar animation — float only (gentle translateY bob).
   // so-9jat: the blink (so-02lh's opacity dip, itself a replacement for an
@@ -963,6 +961,9 @@ const HomeScreen = ({ navigation }: any) => {
   const dismissMoodToast = useCallback(() => setMoodToast(null), []);
   const canSubmitMood = moodWord.trim().length > 0 && !submitting;
 
+  // so-loo3: handleTabPress collapses to "navigate or set active" — the
+  // raise/label animations live inside BottomTabBar (driven by useEffect
+  // on activeTab there).
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Profile') {
       navigation.navigate('Profile');
@@ -972,35 +973,12 @@ const HomeScreen = ({ navigation }: any) => {
       navigation.navigate('Journal');
       return;
     }
-
-    const newIndex = TAB_POSITIONS[tab];
-    const oldIndex = TAB_POSITIONS[activeTab];
-
-    tabRiseValues[oldIndex].value = withTiming(0, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabRiseValues[newIndex].value = withTiming(-20, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabLabelOpacities[oldIndex].value = withTiming(0, { duration: 150 });
-    tabLabelOpacities[newIndex].value = withTiming(1, { duration: 250 });
-
     setActiveTab(tab);
-  }, [activeTab, navigation]);
+  }, [navigation]);
 
   const tabBarAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: tabTranslateY.value }],
   }));
-
-  const tabAnimStyles = tabRiseValues.map((riseVal) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({
-      transform: [{ translateY: riseVal.value }],
-    }))
-  );
-
-  const labelAnimStyles = tabLabelOpacities.map((opVal) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({
-      opacity: opVal.value,
-    }))
-  );
 
   const displayName = user?.display_first_name || user?.first_name || localName;
 
@@ -1266,58 +1244,15 @@ const HomeScreen = ({ navigation }: any) => {
           <View style={{ height: 140 + (insets.bottom || 16) }} />
         </ScrollView>
 
-        {/* Bottom Tab Bar — frosted glass pill */}
-        <Animated.View
-          style={[
-            dk.tabBar,
-            { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
-            tabBarAnimStyle,
-          ]}
-        >
-          <View style={dk.tabBarInner}>
-            {/* Home Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[0]]}>
-              <Pressable onPress={() => handleTabPress('Home')} style={dk.tabPressable}>
-                <View style={activeTab === 'Home' ? dk.activeTabBg : null}>
-                  <Image
-                    source={HomeIconImg}
-                    style={activeTab === 'Home' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[0]]}>Home</Animated.Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Journal Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[1]]}>
-              <Pressable onPress={() => handleTabPress('Journal')} style={dk.tabPressable}>
-                <View style={activeTab === 'Journal' ? dk.activeTabBg : null}>
-                  <Image
-                    source={JournalIconImg}
-                    style={activeTab === 'Journal' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[1]]}>Journal</Animated.Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Profile Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[2]]}>
-              <Pressable onPress={() => handleTabPress('Profile')} style={dk.tabPressable}>
-                <View style={activeTab === 'Profile' ? dk.activeTabBg : null}>
-                  <Image
-                    source={ProfileIconImg}
-                    style={activeTab === 'Profile' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[2]]}>Profile</Animated.Text>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </Animated.View>
+        {/* so-loo3: BottomTabBar component replaces an inline tab-bar JSX
+            + a map-over-useAnimatedStyle pattern. tabBarAnimStyle is the
+            parent-owned outer translateY (scroll-hide) so the same bar
+            can be shown/hidden by each consuming screen. */}
+        <BottomTabBar
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          tabBarAnimStyle={tabBarAnimStyle}
+        />
         <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
       </CosmicScreen>
     );
@@ -1570,58 +1505,12 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={{ height: 140 + (insets.bottom || 16) }} />
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <Animated.View
-        style={[
-          lt.tabBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
-          tabBarAnimStyle,
-        ]}
-      >
-        <View style={lt.tabBarInner}>
-          {/* Home Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[0]]}>
-            <Pressable onPress={() => handleTabPress('Home')} style={lt.tabPressable}>
-              <View style={activeTab === 'Home' ? lt.activeTabBg : null}>
-                <Image
-                  source={HomeIconImg}
-                  style={activeTab === 'Home' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[0]]}>Home</Animated.Text>
-            </Pressable>
-          </Animated.View>
-
-          {/* Journal Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[1]]}>
-            <Pressable onPress={() => handleTabPress('Journal')} style={lt.tabPressable}>
-              <View style={activeTab === 'Journal' ? lt.activeTabBg : null}>
-                <Image
-                  source={JournalIconImg}
-                  style={activeTab === 'Journal' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[1]]}>Journal</Animated.Text>
-            </Pressable>
-          </Animated.View>
-
-          {/* Profile Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[2]]}>
-            <Pressable onPress={() => handleTabPress('Profile')} style={lt.tabPressable}>
-              <View style={activeTab === 'Profile' ? lt.activeTabBg : null}>
-                <Image
-                  source={ProfileIconImg}
-                  style={activeTab === 'Profile' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[2]]}>Profile</Animated.Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </Animated.View>
+      {/* so-loo3: see dark-mode branch. */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabPress={handleTabPress}
+        tabBarAnimStyle={tabBarAnimStyle}
+      />
       <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
     </CosmicScreen>
   );

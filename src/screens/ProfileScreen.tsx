@@ -20,6 +20,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { fonts, useThemeColors } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
+import { BottomTabBar } from '../components/BottomTabBar';
 import { useSoulPal, getSoulPalPalette } from '../contexts/SoulPalContext';
 import { usePersonality } from '../contexts/PersonalityContext';
 import { PersonalityTestResult } from '../services/PersonalityService';
@@ -74,12 +75,12 @@ const ProfileScreen = ({ navigation }: any) => {
   );
   const [activeTab, setActiveTab] = useState<TabName>('Profile');
 
-  // Tab bar animations
+  // so-loo3: tab raise/label animations live in BottomTabBar now. Only
+  // the outer scroll-hide translateY stays here.
   const tabTranslateY = useSharedValue(0);
-  const tabRiseValues = [useSharedValue(0), useSharedValue(0), useSharedValue(-20)];
-  const tabLabelOpacities = [useSharedValue(0), useSharedValue(0), useSharedValue(1)];
-
-  const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
+  const tabBarAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: tabTranslateY.value }],
+  }));
 
   const handleTabPress = useCallback((tab: TabName) => {
     if (tab === 'Home') {
@@ -90,35 +91,8 @@ const ProfileScreen = ({ navigation }: any) => {
       navigation.navigate('Journal');
       return;
     }
-
-    const newIndex = TAB_POSITIONS[tab];
-    const oldIndex = TAB_POSITIONS[activeTab];
-
-    tabRiseValues[oldIndex].value = withTiming(0, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabRiseValues[newIndex].value = withTiming(-20, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabLabelOpacities[oldIndex].value = withTiming(0, { duration: 150 });
-    tabLabelOpacities[newIndex].value = withTiming(1, { duration: 250 });
-
     setActiveTab(tab);
-  }, [activeTab, navigation]);
-
-  const tabBarAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: tabTranslateY.value }],
-  }));
-
-  const tabAnimStyles = tabRiseValues.map((riseVal) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({
-      transform: [{ translateY: riseVal.value }],
-    }))
-  );
-
-  const labelAnimStyles = tabLabelOpacities.map((opVal) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({
-      opacity: opVal.value,
-    }))
-  );
+  }, [navigation]);
 
   const { dk, lt } = useMemo(() => buildStyles(colors), [colors]);
 
@@ -267,58 +241,12 @@ const ProfileScreen = ({ navigation }: any) => {
           </GlassCard>
         </ScrollView>
 
-        {/* Bottom Tab Bar */}
-        <Animated.View
-          style={[
-            dk.tabBar,
-            { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
-            tabBarAnimStyle,
-          ]}
-        >
-          <View style={dk.tabBarInner}>
-            {/* Home Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[0]]}>
-              <Pressable onPress={() => handleTabPress('Home')} style={dk.tabPressable}>
-                <View style={activeTab === 'Home' ? dk.activeTabBg : null}>
-                  <Image
-                    source={HomeIconImg}
-                    style={activeTab === 'Home' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[0]]}>Home</Animated.Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Journal Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[1]]}>
-              <Pressable onPress={() => handleTabPress('Journal')} style={dk.tabPressable}>
-                <View style={activeTab === 'Journal' ? dk.activeTabBg : null}>
-                  <Image
-                    source={JournalIconImg}
-                    style={activeTab === 'Journal' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[1]]}>Journal</Animated.Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Profile Tab */}
-            <Animated.View style={[dk.tabItem, tabAnimStyles[2]]}>
-              <Pressable onPress={() => handleTabPress('Profile')} style={dk.tabPressable}>
-                <View style={activeTab === 'Profile' ? dk.activeTabBg : null}>
-                  <Image
-                    source={ProfileIconImg}
-                    style={activeTab === 'Profile' ? dk.tabIcon : dk.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[dk.activeTabLabel, labelAnimStyles[2]]}>Profile</Animated.Text>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </Animated.View>
+        {/* so-loo3: BottomTabBar replaces the inline tab JSX. */}
+        <BottomTabBar
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          tabBarAnimStyle={tabBarAnimStyle}
+        />
       </CosmicScreen>
     );
   }
@@ -465,58 +393,12 @@ const ProfileScreen = ({ navigation }: any) => {
         </View>
       </ScrollView>
 
-      {/* Bottom Tab Bar */}
-      <Animated.View
-        style={[
-          lt.tabBar,
-          { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 },
-          tabBarAnimStyle,
-        ]}
-      >
-        <View style={lt.tabBarInner}>
-          {/* Home Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[0]]}>
-            <Pressable onPress={() => handleTabPress('Home')} style={lt.tabPressable}>
-              <View style={activeTab === 'Home' ? lt.activeTabBg : null}>
-                <Image
-                  source={HomeIconImg}
-                  style={activeTab === 'Home' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[0]]}>Home</Animated.Text>
-            </Pressable>
-          </Animated.View>
-
-          {/* Journal Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[1]]}>
-            <Pressable onPress={() => handleTabPress('Journal')} style={lt.tabPressable}>
-              <View style={activeTab === 'Journal' ? lt.activeTabBg : null}>
-                <Image
-                  source={JournalIconImg}
-                  style={activeTab === 'Journal' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[1]]}>Journal</Animated.Text>
-            </Pressable>
-          </Animated.View>
-
-          {/* Profile Tab */}
-          <Animated.View style={[lt.tabItem, tabAnimStyles[2]]}>
-            <Pressable onPress={() => handleTabPress('Profile')} style={lt.tabPressable}>
-              <View style={activeTab === 'Profile' ? lt.activeTabBg : null}>
-                <Image
-                  source={ProfileIconImg}
-                  style={activeTab === 'Profile' ? lt.tabIcon : lt.tabIconInactive}
-                  resizeMode="contain"
-                />
-              </View>
-              <Animated.Text style={[lt.activeTabLabel, labelAnimStyles[2]]}>Profile</Animated.Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </Animated.View>
+      {/* so-loo3: see dark-mode branch. */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabPress={handleTabPress}
+        tabBarAnimStyle={tabBarAnimStyle}
+      />
     </CosmicScreen>
   );
 };

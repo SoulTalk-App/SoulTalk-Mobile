@@ -29,6 +29,7 @@ import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
 import { CardInfoModal } from '../features/homeV2/CardInfoModal';
+import { BottomTabBar } from '../components/BottomTabBar';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -335,36 +336,19 @@ const JournalScreen = ({ navigation }: any) => {
 
   const activeFilterCount = appliedYears.length + appliedMonths.length;
 
-  // --- Tab bar animations ---
+  // so-loo3: tab raise/label animations live in BottomTabBar now. The
+  // outer scroll-hide translateY stays here for parity with the other
+  // tab-host screens.
   const tabTranslateY = useSharedValue(0);
-  const tabRiseValues = [useSharedValue(0), useSharedValue(-20), useSharedValue(0)];
-  const tabLabelOpacities = [useSharedValue(0), useSharedValue(1), useSharedValue(0)];
-  const TAB_POSITIONS: Record<TabName, number> = { Home: 0, Journal: 1, Profile: 2 };
-
-  const handleTabPress = useCallback((tab: TabName) => {
-    if (tab === 'Home') { navigation.navigate('Home'); return; }
-    if (tab === 'Profile') { navigation.navigate('Profile'); return; }
-    const newIdx = TAB_POSITIONS[tab];
-    const oldIdx = TAB_POSITIONS[activeTab];
-    tabRiseValues[oldIdx].value = withTiming(0, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabRiseValues[newIdx].value = withTiming(-20, { duration: 300, easing: Easing.out(Easing.ease) });
-    tabLabelOpacities[oldIdx].value = withTiming(0, { duration: 150 });
-    tabLabelOpacities[newIdx].value = withTiming(1, { duration: 250 });
-    setActiveTab(tab);
-  }, [activeTab, navigation]);
-
   const tabBarAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: tabTranslateY.value }],
   }));
 
-  const tabAnimStyles = tabRiseValues.map(v =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({ transform: [{ translateY: v.value }] }))
-  );
-  const labelAnimStyles = tabLabelOpacities.map(v =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useAnimatedStyle(() => ({ opacity: v.value }))
-  );
+  const handleTabPress = useCallback((tab: TabName) => {
+    if (tab === 'Home') { navigation.navigate('Home'); return; }
+    if (tab === 'Profile') { navigation.navigate('Profile'); return; }
+    setActiveTab(tab);
+  }, [navigation]);
 
   // --- Date formatting ---
   const formatDate = (iso: string) => {
@@ -567,25 +551,13 @@ const JournalScreen = ({ navigation }: any) => {
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
-      {/* Tab Bar */}
-      <Animated.View style={[styles.tabBar, { paddingBottom: insets.bottom > 0 ? insets.bottom - 6 : 8 }, tabBarAnimStyle]}>
-        <View style={styles.tabBarInner}>
-          {(['Home', 'Journal', 'Profile'] as TabName[]).map((tab, i) => (
-            <Animated.View key={tab} style={[styles.tabItem, tabAnimStyles[i]]}>
-              <Pressable onPress={() => handleTabPress(tab)} style={styles.tabPressable}>
-                <View style={activeTab === tab ? styles.activeTabBg : undefined}>
-                  <Image
-                    source={tab === 'Home' ? HomeIconImg : tab === 'Journal' ? JournalIconImg : ProfileIconImg}
-                    style={activeTab === tab ? styles.tabIcon : styles.tabIconInactive}
-                    resizeMode="contain"
-                  />
-                </View>
-                <Animated.Text style={[styles.activeTabLabel, labelAnimStyles[i]]}>{tab}</Animated.Text>
-              </Pressable>
-            </Animated.View>
-          ))}
-        </View>
-      </Animated.View>
+      {/* so-loo3: BottomTabBar replaces the inline tab JSX + map-over-
+          useAnimatedStyle pattern. */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabPress={handleTabPress}
+        tabBarAnimStyle={tabBarAnimStyle}
+      />
 
       <CardInfoModal
         visible={journalInfoOpen}
