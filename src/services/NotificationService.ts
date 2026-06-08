@@ -2,6 +2,14 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AuthService from './AuthService';
+import SecureStorage from '../utils/SecureStorage';
+
+// so-3nst: persisted across cold starts so unregisterPushToken() can still
+// deactivate the token after a process restart. The in-memory `pushToken`
+// alone was lost on app kill; logout/delete-account after a cold start
+// then no-op'd the backend deactivate, and notifications kept landing on
+// a re-sold/handed-off device — PII leak.
+const PUSH_TOKEN_KEY = 'expo_push_token';
 
 /**
  * Manages push notification registration, permission, and handling.
@@ -57,7 +65,10 @@ class NotificationService {
         projectId,
       });
       this.pushToken = tokenData.data;
-      console.log('[Push] Got Expo token:', this.pushToken);
+      // so-3nst: persist so a cold-start logout/delete still finds the
+      // token and can ask the backend to deactivate it.
+      await SecureStorage.setItem(PUSH_TOKEN_KEY, this.pushToken);
+      console.log('[Push] Got Expo token');
     } catch (error) {
       console.error('[Push] Failed to get push token:', error);
       return null;
@@ -103,8 +114,17 @@ class NotificationService {
 
   /**
    * Deactivate the current push token on the backend (call before logout).
+   *
+   * so-3nst: hydrate from SecureStorage when in-memory is null (cold start
+   * after registration in a prior process). Without this, logout/
+   * deleteAccount on a process that never called registerForPushNotifications
+   * silently no-ops, leaving the user's notifications routed to a device
+   * they've signed out of.
    */
   async unregisterPushToken(): Promise<void> {
+    if (!this.pushToken) {
+      this.pushToken = await SecureStorage.getItem(PUSH_TOKEN_KEY);
+    }
     if (!this.pushToken) return;
 
     try {
@@ -116,7 +136,12 @@ class NotificationService {
       console.error('[Push] Failed to unregister token:', error);
     }
 
+    // Always clear locally regardless of backend success — on a logout/
+    // delete flow we want the device to forget the token so the next
+    // session re-registers cleanly. Backend errors will be retried on
+    // the next deactivate attempt for that user (BE owns dedup).
     this.pushToken = null;
+    await SecureStorage.deleteItem(PUSH_TOKEN_KEY);
   }
 
   /**
