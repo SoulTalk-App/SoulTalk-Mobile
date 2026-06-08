@@ -203,25 +203,46 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     );
   }, [entries, user?.timezone]);
 
-  const value: JournalContextType = {
-    entries,
-    isLoading,
-    currentEntry,
-    total,
-    streak,
-    soulBar,
-    hasEntryToday,
-    fetchEntries,
-    createEntry,
-    updateEntry,
-    deleteEntry,
-    setCurrentEntry,
-    refreshEntries,
-    fetchStreak,
-    fetchSoulBar,
-    saveDraft,
-    finalizeDraft,
-  };
+  // so-2lcs: memoize — see AuthContext value memo for rationale.
+  const value: JournalContextType = useMemo(
+    () => ({
+      entries,
+      isLoading,
+      currentEntry,
+      total,
+      streak,
+      soulBar,
+      hasEntryToday,
+      fetchEntries,
+      createEntry,
+      updateEntry,
+      deleteEntry,
+      setCurrentEntry,
+      refreshEntries,
+      fetchStreak,
+      fetchSoulBar,
+      saveDraft,
+      finalizeDraft,
+    }),
+    [
+      entries,
+      isLoading,
+      currentEntry,
+      total,
+      streak,
+      soulBar,
+      hasEntryToday,
+      fetchEntries,
+      createEntry,
+      updateEntry,
+      deleteEntry,
+      refreshEntries,
+      fetchStreak,
+      fetchSoulBar,
+      saveDraft,
+      finalizeDraft,
+    ],
+  );
 
   return <JournalContext.Provider value={value}>{children}</JournalContext.Provider>;
 };

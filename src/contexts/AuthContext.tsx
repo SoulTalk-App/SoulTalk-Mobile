@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
@@ -485,31 +485,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    isLoading,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    refreshUser,
-    updateProfile,
-    resetPassword,
-    loginWithGoogle,
-    loginWithFacebook,
-    loginWithApple,
-    linkGoogleAccount,
-    linkFacebookAccount,
-    unlinkProvider,
-    getLinkedAccounts,
-    verifyOTP,
-    resendVerificationEmail,
-    confirmPasswordReset,
-    changePassword,
-    setPassword,
-    logoutAllDevices,
-    deleteAccount,
-  };
+  // so-2lcs: memoize so consumer subtrees don't re-render on every parent
+  // render. All callbacks are already stable (useCallback); only user,
+  // isLoading, and isAuthenticated change observably. AuthProvider is the
+  // app-root provider, so the fan-out savings here are large.
+  const value: AuthContextType = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated,
+      login,
+      register,
+      logout,
+      refreshUser,
+      updateProfile,
+      resetPassword,
+      loginWithGoogle,
+      loginWithFacebook,
+      loginWithApple,
+      linkGoogleAccount,
+      linkFacebookAccount,
+      unlinkProvider,
+      getLinkedAccounts,
+      verifyOTP,
+      resendVerificationEmail,
+      confirmPasswordReset,
+      changePassword,
+      setPassword,
+      logoutAllDevices,
+      deleteAccount,
+    }),
+    [
+      user,
+      isLoading,
+      isAuthenticated,
+      login,
+      register,
+      logout,
+      refreshUser,
+      updateProfile,
+      resetPassword,
+      loginWithGoogle,
+      loginWithFacebook,
+      loginWithApple,
+      linkGoogleAccount,
+      linkFacebookAccount,
+      unlinkProvider,
+      getLinkedAccounts,
+      verifyOTP,
+      resendVerificationEmail,
+      confirmPasswordReset,
+      changePassword,
+      setPassword,
+      logoutAllDevices,
+      deleteAccount,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
