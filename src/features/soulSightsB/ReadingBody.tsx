@@ -75,26 +75,31 @@ export function ReadingBody({
         </View>
       ) : null}
 
-      {/* pull quote */}
-      <View style={styles.pullQuoteWrap}>
-        <LinearGradient
-          colors={
-            isDark
-              ? ['rgba(255,200,92,0.15)', 'rgba(233,54,120,0.10)']
-              : ['#FFF6E1', '#FFE4F0']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.pullQuoteBg, { borderLeftColor: accent }]}
-        >
-          <Text style={[styles.pullQuoteText, { color: ink(theme) }]}>
-            “{sight.pull_quote.text}”
-          </Text>
-          <Text style={[styles.pullQuoteTag, { color: inkSub(theme) }]}>
-            {sight.pull_quote.tag}
-          </Text>
-        </LinearGradient>
-      </View>
+      {/* so-dwqk: pull quote only renders when the BE actually returned
+          one. Previously the screen forced a hardcoded first-person
+          fallback ("You stopped negotiating…") which read as the user's
+          own reflection. No card is shown when pull_quote is null. */}
+      {sight.pull_quote ? (
+        <View style={styles.pullQuoteWrap}>
+          <LinearGradient
+            colors={
+              isDark
+                ? ['rgba(255,200,92,0.15)', 'rgba(233,54,120,0.10)']
+                : ['#FFF6E1', '#FFE4F0']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.pullQuoteBg, { borderLeftColor: accent }]}
+          >
+            <Text style={[styles.pullQuoteText, { color: ink(theme) }]}>
+              “{sight.pull_quote.text}”
+            </Text>
+            <Text style={[styles.pullQuoteTag, { color: inkSub(theme) }]}>
+              {sight.pull_quote.tag}
+            </Text>
+          </LinearGradient>
+        </View>
+      ) : null}
 
       {includeSignals && sight.signals_summary.length > 0 ? (
         <View style={styles.signalsBlock}>
