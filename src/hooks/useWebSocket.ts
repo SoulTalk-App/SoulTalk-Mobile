@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import Constants from 'expo-constants';
-import axios from 'axios';
 import SecureStorage from '../utils/SecureStorage';
+import { refreshAccessToken } from '../utils/authClient';
 
 type MessageHandler = (data: any) => void;
 
@@ -16,25 +16,10 @@ const getWsUrl = (): string => {
     .replace(/\/api$/, '/ws');
 };
 
-const getApiBaseUrl = (): string =>
-  Constants.expoConfig?.extra?.apiConfig?.baseUrl || 'https://soultalkapp.com/api';
-
-const refreshAccessToken = async (): Promise<string | null> => {
-  try {
-    const refreshToken = await SecureStorage.getItem('refresh_token');
-    if (!refreshToken) return null;
-
-    const resp = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
-      refresh_token: refreshToken,
-    });
-    const { access_token, refresh_token: newRefresh } = resp.data;
-    await SecureStorage.setItem('access_token', access_token);
-    await SecureStorage.setItem('refresh_token', newRefresh);
-    return access_token;
-  } catch {
-    return null;
-  }
-};
+// so-605p: refresh now coalesces with every authed axios client via the
+// shared single-flight helper in utils/authClient. The WS auth-failure
+// reconnect path used to ship its own non-coalesced refresh — if a 4001 hit
+// at the same instant as an HTTP 401, both would refresh and clobber.
 
 export const useWebSocket = (
   isAuthenticated: boolean,

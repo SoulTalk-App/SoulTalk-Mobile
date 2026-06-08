@@ -4,6 +4,7 @@ import { AuthRequest, AuthRequestConfig, AuthSessionResult } from 'expo-auth-ses
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import axios, { AxiosResponse } from 'axios';
+import { installAuthInterceptors, refreshAccessToken } from '../utils/authClient';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -79,8 +80,6 @@ class AuthService {
   private keycloakConfig: KeycloakConfig;
   private apiConfig: ApiConfig;
   private axiosInstance;
-  private isRefreshing = false;
-  private failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
   constructor() {
     this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
@@ -98,72 +97,12 @@ class AuthService {
       timeout: 10000,
     });
 
-    // Add request interceptor to include auth token
-    this.axiosInstance.interceptors.request.use(
-      async (config) => {
-        const token = await this.getStoredAccessToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-
-    // Add response interceptor to handle token refresh
-    this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            // If already refreshing, queue the request
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            }).then(token => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return this.axiosInstance.request(originalRequest);
-            }).catch(err => {
-              return Promise.reject(err);
-            });
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            const refreshed = await this.refreshTokens();
-            if (refreshed) {
-              const token = await this.getStoredAccessToken();
-              // Process failed queue
-              this.failedQueue.forEach(({ resolve }) => resolve(token));
-              this.failedQueue = [];
-              
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return this.axiosInstance.request(originalRequest);
-            } else {
-              // Refresh failed, reject all queued requests and logout
-              this.failedQueue.forEach(({ reject }) => reject(error));
-              this.failedQueue = [];
-              await this.clearStoredTokens();
-              return Promise.reject(error);
-            }
-          } catch (refreshError) {
-            this.failedQueue.forEach(({ reject }) => reject(refreshError));
-            this.failedQueue = [];
-            await this.clearStoredTokens();
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
-          }
-        }
-        
-        return Promise.reject(error);
-      }
-    );
+    // so-605p: shared single-flight refresh — every authed axios client in
+    // the app (and the WS reconnect) coalesces onto one /auth/refresh round-
+    // trip. AuthService previously kept its own per-instance mutex; that
+    // protected concurrent calls on this client but didn't help JournalService
+    // et al. when they all 401'd at cold-app-open.
+    installAuthInterceptors(this.axiosInstance);
   }
 
   // Password grant flow (as requested)
@@ -227,24 +166,11 @@ class AuthService {
   }
 
   async refreshTokens(): Promise<boolean> {
-    try {
-      const refreshToken = await this.getStoredRefreshToken();
-      if (!refreshToken) {
-        return false;
-      }
-
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/refresh', {
-        refresh_token: refreshToken
-      }, { _retry: true } as any);
-
-      const tokenData = response.data;
-      await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
-      
-      return true;
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      return false;
-    }
+    // so-605p: delegate to the shared single-flight helper. Concurrent
+    // refreshTokens() calls (e.g. from AuthContext app-resume + an
+    // interceptor) coalesce onto one network round-trip.
+    const newToken = await refreshAccessToken();
+    return newToken !== null;
   }
 
   async getCurrentUser(): Promise<UserInfo> {
