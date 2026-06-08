@@ -1,0 +1,22 @@
+diff --git a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift b/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
+index 1111111..2222222 100644
+--- a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
++++ b/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
+@@ -784,6 +784,17 @@
+     let audioFormat = Self.getAudioFormat(forEngine: newEngine)
+     let mixerNode = AVAudioMixerNode()
+     newEngine.attach(mixerNode)
++
++    // so-iy21 (SoulTalk patch): AVAudioEngine.connect raises an
++    // Objective-C NSException (not a Swift Error — uncatchable by the
++    // do/catch below) when the input format is invalid. Mid-route-change
++    // the input node's outputFormat reports sampleRate == 0. Skip the
++    // reconnect; handleAudioRouteChange's fallback emits a recoverable
++    // .audioRouteChanged and tears down cleanly. Crash ref: TF49
++    // incident D3E4BF8E-D8F6-42D7-8E4D-00725EC21C05.
++    guard audioFormat.sampleRate > 0, audioFormat.channelCount > 0 else {
++      return false
++    }
+     newEngine.connect(inputNode, to: mixerNode, format: audioFormat)
+
+     do {
