@@ -20,7 +20,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '../../theme';
+import { colors, fonts, useThemeColors } from '../../theme';
 
 type RevealedPlayerHandle = { play: () => void };
 const RevealedVideoPlayer = forwardRef<RevealedPlayerHandle, {
@@ -92,6 +92,15 @@ export function AffirmationReveal({
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
+  // so-y6d4: the file-level `colors` import is the deprecated alias pinned
+  // to lightColors (primary=#4F1786 purple), so JSX that used colors.primary
+  // in the dark-mode branch was rendering purple-on-teal — wrong brand +
+  // weak contrast on the default theme. themeColors resolves per-active-
+  // theme (dark → #4DE8D4 teal). Used for the reveal button spinner +
+  // label dark-mode color override below. Broader sweep of the static
+  // styles is tracked under so-i7xd; this only fixes the user-visible JSX
+  // instances on AffirmationReveal.
+  const themeColors = useThemeColors();
   const [isRevealed, setIsRevealed] = useState(false);
   const [isRevealedMounted, setIsRevealedMounted] = useState(false);
   // so-dtuh: text/dateKey become local state so the cold-entry generate flow
@@ -460,9 +469,18 @@ export function AffirmationReveal({
               style={styles.revealButtonGradient}
             />
             {isGenerating ? (
-              <ActivityIndicator color={isDarkMode ? colors.primary : colors.white} />
+              <ActivityIndicator color={isDarkMode ? themeColors.primary : colors.white} />
             ) : (
-              <Text style={[styles.revealButtonText, isDarkMode && styles.revealButtonTextDark]}>
+              <Text
+                style={[
+                  styles.revealButtonText,
+                  isDarkMode && styles.revealButtonTextDark,
+                  // so-y6d4: override the static styles.revealButtonTextDark's
+                  // alias-pinned color with the active theme's primary so the
+                  // dark-mode label renders teal not purple.
+                  isDarkMode && { color: themeColors.primary },
+                ]}
+              >
                 {buttonLabel}
               </Text>
             )}
