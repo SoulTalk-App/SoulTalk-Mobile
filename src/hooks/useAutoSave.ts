@@ -23,20 +23,44 @@ export const useAutoSave = ({
   const lastSavedTextRef = useRef<string>('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // so-kqsv: route the volatile inputs through refs so the interval effect
+  // can depend on stable values only. Before this fix, saveNow closed over
+  // `text` and the interval effect listed `saveNow` in its deps, so every
+  // keystroke rebuilt saveNow → cleared the interval → installed a fresh
+  // 30s one. During continuous typing or dictation the server autosave
+  // never fired (crash safety leaned entirely on the 500ms useLocalDraft).
+  const textRef = useRef(text);
+  const moodRef = useRef(mood);
+  const draftIdRef = useRef(draftId);
+  const setDraftIdRef = useRef(setDraftId);
+  const saveDraftRef = useRef(saveDraft);
+
+  useEffect(() => { textRef.current = text; }, [text]);
+  useEffect(() => { moodRef.current = mood; }, [mood]);
+  useEffect(() => { draftIdRef.current = draftId; }, [draftId]);
+  useEffect(() => { setDraftIdRef.current = setDraftId; }, [setDraftId]);
+  useEffect(() => { saveDraftRef.current = saveDraft; }, [saveDraft]);
+
+  // Stable callback — reads current values from refs at invocation time.
   const saveNow = useCallback(async () => {
-    const trimmed = text.trim();
+    const trimmed = textRef.current.trim();
     if (!trimmed || trimmed === lastSavedTextRef.current) return;
 
     try {
-      const result = await saveDraft(trimmed, mood || undefined, draftId || undefined);
+      const currentDraftId = draftIdRef.current;
+      const result = await saveDraftRef.current(
+        trimmed,
+        moodRef.current || undefined,
+        currentDraftId || undefined,
+      );
       lastSavedTextRef.current = trimmed;
-      if (!draftId) {
-        setDraftId(result.id);
+      if (!currentDraftId) {
+        setDraftIdRef.current(result.id);
       }
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [text, mood, draftId, setDraftId, saveDraft]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;

@@ -213,17 +213,14 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
       setIsLoading(true);
       await resetPassword(email);
       setEmailSent(true);
-    } catch (error: any) {
-      const msg = error.message || '';
-      if (msg.includes('Google or Facebook')) {
-        Alert.alert(
-          'Social Account',
-          'This account was created using Google or Facebook. Please sign in using your original method.'
-        );
-      } else {
-        // Still show success message for security (don't reveal if email exists)
-        setEmailSent(true);
-      }
+    } catch {
+      // so-9qoj: previously the "Google or Facebook" branch popped a named
+      // alert that confirmed (a) the account exists and (b) the social
+      // provider — an account-enumeration / phishing-prep leak. Collapse
+      // all error branches into the generic "if an account exists" success
+      // copy so an attacker can't probe arbitrary emails to learn whether
+      // they're registered or as which provider.
+      setEmailSent(true);
     } finally {
       setIsLoading(false);
     }

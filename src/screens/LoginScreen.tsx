@@ -415,8 +415,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       }
     } catch (error: any) {
       const msg = error.message || "An error occurred during login";
-      if (msg.toLowerCase().includes("verify your email")) {
-        // Unverified account — send them to OTP screen
+      // so-5lt7: stopgap detector for the "unverified account" funnel.
+      // Previously a fragile substring on a single BE phrase
+      // ("verify your email") — any BE copy rewording silently broke the
+      // login → OTP path and stranded unverified users. Broaden to a
+      // regex over common phrasings until be_core ships a stable
+      // error_code field (filed alongside so-5lt7 as the proper fix).
+      const isUnverified =
+        /\b(verify|verification|not\s*verified|unverified|confirm)\b.*\bemail\b|\bemail\b.*\b(verify|verification|not\s*verified|unverified|confirm)\b/i
+          .test(msg);
+      if (isUnverified) {
         navigation.navigate('OTPVerification', { email });
       } else {
         Alert.alert("Login Failed", msg);
