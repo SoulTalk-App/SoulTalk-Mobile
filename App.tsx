@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { SoulPalProvider } from "./src/contexts/SoulPalContext";
+import ErrorBoundary from "./src/components/ErrorBoundary";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoSplashScreen from "expo-splash-screen";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
@@ -413,7 +414,14 @@ export default function App() {
           <AuthProvider>
             <WebSocketProvider>
               <StatusBar style="auto" />
-              <Navigation />
+              {/* so-ve7q: root ErrorBoundary catches render-time throws in
+                  any screen and shows a recovery UI instead of unmounting
+                  to a white screen. Wrapping Navigation (not the whole
+                  tree) keeps providers alive on reset so the user's auth
+                  + theme + soulpal state survives the retry. */}
+              <ErrorBoundary>
+                <Navigation />
+              </ErrorBoundary>
             </WebSocketProvider>
           </AuthProvider>
           </SoulPalProvider>
