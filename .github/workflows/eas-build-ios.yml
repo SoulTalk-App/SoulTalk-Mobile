@@ -1,0 +1,55 @@
+name: EAS Build — iOS TestFlight
+
+on:
+  # One-click trigger from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+
+  # Auto-trigger on version tags (e.g. v2.1.0)
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build:
+    name: Build & Submit to TestFlight
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build & submit iOS
+        run: |
+          PROFILE="${{ github.event.inputs.profile || 'production' }}"
+          echo "Building profile: $PROFILE"
+          eas build \
+            --platform ios \
+            --profile "$PROFILE" \
+            --auto-submit \
+            --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

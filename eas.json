@@ -16,6 +16,7 @@
     },
     "production": {
       "distribution": "store",
+      "credentialsSource": "remote",
       "env": {
         "API_BASE_URL": "https://soultalkapp.com/api"
       },
