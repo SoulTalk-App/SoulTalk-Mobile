@@ -42,33 +42,48 @@ export const PersonalityProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<Record<TestType, PersonalityTestResult | null>>(defaultLatest);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const inFlight = useRef(false);
+  // so-yl4y: hold the in-flight promise (not just a boolean) so concurrent
+  // callers await the SAME load instead of getting an instant undefined and
+  // running on stale context state. Pre-fix:
+  //   if (inFlight.current) return;   // second caller returned nothing
+  // Callers doing `await refresh()` (e.g. screen onFocus expecting fresh
+  // data) lost their await contract on every overlap.
+  const inFlightPromise = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!isAuthenticated || inFlight.current) return;
-    inFlight.current = true;
-    setIsLoading(true);
-    try {
-      const results = await Promise.all(
-        PERSONALITY_TEST_ORDER.map(async (testType) => {
-          try {
-            const r = await PersonalityService.getLatest(testType);
-            return [testType, r] as const;
-          } catch {
-            return [testType, null] as const;
-          }
-        }),
-      );
-      const next: Record<TestType, PersonalityTestResult | null> = { ...defaultLatest };
-      for (const [testType, result] of results) {
-        next[testType] = result;
+  const refresh = useCallback(async (): Promise<void> => {
+    if (!isAuthenticated) return;
+    if (inFlightPromise.current) return inFlightPromise.current;
+
+    const p = (async () => {
+      setIsLoading(true);
+      try {
+        const results = await Promise.all(
+          PERSONALITY_TEST_ORDER.map(async (testType) => {
+            try {
+              const r = await PersonalityService.getLatest(testType);
+              return [testType, r] as const;
+            } catch {
+              return [testType, null] as const;
+            }
+          }),
+        );
+        const next: Record<TestType, PersonalityTestResult | null> = { ...defaultLatest };
+        for (const [testType, result] of results) {
+          next[testType] = result;
+        }
+        setLatestByType(next);
+        setHasLoadedOnce(true);
+      } finally {
+        setIsLoading(false);
+        // Clear the latch BEFORE the promise resolves — the next call after
+        // this resolves should kick off a fresh fetch, not glom onto an
+        // already-resolved stale promise.
+        inFlightPromise.current = null;
       }
-      setLatestByType(next);
-      setHasLoadedOnce(true);
-    } finally {
-      setIsLoading(false);
-      inFlight.current = false;
-    }
+    })();
+
+    inFlightPromise.current = p;
+    return p;
   }, [isAuthenticated]);
 
   const setResult = useCallback((result: PersonalityTestResult) => {
