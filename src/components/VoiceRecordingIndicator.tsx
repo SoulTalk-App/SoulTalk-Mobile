@@ -11,6 +11,7 @@ import Animated, {
   withSpring,
   SharedValue,
 } from 'react-native-reanimated';
+import { TOUCH_PRESS_OPACITY } from './touchPrimitives';
 
 const MicIcon = require('../../assets/images/journal/MicIcon.png');
 
@@ -128,8 +129,9 @@ const styles = StyleSheet.create({
   },
   // so-wgmp: pressed-state highlight — gentle dim to read as an
   // acknowledged tap without overwhelming the idle/recording states.
+  // so-zd1z: wired to TOUCH_PRESS_OPACITY (was 0.72, off by 0.02).
   micButtonPressed: {
-    opacity: 0.72,
+    opacity: TOUCH_PRESS_OPACITY,
   },
   redDot: {
     position: 'absolute',

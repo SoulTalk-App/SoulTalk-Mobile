@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { fonts } from '../theme';
+import { TOUCH_HITSLOP_SMALL } from './touchPrimitives';
 
 const InspirationDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,9 +24,12 @@ const InspirationDropdown: React.FC = () => {
           pressed && styles.headerPressed,
         ]}
         onPress={() => setIsOpen((v) => !v)}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        hitSlop={TOUCH_HITSLOP_SMALL}
+        // so-zd1z (MINOR #2): disclosure pattern — VoiceOver needs the
+        // expanded state to announce open/closed; the chevron is visual-only.
         accessibilityRole="button"
         accessibilityLabel="Inspiration tips"
+        accessibilityState={{ expanded: isOpen }}
       >
         <Text style={styles.headerText}>Need inspiration?</Text>
         <Text style={styles.chevron}>{isOpen ? '▲' : '▼'}</Text>

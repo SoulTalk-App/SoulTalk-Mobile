@@ -10,6 +10,12 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import {
+  TOUCH_HITSLOP_MED,
+  TOUCH_PRESS_OPACITY,
+  TOUCH_PRESS_SPRING_IN,
+  TOUCH_PRESS_SPRING_OUT,
+} from './touchPrimitives';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -17,8 +23,14 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 // registers visually *before* the rise/label-fade transition starts.
 // Spring-driven values keep the animation on the UI thread (Reanimated
 // worklet) so JS thread load can't stall the feedback.
+//
+// so-zd1z: deliberate deviation from TOUCH_PRESS_SCALE (0.94) — the tab
+// bar lives inside a 62pt-tall pill and the rise/fall animation already
+// communicates selection state. A 0.94 squash would be too subtle against
+// that backdrop; 0.88 gives the press a more decisive "registered" beat
+// matched to the tab UX, not the general-purpose button UX. TOUCH_PRESS_OPACITY
+// stays at TOUCH_PRESS_OPACITY (no reason to diverge).
 const PRESS_SCALE_DOWN = 0.88;
-const PRESS_OPACITY = 0.7;
 
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
@@ -106,15 +118,15 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
   const pressProfile = useSharedValue(1);
   const homePressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressHome.value }],
-    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressHome.value) / (1 - PRESS_SCALE_DOWN),
+    opacity: 1 - (1 - TOUCH_PRESS_OPACITY) * (1 - pressHome.value) / (1 - PRESS_SCALE_DOWN),
   }));
   const journalPressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressJournal.value }],
-    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressJournal.value) / (1 - PRESS_SCALE_DOWN),
+    opacity: 1 - (1 - TOUCH_PRESS_OPACITY) * (1 - pressJournal.value) / (1 - PRESS_SCALE_DOWN),
   }));
   const profilePressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressProfile.value }],
-    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressProfile.value) / (1 - PRESS_SCALE_DOWN),
+    opacity: 1 - (1 - TOUCH_PRESS_OPACITY) * (1 - pressProfile.value) / (1 - PRESS_SCALE_DOWN),
   }));
   const pressStyles: Record<TabName, any> = {
     Home: homePressStyle,
@@ -129,10 +141,7 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
 
   const handlePressIn = useCallback(
     (tab: TabName) => {
-      pressValues[tab].value = withSpring(PRESS_SCALE_DOWN, {
-        damping: 18,
-        stiffness: 400,
-      });
+      pressValues[tab].value = withSpring(PRESS_SCALE_DOWN, TOUCH_PRESS_SPRING_IN);
     },
     // pressValues is rebuilt every render but the shared values inside
     // are stable; eslint-disable to avoid churning the callback.
@@ -141,10 +150,7 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
   );
   const handlePressOut = useCallback(
     (tab: TabName) => {
-      pressValues[tab].value = withSpring(1, {
-        damping: 12,
-        stiffness: 300,
-      });
+      pressValues[tab].value = withSpring(1, TOUCH_PRESS_SPRING_OUT);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -181,7 +187,7 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
               onPress={() => onTabPress(tab)}
               onPressIn={() => handlePressIn(tab)}
               onPressOut={() => handlePressOut(tab)}
-              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              hitSlop={TOUCH_HITSLOP_MED}
               accessibilityRole="tab"
               accessibilityLabel={tab}
               accessibilityState={{ selected: activeTab === tab }}
