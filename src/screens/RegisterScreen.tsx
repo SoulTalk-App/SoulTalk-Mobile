@@ -696,7 +696,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
-                textContentType="newPassword"
+                // so-cnqc: iOS Strong Password engine bails when it sees
+                // two adjacent newPassword fields. Keep newPassword on the
+                // primary input only; the confirm field uses 'password' so
+                // Apple's chain semantics still fill both from the
+                // suggestion bubble without aborting it.
+                // autoComplete='new-password' stays on both — RN/HTML
+                // spec doesn't have the same conflict at that layer.
+                textContentType="password"
                 autoComplete="new-password"
               />
               <TouchableOpacity
