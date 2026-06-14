@@ -1,14 +1,24 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// so-wgmp: nudge the icon down + fade slightly on press-in so the tap
+// registers visually *before* the rise/label-fade transition starts.
+// Spring-driven values keep the animation on the UI thread (Reanimated
+// worklet) so JS thread load can't stall the feedback.
+const PRESS_SCALE_DOWN = 0.88;
+const PRESS_OPACITY = 0.7;
 
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
@@ -88,6 +98,58 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
   const journalLabelStyle = useAnimatedStyle(() => ({ opacity: opacityJournal.value }));
   const profileLabelStyle = useAnimatedStyle(() => ({ opacity: opacityProfile.value }));
 
+  // so-wgmp: per-tab press-feedback shared values. Explicit (not via map)
+  // for the same react-hooks/rules-of-hooks reason the rise/opacity refs
+  // above are explicit (see so-loo3 header comment).
+  const pressHome = useSharedValue(1);
+  const pressJournal = useSharedValue(1);
+  const pressProfile = useSharedValue(1);
+  const homePressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressHome.value }],
+    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressHome.value) / (1 - PRESS_SCALE_DOWN),
+  }));
+  const journalPressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressJournal.value }],
+    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressJournal.value) / (1 - PRESS_SCALE_DOWN),
+  }));
+  const profilePressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressProfile.value }],
+    opacity: 1 - (1 - PRESS_OPACITY) * (1 - pressProfile.value) / (1 - PRESS_SCALE_DOWN),
+  }));
+  const pressStyles: Record<TabName, any> = {
+    Home: homePressStyle,
+    Journal: journalPressStyle,
+    Profile: profilePressStyle,
+  };
+  const pressValues: Record<TabName, ReturnType<typeof useSharedValue<number>>> = {
+    Home: pressHome,
+    Journal: pressJournal,
+    Profile: pressProfile,
+  };
+
+  const handlePressIn = useCallback(
+    (tab: TabName) => {
+      pressValues[tab].value = withSpring(PRESS_SCALE_DOWN, {
+        damping: 18,
+        stiffness: 400,
+      });
+    },
+    // pressValues is rebuilt every render but the shared values inside
+    // are stable; eslint-disable to avoid churning the callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const handlePressOut = useCallback(
+    (tab: TabName) => {
+      pressValues[tab].value = withSpring(1, {
+        damping: 12,
+        stiffness: 300,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const riseStyles: Record<TabName, any> = {
     Home: homeRiseStyle,
     Journal: journalRiseStyle,
@@ -112,7 +174,19 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
       <View style={styles.tabBarInner}>
         {TABS.map((tab) => (
           <Animated.View key={tab} style={[styles.tabItem, riseStyles[tab]]}>
-            <Pressable onPress={() => onTabPress(tab)} style={styles.tabPressable}>
+            {/* so-wgmp: hitSlop extends the 50pt-wide tab item to a comfortable
+                ~60pt tap region without rearranging the visual layout. AnimatedPressable
+                wraps the icon+label so the press-in scale is on the UI thread. */}
+            <AnimatedPressable
+              onPress={() => onTabPress(tab)}
+              onPressIn={() => handlePressIn(tab)}
+              onPressOut={() => handlePressOut(tab)}
+              hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+              accessibilityRole="tab"
+              accessibilityLabel={tab}
+              accessibilityState={{ selected: activeTab === tab }}
+              style={[styles.tabPressable, pressStyles[tab]]}
+            >
               <View style={activeTab === tab ? styles.activeTabBg : undefined}>
                 <Image
                   source={TAB_ICONS[tab]}
@@ -123,7 +197,7 @@ export function BottomTabBar({ activeTab, onTabPress, tabBarAnimStyle }: Props) 
               <Animated.Text style={[styles.activeTabLabel, labelStyles[tab]]}>
                 {tab}
               </Animated.Text>
-            </Pressable>
+            </AnimatedPressable>
           </Animated.View>
         ))}
       </View>

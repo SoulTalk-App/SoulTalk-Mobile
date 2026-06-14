@@ -13,7 +13,20 @@ const InspirationDropdown: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.header} onPress={() => setIsOpen((v) => !v)}>
+      {/* so-wgmp: header is ~31pt tall (under Apple HIG 44pt). hitSlop
+          extends the press region so the chip doesn't feel like a miss
+          when tapped near the edge. Pressed-state opacity gives the
+          instant feedback Pressable doesn't ship with by default. */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.header,
+          pressed && styles.headerPressed,
+        ]}
+        onPress={() => setIsOpen((v) => !v)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+        accessibilityLabel="Inspiration tips"
+      >
         <Text style={styles.headerText}>Need inspiration?</Text>
         <Text style={styles.chevron}>{isOpen ? '▲' : '▼'}</Text>
       </Pressable>
@@ -48,6 +61,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: 6,
+  },
+  // so-wgmp: pressed-state lift — brighter background + slightly more
+  // opaque border. No animation, just CSS — keeps the dropdown chip
+  // tap-cost zero on the JS side.
+  headerPressed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderColor: 'rgba(255, 255, 255, 0.24)',
   },
   headerText: {
     fontFamily: fonts.outfit.medium,

@@ -196,8 +196,21 @@ const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
   );
 
   if (onTap) {
+    // so-wgmp: onPressIn nudges the bounce shared value DOWN before the
+    // tap-released bounce fires. Without this, the only press feedback
+    // arrives ~150ms after release (via triggerBounce), which reads as
+    // unresponsive. Press-down + press-up form a continuous spring arc.
+    const handlePressIn = () => {
+      bounceScale.value = withSpring(0.94, { damping: 14, stiffness: 320 });
+    };
     return (
-      <Pressable onPress={handleTap}>
+      <Pressable
+        onPress={handleTap}
+        onPressIn={handlePressIn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="SoulPal"
+      >
         {content}
       </Pressable>
     );

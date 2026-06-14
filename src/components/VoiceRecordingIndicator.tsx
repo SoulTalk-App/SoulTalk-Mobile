@@ -70,13 +70,22 @@ const VoiceRecordingIndicator: React.FC<VoiceRecordingIndicatorProps> = ({
 }) => {
   return (
     <View style={styles.container}>
+      {/* so-wgmp: pressed-state opacity drop on the mic button gives the
+          instant feedback Pressable doesn't ship with by default. The
+          56x56 footprint is already above HIG, so no hitSlop needed —
+          tapping just outside the visible circle would steal touches
+          from neighboring controls. */}
       <Pressable
-        style={[
+        style={({ pressed }) => [
           styles.micButton,
           isRecording && styles.micButtonRecording,
+          pressed && !isTranscribing && styles.micButtonPressed,
         ]}
         onPress={onPress}
         disabled={isTranscribing}
+        accessibilityRole="button"
+        accessibilityLabel={isRecording ? 'Stop recording' : 'Start voice recording'}
+        accessibilityState={{ disabled: isTranscribing, selected: isRecording }}
       >
         {isTranscribing ? (
           <ActivityIndicator color="#59168B" size="small" />
@@ -116,6 +125,11 @@ const styles = StyleSheet.create({
   },
   micButtonRecording: {
     backgroundColor: '#FFE5E5',
+  },
+  // so-wgmp: pressed-state highlight — gentle dim to read as an
+  // acknowledged tap without overwhelming the idle/recording states.
+  micButtonPressed: {
+    opacity: 0.72,
   },
   redDot: {
     position: 'absolute',
