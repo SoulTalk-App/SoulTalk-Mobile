@@ -35,6 +35,7 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
 import { MoodToast, MoodToastKind } from '../components/MoodToast';
 import { BottomTabBar } from '../components/BottomTabBar';
+import { sanitizeMoodWord } from '../utils/moodSanitizer';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -928,26 +929,12 @@ const HomeScreen = ({ navigation }: any) => {
   }));
 
   const handleMoodChange = useCallback((text: string) => {
-    // so-v8w1: keep all Unicode letters across scripts (Latin w/ accents,
-    // Cyrillic, CJK, Hangul, Arabic, etc.) so international beta users
-    // can actually type a mood in their language. Previously /[^a-zA-Z]/g
-    // stripped every non-ASCII-letter char, vanishing entire words.
-    // so-kt77: \p{L} alone treated emoji as Symbols (not Letters) and
-    // silently dropped them. Allowlist now keeps emoji + the joiner /
-    // modifier / variation-selector code points needed for ZWJ family
-    // sequences (👨‍👩‍👧‍👦), skin-tone modifiers (👍🏽), and VS16-rendered
-    // text emoji (❤️). Spaces, digits, and punctuation still drop per the
-    // one-word UX rule.
-    const sanitized = text.replace(
-      // so-lkrr: dropped \p{Emoji_Component} — it re-admits ASCII digits,
-      // '#', '*', and regional-indicator letters because those are the
-      // keycap / flag bases. Extended_Pictographic already covers the
-      // actual rendered emoji set (including 🇺🇸-style flags via the
-      // regional-indicator codepoints' Extended_Pictographic membership),
-      // so the Component slot was pure leak surface.
-      /[^\p{L}\p{Extended_Pictographic}\p{Emoji_Modifier}\u200D\uFE0F]/gu,
-      '',
-    );
+    // so-ylps: regex + full rationale moved to src/utils/moodSanitizer.ts
+    // so the contract is unit-testable. Strip behavior is documented
+    // there (spaces / digits / punctuation drop; regional-indicator
+    // FLAG emoji also drop today — that's a product call,
+    // not a sanitizer bug).
+    const sanitized = sanitizeMoodWord(text);
     setMoodWord(sanitized);
     // so-0nwv: typing after a save flips the chip back to its "ready to
     // submit" state so the user sees the affordance is live again.
