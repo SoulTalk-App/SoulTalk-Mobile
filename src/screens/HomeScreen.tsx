@@ -939,7 +939,13 @@ const HomeScreen = ({ navigation }: any) => {
     // text emoji (❤️). Spaces, digits, and punctuation still drop per the
     // one-word UX rule.
     const sanitized = text.replace(
-      /[^\p{L}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Emoji_Component}\u200D\uFE0F]/gu,
+      // so-lkrr: dropped \p{Emoji_Component} — it re-admits ASCII digits,
+      // '#', '*', and regional-indicator letters because those are the
+      // keycap / flag bases. Extended_Pictographic already covers the
+      // actual rendered emoji set (including 🇺🇸-style flags via the
+      // regional-indicator codepoints' Extended_Pictographic membership),
+      // so the Component slot was pure leak surface.
+      /[^\p{L}\p{Extended_Pictographic}\p{Emoji_Modifier}\u200D\uFE0F]/gu,
       '',
     );
     setMoodWord(sanitized);
