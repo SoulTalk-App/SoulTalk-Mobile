@@ -205,16 +205,26 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
 
   useEffect(() => {
     if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.is_draft) return;
+    // so-urv4 #3: cancelled flag scoped to this poll session. clearInterval
+    // stops future ticks but doesn't cancel an in-flight tick's await —
+    // setEntry could land on an unmounted/blurred screen. Mirror the
+    // AffirmationMirrorScreen useFocusEffect pattern: flip on cleanup,
+    // check after await.
+    const ctrl = { cancelled: false };
     const interval = setInterval(async () => {
       try {
         const fresh = await JournalService.getEntry(entryId);
+        if (ctrl.cancelled) return;
         if (fresh.ai_processing_status === 'complete' || fresh.ai_processing_status === 'failed') {
           setEntry(fresh);
           clearInterval(interval);
         }
       } catch {}
     }, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      ctrl.cancelled = true;
+      clearInterval(interval);
+    };
   }, [entry?.ai_processing_status, entryId]);
 
   const editCount = entry?.edit_count ?? 0;
