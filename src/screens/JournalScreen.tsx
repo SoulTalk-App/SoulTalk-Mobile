@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useReducer } from 'react';
 import {
   View,
   Text,
@@ -279,6 +279,53 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
   });
 
+// so-urv4 #5: 6 filter/UI useStates collapsed into a single reducer. The
+// selected/applied year+month pairs are always updated together (one
+// dispatch flips both halves), so the prior multi-setState pattern was
+// dispatching redundant work. The filter-expanded and info-modal toggles
+// move into the same reducer for a single UI-state source of truth.
+type JournalUIState = {
+  selectedYears: number[];
+  selectedMonths: number[];
+  appliedYears: number[];
+  appliedMonths: number[];
+  filtersExpanded: boolean;
+  journalInfoOpen: boolean;
+};
+
+type JournalUIAction =
+  | { type: 'SET_YEARS'; value: number[] }
+  | { type: 'SET_MONTHS'; value: number[] }
+  | { type: 'TOGGLE_FILTERS_EXPANDED' }
+  | { type: 'SET_INFO_OPEN'; value: boolean };
+
+const INITIAL_JOURNAL_UI_STATE: JournalUIState = {
+  selectedYears: [],
+  selectedMonths: [],
+  appliedYears: [],
+  appliedMonths: [],
+  filtersExpanded: false,
+  journalInfoOpen: false,
+};
+
+function journalUIReducer(
+  state: JournalUIState,
+  action: JournalUIAction,
+): JournalUIState {
+  switch (action.type) {
+    case 'SET_YEARS':
+      return { ...state, selectedYears: action.value, appliedYears: action.value };
+    case 'SET_MONTHS':
+      return { ...state, selectedMonths: action.value, appliedMonths: action.value };
+    case 'TOGGLE_FILTERS_EXPANDED':
+      return { ...state, filtersExpanded: !state.filtersExpanded };
+    case 'SET_INFO_OPEN':
+      return { ...state, journalInfoOpen: action.value };
+    default:
+      return state;
+  }
+}
+
 const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
@@ -288,12 +335,15 @@ const JournalScreen = ({ navigation }: any) => {
   const soulPalHex = getSoulPalHex(colorId, isDarkMode);
 
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
-  const [selectedYears, setSelectedYears] = useState<number[]>([]);
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
-  const [appliedYears, setAppliedYears] = useState<number[]>([]);
-  const [appliedMonths, setAppliedMonths] = useState<number[]>([]);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [journalInfoOpen, setJournalInfoOpen] = useState(false);
+  const [ui, dispatchUI] = useReducer(journalUIReducer, INITIAL_JOURNAL_UI_STATE);
+  const {
+    selectedYears,
+    selectedMonths,
+    appliedYears,
+    appliedMonths,
+    filtersExpanded,
+    journalInfoOpen,
+  } = ui;
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
@@ -307,31 +357,29 @@ const JournalScreen = ({ navigation }: any) => {
 
   const toggleYear = (year: number) => {
     const next = selectedYears.includes(year) ? selectedYears.filter(y => y !== year) : [...selectedYears, year];
-    setSelectedYears(next);
-    setAppliedYears(next);
+    dispatchUI({ type: 'SET_YEARS', value: next });
     fetchEntries(buildParams(next, appliedMonths));
   };
 
   const toggleMonth = (month: number) => {
     const next = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month) : [...selectedMonths, month];
-    setSelectedMonths(next);
-    setAppliedMonths(next);
+    dispatchUI({ type: 'SET_MONTHS', value: next });
     fetchEntries(buildParams(appliedYears, next));
   };
 
   const removePill = (type: 'year' | 'month', value: number) => {
     if (type === 'year') {
-      setSelectedYears(prev => prev.filter(y => y !== value));
-      setAppliedYears(prev => prev.filter(y => y !== value));
+      const next = selectedYears.filter(y => y !== value);
+      dispatchUI({ type: 'SET_YEARS', value: next });
     } else {
-      setSelectedMonths(prev => prev.filter(m => m !== value));
-      setAppliedMonths(prev => prev.filter(m => m !== value));
+      const next = selectedMonths.filter(m => m !== value);
+      dispatchUI({ type: 'SET_MONTHS', value: next });
     }
   };
 
   const toggleFilters = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setFiltersExpanded(!filtersExpanded);
+    dispatchUI({ type: 'TOGGLE_FILTERS_EXPANDED' });
   };
 
   const activeFilterCount = appliedYears.length + appliedMonths.length;
@@ -398,7 +446,7 @@ const JournalScreen = ({ navigation }: any) => {
                 )}
               </Pressable>
               <Pressable
-                onPress={() => setJournalInfoOpen(true)}
+                onPress={() => dispatchUI({ type: 'SET_INFO_OPEN', value: true })}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 style={styles.journalInfoBadge}
                 accessibilityRole="button"
@@ -561,7 +609,7 @@ const JournalScreen = ({ navigation }: any) => {
 
       <CardInfoModal
         visible={journalInfoOpen}
-        onClose={() => setJournalInfoOpen(false)}
+        onClose={() => dispatchUI({ type: 'SET_INFO_OPEN', value: false })}
         theme={isDarkMode ? 'dark' : 'light'}
         title="Daily Reflection"
         body={"Every journal entry you submit gets a reflection from your SoulPal. These are meant to be immediate, useful reflections that mirror back what showed up in your writing and gives you something to carry forward.\n\nBuilt on Soulcology, our signature reflection framework, your SoulPal acknowledges the sentiment underneath what you wrote, names patterns, and offers something grounding for you to sit with that day. The more you reflect, the more your SoulPal learns about who you are and what you're moving through, and the richer your insights become in both the journaling reflections and SoulSights."}
