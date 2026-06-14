@@ -932,9 +932,16 @@ const HomeScreen = ({ navigation }: any) => {
     // Cyrillic, CJK, Hangul, Arabic, etc.) so international beta users
     // can actually type a mood in their language. Previously /[^a-zA-Z]/g
     // stripped every non-ASCII-letter char, vanishing entire words.
-    // \p{L} = Unicode letter category; the `u` flag enables it. Spaces,
-    // digits, and punctuation still get dropped per the one-word UX rule.
-    const sanitized = text.replace(/[^\p{L}]/gu, '');
+    // so-kt77: \p{L} alone treated emoji as Symbols (not Letters) and
+    // silently dropped them. Allowlist now keeps emoji + the joiner /
+    // modifier / variation-selector code points needed for ZWJ family
+    // sequences (👨‍👩‍👧‍👦), skin-tone modifiers (👍🏽), and VS16-rendered
+    // text emoji (❤️). Spaces, digits, and punctuation still drop per the
+    // one-word UX rule.
+    const sanitized = text.replace(
+      /[^\p{L}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Emoji_Component}\u200D\uFE0F]/gu,
+      '',
+    );
     setMoodWord(sanitized);
     // so-0nwv: typing after a save flips the chip back to its "ready to
     // submit" state so the user sees the affordance is live again.
@@ -1055,7 +1062,11 @@ const HomeScreen = ({ navigation }: any) => {
                   value={moodWord}
                   onChangeText={handleMoodChange}
                   onSubmitEditing={submitMoodWord}
-                  maxLength={50}
+                  // so-kt77: bumped 50 → 120 to give emoji headroom. RN
+                  // maxLength counts UTF-16 code units, not graphemes, and
+                  // a single ZWJ family emoji (👨‍👩‍👧‍👦) is ~11 code units;
+                  // 50 was too tight to land more than ~4 such glyphs.
+                  maxLength={120}
                   returnKeyType="done"
                   editable={!submitting}
                   autoCorrect={false}
@@ -1320,7 +1331,8 @@ const HomeScreen = ({ navigation }: any) => {
                 value={moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
-                maxLength={50}
+                // so-kt77: see dark-mode TextInput above for rationale.
+                maxLength={120}
                 returnKeyType="done"
                 editable={!submitting}
                 autoCorrect={false}
