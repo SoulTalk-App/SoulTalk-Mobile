@@ -12,6 +12,12 @@ import Animated, {
   cancelAnimation,
 } from 'react-native-reanimated';
 import { useSoulPal } from '../contexts/SoulPalContext';
+import {
+  TOUCH_HITSLOP_MED,
+  TOUCH_PRESS_SCALE,
+  TOUCH_PRESS_SPRING_IN,
+  TOUCH_PRESS_SPRING_OUT,
+} from './touchPrimitives';
 
 type SoulPalPose = 'home' | 'journal' | 'profile' | 'celebrating' | 'default';
 type SoulPalMood = 'happy' | 'calm' | 'reflective' | 'energized';
@@ -196,8 +202,33 @@ const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
   );
 
   if (onTap) {
+    // so-wgmp: onPressIn nudges the bounce shared value DOWN before the
+    // tap-released bounce fires. Without this, the only press feedback
+    // arrives ~150ms after release (via triggerBounce), which reads as
+    // unresponsive. Press-down + press-up form a continuous spring arc.
+    //
+    // so-zd1z (MAJOR fix): on a CANCELLED press (finger dragged off,
+    // scroll starts) RN Pressable fires onPressIn + onPressOut-cancel
+    // but NOT onPress. Without onPressOut, bounceScale stayed at 0.94
+    // and SoulPal looked permanently shrunk until the next successful
+    // tap. Spring back to 1.0 in onPressOut covers both the cancel and
+    // the success-before-triggerBounce case (triggerBounce fires from
+    // handleTap on the next tick and runs on top of the restored value).
+    const handlePressIn = () => {
+      bounceScale.value = withSpring(TOUCH_PRESS_SCALE, TOUCH_PRESS_SPRING_IN);
+    };
+    const handlePressOut = () => {
+      bounceScale.value = withSpring(1, TOUCH_PRESS_SPRING_OUT);
+    };
     return (
-      <Pressable onPress={handleTap}>
+      <Pressable
+        onPress={handleTap}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        hitSlop={TOUCH_HITSLOP_MED}
+        accessibilityRole="button"
+        accessibilityLabel="SoulPal"
+      >
         {content}
       </Pressable>
     );

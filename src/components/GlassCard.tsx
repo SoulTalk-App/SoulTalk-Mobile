@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { surfaces } from '../theme';
+import { TOUCH_HITSLOP_MED } from './touchPrimitives';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -115,6 +116,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        // so-wgmp: small hitSlop covers margin-less variants — when two
+        // cards sit edge-to-edge or hug a screen edge, a missed tap on
+        // the seam reads as unresponsive. 8pt is enough to forgive the
+        // common near-miss without overlapping into adjacent cards
+        // (those typically share at least 16pt of layout gap).
+        hitSlop={TOUCH_HITSLOP_MED}
+        accessibilityRole="button"
         style={[pressAnimStyle, style?.flex != null && { flex: style.flex }]}
       >
         {cardContent}
