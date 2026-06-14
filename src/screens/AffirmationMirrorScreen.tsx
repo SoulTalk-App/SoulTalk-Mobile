@@ -37,7 +37,15 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const theme = isDarkMode ? 'dark' : 'light';
   const { hasEntryToday } = useJournal();
 
-  const [state, setState] = useState<ScreenState>({ kind: 'loading' });
+  // so-urv4 #2: optimistic-reveal on mount. Previously the screen blocked
+  // first paint on listAffirmations(30,0); users saw a spinner while the
+  // 30-item history loaded. Now we render AffirmationReveal immediately
+  // (its own idle video + clouds is the perceived launch) and upgrade to
+  // 'ready' only if the list resolves with today's row present. Cost:
+  // returning users with an already-generated today flash reveal briefly
+  // before snapping to ready; the AffirmationReveal AsyncStorage replay
+  // marker already softens that for users who tapped reveal once today.
+  const [state, setState] = useState<ScreenState>({ kind: 'reveal' });
 
   const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
@@ -86,7 +94,11 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       // codebase has no abort wiring — so we just discard its result on
       // resolve/reject when the focus session is gone.
       let cancelled = false;
-      setState({ kind: 'loading' });
+      // so-urv4 #2: no longer flip to 'loading' on every focus — keep the
+      // current screen (initial 'reveal' optimistic state, or persistent
+      // 'ready' from a prior focus) while fetchData resolves in the
+      // background. fetchData itself transitions to 'ready' when today is
+      // present in the response, and to 'reveal' when it isn't.
       fetchData(() => cancelled);
       return () => {
         cancelled = true;
