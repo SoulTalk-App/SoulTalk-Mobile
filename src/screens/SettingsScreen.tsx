@@ -41,19 +41,42 @@ const SettingsScreen = ({ navigation }: any) => {
   const styles = useMemo(() => buildStyles(colors, isDarkMode), [colors, isDarkMode]);
   const placeholderColor = isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.5)';
   const lockIconColor = isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.55)';
-  const [displayName, setDisplayName] = useState('');
-  const [username, setUsername] = useState('');
-  const [pronoun, setPronoun] = useState('');
+  // so-urv4 #4: the three profile fields are read and written together
+  // (pre-fill from user on mount, snapshotted into profileRef for the
+  // beforeRemove save). Collapse them into a single state object so the
+  // pre-fill is one update instead of three back-to-back, and the
+  // beforeRemove ref tracks one source of truth. Other useStates
+  // (showPronounPicker, usernameAvailable, usernameChecking) have
+  // independent lifecycles and stay separate.
+  const [profile, setProfile] = useState<{
+    displayName: string;
+    username: string;
+    pronoun: string;
+  }>({ displayName: '', username: '', pronoun: '' });
+  const { displayName, username, pronoun } = profile;
+  const setDisplayName = useCallback(
+    (v: string) => setProfile((p) => ({ ...p, displayName: v })),
+    [],
+  );
+  const setUsername = useCallback(
+    (v: string) => setProfile((p) => ({ ...p, username: v })),
+    [],
+  );
+  const setPronoun = useCallback(
+    (v: string) => setProfile((p) => ({ ...p, pronoun: v })),
+    [],
+  );
+
   const [showPronounPicker, setShowPronounPicker] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track current values in a ref so beforeRemove always sees latest
-  const profileRef = useRef({ displayName, username, pronoun });
+  const profileRef = useRef(profile);
   useEffect(() => {
-    profileRef.current = { displayName, username, pronoun };
-  }, [displayName, username, pronoun]);
+    profileRef.current = profile;
+  }, [profile]);
 
   // so-punu: defensive guards for the Settings ↔ Home rapid-tab crash.
   // mountedRef gates async setState + Alert calls so they no-op after
@@ -80,9 +103,13 @@ const SettingsScreen = ({ navigation }: any) => {
   // Pre-fill from user profile (backend data)
   useEffect(() => {
     if (!user) return;
-    setDisplayName(user.display_first_name || user.first_name || '');
-    setUsername(user.username || '');
-    setPronoun(user.pronoun || '');
+    // so-urv4 #4: single setProfile so the pre-fill is one batched update
+    // rather than three (was the original perf catalog motivation).
+    setProfile({
+      displayName: user.display_first_name || user.first_name || '',
+      username: user.username || '',
+      pronoun: user.pronoun || '',
+    });
   }, [user]);
 
   // Save profile to backend + device prefs to AsyncStorage
