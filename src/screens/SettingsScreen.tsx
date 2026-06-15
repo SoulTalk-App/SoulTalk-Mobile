@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/AuthService';
@@ -31,6 +32,85 @@ const PRONOUN_OPTIONS = [
   'Xe/Xem',
   'Prefer not to say',
 ];
+
+// so-wz41: editable profile fields, persisted locally so an edit survives a
+// failed save (offline / mid-flight back-nav) instead of being silently
+// dropped. Mirrors the useLocalDraft/so-skm AsyncStorage pattern.
+//
+// so-5eu1: the key MUST be scoped per-user. A static key let user A's draft
+// survive logout and bleed onto user B on a shared device — B's SettingsScreen
+// would restore A's displayName/pronoun and autosave them onto B's account
+// (cross-user PII contamination). Keying by user.id isolates drafts; we also
+// clear on logout for belt-and-suspenders.
+const SETTINGS_PROFILE_DRAFT_KEY_PREFIX = '@soultalk_settings_profile_draft';
+const settingsDraftKey = (userId: string) =>
+  `${SETTINGS_PROFILE_DRAFT_KEY_PREFIX}:${userId}`;
+
+interface ProfileFields {
+  displayName: string;
+  username: string;
+  pronoun: string;
+}
+
+interface SettingsProfileDraft extends ProfileFields {
+  updatedAt: number;
+}
+
+const profilesDiffer = (a: ProfileFields, b: ProfileFields) =>
+  a.displayName !== b.displayName ||
+  a.username !== b.username ||
+  a.pronoun !== b.pronoun;
+
+const serverProfile = (user: {
+  display_first_name?: string | null;
+  first_name?: string;
+  username?: string | null;
+  pronoun?: string | null;
+}): ProfileFields => ({
+  displayName: user.display_first_name || user.first_name || '',
+  username: user.username || '',
+  pronoun: user.pronoun || '',
+});
+
+const saveSettingsDraft = async (userId: string, p: ProfileFields): Promise<void> => {
+  try {
+    const payload: SettingsProfileDraft = { ...p, updatedAt: Date.now() };
+    await AsyncStorage.setItem(settingsDraftKey(userId), JSON.stringify(payload));
+  } catch (err: any) {
+    console.log('[Settings] draft write error:', err?.message);
+  }
+};
+
+const loadSettingsDraft = async (userId: string): Promise<ProfileFields | null> => {
+  try {
+    const json = await AsyncStorage.getItem(settingsDraftKey(userId));
+    if (!json) return null;
+    const parsed = JSON.parse(json);
+    if (
+      typeof parsed?.displayName !== 'string' ||
+      typeof parsed?.username !== 'string' ||
+      typeof parsed?.pronoun !== 'string'
+    ) {
+      return null;
+    }
+    return {
+      displayName: parsed.displayName,
+      username: parsed.username,
+      pronoun: parsed.pronoun,
+    };
+  } catch (err: any) {
+    console.log('[Settings] draft load error:', err?.message);
+    return null;
+  }
+};
+
+const clearSettingsDraft = async (userId: string): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(settingsDraftKey(userId));
+  } catch (err: any) {
+    console.log('[Settings] draft clear error:', err?.message);
+  }
+};
 
 const SettingsScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -71,6 +151,16 @@ const SettingsScreen = ({ navigation }: any) => {
   const [usernameChecking, setUsernameChecking] = useState(false);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // so-wz41: a prior save that didn't land (offline / mid-flight back-nav)
+  // leaves a persisted draft; surface a non-blocking retry affordance.
+  const [pendingSaveFailed, setPendingSaveFailed] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Gate the autosave + server pre-fill until the initial load (server or
+  // restored draft) has run, so we don't autosave an empty form or clobber
+  // the user's in-flight edits when our own save updates the auth user.
+  const hasPrefilledRef = useRef(false);
+
   // Track current values in a ref so beforeRemove always sees latest
   const profileRef = useRef(profile);
   useEffect(() => {
@@ -79,10 +169,10 @@ const SettingsScreen = ({ navigation }: any) => {
 
   // so-punu: defensive guards for the Settings ↔ Home rapid-tab crash.
   // mountedRef gates async setState + Alert calls so they no-op after
-  // unmount; savingRef collapses overlapping beforeRemove saveSettings
-  // invocations into one in-flight request (rapid pop-push-pop kicks
-  // beforeRemove on each unmount, which fan-fired parallel updateProfile
-  // fetches on prior builds).
+  // unmount; savingRef collapses overlapping persistAndSave invocations
+  // into one in-flight request (rapid pop-push-pop kicks beforeRemove on
+  // each unmount, which fan-fired parallel updateProfile fetches on prior
+  // builds).
   const mountedRef = useRef(true);
   const savingRef = useRef(false);
   useEffect(() => {
@@ -93,77 +183,143 @@ const SettingsScreen = ({ navigation }: any) => {
         clearTimeout(usernameDebounceRef.current);
         usernameDebounceRef.current = null;
       }
+      if (autoSaveDebounceRef.current) {
+        clearTimeout(autoSaveDebounceRef.current);
+        autoSaveDebounceRef.current = null;
+      }
     };
   }, []);
 
 
   const usernameIsLocked = Boolean(user?.username);
 
-  // Pre-fill from user profile (backend data)
+  // Pre-fill from user profile (backend data) — runs once. so-wz41: if a
+  // persisted draft from a failed save exists and still differs from the
+  // server, restore THAT instead so the user's edit survives an offline
+  // round-trip, and flag it so the retry affordance shows. Gated to run a
+  // single time so our own successful saves (which update the auth user)
+  // don't re-fire this and clobber in-flight edits.
   useEffect(() => {
-    if (!user) return;
-    // so-urv4 #4: single setProfile so the pre-fill is one batched update
-    // rather than three (was the original perf catalog motivation).
-    setProfile({
-      displayName: user.display_first_name || user.first_name || '',
-      username: user.username || '',
-      pronoun: user.pronoun || '',
-    });
+    if (!user || hasPrefilledRef.current) return;
+    hasPrefilledRef.current = true;
+    let cancelled = false;
+    (async () => {
+      const server = serverProfile(user);
+      const draft = await loadSettingsDraft(user.id);
+      if (cancelled) return;
+      if (draft && profilesDiffer(draft, server)) {
+        // so-urv4 #4: single setProfile so the pre-fill is one batched update.
+        setProfile(draft);
+        setPendingSaveFailed(true);
+      } else {
+        if (draft) clearSettingsDraft(user.id);
+        setProfile(server);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
-  // Save profile to backend + device prefs to AsyncStorage
-  const saveSettings = useCallback(async () => {
-    // so-punu: collapse concurrent beforeRemove invocations. Rapid
-    // Settings → Home → Settings → Home fired beforeRemove on each
-    // unmount, racing multiple parallel updateProfile fetches that
-    // could leave the auth context in an inconsistent state.
-    if (savingRef.current) return;
-    const current = profileRef.current;
-
-    // Save profile fields to backend
-    const updates: Record<string, string | null> = {};
-    const currentDisplayName = current.displayName || null;
-    const currentUsername = current.username || null;
-    const currentPronoun = current.pronoun || null;
-
-    if (currentDisplayName !== (user?.display_first_name || user?.first_name || null)) {
-      updates.display_first_name = currentDisplayName;
-    }
-    if (currentUsername !== (user?.username || null)) {
-      updates.username = currentUsername;
-    }
-    if (currentPronoun !== (user?.pronoun || null)) {
-      updates.pronoun = currentPronoun;
-    }
-
-    // Don't save if username is taken or already locked
-    if (usernameAvailable === false || usernameIsLocked) {
-      delete updates.username;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      savingRef.current = true;
-      try {
-        await updateProfile(updates);
-      } catch (error: any) {
-        // so-punu: only surface the alert if Settings is still mounted —
-        // otherwise the error toast pops on Home and confuses the user
-        // (and can interleave with rapid nav transitions).
-        if (mountedRef.current) {
-          Alert.alert('Save Failed', error.message || 'Could not save profile changes.');
-        }
-      } finally {
-        savingRef.current = false;
+  // so-wz41: compute the backend diff for the current fields, preserving the
+  // username guards (never save a taken or an already-locked username).
+  const computeUpdates = useCallback(
+    (current: ProfileFields): Record<string, string | null> => {
+      const updates: Record<string, string | null> = {};
+      const currentDisplayName = current.displayName || null;
+      const currentUsername = current.username || null;
+      const currentPronoun = current.pronoun || null;
+      if (currentDisplayName !== (user?.display_first_name || user?.first_name || null)) {
+        updates.display_first_name = currentDisplayName;
       }
-    }
-  }, [user, updateProfile, usernameAvailable, usernameIsLocked]);
+      if (currentPronoun !== (user?.pronoun || null)) {
+        updates.pronoun = currentPronoun;
+      }
+      // Username guard: it's only editable before one is set. With save-as-you-
+      // type we must never persist a taken OR a not-yet-confirmed username, so
+      // only include a CHANGED username once the availability check says it's
+      // free (usernameAvailable === true) and it isn't already locked.
+      if (
+        currentUsername !== (user?.username || null) &&
+        usernameAvailable === true &&
+        !usernameIsLocked
+      ) {
+        updates.username = currentUsername;
+      }
+      return updates;
+    },
+    [user, usernameAvailable, usernameIsLocked],
+  );
 
+  // so-wz41: persist-then-save. The local draft is written FIRST so the edit
+  // survives even if the network save fails (offline) or the screen unmounts
+  // mid-flight; on next open the draft is restored and re-tried. On success
+  // the draft is cleared and the retry affordance hidden.
+  const persistAndSave = useCallback(async () => {
+    // so-5eu1: no user.id -> no per-user draft key, so there's nothing safe to
+    // persist (and nothing to save). Bail rather than fall back to a shared key.
+    const userId = user?.id;
+    if (!userId) return;
+
+    const current = profileRef.current;
+    const updates = computeUpdates(current);
+
+    if (Object.keys(updates).length === 0) {
+      // Nothing to save (matches server) — drop any stale draft + banner.
+      await clearSettingsDraft(userId);
+      if (mountedRef.current) setPendingSaveFailed(false);
+      return;
+    }
+
+    // Local-first: durable before the network attempt.
+    await saveSettingsDraft(userId, current);
+
+    // so-punu: collapse concurrent invocations (rapid nav fires beforeRemove
+    // on each unmount, which previously raced parallel updateProfile fetches).
+    if (savingRef.current) return;
+    savingRef.current = true;
+    try {
+      await updateProfile(updates);
+      await clearSettingsDraft(userId);
+      if (mountedRef.current) setPendingSaveFailed(false);
+    } catch {
+      // Offline / failure: keep the draft and surface the non-blocking retry
+      // affordance instead of an Alert that gets suppressed on unmount.
+      if (mountedRef.current) setPendingSaveFailed(true);
+    } finally {
+      savingRef.current = false;
+    }
+  }, [user?.id, computeUpdates, updateProfile]);
+
+  // so-wz41 (option C): debounced save-as-you-type. Each field change schedules
+  // a save 500ms after the last keystroke; combined with the local draft this
+  // makes the legacy beforeRemove save non-destructive.
+  useEffect(() => {
+    if (!hasPrefilledRef.current) return;
+    if (autoSaveDebounceRef.current) clearTimeout(autoSaveDebounceRef.current);
+    autoSaveDebounceRef.current = setTimeout(() => {
+      persistAndSave();
+    }, 500);
+    return () => {
+      if (autoSaveDebounceRef.current) clearTimeout(autoSaveDebounceRef.current);
+    };
+  }, [profile, persistAndSave]);
+
+  // Final save attempt on the way out. Now non-destructive: persistAndSave has
+  // already written the draft locally, so an offline / mid-flight failure no
+  // longer drops the change (it is restored + retried on next open).
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', () => {
-      saveSettings();
+      persistAndSave();
     });
     return unsubscribe;
-  }, [navigation, saveSettings]);
+  }, [navigation, persistAndSave]);
+
+  const handleRetrySave = useCallback(async () => {
+    setRetrying(true);
+    await persistAndSave();
+    if (mountedRef.current) setRetrying(false);
+  }, [persistAndSave]);
 
   const checkUsernameAvailability = useCallback((value: string) => {
     if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
@@ -206,6 +362,11 @@ const SettingsScreen = ({ navigation }: any) => {
 
   const handleLogout = async () => {
     try {
+      // so-5eu1: belt-and-suspenders — drop this user's local profile draft on
+      // logout so it can't linger on a shared device (the per-user key already
+      // prevents cross-user reads; this also avoids restoring a stale draft if
+      // the same user logs back in).
+      if (user?.id) await clearSettingsDraft(user.id);
       await logout();
     } catch {
       Alert.alert('Error', 'Failed to log out. Please try again.');
@@ -274,6 +435,20 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* Dashed separator */}
         <View style={styles.dashedLine} />
+
+        {/* so-wz41: non-blocking retry affordance when a prior save didn't land */}
+        {pendingSaveFailed && (
+          <View style={styles.saveFailedBanner}>
+            <Text style={styles.saveFailedText}>
+              Couldn't save your last changes.
+            </Text>
+            <Pressable onPress={handleRetrySave} hitSlop={8} disabled={retrying}>
+              <Text style={styles.saveFailedRetry}>
+                {retrying ? 'Saving...' : 'Retry'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Display Name */}
         <TextInput
@@ -480,6 +655,32 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       borderWidth: 1,
       borderColor: dashedBorder,
       borderStyle: 'dashed',
+    },
+
+    // so-wz41: failed-save retry banner
+    saveFailedBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? 'rgba(255,94,94,0.12)' : 'rgba(255,94,94,0.10)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,94,94,0.4)',
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginTop: 12,
+    },
+    saveFailedText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 13,
+      color: ink,
+      flex: 1,
+    },
+    saveFailedRetry: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 13,
+      color: isDark ? '#FF8A8A' : '#C0392B',
+      marginLeft: 12,
     },
 
     // Input fields
