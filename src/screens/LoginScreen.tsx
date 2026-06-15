@@ -22,6 +22,7 @@ import { useAppleAuth } from "../hooks/useAppleAuth";
 import { fonts, useThemeColors } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 import { CosmicScreen } from "../components/CosmicBackdrop";
+import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED } from "../components/touchPrimitives";
 
 const USE_LOCAL_AUTH = false;
 
@@ -518,7 +519,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     <CosmicScreen tone="night">
       {/* Purple Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackToHome}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Feather name="chevron-left" size={28} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SoulTalk</Text>
@@ -584,6 +591,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
+                hitSlop={TOUCH_HITSLOP_MED}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               >
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
