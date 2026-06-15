@@ -35,6 +35,7 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
 import { MoodToast, MoodToastKind } from '../components/MoodToast';
 import { BottomTabBar } from '../components/BottomTabBar';
+import { sanitizeMoodWord } from '../utils/moodSanitizer';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -928,13 +929,12 @@ const HomeScreen = ({ navigation }: any) => {
   }));
 
   const handleMoodChange = useCallback((text: string) => {
-    // so-v8w1: keep all Unicode letters across scripts (Latin w/ accents,
-    // Cyrillic, CJK, Hangul, Arabic, etc.) so international beta users
-    // can actually type a mood in their language. Previously /[^a-zA-Z]/g
-    // stripped every non-ASCII-letter char, vanishing entire words.
-    // \p{L} = Unicode letter category; the `u` flag enables it. Spaces,
-    // digits, and punctuation still get dropped per the one-word UX rule.
-    const sanitized = text.replace(/[^\p{L}]/gu, '');
+    // so-ylps: regex + full rationale moved to src/utils/moodSanitizer.ts
+    // so the contract is unit-testable. Strip behavior is documented
+    // there (spaces / digits / punctuation drop; regional-indicator
+    // FLAG emoji also drop today — that's a product call,
+    // not a sanitizer bug).
+    const sanitized = sanitizeMoodWord(text);
     setMoodWord(sanitized);
     // so-0nwv: typing after a save flips the chip back to its "ready to
     // submit" state so the user sees the affordance is live again.
@@ -1055,7 +1055,11 @@ const HomeScreen = ({ navigation }: any) => {
                   value={moodWord}
                   onChangeText={handleMoodChange}
                   onSubmitEditing={submitMoodWord}
-                  maxLength={50}
+                  // so-kt77: bumped 50 → 120 to give emoji headroom. RN
+                  // maxLength counts UTF-16 code units, not graphemes, and
+                  // a single ZWJ family emoji (👨‍👩‍👧‍👦) is ~11 code units;
+                  // 50 was too tight to land more than ~4 such glyphs.
+                  maxLength={120}
                   returnKeyType="done"
                   editable={!submitting}
                   autoCorrect={false}
@@ -1320,7 +1324,8 @@ const HomeScreen = ({ navigation }: any) => {
                 value={moodWord}
                 onChangeText={handleMoodChange}
                 onSubmitEditing={submitMoodWord}
-                maxLength={50}
+                // so-kt77: see dark-mode TextInput above for rationale.
+                maxLength={120}
                 returnKeyType="done"
                 editable={!submitting}
                 autoCorrect={false}
