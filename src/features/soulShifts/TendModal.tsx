@@ -253,12 +253,14 @@ export function TendModal({
                   </Text>
                   <TextInput
                     value={note}
-                    onChangeText={setNote}
+                    // so-cokx: cap length in JS (slice) instead of the native
+                    // maxLength prop — native maxLength on a multiline TextInput
+                    // can crash iOS (NSRange/marked-text) while editing.
+                    onChangeText={(t) => setNote(t.slice(0, 300))}
                     placeholder="Said something in standup without rehearsing it…"
                     placeholderTextColor={inkFaint(theme)}
                     style={[styles.noteInput, { color: ink(theme) }]}
                     multiline
-                    maxLength={300}
                   />
                 </View>
 

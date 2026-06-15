@@ -138,7 +138,10 @@ export function ReleaseModal({
 
             <TextInput
               value={reason}
-              onChangeText={setReason}
+              // so-cokx: cap length in JS (slice) instead of the native
+              // maxLength prop — native maxLength on a multiline TextInput
+              // can crash iOS (NSRange/marked-text) while editing.
+              onChangeText={(t) => setReason(t.slice(0, 300))}
               placeholder="Why? (optional)"
               placeholderTextColor={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(58,14,102,0.45)'}
               style={[
@@ -154,7 +157,6 @@ export function ReleaseModal({
                 },
               ]}
               multiline
-              maxLength={300}
             />
 
             <View style={styles.btnRow}>
