@@ -4,6 +4,7 @@ import {
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
 import { useSharedValue } from 'react-native-reanimated';
+import { useMountedRef } from './useMountedRef';
 
 const STOP_SAFETY_TIMEOUT_MS = 3000;
 
@@ -24,6 +25,47 @@ interface VoiceRecordingOptions {
   onInterimResult?: (text: string) => void;
 }
 
+// so-grcy: native module wrappers — every call into
+// ExpoSpeechRecognitionModule.* can raise. Most cases (e.g. abort on an
+// already-inactive recognizer) are recoverable, but an unhandled throw on
+// the JS thread is a hard app-crash. Wrap each call so we get a single
+// diagnostic warn + a sane fallback. NEVER call the native module directly
+// from inside this hook.
+const safeAbort = () => {
+  try {
+    ExpoSpeechRecognitionModule.abort();
+  } catch (err) {
+    console.warn('[useVoiceRecording] abort threw:', err);
+  }
+};
+
+const safeStop = () => {
+  try {
+    ExpoSpeechRecognitionModule.stop();
+  } catch (err) {
+    console.warn('[useVoiceRecording] stop threw:', err);
+  }
+};
+
+const safeStart = () => {
+  try {
+    ExpoSpeechRecognitionModule.start(recognitionOptions);
+    return true;
+  } catch (err) {
+    console.warn('[useVoiceRecording] start threw:', err);
+    return false;
+  }
+};
+
+const safeGetState = async (): Promise<string | null> => {
+  try {
+    return await ExpoSpeechRecognitionModule.getStateAsync();
+  } catch (err) {
+    console.warn('[useVoiceRecording] getStateAsync threw:', err);
+    return null;
+  }
+};
+
 export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
   const onInterimResultRef = useRef(options?.onInterimResult);
   onInterimResultRef.current = options?.onInterimResult;
@@ -32,6 +74,23 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
 
   // Synchronous ref mirrors isRecording — immune to stale closures
   const isRecordingRef = useRef(false);
+
+  // so-grcy: native speech-recognition events fire asynchronously from
+  // ObjC/Swift land. They can land AFTER the consuming screen has
+  // unmounted (mid-recognition → user navigates away). Without a mount
+  // guard, those callbacks call setIsRecording/setIsTranscribing on a
+  // dead component (React warning + occasional Reanimated crash via
+  // volume.value writes against a stale shared-value host). useMountedRef
+  // (so-pw5d) gives the standard primitive — every setState site in this
+  // hook now gates on mountedRef.current.
+  const mountedRef = useMountedRef();
+
+  // so-grcy: track "start in flight" to defeat the double-tap race —
+  // user taps mic, requestPermissionsAsync returns slowly, user taps again
+  // (or navigates away). Before this guard, the second tap saw
+  // isRecordingRef === false and started a parallel session; the first
+  // start() then either no-op'd or crashed depending on native state.
+  const startingRef = useRef(false);
 
   const resolveRef = useRef<((text: string) => void) | null>(null);
   const rejectRef = useRef<((err: Error) => void) | null>(null);
@@ -85,6 +144,9 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
     isRecordingRef.current = false;
     stoppingRef.current = false;
     restartingRef.current = false;
+    // so-grcy: refs above are safe after unmount, but setState + Reanimated
+    // shared-value writes are not. Gate them.
+    if (!mountedRef.current) return;
     setIsRecording(false);
     setIsTranscribing(false);
     volume.value = -2;
@@ -96,29 +158,32 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
 
     transcriptRef.current = '';
 
-    try {
-      const state = await ExpoSpeechRecognitionModule.getStateAsync();
-      if (state !== 'inactive') {
-        ExpoSpeechRecognitionModule.abort();
-        await new Promise((r) => setTimeout(r, 100));
-      }
+    const state = await safeGetState();
+    if (state !== null && state !== 'inactive') {
+      safeAbort();
+      await new Promise((r) => setTimeout(r, 100));
+    }
 
-      if (!isRecordingRef.current || stoppingRef.current) {
-        restartingRef.current = false;
-        return;
-      }
+    // so-grcy: bail if anything happened during the await — unmount,
+    // user-initiated stop, or another restart already in flight.
+    if (!mountedRef.current || !isRecordingRef.current || stoppingRef.current) {
+      restartingRef.current = false;
+      return;
+    }
 
-      ExpoSpeechRecognitionModule.start(recognitionOptions);
-      restartingRef.current = false;
-    } catch (err) {
-      console.warn('Auto-restart failed:', err);
-      restartingRef.current = false;
+    const ok = safeStart();
+    restartingRef.current = false;
+    if (!ok) {
+      // start() threw — surface accumulated transcript and bail cleanly.
       settle(buildFullTranscript());
     }
   };
 
   // Accumulate interim/final results
   useSpeechRecognitionEvent('result', (event) => {
+    // so-grcy: native event can fire post-unmount. Stop early so we
+    // don't ripple into setIsRecording / Reanimated / consumer callback.
+    if (!mountedRef.current) return;
     const transcript = event.results[0]?.transcript ?? '';
     transcriptRef.current = transcript;
 
@@ -143,6 +208,7 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
 
   useSpeechRecognitionEvent('error', (event) => {
     console.warn('Speech recognition error:', event.error, event.message);
+    if (!mountedRef.current) return;
 
     if (stoppingRef.current) {
       // User is stopping — settle with whatever we have
@@ -170,6 +236,9 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
       isRecordingRef.current = false;
       stoppingRef.current = false;
       restartingRef.current = false;
+      // mountedRef already checked at top, but defend against a
+      // unmount-between-then-and-now by re-checking before setState.
+      if (!mountedRef.current) return;
       setIsRecording(false);
       setIsTranscribing(false);
       volume.value = -2;
@@ -177,6 +246,18 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
   });
 
   useSpeechRecognitionEvent('end', () => {
+    if (!mountedRef.current) {
+      // Component is gone — still clear refs so a future remount starts
+      // fresh, but don't touch React state.
+      isRecordingRef.current = false;
+      stoppingRef.current = false;
+      restartingRef.current = false;
+      clearSafetyTimer();
+      resolveRef.current = null;
+      rejectRef.current = null;
+      return;
+    }
+
     if (stoppingRef.current) {
       settle(buildFullTranscript());
       return;
@@ -195,38 +276,58 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
 
   // Volume tracking for wave visualization
   useSpeechRecognitionEvent('volumechange', (event) => {
+    if (!mountedRef.current) return;
     volume.value = event.value;
   });
 
   const startRecording = useCallback(async () => {
-    // Double-start guard: if already active, bail
-    if (isRecordingRef.current) return;
+    // Double-start guard: if already active OR a start is in flight, bail.
+    // so-grcy: startingRef catches the double-tap race the original
+    // isRecordingRef-only check missed (the ref is only set true AFTER the
+    // awaited permission + getStateAsync round-trip).
+    if (isRecordingRef.current || startingRef.current) return;
+    startingRef.current = true;
 
-    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (!granted) {
-      throw new Error('Speech recognition permission not granted');
+    try {
+      const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!granted) {
+        throw new Error('Speech recognition permission not granted');
+      }
+
+      // so-grcy: bail if we unmounted during the permission modal.
+      // Starting the recognizer here would leak a session no one will
+      // stop.
+      if (!mountedRef.current) {
+        return;
+      }
+
+      // Abort any lingering session
+      const state = await safeGetState();
+      if (state !== null && state !== 'inactive') {
+        safeAbort();
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
+      if (!mountedRef.current) return;
+
+      transcriptRef.current = '';
+      fullTranscriptRef.current = '';
+      lastAppendedRef.current = '';
+      stoppingRef.current = false;
+      restartingRef.current = false;
+      volume.value = -2;
+
+      const ok = safeStart();
+      if (!ok) {
+        throw new Error('Failed to start speech recognition');
+      }
+
+      isRecordingRef.current = true;
+      setIsRecording(true);
+    } finally {
+      startingRef.current = false;
     }
-
-    // Abort any lingering session
-    const state = await ExpoSpeechRecognitionModule.getStateAsync();
-    if (state !== 'inactive') {
-      ExpoSpeechRecognitionModule.abort();
-      // Small delay to let abort complete
-      await new Promise((r) => setTimeout(r, 100));
-    }
-
-    transcriptRef.current = '';
-    fullTranscriptRef.current = '';
-    lastAppendedRef.current = '';
-    stoppingRef.current = false;
-    restartingRef.current = false;
-    volume.value = -2;
-
-    ExpoSpeechRecognitionModule.start(recognitionOptions);
-
-    isRecordingRef.current = true;
-    setIsRecording(true);
-  }, [volume]);
+  }, [volume, mountedRef]);
 
   const stopRecording = useCallback((): Promise<string> => {
     // If recognition already ended (e.g. between restart cycles), return accumulated
@@ -235,7 +336,9 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
     }
 
     stoppingRef.current = true;
-    setIsTranscribing(true);
+    if (mountedRef.current) {
+      setIsTranscribing(true);
+    }
 
     return new Promise<string>((resolve) => {
       resolveRef.current = resolve;
@@ -249,9 +352,9 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
         }
       }, STOP_SAFETY_TIMEOUT_MS);
 
-      ExpoSpeechRecognitionModule.stop();
+      safeStop();
     });
-  }, []);
+  }, [mountedRef]);
 
   const cancelRecording = useCallback(() => {
     clearSafetyTimer();
@@ -263,19 +366,30 @@ export const useVoiceRecording = (options?: VoiceRecordingOptions) => {
     stoppingRef.current = false;
     restartingRef.current = false;
     isRecordingRef.current = false;
+    safeAbort();
+    if (!mountedRef.current) return;
     volume.value = -2;
-    ExpoSpeechRecognitionModule.abort();
     setIsRecording(false);
     setIsTranscribing(false);
-  }, [volume]);
+  }, [volume, mountedRef]);
 
   // Cleanup on unmount — abort any active session
   useEffect(() => {
     return () => {
+      // so-grcy: abort native first, THEN clear refs. If abort fires a
+      // synchronous 'end' event in some edge case, the event handlers
+      // above already gate on mountedRef (which useMountedRef flips
+      // before this effect-cleanup runs? No — mountedRef cleanup runs in
+      // the SAME unmount pass; effects clean in reverse-of-mount order,
+      // so useMountedRef's cleanup runs after this hook's effects. Hence
+      // we re-clear isRecordingRef explicitly here as a belt + braces.)
       if (isRecordingRef.current) {
-        ExpoSpeechRecognitionModule.abort();
+        safeAbort();
         isRecordingRef.current = false;
       }
+      stoppingRef.current = false;
+      restartingRef.current = false;
+      startingRef.current = false;
       clearSafetyTimer();
       resolveRef.current = null;
       rejectRef.current = null;
