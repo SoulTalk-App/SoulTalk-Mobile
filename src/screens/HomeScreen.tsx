@@ -875,15 +875,19 @@ const HomeScreen = ({ navigation }: any) => {
   // Refresh soul bar and mood whenever Home screen gains focus
   useFocusEffect(
     useCallback(() => {
-      fetchSoulBar();
-      JournalService.getTodayMood()
-        .then((data) => {
+      // so-urv4 #1: parallelize the two refresh calls via Promise.all so
+      // the parallelism is semantic, not incidental fire-and-forget. One
+      // .catch site for both, and any future awaiter (e.g. a refresh
+      // spinner) only blocks once.
+      Promise.all([
+        fetchSoulBar(),
+        JournalService.getTodayMood().then((data) => {
           if (data.mood_word) {
             setMoodWord(data.mood_word);
             setMoodSaved(true);
           }
-        })
-        .catch(() => {});
+        }),
+      ]).catch(() => {});
     }, [fetchSoulBar])
   );
 
