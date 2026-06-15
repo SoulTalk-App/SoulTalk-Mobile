@@ -364,25 +364,37 @@ const JournalScreen = ({ navigation }: any) => {
     return params;
   };
 
+  // so-6n2l: single-select per axis. buildParams only sends a year/month
+  // param when exactly one is selected, so the previous multi-select toggle
+  // let users pick e.g. Jan+Feb and silently get the unfiltered list (two
+  // selected == zero params). Until the backend accepts repeated query
+  // params (path B), tapping a pill replaces that axis's selection; tapping
+  // the active pill clears it. Guarantees length <= 1, so the filter always
+  // applies.
   const toggleYear = (year: number) => {
-    const next = selectedYears.includes(year) ? selectedYears.filter(y => y !== year) : [...selectedYears, year];
+    const next = selectedYears.includes(year) ? [] : [year];
     dispatchUI({ type: 'SET_YEARS', value: next });
     fetchEntries(buildParams(next, appliedMonths));
   };
 
   const toggleMonth = (month: number) => {
-    const next = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month) : [...selectedMonths, month];
+    const next = selectedMonths.includes(month) ? [] : [month];
     dispatchUI({ type: 'SET_MONTHS', value: next });
     fetchEntries(buildParams(appliedYears, next));
   };
 
   const removePill = (type: 'year' | 'month', value: number) => {
+    // so-6n2l: removing a pill must also re-query — previously it only
+    // updated state, so the list kept showing the now-removed filter until
+    // the next toggle.
     if (type === 'year') {
       const next = selectedYears.filter(y => y !== value);
       dispatchUI({ type: 'SET_YEARS', value: next });
+      fetchEntries(buildParams(next, appliedMonths));
     } else {
       const next = selectedMonths.filter(m => m !== value);
       dispatchUI({ type: 'SET_MONTHS', value: next });
+      fetchEntries(buildParams(appliedYears, next));
     }
   };
 
