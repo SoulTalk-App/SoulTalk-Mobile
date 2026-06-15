@@ -219,6 +219,15 @@ class AuthService {
     }
   }
 
+  // so-opaq: route check-username through the shared axiosInstance so it
+  // gets the auth interceptors (single-flight refresh) instead of a raw
+  // fetch that would 401 on an expired access token.
+  async checkUsernameAvailability(username: string): Promise<{ available: boolean }> {
+    const response: AxiosResponse<{ available: boolean }> =
+      await this.axiosInstance.get('/auth/check-username', { params: { username } });
+    return response.data;
+  }
+
   // Social Auth Methods
   async loginWithGoogle(idToken: string): Promise<TokenResponse> {
     try {

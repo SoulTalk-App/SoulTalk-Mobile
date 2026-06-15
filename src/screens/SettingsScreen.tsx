@@ -12,10 +12,9 @@ import {
   FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import SecureStorage from '../utils/SecureStorage';
+import authService from '../services/AuthService';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -179,22 +178,15 @@ const SettingsScreen = ({ navigation }: any) => {
     setUsernameChecking(true);
     usernameDebounceRef.current = setTimeout(async () => {
       try {
-        const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'https://soultalkapp.com/api' };
-        const token = await SecureStorage.getItem('access_token');
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const resp = await fetch(
-          `${apiConfig.baseUrl}/auth/check-username?username=${encodeURIComponent(value)}`,
-          { headers },
-        );
+        // so-opaq: go through authService (shared axiosInstance + auth
+        // interceptors) instead of a raw fetch, so an expired access token
+        // triggers the single-flight refresh rather than a bare 401.
+        const data = await authService.checkUsernameAvailability(value);
         // so-punu: gate state writes behind the mounted check so a rapid
-        // unmount during the in-flight fetch doesn't update state on a
+        // unmount during the in-flight request doesn't update state on a
         // discarded component (RN warns + can wedge on some devices).
         if (!mountedRef.current) return;
-        if (resp.ok) {
-          const data = await resp.json();
-          setUsernameAvailable(data.available);
-        }
+        setUsernameAvailable(data.available);
       } catch {
         if (mountedRef.current) setUsernameAvailable(null);
       } finally {
