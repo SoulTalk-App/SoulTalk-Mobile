@@ -21,6 +21,7 @@ import { fonts, typography, useThemeColors } from "../theme";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
 import { CosmicScreen } from "../components/CosmicBackdrop";
+import { TOUCH_HITSLOP_SMALL } from "../components/touchPrimitives";
 
 type LegalTab = 'privacy' | 'terms';
 
@@ -249,6 +250,9 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           onPress={handleBack}
           onPressIn={handleBackPressIn}
           onPressOut={handleBackPressOut}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <View style={styles.backButtonCircle}>
             <Feather name="chevron-left" size={22} color={colors.primary} />

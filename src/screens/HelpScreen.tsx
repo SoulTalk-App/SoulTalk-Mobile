@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { fonts, typography, useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 import { useTheme } from '../contexts/ThemeContext';
 import JournalService from '../services/JournalService';
 
@@ -226,7 +227,13 @@ const HelpScreen = ({ navigation }: any) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={TOUCH_HITSLOP_SMALL}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Feather
               name="chevron-left"
               size={28}
