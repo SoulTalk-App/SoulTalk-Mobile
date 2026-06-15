@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -283,7 +284,13 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableOpacity style={styles.backButton} onPress={handleBackToLogin}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackToLogin}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to sign in"
+        >
           <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.text.primary} />
         </TouchableOpacity>
 
