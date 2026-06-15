@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
-import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
+import { TOUCH_HITSLOP_SMALL, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -256,21 +256,23 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.resendButton}
+          <Pressable
+            style={({ pressed }) => [styles.resendButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
             onPress={() => setEmailSent(false)}
+            accessibilityRole="button"
           >
             <Ionicons name="refresh-outline" size={20} color={colors.primary} />
             <Text style={styles.resendButtonText}>Try Different Email</Text>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
-            style={styles.loginButton}
+          <Pressable
+            style={({ pressed }) => [styles.loginButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
             onPress={handleBackToLogin}
+            accessibilityRole="button"
           >
             <Ionicons name="arrow-back-outline" size={20} color={isDarkMode ? colors.white : colors.text.primary} />
             <Text style={styles.loginButtonText}>Back to Login</Text>
-          </TouchableOpacity>
+          </Pressable>
           </View>
         </SafeAreaView>
       </CosmicScreen>
@@ -284,15 +286,15 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableOpacity
-          style={styles.backButton}
+        <Pressable
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
           onPress={handleBackToLogin}
           hitSlop={TOUCH_HITSLOP_SMALL}
           accessibilityRole="button"
           accessibilityLabel="Go back to sign in"
         >
           <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.text.primary} />
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.content}>
           <View style={styles.iconContainer}>
@@ -327,17 +329,23 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
           </View>
           {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
-          <TouchableOpacity
-            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+          <Pressable
+            style={({ pressed }) => [
+              styles.submitButton,
+              isLoading && styles.submitButtonDisabled,
+              pressed && !isLoading && !!email && { opacity: TOUCH_PRESS_OPACITY },
+            ]}
             onPress={handleSendResetLink}
             disabled={isLoading || !email}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isLoading || !email, busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator color={colors.primary} />
             ) : (
               <Text style={styles.submitButtonText}>Send Reset Link</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
       </SafeAreaView>
