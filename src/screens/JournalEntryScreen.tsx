@@ -16,6 +16,7 @@ import { useSoulPalName } from '../contexts/SoulPalContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 
 // so-jb0t: BE appends generate_safety_redirect text to the LLM reflection
 // when mode === 'CRISIS_OVERRIDE'. The redirect block always opens with this
@@ -317,6 +318,9 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           <Pressable
             style={isDarkMode ? dk.backRow : lt.backRow}
             onPress={() => navigation.goBack()}
+            hitSlop={TOUCH_HITSLOP_SMALL}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Feather
               name="chevron-left"
@@ -345,7 +349,13 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           showsVerticalScrollIndicator={false}
         >
-          <Pressable style={dk.backRow} onPress={() => navigation.goBack()}>
+          <Pressable
+            style={dk.backRow}
+            onPress={() => navigation.goBack()}
+            hitSlop={TOUCH_HITSLOP_SMALL}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Feather name="chevron-left" size={28} color="#FFFFFF" />
           </Pressable>
           <View style={dk.titleRow}>
@@ -376,7 +386,13 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   return (
     <CosmicScreen tone="dawn">
       <View style={[lt.content, { paddingTop: insets.top + 16 }]}>
-        <Pressable style={lt.backRow} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={lt.backRow}
+          onPress={() => navigation.goBack()}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Feather name="chevron-left" size={28} color="#3A0E66" />
         </Pressable>
         <View style={lt.titleRow}>

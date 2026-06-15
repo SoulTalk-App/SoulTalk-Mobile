@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -22,6 +22,7 @@ import { useAppleAuth } from "../hooks/useAppleAuth";
 import { fonts, useThemeColors } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 import { CosmicScreen } from "../components/CosmicBackdrop";
+import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from "../components/touchPrimitives";
 
 const USE_LOCAL_AUTH = false;
 
@@ -518,9 +519,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     <CosmicScreen tone="night">
       {/* Purple Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBackToHome}>
+        <Pressable
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+          onPress={handleBackToHome}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Feather name="chevron-left" size={28} color={colors.white} />
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.headerTitle}>SoulTalk</Text>
         <View style={styles.backButton} />
       </View>
@@ -581,33 +588,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 autoComplete="password"
                 textContentType="password"
               />
-              <TouchableOpacity
-                style={styles.eyeIcon}
+              <Pressable
+                style={({ pressed }) => [styles.eyeIcon, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
                 onPress={() => setShowPassword(!showPassword)}
+                hitSlop={TOUCH_HITSLOP_MED}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               >
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color={passwordFocused ? colors.primary : colors.text.secondary}
                 />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
-            <TouchableOpacity
-              style={styles.forgotPassword}
+            <Pressable
+              style={({ pressed }) => [styles.forgotPassword, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
               onPress={handleForgotPassword}
+              accessibilityRole="link"
             >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            </Pressable>
 
             {/* so-jokw: TOS checkbox + gating, parity with RegisterScreen.
                 Hydrated true on mount when @terms_accepted is set; default
                 FALSE for fresh installs landing here directly. */}
-            <TouchableOpacity
-              style={styles.termsContainer}
+            <Pressable
+              style={({ pressed }) => [styles.termsContainer, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
               onPress={handleTermsRowPress}
-              activeOpacity={0.7}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreedToTerms }}
+              accessibilityLabel="I agree to the Terms and Privacy"
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
                 {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
@@ -615,33 +628,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <Text style={styles.termsText}>
                 I agree to the Terms and Privacy
               </Text>
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={[
+            <Pressable
+              style={({ pressed }) => [
                 styles.loginButton,
                 (isLoading || !agreedToTerms) && styles.loginButtonDisabled,
+                pressed && !isLoading && agreedToTerms && { opacity: TOUCH_PRESS_OPACITY },
               ]}
               onPress={handleLogin}
               disabled={isLoading || !agreedToTerms}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading || !agreedToTerms, busy: isLoading }}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.loginButtonText}>Sign In</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
 
             {biometricAvailable && biometricEnabled && (
-              <TouchableOpacity
-                style={styles.biometricButton}
+              <Pressable
+                style={({ pressed }) => [styles.biometricButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
                 onPress={handleBiometricLogin}
+                accessibilityRole="button"
+                accessibilityLabel="Use Biometric Authentication"
               >
                 <Ionicons name="finger-print-outline" size={24} color={colors.primary} />
                 <Text style={styles.biometricButtonText}>
                   Use Biometric Authentication
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
 
             {/* Social Login Section. so-jokw: entire block hidden when
@@ -656,30 +674,35 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 </View>
 
                 <View style={styles.socialContainer}>
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.googleButton]}
+                  <Pressable
+                    style={({ pressed }) => [styles.socialButton, styles.googleButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
                     onPress={() => handleSocialLogin("Google")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Sign in with Google"
                   >
                     <FontAwesome5 name="google" size={22} color="#FFFFFF" />
-                  </TouchableOpacity>
+                  </Pressable>
 
-                  <TouchableOpacity
-                    style={[styles.socialButton, styles.facebookButton]}
+                  <Pressable
+                    style={({ pressed }) => [styles.socialButton, styles.facebookButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
                     onPress={() => handleSocialLogin("Facebook")}
+                    accessibilityRole="button"
+                    accessibilityLabel="Sign in with Facebook"
                   >
                     <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
-                  </TouchableOpacity>
+                  </Pressable>
 
                   {isAppleAvailable && (
-                    <TouchableOpacity
-                      style={[styles.socialButton, styles.appleButton]}
+                    <Pressable
+                      style={({ pressed }) => [styles.socialButton, styles.appleButton, pressed && !isAppleLoading && { opacity: TOUCH_PRESS_OPACITY }]}
                       onPress={() => handleSocialLogin("Apple")}
                       accessibilityRole="button"
                       accessibilityLabel="Sign in with Apple"
+                      accessibilityState={{ disabled: isAppleLoading, busy: isAppleLoading }}
                       disabled={isAppleLoading}
                     >
                       <FontAwesome5 name="apple" size={24} color={isDarkMode ? "#000000" : "#FFFFFF"} />
-                    </TouchableOpacity>
+                    </Pressable>
                   )}
                 </View>
               </>

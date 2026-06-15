@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const { changePassword } = useAuth();
@@ -104,9 +105,15 @@ const ChangePasswordScreen = ({ navigation }: any) => {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+          onPress={() => navigation.goBack()}
+          hitSlop={TOUCH_HITSLOP_SMALL}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Feather name="chevron-left" size={28} color={iconColor} />
-        </TouchableOpacity>
+        </Pressable>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -135,9 +142,15 @@ const ChangePasswordScreen = ({ navigation }: any) => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+              <Pressable
+                style={({ pressed }) => [styles.eyeIcon, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                hitSlop={TOUCH_HITSLOP_MED}
+                accessibilityRole="button"
+                accessibilityLabel={showCurrentPassword ? 'Hide current password' : 'Show current password'}
+              >
                 <Ionicons name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {/* New Password */}
@@ -156,9 +169,15 @@ const ChangePasswordScreen = ({ navigation }: any) => {
                 autoComplete="new-password"
                 passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               />
-              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowNewPassword(!showNewPassword)}>
+              <Pressable
+                style={({ pressed }) => [styles.eyeIcon, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+                onPress={() => setShowNewPassword(!showNewPassword)}
+                hitSlop={TOUCH_HITSLOP_MED}
+                accessibilityRole="button"
+                accessibilityLabel={showNewPassword ? 'Hide new password' : 'Show new password'}
+              >
                 <Ionicons name={showNewPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             {newPasswordError ? <Text style={styles.errorText}>{newPasswordError}</Text> : null}
 
@@ -175,23 +194,35 @@ const ChangePasswordScreen = ({ navigation }: any) => {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+              <Pressable
+                style={({ pressed }) => [styles.eyeIcon, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={TOUCH_HITSLOP_MED}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+              >
                 <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
 
-            <TouchableOpacity
-              style={[styles.submitButton, (!isFormValid || isLoading) && styles.submitButtonDisabled]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.submitButton,
+                (!isFormValid || isLoading) && styles.submitButtonDisabled,
+                pressed && isFormValid && !isLoading && { opacity: TOUCH_PRESS_OPACITY },
+              ]}
               onPress={handleChangePassword}
               disabled={!isFormValid || isLoading}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !isFormValid || isLoading, busy: isLoading }}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.primary} />
               ) : (
                 <Text style={styles.submitButtonText}>Change Password</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
