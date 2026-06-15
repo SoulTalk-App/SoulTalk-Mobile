@@ -39,7 +39,6 @@ const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
-const YEARS = [new Date().getFullYear()];
 
 // Assets
 const FilterIconDark = require('../../assets/images/journal/dark/FilterIcon.png');
@@ -347,6 +346,16 @@ const JournalScreen = ({ navigation }: any) => {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
+  // so-tfx7: derive selectable years from the entries themselves so beta
+  // users with pre-2026 history (launch was May 2025) can actually filter
+  // them. Always include the current year so the pill exists before any
+  // entry is written. Newest year first.
+  const YEARS = useMemo(() => {
+    const ys = new Set(entries.map(e => new Date(e.created_at).getFullYear()));
+    ys.add(new Date().getFullYear());
+    return Array.from(ys).sort((a, b) => b - a);
+  }, [entries]);
+
   // --- Filter logic (auto-apply on toggle) ---
   const buildParams = (years: number[], months: number[]) => {
     const params: any = {};
@@ -399,9 +408,15 @@ const JournalScreen = ({ navigation }: any) => {
   }, [navigation]);
 
   // --- Date formatting ---
+  // so-tfx7: append the year only when the entry is not from the current
+  // year, so a 2025 "May 7" and a 2026 "May 7" no longer render identically
+  // while current-year entries stay terse.
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+    const base = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+    return d.getFullYear() === new Date().getFullYear()
+      ? base
+      : `${base}, ${d.getFullYear()}`;
   };
 
   // --- Streak text ---
