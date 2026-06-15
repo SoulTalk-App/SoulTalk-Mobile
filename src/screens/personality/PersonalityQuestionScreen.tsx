@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
+import { TOUCH_HITSLOP_TIGHT } from '../../components/touchPrimitives';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getTest } from '../../data/personalityTests';
 import {
@@ -184,6 +185,10 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
                       key={value}
                       onPress={() => handleSelect(value)}
                       disabled={isSubmitting}
+                      hitSlop={TOUCH_HITSLOP_TIGHT}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected, disabled: isSubmitting }}
+                      accessibilityLabel={LIKERT_LABELS[value]}
                       style={[
                         dk.likertButton,
                         isSelected && dk.likertButtonSelected,
@@ -281,6 +286,10 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
                     key={value}
                     onPress={() => handleSelect(value)}
                     disabled={isSubmitting}
+                    hitSlop={TOUCH_HITSLOP_TIGHT}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected, disabled: isSubmitting }}
+                    accessibilityLabel={LIKERT_LABELS[value]}
                     style={[
                       lt.likertButton,
                       isSelected && lt.likertButtonSelected,
