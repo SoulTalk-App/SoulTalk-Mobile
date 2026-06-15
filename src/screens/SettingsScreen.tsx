@@ -13,10 +13,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import SecureStorage from '../utils/SecureStorage';
+import authService from '../services/AuthService';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -37,7 +36,15 @@ const PRONOUN_OPTIONS = [
 // so-wz41: editable profile fields, persisted locally so an edit survives a
 // failed save (offline / mid-flight back-nav) instead of being silently
 // dropped. Mirrors the useLocalDraft/so-skm AsyncStorage pattern.
-const SETTINGS_PROFILE_DRAFT_KEY = '@soultalk_settings_profile_draft';
+//
+// so-5eu1: the key MUST be scoped per-user. A static key let user A's draft
+// survive logout and bleed onto user B on a shared device — B's SettingsScreen
+// would restore A's displayName/pronoun and autosave them onto B's account
+// (cross-user PII contamination). Keying by user.id isolates drafts; we also
+// clear on logout for belt-and-suspenders.
+const SETTINGS_PROFILE_DRAFT_KEY_PREFIX = '@soultalk_settings_profile_draft';
+const settingsDraftKey = (userId: string) =>
+  `${SETTINGS_PROFILE_DRAFT_KEY_PREFIX}:${userId}`;
 
 interface ProfileFields {
   displayName: string;
@@ -65,18 +72,18 @@ const serverProfile = (user: {
   pronoun: user.pronoun || '',
 });
 
-const saveSettingsDraft = async (p: ProfileFields): Promise<void> => {
+const saveSettingsDraft = async (userId: string, p: ProfileFields): Promise<void> => {
   try {
     const payload: SettingsProfileDraft = { ...p, updatedAt: Date.now() };
-    await AsyncStorage.setItem(SETTINGS_PROFILE_DRAFT_KEY, JSON.stringify(payload));
+    await AsyncStorage.setItem(settingsDraftKey(userId), JSON.stringify(payload));
   } catch (err: any) {
     console.log('[Settings] draft write error:', err?.message);
   }
 };
 
-const loadSettingsDraft = async (): Promise<ProfileFields | null> => {
+const loadSettingsDraft = async (userId: string): Promise<ProfileFields | null> => {
   try {
-    const json = await AsyncStorage.getItem(SETTINGS_PROFILE_DRAFT_KEY);
+    const json = await AsyncStorage.getItem(settingsDraftKey(userId));
     if (!json) return null;
     const parsed = JSON.parse(json);
     if (
@@ -97,9 +104,9 @@ const loadSettingsDraft = async (): Promise<ProfileFields | null> => {
   }
 };
 
-const clearSettingsDraft = async (): Promise<void> => {
+const clearSettingsDraft = async (userId: string): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(SETTINGS_PROFILE_DRAFT_KEY);
+    await AsyncStorage.removeItem(settingsDraftKey(userId));
   } catch (err: any) {
     console.log('[Settings] draft clear error:', err?.message);
   }
@@ -198,14 +205,14 @@ const SettingsScreen = ({ navigation }: any) => {
     let cancelled = false;
     (async () => {
       const server = serverProfile(user);
-      const draft = await loadSettingsDraft();
+      const draft = await loadSettingsDraft(user.id);
       if (cancelled) return;
       if (draft && profilesDiffer(draft, server)) {
         // so-urv4 #4: single setProfile so the pre-fill is one batched update.
         setProfile(draft);
         setPendingSaveFailed(true);
       } else {
-        if (draft) clearSettingsDraft();
+        if (draft) clearSettingsDraft(user.id);
         setProfile(server);
       }
     })();
@@ -249,18 +256,23 @@ const SettingsScreen = ({ navigation }: any) => {
   // mid-flight; on next open the draft is restored and re-tried. On success
   // the draft is cleared and the retry affordance hidden.
   const persistAndSave = useCallback(async () => {
+    // so-5eu1: no user.id -> no per-user draft key, so there's nothing safe to
+    // persist (and nothing to save). Bail rather than fall back to a shared key.
+    const userId = user?.id;
+    if (!userId) return;
+
     const current = profileRef.current;
     const updates = computeUpdates(current);
 
     if (Object.keys(updates).length === 0) {
       // Nothing to save (matches server) — drop any stale draft + banner.
-      await clearSettingsDraft();
+      await clearSettingsDraft(userId);
       if (mountedRef.current) setPendingSaveFailed(false);
       return;
     }
 
     // Local-first: durable before the network attempt.
-    await saveSettingsDraft(current);
+    await saveSettingsDraft(userId, current);
 
     // so-punu: collapse concurrent invocations (rapid nav fires beforeRemove
     // on each unmount, which previously raced parallel updateProfile fetches).
@@ -268,7 +280,7 @@ const SettingsScreen = ({ navigation }: any) => {
     savingRef.current = true;
     try {
       await updateProfile(updates);
-      await clearSettingsDraft();
+      await clearSettingsDraft(userId);
       if (mountedRef.current) setPendingSaveFailed(false);
     } catch {
       // Offline / failure: keep the draft and surface the non-blocking retry
@@ -277,7 +289,7 @@ const SettingsScreen = ({ navigation }: any) => {
     } finally {
       savingRef.current = false;
     }
-  }, [computeUpdates, updateProfile]);
+  }, [user?.id, computeUpdates, updateProfile]);
 
   // so-wz41 (option C): debounced save-as-you-type. Each field change schedules
   // a save 500ms after the last keystroke; combined with the local draft this
@@ -322,22 +334,15 @@ const SettingsScreen = ({ navigation }: any) => {
     setUsernameChecking(true);
     usernameDebounceRef.current = setTimeout(async () => {
       try {
-        const apiConfig = Constants.expoConfig?.extra?.apiConfig || { baseUrl: 'https://soultalkapp.com/api' };
-        const token = await SecureStorage.getItem('access_token');
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const resp = await fetch(
-          `${apiConfig.baseUrl}/auth/check-username?username=${encodeURIComponent(value)}`,
-          { headers },
-        );
+        // so-opaq: go through authService (shared axiosInstance + auth
+        // interceptors) instead of a raw fetch, so an expired access token
+        // triggers the single-flight refresh rather than a bare 401.
+        const data = await authService.checkUsernameAvailability(value);
         // so-punu: gate state writes behind the mounted check so a rapid
-        // unmount during the in-flight fetch doesn't update state on a
+        // unmount during the in-flight request doesn't update state on a
         // discarded component (RN warns + can wedge on some devices).
         if (!mountedRef.current) return;
-        if (resp.ok) {
-          const data = await resp.json();
-          setUsernameAvailable(data.available);
-        }
+        setUsernameAvailable(data.available);
       } catch {
         if (mountedRef.current) setUsernameAvailable(null);
       } finally {
@@ -357,6 +362,11 @@ const SettingsScreen = ({ navigation }: any) => {
 
   const handleLogout = async () => {
     try {
+      // so-5eu1: belt-and-suspenders — drop this user's local profile draft on
+      // logout so it can't linger on a shared device (the per-user key already
+      // prevents cross-user reads; this also avoids restoring a stale draft if
+      // the same user logs back in).
+      if (user?.id) await clearSettingsDraft(user.id);
       await logout();
     } catch {
       Alert.alert('Error', 'Failed to log out. Please try again.');
