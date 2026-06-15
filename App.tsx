@@ -241,12 +241,33 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-// Fast fade for tab screen swaps (pill glide handles the visual transition)
+// Fast fade for tab screen swaps (pill glide handles the visual transition).
+// Kept defined but no longer applied — see tabScreenOptions below.
 const forFastFade = ({ current }: any) => ({
   cardStyle: { opacity: current.progress },
 });
 
+// so-jqk1: animationEnabled: false on the tab-host screens.
+//
+// Repro of the half-render bug: Home → AffirmationMirror → Journal → tap
+// Home tab in BottomTabBar. The tab press fires navigation.navigate('Home').
+// Home already lives lower in the stack, so React Navigation pops back over
+// AffirmationMirror AND Journal in a single transition. With a custom
+// cardStyleInterpolator (forFastFade — opacity only, no transform reset),
+// the two outgoing cards animate concurrently with the incoming Home,
+// each on its own 100ms timing. The default horizontal-slide transform
+// the cards held from their original push leaks through the opacity-only
+// interpolator; the popped cards land mid-translation and Home renders
+// as a vertically-clipped strip with a blank right panel.
+//
+// Killing the card animation entirely on these screens means the pop is
+// instant (no interpolator runs, no transform leak, no intermediate
+// frames). BottomTabBar's own rise/label animation (so-loo3) supplies all
+// the perceived motion for a tab switch; the card fade was decorative
+// anyway. cardStyleInterpolator + transitionSpec are retained for defense
+// in depth in case animationEnabled is ever flipped back on per-screen.
 const tabScreenOptions = {
+  animationEnabled: false,
   cardStyleInterpolator: forFastFade,
   transitionSpec: {
     open: { animation: 'timing' as const, config: { duration: 100 } },
