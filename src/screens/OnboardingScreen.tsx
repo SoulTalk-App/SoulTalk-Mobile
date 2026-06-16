@@ -274,6 +274,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayIndices, setDisplayIndices] = useState<[number, number]>([0, -1]); // [current, outgoing]
   const isTransitioning = useRef(false);
+  // so-xllj #5: track the 500ms post-transition cleanup timer so it can be
+  // cleared on unmount — otherwise navigating away mid-transition fires
+  // setState on an unmounted component and can leave isTransitioning stuck.
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // so-jokw: explicit consent for slide 5. Hydrated from AsyncStorage on
   // mount so a returning user who already accepted on a prior session can
   // walk through onboarding without being blocked again.
@@ -290,6 +294,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       .then((v) => setTermsAccepted(v === 'true'))
       .catch(() => {});
   }, []);
+
+  // so-xllj #5: clear any pending transition cleanup timer on unmount.
+  useEffect(
+    () => () => {
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    },
+    [],
+  );
 
   const handleLegalTabSwitch = useCallback((tab: 'privacy' | 'terms') => {
     setActiveLegalTab(tab);
@@ -1223,8 +1235,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     // Update state after animation starts
     setActiveIndex(newIndex);
 
-    // Clean up after transition
-    setTimeout(() => {
+    // Clean up after transition. Tracked + cleared on unmount (so-xllj #5);
+    // also clear any prior pending timer so overlapping transitions don't
+    // stack callbacks.
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+    transitionTimeoutRef.current = setTimeout(() => {
       setDisplayIndices([newIndex, -1]);
       isTransitioning.current = false;
       // Reset the old slide's values to their resting state

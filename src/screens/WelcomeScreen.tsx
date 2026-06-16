@@ -56,7 +56,10 @@ const WelcomeButton: React.FC<{
       onPressOut={handlePressOut}
       style={[
         {
-          width: 319,
+          // so-xllj #7: was a fixed width:319 which overflowed ≤320pt devices
+          // (older iPhone SE). Cap with maxWidth + fill available width.
+          width: '100%',
+          maxWidth: 319,
           height: 48,
           borderRadius: 10,
           justifyContent: 'center',

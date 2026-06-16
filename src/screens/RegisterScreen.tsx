@@ -25,9 +25,6 @@ import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../
 
 
 
-// Backend mode enabled
-const USE_LOCAL_AUTH = false;
-
 interface RegisterScreenProps {
   navigation: any;
 }
@@ -51,7 +48,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   // by the time we land here) but also hydrate from AsyncStorage on mount
   // for safety — covers users who reach Register via deep-link or fall
   // through some path that skipped onboarding.
-  const [agreedToTerms, setAgreedToTerms] = useState(true);
+  // so-xllj #10: default to false and hydrate from AsyncStorage on mount.
+  // Defaulting true exposed a sub-frame window where the consent-gated
+  // buttons read as accepted before hydration landed.
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Ref to track latest password for cross-field validation during rapid autofill
   const passwordRef = useRef('');
@@ -330,6 +330,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     [colors, isDarkMode]
   );
 
+  // so-xllj #9: the three social-auth effects below intentionally depend only
+  // on their *Response object — they should fire once per new auth response,
+  // not on every render. The handlers are read from the current closure at
+  // fire time; do NOT add them to the dep arrays (that would re-fire each
+  // render since they aren't memoized).
   // Handle Google auth response
   useEffect(() => {
     if (googleResponse?.type === 'success') {
@@ -503,26 +508,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     try {
       setIsLoading(true);
 
-      if (USE_LOCAL_AUTH) {
-        // Local testing mode - store user data locally and proceed
-        await AsyncStorage.setItem('@soultalk_user_email', formData.email);
-        await AsyncStorage.setItem('@soultalk_user_firstname', formData.firstName);
-        await AsyncStorage.setItem('@soultalk_user_lastname', formData.lastName);
-        // Navigate to verification flow (email verification)
-        navigation.navigate('OTPVerification', { email: formData.email });
-      } else {
-        // Backend mode — clear setup flag so new account sees welcome flow
-        await AsyncStorage.removeItem('@soultalk_setup_complete');
-        await register({
-          email: formData.email,
-          password: formData.password,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-        });
+      // Clear setup flag so the new account sees the welcome flow.
+      await AsyncStorage.removeItem('@soultalk_setup_complete');
+      await register({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+      });
 
-        // Navigate to verification sent screen with email
-        navigation.navigate('OTPVerification', { email: formData.email });
-      }
+      // Navigate to verification sent screen with email
+      navigation.navigate('OTPVerification', { email: formData.email });
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
     } finally {
@@ -739,7 +735,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One uppercase letter</Text>
               <Text style={styles.requirement}>• One lowercase letter</Text>
               <Text style={styles.requirement}>• One number</Text>
-              <Text style={styles.requirement}>• One special character (!@#$%^&*)</Text>
+              <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
             </View>
 
             {/* so-jokw: Terms checkbox. Tap toggles in-place — no

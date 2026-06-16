@@ -137,7 +137,10 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           backgroundColor: colors.primary,
           borderRadius: 10,
           height: 48,
-          width: 319,
+          // so-xllj #7: was a fixed width:319 which overflowed ≤320pt devices
+          // (older iPhone SE). Cap with maxWidth + fill available width.
+          width: '100%',
+          maxWidth: 319,
           alignSelf: 'center',
           justifyContent: "center",
           alignItems: "center",
