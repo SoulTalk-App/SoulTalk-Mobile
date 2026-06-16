@@ -553,7 +553,9 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     testCardMascot: {
       position: 'absolute',
       right: -10,
-      top: -8,
+      // Bring the mascot down so the parent overflow:hidden no longer clips
+      // the top of the head (Sam, TF feedback May 16 — so-asc2 / so-g912).
+      top: 6,
       width: 70,
       height: 70,
       transform: [{ rotate: '8deg' }],
