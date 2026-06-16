@@ -81,6 +81,15 @@ class AuthService {
   private apiConfig: ApiConfig;
   private axiosInstance;
 
+  // so-tpwh #2: public accessor so NotificationService doesn't have to
+  // reach into `(AuthService as any).axiosInstance` for the auth-
+  // interceptor-wrapped axios client. Single source of truth for the
+  // configured client; if storeTokens-style flows ever rebuild the
+  // axios instance, callers automatically pick up the new one.
+  public get client() {
+    return this.axiosInstance;
+  }
+
   constructor() {
     this.keycloakConfig = Constants.expoConfig?.extra?.keycloakConfig || {
       url: 'https://soultalkapp.com',

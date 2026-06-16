@@ -139,11 +139,18 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     const updated = await JournalService.updateEntry(id, data);
     // If draft was finalized, add to entries list and refresh gamification
     if (data.is_draft === false) {
+      // so-tpwh #6: only bump total for an entry transitioning from
+      // not-in-list → in-list. Re-finalizing or editing an already-
+      // finalized entry used to increment total on every call.
+      let wasNew = false;
       setEntries((prev) => {
         const exists = prev.some((e) => e.id === id);
+        wasNew = !exists;
         return exists ? prev.map((e) => (e.id === id ? updated : e)) : [updated, ...prev];
       });
-      setTotal((prev) => prev + 1);
+      if (wasNew) {
+        setTotal((prev) => prev + 1);
+      }
       fetchStreak();
       fetchSoulBar();
     } else {
@@ -173,11 +180,18 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       mood,
       is_draft: false,
     });
+    // so-tpwh #6: only bump total when the entry is brand-new in the
+    // list. Re-finalizing an already-finalized draft previously double-
+    // counted.
+    let wasNew = false;
     setEntries((prev) => {
       const exists = prev.some((e) => e.id === draftId);
+      wasNew = !exists;
       return exists ? prev.map((e) => (e.id === draftId ? updated : e)) : [updated, ...prev];
     });
-    setTotal((prev) => prev + 1);
+    if (wasNew) {
+      setTotal((prev) => prev + 1);
+    }
     fetchStreak();
     fetchSoulBar();
     return updated;

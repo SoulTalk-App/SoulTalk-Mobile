@@ -89,7 +89,7 @@ class NotificationService {
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const axiosInstance = (AuthService as any).axiosInstance;
+        const axiosInstance = AuthService.client;
         await axiosInstance.put('/notifications/token', {
           push_token: token,
           platform: Platform.OS as 'ios' | 'android',
@@ -128,7 +128,7 @@ class NotificationService {
     if (!this.pushToken) return;
 
     try {
-      const axiosInstance = (AuthService as any).axiosInstance;
+      const axiosInstance = AuthService.client;
       await axiosInstance.delete('/notifications/token', {
         data: { push_token: this.pushToken },
       });

@@ -66,7 +66,16 @@ const DEV_SKIP_TO_WELCOME_SPLASH = false;
 
 const Stack = createStackNavigator();
 
-// Deep linking configuration
+// Deep linking configuration.
+//
+// so-tpwh #12: the password-reset link carries a single-use, short-TTL
+// reset token in the path (matches the standard email-link pattern and
+// what the BE issues). iOS/Android log capture of deep-link URLs (e.g.
+// in OS-level pasteboard or share-sheet history) could surface it; the
+// short TTL + single-use semantics on the BE are the primary mitigations.
+// Moving the token to the URL fragment isn't possible here — React
+// Navigation linking can't read fragments, only path/query — so the BE
+// contract has to stay path-based until that lands.
 const prefix = Linking.createURL("/");
 const linking: LinkingOptions<any> = {
   prefixes: [prefix, "soultalk://"],
@@ -303,9 +312,14 @@ const Navigation = () => {
 
   const dataReady = !isLoading && onboardingComplete !== null && setupComplete !== null;
 
+  // so-tpwh #7: include user?.username in deps — checkStatus branches
+  // on it but used to capture a stale value the first time isAuthenticated
+  // flipped true (user state hydrates a tick later via getCurrentUser).
+  // Returning users briefly routed through setup screens before the
+  // delayed re-render landed them on Home.
   useEffect(() => {
     checkStatus();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.username]);
 
   const checkStatus = async () => {
     try {

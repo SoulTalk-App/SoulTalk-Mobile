@@ -224,8 +224,11 @@ class JournalService {
       type: 'audio/m4a',
     } as any);
 
+    // so-tpwh #8: don't set Content-Type manually — axios/RN's FormData
+    // adapter generates the multipart boundary at send-time. A hand-set
+    // 'multipart/form-data' header without a boundary parameter is
+    // technically malformed and some BE multipart parsers reject it.
     const response = await this.axiosInstance.post('/transcription/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000,
     });
     return response.data;

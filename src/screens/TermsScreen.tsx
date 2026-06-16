@@ -18,7 +18,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { privacyPolicy, termsOfService } from "../mocks/content";
 import { fonts, typography, useThemeColors } from "../theme";
-import { completeOnboarding } from "../utils/resetOnboarding";
+import { completeOnboarding } from "../utils/completeOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
 import { CosmicScreen } from "../components/CosmicBackdrop";
 import { TOUCH_HITSLOP_SMALL } from "../components/touchPrimitives";

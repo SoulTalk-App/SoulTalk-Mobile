@@ -45,15 +45,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     })();
   }, []);
 
+  // so-tpwh #9: AsyncStorage.setItem returns a promise — un-awaited
+  // failures used to surface as unhandled rejections. Storage failures
+  // here are best-effort (the in-memory state still updates), so a
+  // .catch() that logs is enough.
   const setThemePref = useCallback((pref: ThemePref) => {
     setThemePrefState(pref);
-    AsyncStorage.setItem(THEME_PREF_KEY, pref);
+    AsyncStorage.setItem(THEME_PREF_KEY, pref).catch((err) => {
+      console.warn('[ThemeContext] persist theme pref failed:', err);
+    });
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemePrefState((prev) => {
       const next: ThemePref = prev === 'light' ? 'dark' : 'light';
-      AsyncStorage.setItem(THEME_PREF_KEY, next);
+      AsyncStorage.setItem(THEME_PREF_KEY, next).catch((err) => {
+        console.warn('[ThemeContext] persist theme pref failed:', err);
+      });
       return next;
     });
   }, []);

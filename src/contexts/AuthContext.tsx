@@ -97,6 +97,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initializingRef = useRef(false);
 
+  // so-tpwh #4: AppState listener used to depend on `user` directly,
+  // so every setUser (incl. the ensureTimezone success path called from
+  // INSIDE the listener) re-subscribed the listener. Mirror user into a
+  // ref so the listener effect can stay subscribed for the lifetime of
+  // an authenticated session.
+  const userRef = useRef<UserInfo | null>(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const ensureCountryCode = useCallback(async (userInfo: UserInfo) => {
     if (!userInfo.country_code) {
       try {
@@ -128,6 +138,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // so-tpwh #3: callers across 6 auth-completion sites used to fire
+  // ensureCountryCode + ensureTimezone as un-awaited concurrent PUTs to
+  // /auth/me. Last response's setUser clobbered the other's. Serialize
+  // here so the helpers share a single ordered chain — each setUser
+  // commits before the next PUT starts.
+  const ensureProfileDefaults = useCallback(
+    async (userInfo: UserInfo) => {
+      await ensureCountryCode(userInfo);
+      await ensureTimezone(userInfo);
+    },
+    [ensureCountryCode, ensureTimezone],
+  );
+
   const checkAuthState = useCallback(async () => {
     if (initializingRef.current) {
       return; // Prevent multiple simultaneous auth checks
@@ -147,8 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userInfo = await AuthService.getCurrentUser();
           setUser(userInfo);
           setIsAuthenticated(true);
-          ensureCountryCode(userInfo);
-          ensureTimezone(userInfo);
+          ensureProfileDefaults(userInfo);
         } catch (userError) {
           console.error('Failed to get user info:', userError);
           // If we can't get user info, clear auth state
@@ -183,14 +205,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // so users who just resume a stored session never get backfilled. Re-run
   // ensureTimezone on every foreground transition — idempotent (helper
   // early-returns when device TZ already matches the stored value).
+  //
+  // so-tpwh #4: read `user` via userRef inside the handler so the effect
+  // stays subscribed across user-state changes. Previously, user being in
+  // deps meant ensureTimezone's own setUser tore the listener down + back
+  // up on every backfill round-trip.
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated) return;
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') return;
-      ensureTimezone(user);
+      const u = userRef.current;
+      if (u) ensureTimezone(u);
     });
     return () => sub.remove();
-  }, [isAuthenticated, user, ensureTimezone]);
+  }, [isAuthenticated, ensureTimezone]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -200,8 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      ensureCountryCode(userInfo);
-      ensureTimezone(userInfo);
+      ensureProfileDefaults(userInfo);
 
       // Store login state for offline check
       await AsyncStorage.setItem('user_logged_in', 'true');
@@ -296,8 +323,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      ensureCountryCode(userInfo);
-      ensureTimezone(userInfo);
+      ensureProfileDefaults(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -318,8 +344,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      ensureCountryCode(userInfo);
-      ensureTimezone(userInfo);
+      ensureProfileDefaults(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -340,8 +365,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      ensureCountryCode(userInfo);
-      ensureTimezone(userInfo);
+      ensureProfileDefaults(userInfo);
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
@@ -405,8 +429,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
       setIsAuthenticated(true);
-      ensureCountryCode(userInfo);
-      ensureTimezone(userInfo);
+      ensureProfileDefaults(userInfo);
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
       console.error('Email verification failed:', error);

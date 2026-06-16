@@ -187,9 +187,16 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, []);
 
+  // so-tpwh #10: AsyncStorage promises were un-awaited and lacked .catch
+  // — failures surfaced as unhandled rejections. Persistence is best-
+  // effort here (the in-memory state still updates), so log-and-move-on.
+  const logPersistError = (key: string) => (err: unknown) => {
+    console.warn(`[SoulPalContext] persist ${key} failed:`, err);
+  };
+
   const setColorId = (id: SoulPalColorId) => {
     setColorIdState(id);
-    AsyncStorage.setItem(SOULPAL_COLOR_KEY, id);
+    AsyncStorage.setItem(SOULPAL_COLOR_KEY, id).catch(logPersistError(SOULPAL_COLOR_KEY));
   };
 
   const setName = (next: string) => {
@@ -197,9 +204,9 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const resolved = trimmed || DEFAULT_SOULPAL_NAME;
     setNameState(resolved);
     if (trimmed) {
-      AsyncStorage.setItem(SOULPAL_NAME_KEY, trimmed);
+      AsyncStorage.setItem(SOULPAL_NAME_KEY, trimmed).catch(logPersistError(SOULPAL_NAME_KEY));
     } else {
-      AsyncStorage.removeItem(SOULPAL_NAME_KEY);
+      AsyncStorage.removeItem(SOULPAL_NAME_KEY).catch(logPersistError(SOULPAL_NAME_KEY));
     }
   };
 
