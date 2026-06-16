@@ -912,6 +912,13 @@ const HomeScreen = ({ navigation }: any) => {
     loadLocalName();
   }, []);
 
+  // so-v6pr: retry any SoulPal-name → BE sync that failed during onboarding.
+  // No-ops when nothing is pending; Home mounts on every authenticated app
+  // open, so this eventually reconciles the user's AI profile.
+  useEffect(() => {
+    JournalService.flushPendingSoulPalName();
+  }, []);
+
   // SoulPal float (canonical GreetingHero).
   useEffect(() => {
     palBobY.value = withRepeat(

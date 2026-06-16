@@ -1,7 +1,13 @@
 import Constants from 'expo-constants';
 import axios from 'axios';
 import { File } from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { installAuthInterceptors } from '../utils/authClient';
+
+// so-v6pr: when the post-naming BE sync of the SoulPal name fails, we stash
+// the pending name here so the next app open can retry it — avoids a silent,
+// permanent desync between the user's local SoulPal name and their AI profile.
+const PENDING_SOULPAL_NAME_KEY = '@soultalk_pending_soulpal_name_sync';
 
 export type Mood =
   | 'Normal'
@@ -189,6 +195,37 @@ class JournalService {
     soulpal_name?: string | null;
   }): Promise<void> {
     await this.axiosInstance.put('/profile/ai-preferences/', data);
+  }
+
+  // so-v6pr: best-effort sync of the chosen SoulPal name to the BE AI profile.
+  // Callers fire-and-forget this right after navigating so the onboarding
+  // finishing move stays instant. On failure we persist the name so
+  // flushPendingSoulPalName() can retry on the next app open.
+  async syncSoulPalName(name: string): Promise<void> {
+    try {
+      await this.updateAIPreferences({ soulpal_name: name });
+      await AsyncStorage.removeItem(PENDING_SOULPAL_NAME_KEY);
+    } catch (err: any) {
+      console.warn('[SoulPalName] BE sync failed, queued for retry:', err?.message);
+      try {
+        await AsyncStorage.setItem(PENDING_SOULPAL_NAME_KEY, name);
+      } catch {
+        // If even the local stash fails there is nothing more we can do here.
+      }
+    }
+  }
+
+  // so-v6pr: retry a previously-failed SoulPal-name sync. Safe to call on
+  // every app open — no-ops when nothing is pending.
+  async flushPendingSoulPalName(): Promise<void> {
+    let pending: string | null = null;
+    try {
+      pending = await AsyncStorage.getItem(PENDING_SOULPAL_NAME_KEY);
+    } catch {
+      return;
+    }
+    if (!pending) return;
+    await this.syncSoulPalName(pending);
   }
 
   async getTodayAffirmation(): Promise<{ affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }> {
