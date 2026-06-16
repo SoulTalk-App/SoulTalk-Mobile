@@ -9,7 +9,7 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import { colors, fonts } from '../theme';
+import { useThemeColors, fonts } from '../theme';
 
 const SoulPalChar = require('../../assets/images/journal/JournalSoulPalChar.png');
 const SoulPalArmLeft = require('../../assets/images/journal/SoulPalArmLeft.png');
@@ -22,6 +22,7 @@ const MESSAGES = [
 ];
 
 const JournalLoader: React.FC = () => {
+  const colors = useThemeColors();
   // SoulPal gentle bobbing
   const bob = useSharedValue(0);
   // Arm wave (right arm writing motion)
@@ -137,7 +138,7 @@ const JournalLoader: React.FC = () => {
       </View>
 
       {/* Message */}
-      <Animated.Text style={[styles.messageText, textStyle]}>{message}</Animated.Text>
+      <Animated.Text style={[styles.messageText, { color: colors.primary }, textStyle]}>{message}</Animated.Text>
     </View>
   );
 };
@@ -191,7 +192,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 13,
     // #59168B → colors.primary (#4F1786, brand canonical) per so-9tg.
-    color: colors.primary,
+    // Color is overridden at the call site via useThemeColors so dark-mode users
+    // get the dark-palette primary.
     fontStyle: 'italic',
   },
 });

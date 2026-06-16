@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -10,7 +10,7 @@ import Animated, {
   Extrapolation,
   SharedValue,
 } from 'react-native-reanimated';
-import { colors, fonts } from '../theme';
+import { useThemeColors, fonts } from '../theme';
 import { SpringConfigs, TimingConfigs } from '../animations/constants';
 
 const { width } = Dimensions.get('window');
@@ -33,6 +33,8 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
   index = 0,
   scrollX,
 }) => {
+  const colors = useThemeColors();
+  const styles = useMemo(() => buildStyles(colors), [colors]);
   // Animation values for entrance
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(30);
@@ -128,7 +130,7 @@ const OnboardingSlide: React.FC<OnboardingSlideProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: {
     width,
     flex: 1,

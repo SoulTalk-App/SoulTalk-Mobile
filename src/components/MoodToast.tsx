@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../theme';
+import { useThemeColors, fonts } from '../theme';
 
 const VISIBLE_MS = 2500;
 const FADE_MS = 220;
@@ -44,6 +44,7 @@ const COPY: Record<MoodToastKind, { headline: string; subline: string }> = {
 };
 
 export function MoodToast({ kind, isDarkMode, onDismiss }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
@@ -104,7 +105,7 @@ export function MoodToast({ kind, isDarkMode, onDismiss }: Props) {
           end={{ x: 1, y: 1 }}
           style={styles.checkBubble}
         >
-          <Text style={styles.checkBubbleText}>{isError ? '!' : '✓'}</Text>
+          <Text style={[styles.checkBubbleText, { color: colors.white }]}>{isError ? '!' : '✓'}</Text>
         </LinearGradient>
         <View style={styles.body}>
           <Text style={[styles.headline, { color: ink }]}>{copy.headline}</Text>
@@ -144,7 +145,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkBubbleText: {
-    color: colors.white,
     fontSize: 16,
     lineHeight: 18,
     fontFamily: fonts.outfit.bold,
