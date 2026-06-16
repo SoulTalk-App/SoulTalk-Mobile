@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { AppState, StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import { colors } from '../theme';
@@ -28,6 +28,18 @@ const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> =
   });
 
   const { status } = useEvent(player, 'statusChange', { status: player.status });
+
+  // so-2zsi: expo-video pauses playback when the app backgrounds and does
+  // not auto-resume on return, leaving a frozen/blurred frame. Resume on the
+  // 'active' transition so the intro keeps playing through to navigation.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && !hasNavigated.current) {
+        player.play();
+      }
+    });
+    return () => sub.remove();
+  }, [player]);
 
   // Listen for playback end
   useEffect(() => {
