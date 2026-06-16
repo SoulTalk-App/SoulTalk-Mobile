@@ -7,6 +7,7 @@ import {
   Pressable,
   Image,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -439,16 +440,27 @@ export function AffirmationReveal({
       </Animated.View>
 
       {isRevealed && (
-        <View
-          style={[
-            styles.textArea,
-            { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH + 40 },
-          ]}
+        // so-8xzt: textArea used to be a fixed-height container
+        // (SCREEN_HEIGHT - SCREEN_WIDTH + 40) holding a centered Text node.
+        // On taller affirmations (Aishwarya TF Apr 25) the bottom lines
+        // overflowed past that height and got clipped by the absolute
+        // positioning — the View had no overflow:visible, the Text had no
+        // way to grow past the cap, and the bottom seam-fade hid the
+        // overrun. Switching to a ScrollView (positioned by `bottom`
+        // instead of fixed height) lets short affirmations center as
+        // before and long ones become tappable+scrollable. The negative
+        // bottom keeps the layout baseline matching the prior +40 fudge
+        // so the seam blend doesn't shift visually.
+        <ScrollView
+          style={[styles.textArea, { paddingTop: insets.top + 20 }]}
+          contentContainerStyle={styles.textAreaContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <Animated.Text style={[styles.affirmationText, { fontSize, lineHeight }, textAnimStyle]}>
             {text}
           </Animated.Text>
-        </View>
+        </ScrollView>
       )}
 
       {!isRevealed && (
@@ -552,10 +564,17 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    // so-8xzt: bottom matches the prior `height: SCREEN_HEIGHT - SCREEN_WIDTH + 40`
+    // baseline (SCREEN_HEIGHT - bottom == prior height when bottom == SCREEN_WIDTH - 40).
+    bottom: SCREEN_WIDTH - 40,
+    zIndex: 5,
+  },
+  textAreaContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
-    zIndex: 5,
+    paddingBottom: 24,
   },
   affirmationText: {
     fontFamily: fonts.outfit.light,
