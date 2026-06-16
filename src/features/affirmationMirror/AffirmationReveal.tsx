@@ -431,7 +431,12 @@ export function AffirmationReveal({
       <Animated.View
         style={[styles.backButtonContainer, { top: insets.top + 16 }, backButtonAnimStyle]}
       >
-        <Pressable onPress={onClose} hitSlop={12}>
+        <Pressable
+          onPress={onClose}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close affirmation"
+        >
           <View style={styles.backIconCircle}>
             <Feather name="chevron-left" size={26} color="#3A0E66" />
           </View>
@@ -456,6 +461,9 @@ export function AffirmationReveal({
           <Pressable
             onPress={handleCenterPress}
             disabled={isGenerating}
+            accessibilityRole="button"
+            accessibilityLabel={isGenerating ? 'Generating your affirmation' : buttonLabel}
+            accessibilityState={{ disabled: isGenerating, busy: isGenerating }}
             style={[styles.revealButton, isDarkMode && styles.revealButtonDark]}
           >
             <LinearGradient
