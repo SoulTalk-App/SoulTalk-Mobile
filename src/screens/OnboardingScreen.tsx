@@ -186,9 +186,14 @@ interface Slide {
   titleStart: string;
   titleHighlight: string;
   tagline: string | null;
-  characterType: 'welcome' | 'soulpal' | 'discover' | 'features' | 'terms';
+  characterType: 'welcome' | 'soulpal' | 'discover' | 'features' | 'disclaimer' | 'terms';
   features?: SlideFeature[];
   privacyLine?: string;
+  // so-7r4y: disclaimer slides carry one or more body paragraphs (legal
+  // disclosure copy). PLACEHOLDER content for now — Chey/Randy supply the
+  // finalised legal text. Each paragraph renders as its own block under
+  // the slide title.
+  disclaimerParagraphs?: string[];
 }
 
 // Slide data
@@ -233,11 +238,46 @@ const slides: Slide[] = [
     ],
     privacyLine: 'Everything you share stays private. Always.',
   },
+  // so-7r4y: AI-transparency + emotional-support disclaimers. PLACEHOLDER
+  // copy — final legal text owned by Chey/Randy. The user advances past
+  // these by swiping like any other slide; explicit acknowledgment is
+  // collected on the Terms slide that follows, which now reads "I Accept
+  // the Terms, Privacy Policy, and Disclaimers" so a single tap covers
+  // all three (matches the so-jokw consent-gate pattern).
+  {
+    id: '5',
+    titleStart: 'A note on ',
+    titleHighlight: 'AI',
+    tagline: null,
+    characterType: 'disclaimer',
+    disclaimerParagraphs: [
+      // PLACEHOLDER. Chey/Randy: replace with finalized AI-disclosure copy.
+      'SoulTalk uses AI to generate the affirmations, reflections, and pattern insights you see in the app. Anywhere you see the small "AI-generated" label, the content was produced by a language model — not a human therapist or counselor.',
+      'AI responses are intended to support your own reflection. They can be wrong, biased, or out of step with what you actually need on a given day. Treat them as a prompt, not a prescription.',
+    ],
+  },
+  {
+    id: '6',
+    titleStart: 'Not a substitute for ',
+    titleHighlight: 'care',
+    tagline: null,
+    characterType: 'disclaimer',
+    disclaimerParagraphs: [
+      // PLACEHOLDER. Chey/Randy: replace with finalized clinical disclaimer.
+      'SoulTalk is a self-reflection tool. It is not therapy, medical advice, or a crisis service. If you are in crisis or considering harm to yourself or others, please contact your local emergency services or a crisis line right away.',
+      'If you are working with a therapist or clinician, SoulTalk is designed to complement that work — not to replace it. Please share anything you learn here with them when it helps.',
+    ],
+  },
   // so-jokw: required terms slide. The user MUST tap "I Accept" before they
   // can advance to Register — this replaces the prior so-37a checkbox-on-
   // RegisterScreen consent gate which had bounce-and-erase regressions.
+  //
+  // so-7r4y: the same tap now also acknowledges the AI + clinical
+  // disclaimers shown on the two preceding slides. Persisted under the
+  // existing @terms_accepted key — a single flag covers all three
+  // documents in this launch window.
   {
-    id: '5',
+    id: '7',
     titleStart: 'Terms & ',
     titleHighlight: 'Privacy',
     tagline: null,
@@ -449,6 +489,42 @@ const SlideContent: React.FC<SlideContentProps> = ({
             </Text>
             <Text style={styles.termsBody}>{currentDoc.content}</Text>
           </ScrollView>
+        </View>
+      </Animated.View>
+    );
+  }
+
+  if (slide.characterType === 'disclaimer') {
+    // so-7r4y: same layout shell as the features slide — title + a
+    // ScrollView body — so the long-form disclaimer copy can flow and
+    // scroll on smaller screens / Dynamic Type without clipping.
+    // PLACEHOLDER paragraphs (see slide definitions above) — final copy
+    // owned by Chey/Randy.
+    return (
+      <Animated.View
+        style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
+      >
+        <View style={styles.featuresInner}>
+          <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
+            <Text style={styles.titleStart}>{slide.titleStart}</Text>
+            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+          </View>
+          <View style={styles.termsScrollFrame}>
+            <ScrollView
+              showsVerticalScrollIndicator
+              contentContainerStyle={styles.termsScrollContent}
+              nestedScrollEnabled
+            >
+              {(slide.disclaimerParagraphs ?? []).map((para, i) => (
+                <Text
+                  key={i}
+                  style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
+                >
+                  {para}
+                </Text>
+              ))}
+            </ScrollView>
+          </View>
         </View>
       </Animated.View>
     );
@@ -1412,7 +1488,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               onPress={handleAcceptTerms}
               style={styles.acceptCta}
               accessibilityRole="button"
-              accessibilityLabel="Accept Terms and Privacy"
+              // so-7r4y: a11y label updated to acknowledge the disclaimer
+              // slides too. Visual button copy stays "I Accept" to keep the
+              // CTA short; the wording above the button (terms-slide title +
+              // body) carries the full "Terms, Privacy Policy & Disclaimers"
+              // framing.
+              accessibilityLabel="Accept Terms, Privacy Policy, and Disclaimers"
             >
               <Text style={styles.acceptCtaText}>I Accept</Text>
             </Pressable>

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
+import AIGeneratedLabel from '../../components/AIGeneratedLabel';
 import {
   ResonanceVote,
   Signal,
@@ -219,6 +220,15 @@ export function SignalsDetailModal({
                   </Text>
                 </View>
               </View>
+
+              {/* so-7r4y: persistent AI-disclosure label on the signal
+                  detail. tone follows theme so contrast is correct on
+                  both palettes. */}
+              <AIGeneratedLabel
+                size="compact"
+                tone={theme === 'dark' ? 'light' : 'dark'}
+                style={{ marginTop: 4, marginBottom: 8 }}
+              />
 
               {visibleDetail ? (
                 <Text style={[styles.detail, { color: inkSub(theme) }]}>

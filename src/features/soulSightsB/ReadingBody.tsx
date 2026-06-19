@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
 import { cosmicTextShadow } from '../../components/CosmicText';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
+import AIGeneratedLabel from '../../components/AIGeneratedLabel';
 import { SightDetail } from './types';
 import {
   PURPLE,
@@ -44,6 +45,14 @@ export function ReadingBody({
       <Text style={[styles.sectionLabel, { color: accent }]}>
         A reading from {soulPalName}
       </Text>
+      {/* so-7r4y: persistent AI-disclosure label on every SoulSight
+          reading. tone follows the active theme so contrast is correct
+          on both palettes. */}
+      <AIGeneratedLabel
+        size="compact"
+        tone={isDark ? 'light' : 'dark'}
+        style={{ marginBottom: 10 }}
+      />
       {/* so-jkgo: opening + body paragraphs sit directly over StarsBg in
           dark theme. Apply cosmic shadow halo for dyslexic-readability. */}
       {opening ? (

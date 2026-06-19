@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors, fonts } from '../../theme';
+import AIGeneratedLabel from '../../components/AIGeneratedLabel';
 
 type RevealedPlayerHandle = { play: () => void };
 const RevealedVideoPlayer = forwardRef<RevealedPlayerHandle, {
@@ -447,6 +448,11 @@ export function AffirmationReveal({
             { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH + 40 },
           ]}
         >
+          {/* so-7r4y: persistent AI-disclosure label above every
+              AI-generated affirmation. tone="light" because the reveal
+              view is always on the dark cosmic backdrop regardless of
+              the active app theme. */}
+          <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
           <Animated.Text style={[styles.affirmationText, { fontSize, lineHeight }, textAnimStyle]}>
             {text}
           </Animated.Text>
