@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/AuthService';
+import JournalService from '../services/JournalService';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -366,7 +367,11 @@ const SettingsScreen = ({ navigation }: any) => {
       // logout so it can't linger on a shared device (the per-user key already
       // prevents cross-user reads; this also avoids restoring a stale draft if
       // the same user logs back in).
-      if (user?.id) await clearSettingsDraft(user.id);
+      // so-vpqj: same belt-and-suspenders for the pending SoulPal-name sync.
+      if (user?.id) {
+        await clearSettingsDraft(user.id);
+        await JournalService.clearPendingSoulPalName(user.id);
+      }
       await logout();
     } catch {
       Alert.alert('Error', 'Failed to log out. Please try again.');

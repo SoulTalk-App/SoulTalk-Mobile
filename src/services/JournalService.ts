@@ -5,9 +5,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { installAuthInterceptors } from '../utils/authClient';
 
 // so-v6pr: when the post-naming BE sync of the SoulPal name fails, we stash
-// the pending name here so the next app open can retry it — avoids a silent,
+// the pending name so the next app open can retry it — avoids a silent,
 // permanent desync between the user's local SoulPal name and their AI profile.
-const PENDING_SOULPAL_NAME_KEY = '@soultalk_pending_soulpal_name_sync';
+//
+// so-vpqj: the key is scoped PER USER (mirrors the so-5eu1 settings-draft
+// pattern). A global key let user A's pending name sync onto user B's account
+// on a shared device (cross-user PII bleed). Always thread user.id.
+const PENDING_SOULPAL_NAME_KEY_PREFIX = '@soultalk_pending_soulpal_name_sync';
+const pendingSoulPalNameKey = (userId: string) =>
+  `${PENDING_SOULPAL_NAME_KEY_PREFIX}:${userId}`;
+
+// so-vpqj: cap retries so a permanently-unsyncable name doesn't retry forever.
+const MAX_SOULPAL_NAME_SYNC_ATTEMPTS = 5;
+
+interface PendingSoulPalNameSync {
+  name: string;
+  attempts: number;
+}
 
 export type Mood =
   | 'Normal'
@@ -199,33 +213,85 @@ class JournalService {
 
   // so-v6pr: best-effort sync of the chosen SoulPal name to the BE AI profile.
   // Callers fire-and-forget this right after navigating so the onboarding
-  // finishing move stays instant. On failure we persist the name so
-  // flushPendingSoulPalName() can retry on the next app open.
-  async syncSoulPalName(name: string): Promise<void> {
+  // finishing move stays instant. On a retryable failure we persist the name
+  // (per-user) so flushPendingSoulPalName() can retry on the next app open.
+  // so-vpqj: requires userId for the per-user key; no-ops without it (there is
+  // no user-safe key to write, and syncing to "whoever is logged in" is the
+  // bleed we are preventing).
+  async syncSoulPalName(name: string, userId: string): Promise<void> {
+    if (!userId) return;
+    await this.trySoulPalNameSync(userId, { name, attempts: 0 });
+  }
+
+  // so-v6pr/so-vpqj: retry a previously-failed SoulPal-name sync for this user.
+  // Safe to call on every app open — no-ops when nothing is pending.
+  async flushPendingSoulPalName(userId: string): Promise<void> {
+    if (!userId) return;
+    let pending: PendingSoulPalNameSync | null = null;
     try {
-      await this.updateAIPreferences({ soulpal_name: name });
-      await AsyncStorage.removeItem(PENDING_SOULPAL_NAME_KEY);
+      const raw = await AsyncStorage.getItem(pendingSoulPalNameKey(userId));
+      if (raw) pending = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!pending?.name) return;
+    await this.trySoulPalNameSync(userId, pending);
+  }
+
+  // so-vpqj: drop this user's pending name (e.g. on logout) so it can't linger
+  // on a shared device.
+  async clearPendingSoulPalName(userId: string): Promise<void> {
+    if (!userId) return;
+    try {
+      await AsyncStorage.removeItem(pendingSoulPalNameKey(userId));
+    } catch {
+      // best-effort
+    }
+  }
+
+  // so-vpqj: shared sync attempt. On success clears the pending key. On a
+  // permanent client error (4xx except 429) it gives up immediately — retrying
+  // a 400 bad-name / 401 won't succeed. Transient errors (network / 5xx / 429)
+  // are re-queued until MAX_SOULPAL_NAME_SYNC_ATTEMPTS, then dropped.
+  private async trySoulPalNameSync(
+    userId: string,
+    pending: PendingSoulPalNameSync,
+  ): Promise<void> {
+    const key = pendingSoulPalNameKey(userId);
+    try {
+      await this.updateAIPreferences({ soulpal_name: pending.name });
+      await AsyncStorage.removeItem(key);
     } catch (err: any) {
-      console.warn('[SoulPalName] BE sync failed, queued for retry:', err?.message);
+      const status: number | undefined = err?.response?.status;
+      const isPermanent4xx =
+        typeof status === 'number' && status >= 400 && status < 500 && status !== 429;
+      if (isPermanent4xx) {
+        console.warn(
+          `[SoulPalName] BE sync failed (${status}) — permanent, not retrying:`,
+          err?.message,
+        );
+        await AsyncStorage.removeItem(key).catch(() => {});
+        return;
+      }
+      const attempts = pending.attempts + 1;
+      if (attempts >= MAX_SOULPAL_NAME_SYNC_ATTEMPTS) {
+        console.warn(
+          `[SoulPalName] BE sync gave up after ${attempts} attempts:`,
+          err?.message,
+        );
+        await AsyncStorage.removeItem(key).catch(() => {});
+        return;
+      }
+      console.warn(
+        `[SoulPalName] BE sync failed (attempt ${attempts}), queued for retry:`,
+        err?.message,
+      );
       try {
-        await AsyncStorage.setItem(PENDING_SOULPAL_NAME_KEY, name);
+        await AsyncStorage.setItem(key, JSON.stringify({ name: pending.name, attempts }));
       } catch {
         // If even the local stash fails there is nothing more we can do here.
       }
     }
-  }
-
-  // so-v6pr: retry a previously-failed SoulPal-name sync. Safe to call on
-  // every app open — no-ops when nothing is pending.
-  async flushPendingSoulPalName(): Promise<void> {
-    let pending: string | null = null;
-    try {
-      pending = await AsyncStorage.getItem(PENDING_SOULPAL_NAME_KEY);
-    } catch {
-      return;
-    }
-    if (!pending) return;
-    await this.syncSoulPalName(pending);
   }
 
   async getTodayAffirmation(): Promise<{ affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }> {

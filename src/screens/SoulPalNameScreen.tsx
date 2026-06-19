@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPal } from '../contexts/SoulPalContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import JournalService from '../services/JournalService';
 
@@ -47,6 +48,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   // live SoulPalContext state, so the chosen name flows through
   // useSoulPalName() consumers immediately — no remount needed.
   const { setName } = useSoulPal();
+  const { user } = useAuth();
   const [inputFocused, setInputFocused] = useState(false);
 
   const styles = useMemo(
@@ -180,7 +182,10 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     // the next app open (see JournalService.syncSoulPalName) rather than
     // silently dropped.
     navigation.navigate('SetupComplete');
-    JournalService.syncSoulPalName(name);
+    // so-vpqj: per-user key requires user.id; the user is authenticated by the
+    // time they name their SoulPal, so this resolves. If somehow absent, the
+    // name is still saved locally and syncSoulPalName no-ops safely.
+    JournalService.syncSoulPalName(name, user?.id ?? '');
   };
 
   const handlePressIn = useCallback(() => {
