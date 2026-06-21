@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import JournalService, {
   JournalEntry,
   Mood,
@@ -46,6 +46,17 @@ interface JournalProviderProps {
 
 export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) => {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  // so-cnd8: mirror entries into a ref so updateEntry / finalizeDraft can
+  // derive "already in list?" OUTSIDE the setEntries updater. The earlier
+  // (so-tpwh #6) approach mutated a local `wasNew` inside the updater and
+  // read it on the next line — works by virtue of React's eager-bailout
+  // semantics but is fragile (concurrent mode + StrictMode double-invoke
+  // could resequence the updater run vs the gate read). Ref-mirror keeps
+  // the existence check synchronous and unambiguous.
+  const entriesRef = useRef(entries);
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<JournalEntry | null>(null);
   const [total, setTotal] = useState(0);
@@ -139,11 +150,21 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     const updated = await JournalService.updateEntry(id, data);
     // If draft was finalized, add to entries list and refresh gamification
     if (data.is_draft === false) {
+      // so-cnd8: derive existence from the ref-mirrored committed state
+      // BEFORE setEntries. Gate setTotal on this flag instead of mutating
+      // one inside the updater. Note: setEntries's updater still does its
+      // own .some() check — that's the correctness path against concurrent
+      // updates (its result determines whether to map-replace vs prepend).
+      // The outer `exists` is the gate for setTotal; the inner check is
+      // the gate for the list shape.
+      const exists = entriesRef.current.some((e) => e.id === id);
       setEntries((prev) => {
-        const exists = prev.some((e) => e.id === id);
-        return exists ? prev.map((e) => (e.id === id ? updated : e)) : [updated, ...prev];
+        const stillExists = prev.some((e) => e.id === id);
+        return stillExists ? prev.map((e) => (e.id === id ? updated : e)) : [updated, ...prev];
       });
-      setTotal((prev) => prev + 1);
+      if (!exists) {
+        setTotal((prev) => prev + 1);
+      }
       fetchStreak();
       fetchSoulBar();
     } else {
@@ -173,11 +194,17 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       mood,
       is_draft: false,
     });
+    // so-cnd8: see updateEntry above for the rationale. Existence is derived
+    // from the ref-mirrored state outside the updater; the inner check
+    // still guards the list-shape decision against concurrent updates.
+    const exists = entriesRef.current.some((e) => e.id === draftId);
     setEntries((prev) => {
-      const exists = prev.some((e) => e.id === draftId);
-      return exists ? prev.map((e) => (e.id === draftId ? updated : e)) : [updated, ...prev];
+      const stillExists = prev.some((e) => e.id === draftId);
+      return stillExists ? prev.map((e) => (e.id === draftId ? updated : e)) : [updated, ...prev];
     });
-    setTotal((prev) => prev + 1);
+    if (!exists) {
+      setTotal((prev) => prev + 1);
+    }
     fetchStreak();
     fetchSoulBar();
     return updated;
