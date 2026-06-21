@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { AppState, StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { colors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -31,6 +31,18 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, o
     p.audioMixingMode = 'mixWithOthers';
     p.play();
   });
+
+  // so-2zsi: expo-video pauses playback when the app backgrounds and does
+  // not auto-resume on return, leaving a frozen/blurred frame. Resume on the
+  // 'active' transition so the looping intro keeps animating.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active' && !dismissedRef.current) {
+        player.play();
+      }
+    });
+    return () => sub.remove();
+  }, [player]);
 
   useEffect(() => {
     const subscription = player.addListener('playToEnd', () => {
