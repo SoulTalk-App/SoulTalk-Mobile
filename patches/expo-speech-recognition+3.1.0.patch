@@ -28,7 +28,7 @@ index 1111111..2222222 100644
 +    // wraps the call in @try/@catch; on raise we log + return false to
 +    // trigger the existing .audioRouteChanged soft-fail. Soft-fail so
 +    // the user can retap to start a new session; never crash.
-+    if let caught = SoulTalkSpeechExceptionCatcher.tryBlock({
++    if let caught = SoulTalkSpeechExceptionCatcher.catching({
 +      newEngine.connect(inputNode, to: mixerNode, format: audioFormat)
 +    }) {
 +      NSLog("[SoulTalk so-p1un] AVAudioEngine.connect raised: %@: %@",
@@ -70,7 +70,7 @@ index 0000000..3333333
 +/// Runs `block` inside an @try/@catch. Returns nil on success, or the
 +/// caught NSException on raise. The block is NS_NOESCAPE so Swift can
 +/// pass non-escaping closures.
-++ (NSException * _Nullable)tryBlock:(NS_NOESCAPE void (^)(void))block;
+++ (NSException * _Nullable)tryBlock:(NS_NOESCAPE void (^)(void))block NS_SWIFT_NAME(catching(_:));
 +
 +@end
 +
