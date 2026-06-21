@@ -17,6 +17,7 @@ import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
+import { useMountedRef } from '../hooks';
 
 // so-jb0t: BE appends generate_safety_redirect text to the LLM reflection
 // when mode === 'CRISIS_OVERRIDE'. The redirect block always opens with this
@@ -186,11 +187,20 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   const chosenName = useSoulPalName();
   const soulPalName = `${chosenName}'s Reflection`;
 
+  // so-xark: gate post-await setEntry behind mountedRef so a fetch that
+  // resolves after the user exits doesn't setState on an unmounted screen
+  // (same crash class as so-3i78). Uses the so-pw5d useMountedRef primitive.
+  const mountedRef = useMountedRef();
+
   useEffect(() => {
-    JournalService.getEntry(entryId).then(setEntry).catch(() => {
-      const found = entries.find((e) => e.id === entryId);
-      if (found) setEntry(found);
-    });
+    JournalService.getEntry(entryId)
+      .then((fetched) => {
+        if (mountedRef.current) setEntry(fetched);
+      })
+      .catch(() => {
+        const found = entries.find((e) => e.id === entryId);
+        if (found && mountedRef.current) setEntry(found);
+      });
   }, [entryId]);
 
   useEffect(() => {
@@ -198,7 +208,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     if (!found) return;
     // List endpoint doesn't include ai_response/tags — fetch detail if needed
     if (found.ai_processing_status === 'complete' && !entry?.ai_response) {
-      JournalService.getEntry(entryId).then(setEntry).catch(() => {});
+      JournalService.getEntry(entryId)
+        .then((fetched) => {
+          if (mountedRef.current) setEntry(fetched);
+        })
+        .catch(() => {});
     } else if (found.ai_response) {
       setEntry(found);
     }
