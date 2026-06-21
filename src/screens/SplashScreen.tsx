@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { AppState, StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
-import { colors } from '../theme';
+import { useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -15,6 +15,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> = ({ navigation, isDarkMode }) => {
+  const colors = useThemeColors();
   const hasNavigated = useRef(false);
 
   const player = useVideoPlayer(isDarkMode ? IntroVideoDark : IntroVideo, (p) => {
@@ -74,7 +75,7 @@ const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> =
   }, [status, navigation]);
 
   return (
-    <View style={[styles.container, isDarkMode && { backgroundColor: '#0A0818' }]}>
+    <View style={[styles.container, { backgroundColor: colors.primary }, isDarkMode && { backgroundColor: '#0A0818' }]}>
       <VideoView
         player={player}
         style={styles.video}
@@ -87,10 +88,11 @@ const SplashScreenInner: React.FC<SplashScreenProps & { isDarkMode: boolean }> =
 };
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
+  const colors = useThemeColors();
   const { isDarkMode, themeLoaded } = useTheme();
 
   if (!themeLoaded) {
-    return <View style={styles.container} />;
+    return <View style={[styles.container, { backgroundColor: colors.primary }]} />;
   }
 
   return <SplashScreenInner navigation={navigation} isDarkMode={isDarkMode} />;
@@ -99,7 +101,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { ShiftDetail } from './types';
 import { PURPLE, Theme, ink, inkSub } from './tokens';
@@ -35,6 +35,7 @@ export function ReleaseModal({
   onConfirm,
   submitting = false,
 }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();

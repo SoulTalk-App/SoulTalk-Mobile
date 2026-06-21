@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { AppState, StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { colors } from '../theme';
+import { useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -17,6 +17,7 @@ interface LoadingScreenProps {
 }
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, onDismiss }) => {
+  const colors = useThemeColors();
   const { isDarkMode } = useTheme();
   const readyRef = useRef(readyToDismiss);
   const dismissedRef = useRef(false);
@@ -55,7 +56,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, o
   }, [player, onDismiss]);
 
   return (
-    <View style={[styles.container, isDarkMode && { backgroundColor: '#0A0818' }]}>
+    <View style={[styles.container, { backgroundColor: colors.primary }, isDarkMode && { backgroundColor: '#0A0818' }]}>
       <VideoView
         player={player}
         style={styles.video}
@@ -70,7 +71,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, o
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

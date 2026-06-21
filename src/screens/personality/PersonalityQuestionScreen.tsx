@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import Animated, {
   runOnJS,
   Easing,
 } from 'react-native-reanimated';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_TIGHT } from '../../components/touchPrimitives';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -33,6 +33,9 @@ import { usePersonality } from '../../contexts/PersonalityContext';
 const LIKERT_ORDER: LikertValue[] = [1, 2, 3, 4, 5];
 
 const PersonalityQuestionScreen = ({ navigation, route }: any) => {
+  const colors = useThemeColors();
+  const dk = useMemo(() => buildDkStyles(colors), [colors]);
+  const lt = useMemo(() => buildLtStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const testType: TestType = route.params?.testType;
@@ -344,7 +347,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
 // ==============================
 // DARK MODE STYLES
 // ==============================
-const dk = StyleSheet.create({
+const buildDkStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 
@@ -471,7 +474,7 @@ const dk = StyleSheet.create({
 // ==============================
 // LIGHT MODE STYLES
 // ==============================
-const lt = StyleSheet.create({
+const buildLtStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
 import GlassCard from '../../components/GlassCard';
@@ -21,6 +21,9 @@ import { ResultProfile, WatchOut } from '../../data/personalityTests/types';
 import { usePersonality } from '../../contexts/PersonalityContext';
 
 const PersonalityResultScreen = ({ navigation, route }: any) => {
+  const colors = useThemeColors();
+  const dk = useMemo(() => buildDkStyles(colors), [colors]);
+  const lt = useMemo(() => buildLtStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const resultId: string | undefined = route.params?.resultId;
@@ -198,6 +201,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
                   watchOut={w}
                   expanded={isExpanded}
                   onToggle={() => setExpandedWatchOut(isExpanded ? null : idx)}
+                  styles={dk}
                 />
               );
             })}
@@ -368,6 +372,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
                 watchOut={w}
                 expanded={isExpanded}
                 onToggle={() => setExpandedWatchOut(isExpanded ? null : idx)}
+                styles={lt}
               />
             );
           })}
@@ -386,14 +391,19 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 // ==============================
 // Watch Out cards
 // ==============================
+// dk/lt styles are now hook-derived and live inside PersonalityResultScreen,
+// so the WatchOut card subcomponents accept their per-theme StyleSheet via
+// prop rather than closing over a module-scope styles object.
 const WatchOutCardDark = ({
   watchOut,
   expanded,
   onToggle,
+  styles: dk,
 }: {
   watchOut: WatchOut;
   expanded: boolean;
   onToggle: () => void;
+  styles: ReturnType<typeof buildDkStyles>;
 }) => (
   <GlassCard intensity="light" style={dk.watchOutCard} onPress={onToggle}>
     <View style={dk.watchOutHeaderRow}>
@@ -419,10 +429,12 @@ const WatchOutCardLight = ({
   watchOut,
   expanded,
   onToggle,
+  styles: lt,
 }: {
   watchOut: WatchOut;
   expanded: boolean;
   onToggle: () => void;
+  styles: ReturnType<typeof buildLtStyles>;
 }) => (
   <Pressable style={lt.watchOutCard} onPress={onToggle}>
     <View style={lt.watchOutHeaderBand}>
@@ -447,7 +459,7 @@ const WatchOutCardLight = ({
 // ==============================
 // DARK MODE STYLES
 // ==============================
-const dk = StyleSheet.create({
+const buildDkStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 
@@ -661,7 +673,7 @@ const dk = StyleSheet.create({
 // ==============================
 // LIGHT MODE STYLES
 // ==============================
-const lt = StyleSheet.create({
+const buildLtStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 

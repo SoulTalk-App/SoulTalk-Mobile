@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, fonts } from '../theme';
+import { useThemeColors, fonts } from '../theme';
 
 interface SoulTalkLoaderProps {
   /** When false, plays once then calls onComplete. Default true (loops). */
@@ -14,6 +14,8 @@ const CHAR_DELAY = 150;
 const PAUSE_AFTER = 500;
 
 const SoulTalkLoader: React.FC<SoulTalkLoaderProps> = ({ loop = true, onComplete }) => {
+  const colors = useThemeColors();
+  const styles = useMemo(() => buildStyles(colors), [colors]);
   const [displayedText, setDisplayedText] = useState('');
   const indexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,7 +54,7 @@ const SoulTalkLoader: React.FC<SoulTalkLoaderProps> = ({ loop = true, onComplete
   );
 };
 
-const styles = StyleSheet.create({
+const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.primary,

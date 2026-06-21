@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
   ShiftSuggestionCandidate,
@@ -58,6 +58,7 @@ export function SuggestModal({
   onAccept,
   submitting = false,
 }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
@@ -229,7 +230,7 @@ export function SuggestModal({
                           ]}
                         >
                           {sel ? (
-                            <Text style={styles.checkBubbleText}>✓</Text>
+                            <Text style={[styles.checkBubbleText, { color: colors.white }]}>✓</Text>
                           ) : null}
                         </View>
                       </Pressable>
@@ -255,7 +256,7 @@ export function SuggestModal({
                     end={{ x: 1, y: 1 }}
                     style={styles.ctaGradient}
                   >
-                    <Text style={styles.ctaText} numberOfLines={1}>
+                    <Text style={[styles.ctaText, { color: colors.white }]} numberOfLines={1}>
                       {ctaLabel}
                     </Text>
                   </LinearGradient>
@@ -387,7 +388,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkBubbleText: {
-    color: colors.white,
     fontSize: 13,
     lineHeight: 14,
     fontFamily: fonts.outfit.bold,
@@ -407,7 +407,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 14,
     letterSpacing: 0.3,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Image,
   Modal,
@@ -10,7 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { ShiftDetail, SoulpalVariant, STAGES } from './types';
 import { PURPLE_INK, Theme, inkSub } from './tokens';
 
@@ -51,6 +51,8 @@ export function StageAdvance({
   onReflect,
   onContinue,
 }: Props) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => buildStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
 
@@ -229,7 +231,7 @@ export function StageAdvance({
 // inkSub kept available so the lint guard for the import doesn't fire.
 void inkSub;
 
-const styles = StyleSheet.create({
+const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   root: {
     flex: 1,
     overflow: 'hidden',

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { ShiftDetail, SoulpalVariant } from './types';
 import {
@@ -53,6 +53,7 @@ export function IntegratedModal({
   onConfirm,
   submitting = false,
 }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
@@ -240,7 +241,7 @@ export function IntegratedModal({
                     end={{ x: 1, y: 1 }}
                     style={styles.submit}
                   >
-                    <Text style={styles.submitText}>
+                    <Text style={[styles.submitText, { color: colors.white }]}>
                       {submitting ? 'Integrating…' : 'Integrated'}
                     </Text>
                   </LinearGradient>
@@ -384,7 +385,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitText: {
-    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 13,
     letterSpacing: 0.3,

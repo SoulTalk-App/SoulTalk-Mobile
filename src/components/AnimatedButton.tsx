@@ -13,7 +13,7 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from 'react-native-reanimated';
-import { colors, fonts } from '../theme';
+import { useThemeColors, fonts } from '../theme';
 import { SpringConfigs, TimingConfigs, AnimationValues } from '../animations/constants';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -35,6 +35,7 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   style,
   textStyle,
 }) => {
+  const colors = useThemeColors();
   const scale = useSharedValue(1);
   const pressed = useSharedValue(0);
 
@@ -121,7 +122,7 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
 
   const buttonStyles = [
     styles.button,
-    variant === 'outline' && styles.outlineButton,
+    variant === 'outline' && [styles.outlineButton, { borderColor: colors.primary }],
     disabled && styles.disabled,
     style,
   ];
@@ -155,7 +156,6 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     borderWidth: 2,
-    borderColor: colors.primary,
   },
   buttonText: {
     fontFamily: fonts.outfit.semiBold,

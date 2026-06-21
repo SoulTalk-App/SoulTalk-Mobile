@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { PINK, TEAL, Theme, ink, inkSub } from './tokens';
 
@@ -25,6 +25,7 @@ type Props = {
 };
 
 export function ResonanceToast({ visible, theme, onDismiss }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
@@ -82,7 +83,7 @@ export function ResonanceToast({ visible, theme, onDismiss }: Props) {
           end={{ x: 1, y: 1 }}
           style={styles.checkBubble}
         >
-          <Text style={styles.checkBubbleText}>✓</Text>
+          <Text style={[styles.checkBubbleText, { color: colors.white }]}>✓</Text>
         </LinearGradient>
         <View style={styles.body}>
           <Text style={[styles.headline, { color: ink(theme) }]}>
@@ -126,7 +127,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   checkBubbleText: {
-    color: colors.white,
     fontSize: 16,
     lineHeight: 18,
     fontFamily: fonts.outfit.bold,

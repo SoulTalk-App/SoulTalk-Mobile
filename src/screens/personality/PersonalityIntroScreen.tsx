@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { CosmicScreen } from '../../components/CosmicBackdrop';
 import { useTheme } from '../../contexts/ThemeContext';
 import GlassCard from '../../components/GlassCard';
@@ -17,6 +17,9 @@ import { getTest } from '../../data/personalityTests';
 import { TestType } from '../../data/personalityTests/types';
 
 const PersonalityIntroScreen = ({ navigation, route }: any) => {
+  const colors = useThemeColors();
+  const dk = useMemo(() => buildDkStyles(colors), [colors]);
+  const lt = useMemo(() => buildLtStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const testType: TestType = route.params?.testType;
@@ -178,7 +181,7 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
 // ==============================
 // DARK MODE STYLES
 // ==============================
-const dk = StyleSheet.create({
+const buildDkStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 
@@ -278,7 +281,7 @@ const dk = StyleSheet.create({
 // ==============================
 // LIGHT MODE STYLES
 // ==============================
-const lt = StyleSheet.create({
+const buildLtStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 22 },
 

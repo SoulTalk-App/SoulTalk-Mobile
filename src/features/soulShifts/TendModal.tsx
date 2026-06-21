@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { ShiftDetail, SoulpalVariant } from './types';
 import {
   PINK,
@@ -62,6 +62,7 @@ export function TendModal({
   onSubmit,
   submitting = false,
 }: Props) {
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
 
@@ -278,7 +279,7 @@ export function TendModal({
                     end={{ x: 1, y: 1 }}
                     style={styles.submit}
                   >
-                    <Text style={styles.submitText}>
+                    <Text style={[styles.submitText, { color: colors.white }]}>
                       {submitting ? 'Logging…' : 'Log this tend'}
                     </Text>
                   </LinearGradient>
@@ -409,7 +410,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitText: {
-    color: colors.white,
     fontFamily: fonts.outfit.bold,
     fontSize: 14,
     letterSpacing: 0.3,

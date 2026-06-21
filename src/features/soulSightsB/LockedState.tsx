@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '../../theme';
+import { useThemeColors, fonts } from '../../theme';
 import { cosmicTextShadow } from '../../components/CosmicText';
 import { Eligibility } from './types';
 import {
@@ -26,6 +26,7 @@ export function LockedState({
   eligibility = { current: 5, needed: 7 },
   onOpenJournal,
 }: Props) {
+  const colors = useThemeColors();
   const isDark = theme === 'dark';
   const pct = Math.max(0, Math.min(1, eligibility.current / eligibility.needed));
   const remaining = Math.max(0, eligibility.needed - eligibility.current);
@@ -102,7 +103,7 @@ export function LockedState({
       </View>
 
       <Pressable style={styles.cta} onPress={onOpenJournal}>
-        <Text style={styles.ctaText}>Open Journal</Text>
+        <Text style={[styles.ctaText, { color: colors.white }]}>Open Journal</Text>
       </Pressable>
     </View>
   );
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     // CTA pill bg is opaque PURPLE (#4F1786) — white text reads ~9:1 on
     // it in both themes, so theme-fork isn't needed. Tokenize via
-    // colors.white instead of '#fff' literal per so-c2f audit.
-    color: colors.white,
+    // colors.white (resolved via useThemeColors at the call site) instead
+    // of '#fff' literal per so-c2f audit.
   },
 });
