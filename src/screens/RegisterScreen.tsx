@@ -22,6 +22,15 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
+import { DateOfBirthField, CountryPickerField } from '../features/signup/SignupAgeFields';
+import {
+  parseMaskedDob,
+  isValidDob,
+  isAtLeast18,
+  toIsoDate,
+  isUnder18Error,
+} from '../utils/ageGate';
+import { getDeclaredAgeIs18Plus } from '../utils/declaredAgeRange';
 
 
 
@@ -43,6 +52,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // so-cbhq: age-gate + jurisdiction capture. dobMasked is the raw MM/DD/YYYY
+  // string; countryCode is ISO 3166-1 alpha-2. dobError surfaces an invalid
+  // date inline; the under-18 decision routes to the neutral block screen.
+  const [dobMasked, setDobMasked] = useState('');
+  const [countryCode, setCountryCode] = useState<string | null>(null);
+  const [dobError, setDobError] = useState<string | null>(null);
   // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
   // initialize true (the onboarding flow guarantees @terms_accepted=true
   // by the time we land here) but also hydrate from AsyncStorage on mount
@@ -494,19 +509,47 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       /(?=.*\d)/.test(password) &&
       /(?=.*[^a-zA-Z0-9])/.test(password);
 
+    // so-cbhq: DOB must be a real, in-range date and a country must be chosen.
+    // The 18+ decision is NOT gated here — an under-18 user with a VALID date
+    // can still tap Register so handleRegister can route them to the neutral
+    // block screen (rather than silently disabling the button).
+    const dobParts = parseMaskedDob(dobMasked);
+    const dobValid = dobParts != null && isValidDob(dobParts);
+
     return (
       firstName.trim() !== '' &&
       lastName.trim() !== '' &&
       emailRegex.test(email) &&
       passwordValid &&
       password === confirmPassword &&
+      dobValid &&
+      countryCode != null &&
       agreedToTerms
     );
-  }, [formData, agreedToTerms]);
+  }, [formData, agreedToTerms, dobMasked, countryCode]);
 
   const handleRegister = async () => {
+    // so-cbhq: validate + age-gate before any network call.
+    const dobParts = parseMaskedDob(dobMasked);
+    if (!dobParts || !isValidDob(dobParts)) {
+      setDobError('Enter a valid date of birth (MM/DD/YYYY).');
+      return;
+    }
+    setDobError(null);
+    if (!countryCode) return;
+
     try {
       setIsLoading(true);
+
+      // Apple's Declared Age Range is the preferred 18+ signal where the
+      // native module is available (iOS 17+); otherwise fall back to the DOB
+      // the user entered. The backend (so-8544) re-checks DOB authoritatively.
+      const declared = await getDeclaredAgeIs18Plus();
+      const is18Plus = declared.available ? declared.isAtLeast18 : isAtLeast18(dobParts);
+      if (!is18Plus) {
+        navigation.navigate('UnderageBlock');
+        return;
+      }
 
       // Clear setup flag so the new account sees the welcome flow.
       await AsyncStorage.removeItem('@soultalk_setup_complete');
@@ -515,11 +558,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         password: formData.password,
         first_name: formData.firstName,
         last_name: formData.lastName,
+        // so-8544: ISO date; backend computes is_18_plus then discards it.
+        date_of_birth: toIsoDate(dobParts),
+        country_code: countryCode,
       });
 
       // Navigate to verification sent screen with email
       navigation.navigate('OTPVerification', { email: formData.email });
     } catch (error: any) {
+      // so-cbhq: backend hard-rejects under-18 (so-8544) with a neutral 400 —
+      // route to the same block screen rather than an error alert.
+      if (isUnder18Error(error?.message)) {
+        navigation.navigate('UnderageBlock');
+        return;
+      }
       Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
     } finally {
       setIsLoading(false);
@@ -736,6 +788,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One lowercase letter</Text>
               <Text style={styles.requirement}>• One number</Text>
               <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
+            </View>
+
+            {/* so-cbhq: age-gate (DOB) + jurisdiction (country) capture. */}
+            <View style={{ gap: 14, marginBottom: 4 }}>
+              <DateOfBirthField
+                value={dobMasked}
+                onChange={(masked) => {
+                  setDobMasked(masked);
+                  if (dobError) setDobError(null);
+                }}
+                error={dobError}
+              />
+              <CountryPickerField
+                selectedCode={countryCode}
+                onSelect={setCountryCode}
+              />
             </View>
 
             {/* so-jokw: Terms checkbox. Tap toggles in-place — no

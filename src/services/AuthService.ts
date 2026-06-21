@@ -33,6 +33,11 @@ interface UserRegistration {
   // so-byw: IANA timezone (e.g. "Asia/Kolkata"). Optional on the wire;
   // we always send it so the user row has it from row-zero.
   timezone?: string;
+  // so-cbhq / so-8544: required at signup. date_of_birth is an ISO YYYY-MM-DD
+  // string; the backend computes is_18_plus then DISCARDS it (never persisted).
+  // country_code is ISO 3166-1 alpha-2.
+  date_of_birth: string;
+  country_code: string;
 }
 
 interface UserLogin {
