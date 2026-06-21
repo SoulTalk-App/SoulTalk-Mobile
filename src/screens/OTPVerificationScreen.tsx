@@ -25,7 +25,9 @@ const RESEND_COOLDOWN_SECONDS = 60;
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
-  const { email } = route.params;
+  // so-xllj #3: guard against nav/deep-link with no params (was crashing on
+  // mount when route.params was undefined).
+  const email = route.params?.email;
   const { verifyOTP, resendVerificationEmail } = useAuth();
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
@@ -217,7 +219,11 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => {
+                // so-xllj #4: block body so the callback returns void (React 19
+                // warns on ref callbacks that return a value).
+                inputRefs.current[index] = ref;
+              }}
               style={styles.otpInput}
               value={digit}
               onChangeText={(value) => handleOtpChange(value, index)}

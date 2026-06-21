@@ -24,8 +24,6 @@ import { useTheme } from "../contexts/ThemeContext";
 import { CosmicScreen } from "../components/CosmicBackdrop";
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from "../components/touchPrimitives";
 
-const USE_LOCAL_AUTH = false;
-
 interface LoginScreenProps {
   navigation: any;
 }
@@ -317,6 +315,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     checkBiometricStatus();
   }, []);
 
+  // so-xllj #9: the three social-auth effects below intentionally depend only
+  // on their *Response object — they should fire once per new auth response,
+  // not on every render. The handlers are read from the current closure at
+  // fire time; do NOT add them to the dep arrays (that would re-fire each
+  // render since they aren't memoized).
   // Handle Google auth response
   useEffect(() => {
     if (googleResponse?.type === 'success') {
@@ -405,15 +408,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     try {
       setIsLoading(true);
 
-      if (USE_LOCAL_AUTH) {
-        // Local testing mode - store email and proceed
-        await AsyncStorage.setItem('@soultalk_user_email', email);
-        navigation.navigate('WelcomeSplash');
-      } else {
-        // Backend mode
-        await login(email, password);
-        // Navigation will be handled by the auth state change
-      }
+      // Navigation is handled by the auth state change.
+      await login(email, password);
     } catch (error: any) {
       const msg = error.message || "An error occurred during login";
       // so-5lt7: stopgap detector for the "unverified account" funnel.
@@ -470,22 +466,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
-  const validatePassword = (value: string) => {
-    if (!value) {
-      setPasswordError("");
-    } else if (value.length < 8) {
-      setPasswordError("Password must be at least 8 characters");
-    } else if (!/(?=.*[a-z])/.test(value)) {
-      setPasswordError("Password must include a lowercase letter");
-    } else if (!/(?=.*[A-Z])/.test(value)) {
-      setPasswordError("Password must include an uppercase letter");
-    } else if (!/(?=.*\d)/.test(value)) {
-      setPasswordError("Password must include a number");
-    } else if (!/(?=.*[!@#$%^&*])/.test(value)) {
-      setPasswordError("Password must include a special character");
-    } else {
-      setPasswordError("");
-    }
+  const validatePassword = (_value: string) => {
+    // so-xllj #1: sign-in validates presence only. Existing users may have
+    // passwords that predate the current complexity rules, so enforcing the
+    // full complexity check here showed spurious errors (e.g. "must include a
+    // special character") while typing a perfectly valid password. Presence
+    // is already gated by isFormValid on the submit button; complexity belongs
+    // on Register/Reset only.
+    setPasswordError("");
   };
 
   const handleEmailChange = (value: string) => {
