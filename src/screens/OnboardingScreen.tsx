@@ -1094,7 +1094,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slideOpacity1 = useSharedValue(0);
   const slideOpacity2 = useSharedValue(0);
   const slideOpacity3 = useSharedValue(0);  // so-uy3: 'What's Inside' slide
-  const slideOpacity4 = useSharedValue(0);  // so-ebsm: terms slide (was sharing slideOpacity3 and getting blanked during 3->4 transition)
+  // so-7r4y: TWO new disclaimer slides inserted between 'features' (3) and
+  // 'terms'. Pre-fix all three (disclaimer-1, disclaimer-2, terms) collapsed
+  // onto slideOpacity4 and the latter two rendered blank in place because the
+  // single shared opacity value can only animate one slide at a time
+  // (so-oj9j repro: extends the so-ebsm symptom). Each slide now has its own
+  // shared value so the crossfade animates each pair (n → n+1) cleanly.
+  const slideOpacity4 = useSharedValue(0);  // so-7r4y: disclaimer 1 ('A note on AI')
+  const slideOpacity5 = useSharedValue(0);  // so-7r4y: disclaimer 2 ('Not a substitute for care')
+  const slideOpacity6 = useSharedValue(0);  // so-ebsm: terms slide (now index 6 after the two disclaimer inserts)
 
   // Scale values for morph effect
   // Slides 0 & 2 (Welcome & Discover) are smaller, Slide 1 (SoulPal) is larger
@@ -1102,7 +1110,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slideScale1 = useSharedValue(1.5);  // SoulPal - large (grouped characters)
   const slideScale2 = useSharedValue(0.9);  // Discover - smaller
   const slideScale3 = useSharedValue(0.9);  // so-uy3: features list — default size, no character to morph
-  const slideScale4 = useSharedValue(0.9);  // so-ebsm: terms slide
+  // so-7r4y: matching scale values for the two new disclaimer slides + the
+  // displaced terms slide (see opacity block above).
+  const slideScale4 = useSharedValue(0.9);  // so-7r4y: disclaimer 1
+  const slideScale5 = useSharedValue(0.9);  // so-7r4y: disclaimer 2
+  const slideScale6 = useSharedValue(0.9);  // so-ebsm: terms slide
 
   // Shared floating animation values (all slides share these)
   const floatY = useSharedValue(0);
@@ -1127,8 +1139,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     if (index === 1) return slideOpacity1;
     if (index === 2) return slideOpacity2;
     if (index === 3) return slideOpacity3;
-    return slideOpacity4;
-  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3, slideOpacity4]);
+    if (index === 4) return slideOpacity4;
+    if (index === 5) return slideOpacity5;
+    return slideOpacity6;
+  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3, slideOpacity4, slideOpacity5, slideOpacity6]);
 
   // Get scale shared value for a slide index
   const getScaleForSlide = useCallback((index: number) => {
@@ -1136,8 +1150,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     if (index === 1) return slideScale1;
     if (index === 2) return slideScale2;
     if (index === 3) return slideScale3;
-    return slideScale4;
-  }, [slideScale0, slideScale1, slideScale2, slideScale3, slideScale4]);
+    if (index === 4) return slideScale4;
+    if (index === 5) return slideScale5;
+    return slideScale6;
+  }, [slideScale0, slideScale1, slideScale2, slideScale3, slideScale4, slideScale5, slideScale6]);
 
   // Initialize floating animations
   useEffect(() => {
@@ -1231,11 +1247,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       slideOpacity2.value = 0;
       slideOpacity3.value = 0;
       slideOpacity4.value = 0;
+      slideOpacity5.value = 0;
+      slideOpacity6.value = 0;
       slideScale0.value = 0.9;
       slideScale1.value = 1.5;
       slideScale2.value = 0.9;
       slideScale3.value = 0.9;
       slideScale4.value = 0.9;
+      slideScale5.value = 0.9;
+      slideScale6.value = 0.9;
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;
