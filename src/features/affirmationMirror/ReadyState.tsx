@@ -53,7 +53,13 @@ export function ReadyState({ theme, today, history, onReplay }: Props) {
   return (
     <View style={styles.container}>
       {/* Today's hero card */}
-      <Pressable onPress={onReplay} style={styles.todayWrap}>
+      <Pressable
+        onPress={onReplay}
+        disabled={!onReplay}
+        accessibilityRole="button"
+        accessibilityLabel={`Replay today's affirmation reveal: ${today.affirmation_text}`}
+        style={styles.todayWrap}
+      >
         <LinearGradient
           colors={
             isDark
@@ -91,6 +97,10 @@ export function ReadyState({ theme, today, history, onReplay }: Props) {
                 <Pressable
                   key={item.date_key}
                   onPress={() => setExpandedKey(isOpen ? null : item.date_key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isOpen }}
+                  accessibilityLabel={`${formatHistoryDate(item.date_key)} affirmation`}
+                  accessibilityHint={isOpen ? 'Collapses the full affirmation' : 'Expands the full affirmation'}
                   style={[
                     styles.historyRow,
                     {
