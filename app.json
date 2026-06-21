@@ -115,7 +115,18 @@
           "color": "#59168B"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true },
+              { "name": "RecaptchaInterop", "modular_headers": true }
+            ]
+          }
+        }
+      ]
     ]
   }
 }
