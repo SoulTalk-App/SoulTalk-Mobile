@@ -170,13 +170,12 @@ class AuthService {
   // it, and emails a time-limited secure download link. The call returns once
   // the job is *queued* (not when the file is ready).
   //
-  // ⚠️ ENDPOINT PATH IS PROVISIONAL — so-ruvl was still rebasing at build time.
-  // Contract (from lead): "POST that triggers the job + emails a link." Confirm
-  // the final path + response shape against so-ruvl on merge and adjust here
-  // only (the screen calls this method, not the raw path).
+  // so-ehk7: path confirmed against so-ruvl — the route is POST /api/data-export
+  // and the axios baseURL already ends in /api, so this must be '/data-export'
+  // (the earlier provisional '/privacy/export' 404'd).
   async requestDataExport(): Promise<void> {
     try {
-      await this.axiosInstance.post('/privacy/export');
+      await this.axiosInstance.post('/data-export');
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Could not start your data export');
     }
