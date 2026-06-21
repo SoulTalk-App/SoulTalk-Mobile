@@ -2,21 +2,102 @@ diff --git a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
 index 1111111..2222222 100644
 --- a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
 +++ b/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
-@@ -784,6 +784,17 @@
+@@ -784,7 +784,33 @@
      let audioFormat = Self.getAudioFormat(forEngine: newEngine)
      let mixerNode = AVAudioMixerNode()
      newEngine.attach(mixerNode)
+-    newEngine.connect(inputNode, to: mixerNode, format: audioFormat)
 +
 +    // so-iy21 (SoulTalk patch): AVAudioEngine.connect raises an
 +    // Objective-C NSException (not a Swift Error — uncatchable by the
 +    // do/catch below) when the input format is invalid. Mid-route-change
-+    // the input node's outputFormat reports sampleRate == 0. Skip the
-+    // reconnect; handleAudioRouteChange's fallback emits a recoverable
-+    // .audioRouteChanged and tears down cleanly. Crash ref: TF49
++    // the input node's outputFormat reports sampleRate == 0. First-line
++    // guard: skip the reconnect with a soft-fail; handleAudioRouteChange's
++    // fallback emits a recoverable .audioRouteChanged. Crash ref: TF49
 +    // incident D3E4BF8E-D8F6-42D7-8E4D-00725EC21C05.
 +    guard audioFormat.sampleRate > 0, audioFormat.channelCount > 0 else {
 +      return false
 +    }
-     newEngine.connect(inputNode, to: mixerNode, format: audioFormat)
++
++    // so-p1un (SoulTalk patch): the format guard above is necessary but
++    // not sufficient — AVAudioEngine.connect raises NSException for
++    // several other reasons mid-route-change (channel-count mismatch
++    // with the mixer, hardware sample-rate disagreement, engine still
++    // mid-teardown from the prior session). Build 49 shipped with the
++    // so-iy21 guard and still crashed twice in June. Catch-all shim
++    // wraps the call in @try/@catch; on raise we log + return false to
++    // trigger the existing .audioRouteChanged soft-fail. Soft-fail so
++    // the user can retap to start a new session; never crash.
++    if let caught = SoulTalkSpeechExceptionCatcher.tryBlock({
++      newEngine.connect(inputNode, to: mixerNode, format: audioFormat)
++    }) {
++      NSLog("[SoulTalk so-p1un] AVAudioEngine.connect raised: %@: %@",
++            caught.name.rawValue, caught.reason ?? "(no reason)")
++      return false
++    }
 
      do {
+diff --git a/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h
+@@ -0,0 +1,30 @@
++//
++// SoulTalkSpeechExceptionCatcher.h
++//
++// so-p1un: ObjC shim that wraps a Swift closure in @try/@catch so callers
++// can recover from NSExceptions raised by Cocoa APIs (notably
++// AVAudioEngine.connect:to:format: during audio-route changes). Swift's
++// do/catch only catches Swift Errors, NOT Objective-C NSExceptions; a
++// raised NSException with no @try handler triggers __abort_message and
++// SIGABRTs the process. This file is the catch-all safety net that
++// keeps the so-iy21 fallback path reachable.
++//
++// Lives inside node_modules/expo-speech-recognition/ios/ so it ships
++// with the Pod's autolinked source_files glob and is visible to the
++// module's Swift sources via the auto-generated umbrella header.
++// Patch shipped via patch-package; postinstall in package.json reapplies
++// on every npm/yarn install.
++//
++
++#import <Foundation/Foundation.h>
++
++NS_ASSUME_NONNULL_BEGIN
++
++@interface SoulTalkSpeechExceptionCatcher : NSObject
++
++/// Runs `block` inside an @try/@catch. Returns nil on success, or the
++/// caught NSException on raise. The block is NS_NOESCAPE so Swift can
++/// pass non-escaping closures.
+++ (NSException * _Nullable)tryBlock:(NS_NOESCAPE void (^)(void))block;
++
++@end
++
++NS_ASSUME_NONNULL_END
+diff --git a/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.m b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.m
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.m
+@@ -0,0 +1,18 @@
++//
++// SoulTalkSpeechExceptionCatcher.m
++//
++// so-p1un: see header for rationale.
++//
++
++#import "SoulTalkSpeechExceptionCatcher.h"
++
++@implementation SoulTalkSpeechExceptionCatcher
++
+++ (NSException * _Nullable)tryBlock:(NS_NOESCAPE void (^)(void))block {
++  @try {
++    block();
++    return nil;
++  } @catch (NSException *exception) {
++    return exception;
++  }
++}
++
++@end
