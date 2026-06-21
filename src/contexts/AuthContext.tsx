@@ -218,6 +218,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string;
     first_name: string;
     last_name: string;
+    // so-cbhq / so-8544: required at signup (DOB ISO string + ISO alpha-2).
+    date_of_birth: string;
+    country_code: string;
   }) => {
     try {
       // so-byw: include device TZ from row-zero so daily rollovers are

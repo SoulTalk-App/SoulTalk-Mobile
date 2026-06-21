@@ -33,6 +33,7 @@ import SoulPalNameScreen from "./src/screens/SoulPalNameScreen";
 import SetupCompleteScreen from "./src/screens/SetupCompleteScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import UnderageBlockScreen from "./src/screens/UnderageBlockScreen";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import OTPVerificationScreen from "./src/screens/OTPVerificationScreen";
@@ -133,6 +134,7 @@ const OnboardingStack = () => (
     <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
     <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen name="UnderageBlock" component={UnderageBlockScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
     <Stack.Screen
@@ -224,6 +226,7 @@ const AuthStack = () => (
       }}
     />
     <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+    <Stack.Screen name="UnderageBlock" component={UnderageBlockScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
     <Stack.Screen
