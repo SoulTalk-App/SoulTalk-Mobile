@@ -170,6 +170,22 @@ class AuthService {
     }
   }
 
+  // so-sjua / so-ruvl: CCPA data-portability. Authenticated POST that triggers
+  // a background export job; the backend bundles all user-owned data, uploads
+  // it, and emails a time-limited secure download link. The call returns once
+  // the job is *queued* (not when the file is ready).
+  //
+  // so-ehk7: path confirmed against so-ruvl — the route is POST /api/data-export
+  // and the axios baseURL already ends in /api, so this must be '/data-export'
+  // (the earlier provisional '/privacy/export' 404'd).
+  async requestDataExport(): Promise<void> {
+    try {
+      await this.axiosInstance.post('/data-export');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Could not start your data export');
+    }
+  }
+
   async refreshTokens(): Promise<boolean> {
     // so-605p: delegate to the shared single-flight helper. Concurrent
     // refreshTokens() calls (e.g. from AuthContext app-resume + an
