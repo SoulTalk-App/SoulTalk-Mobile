@@ -420,6 +420,11 @@ const SoulSightScreen = ({ navigation }: any) => {
       <View style={[styles.content, { paddingTop: insets.top + 12 }]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
+          // so-7vun: without this the ScrollView defaults to
+          // keyboardShouldPersistTaps="never", so while the search keyboard is
+          // open the first tap on a filtered result is swallowed by keyboard
+          // dismissal instead of navigating — the search reads as "not working".
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
         >
           {headerCopy}
