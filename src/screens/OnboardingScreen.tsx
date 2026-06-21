@@ -262,11 +262,312 @@ interface SlideContentProps {
   heartSmallFloat: SharedValue<number>;
   sideCharactersScale: SharedValue<number>;
   sideCharactersOpacity: SharedValue<number>;
+  styles: any;
+  colors: ReturnType<typeof useThemeColors>;
+  isDarkMode: boolean;
+  activeLegalTab: 'privacy' | 'terms';
+  handleLegalTabSwitch: (tab: 'privacy' | 'terms') => void;
+  legalScrollRef: React.RefObject<ScrollView>;
 }
 
 // ============================================
 // Main Onboarding Screen
 // ============================================
+// so-awdk: SlideContent hoisted to module scope (follows so-u41t for
+// PaginationDot/NavArrow) so its component identity stays stable across
+// parent re-renders; closure-bound values (styles, theme, legal-tab state)
+// flow in as props. Prevents the whole slide subtree remounting on
+// activeIndex / termsAccepted / legal-tab changes.
+const SlideContent: React.FC<SlideContentProps> = ({
+  slide,
+  opacity,
+  scale,
+  floatY,
+  rotation,
+  decorOpacity,
+  starFloat,
+  heartLargeFloat,
+  heartMediumFloat,
+  heartSmallFloat,
+  sideCharactersScale,
+  sideCharactersOpacity,
+  styles,
+  colors,
+  isDarkMode,
+  activeLegalTab,
+  handleLegalTabSwitch,
+  legalScrollRef,
+}) => {
+  // Main content opacity (text, main character)
+  const containerStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  // Main character animation
+  const characterStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: floatY.value },
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+  }));
+
+  // Side characters (SoulPal left/right) - animate separately
+  const sideCharacterLeftStyle = useAnimatedStyle(() => ({
+    opacity: sideCharactersOpacity.value,
+    transform: [
+      { translateY: floatY.value },
+      { scale: sideCharactersScale.value },
+      { translateX: (1 - sideCharactersScale.value) * 50 }, // Slide in from center
+    ],
+  }));
+
+  const sideCharacterRightStyle = useAnimatedStyle(() => ({
+    opacity: sideCharactersOpacity.value,
+    transform: [
+      { translateY: floatY.value },
+      { scale: sideCharactersScale.value },
+      { translateX: -(1 - sideCharactersScale.value) * 50 }, // Slide in from center
+    ],
+  }));
+
+  const decorStyle = useAnimatedStyle(() => ({
+    opacity: decorOpacity.value,
+  }));
+
+  const starStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: starFloat.value }],
+  }));
+
+  const heartLargeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: heartLargeFloat.value }],
+  }));
+
+  const heartMediumStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: heartMediumFloat.value }],
+  }));
+
+  const heartSmallStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: heartSmallFloat.value }],
+  }));
+
+  const renderCharacter = () => {
+    switch (slide.characterType) {
+      case 'soulpal':
+        // SoulPal slide: main character + animated side characters
+        return (
+          <View style={styles.soulpalComposite}>
+            {/* Side characters animate in separately */}
+            <Animated.Image
+              source={SoulpalLeft}
+              style={[styles.soulpalLeft, sideCharacterLeftStyle]}
+              resizeMode="contain"
+            />
+            <Animated.Image
+              source={SoulpalRight}
+              style={[styles.soulpalRight, sideCharacterRightStyle]}
+              resizeMode="contain"
+            />
+            {/* Main character stays in place (morphs from Welcome character) */}
+            <Image source={SoulpalMain} style={styles.soulpalMain} resizeMode="contain" />
+          </View>
+        );
+      case 'discover':
+        return (
+          <Image source={CharacterDiscover} style={styles.characterImage} resizeMode="contain" />
+        );
+      case 'welcome':
+      default:
+        return (
+          <Image source={CharacterWelcome} style={styles.characterImage} resizeMode="contain" />
+        );
+    }
+  };
+
+  if (slide.characterType === 'terms') {
+    // so-jokw + so-hqu6: terms slide with tabbed Privacy/Terms UX matching
+    // the Settings-accessed TermsScreen. Single ScrollView shows only the
+    // active doc; tab switch resets scroll to top. The "I Accept" CTA
+    // lives in the navigationRow at the bottom (rendered by the parent),
+    // and acceptance covers both docs ("by tapping Accept, you agree to
+    // our Terms and Privacy Policy"). Tab is reset to 'privacy' on
+    // every onboarding entry via the useFocusEffect above.
+    const currentDoc = activeLegalTab === 'privacy' ? privacyPolicy : termsOfService;
+    return (
+      <Animated.View style={[styles.slideContent, styles.termsSlideContent, containerStyle]}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleStart}>{slide.titleStart}</Text>
+          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+        </View>
+        <View style={styles.termsTabRow}>
+          <Pressable
+            style={[
+              styles.termsTab,
+              activeLegalTab === 'privacy' && styles.termsTabActive,
+            ]}
+            onPress={() => handleLegalTabSwitch('privacy')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeLegalTab === 'privacy' }}
+          >
+            <Text
+              style={[
+                styles.termsTabText,
+                activeLegalTab === 'privacy' && styles.termsTabTextActive,
+              ]}
+            >
+              Privacy Policy
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.termsTab,
+              activeLegalTab === 'terms' && styles.termsTabActive,
+            ]}
+            onPress={() => handleLegalTabSwitch('terms')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeLegalTab === 'terms' }}
+          >
+            <Text
+              style={[
+                styles.termsTabText,
+                activeLegalTab === 'terms' && styles.termsTabTextActive,
+              ]}
+            >
+              Terms of Service
+            </Text>
+          </Pressable>
+        </View>
+        <View style={styles.termsScrollFrame}>
+          <ScrollView
+            ref={legalScrollRef}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.termsScrollContent}
+            nestedScrollEnabled
+          >
+            <Text style={styles.termsEffective}>
+              Effective: {currentDoc.effectiveDate}
+            </Text>
+            <Text style={styles.termsBody}>{currentDoc.content}</Text>
+          </ScrollView>
+        </View>
+      </Animated.View>
+    );
+  }
+
+  if (slide.characterType === 'features') {
+    // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
+    // emphasized privacy promise, all centered vertically in the available
+    // space between the safe-area top and the bottom bar.
+    return (
+      <Animated.View
+        style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
+      >
+        <View style={styles.featuresInner}>
+          <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
+            <Text style={styles.titleStart}>{slide.titleStart}</Text>
+            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+          </View>
+          <View style={styles.featuresList}>
+            {slide.features?.map((f) => (
+              <View key={f.name} style={styles.featureRow}>
+                <Feather
+                  name={f.icon}
+                  size={24}
+                  color={isDarkMode ? colors.white : colors.text.primary}
+                  style={styles.featureIcon}
+                />
+                <View style={styles.featureText}>
+                  <Text style={styles.featureName}>{f.name}</Text>
+                  <Text style={styles.featureDesc}>{f.desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          {slide.privacyLine && (
+            <View style={styles.privacyBlock}>
+              <View style={styles.privacyDivider} />
+              <View style={styles.privacyRow}>
+                <Feather
+                  name="lock"
+                  size={14}
+                  color={isDarkMode ? colors.white : colors.text.primary}
+                  style={styles.privacyLeadIcon}
+                />
+                <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View style={[styles.slideContent, containerStyle]}>
+      {/* Title */}
+      <View style={styles.titleContainer}>
+        <Text style={styles.titleStart}>{slide.titleStart}</Text>
+        <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+      </View>
+
+      {/* Character with decorations */}
+      <View style={styles.characterWrapper}>
+        <Animated.View style={[styles.characterContainer, characterStyle]}>
+          {/* Decorations - Welcome slide (star and hearts) */}
+          {slide.characterType === 'welcome' && (
+            <Animated.View style={[styles.decorationsContainer, decorStyle]}>
+              <Animated.Image
+                source={StarDecoration}
+                style={[styles.decorStar, starStyle]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={HeartLarge}
+                style={[styles.decorHeartLarge, heartLargeStyle]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={HeartMedium}
+                style={[styles.decorHeartMedium, heartMediumStyle]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={HeartSmall}
+                style={[styles.decorHeartSmall, heartSmallStyle]}
+                resizeMode="contain"
+              />
+            </Animated.View>
+          )}
+
+          {/* Decorations - Discover slide (icons) */}
+          {slide.characterType === 'discover' && (
+            <View style={styles.decorationsContainer}>
+              {/* Notebook icon - 11 o'clock position */}
+              <Animated.View style={[styles.discoverIconLeft, starStyle]}>
+                <Image source={DiscoverIconTop} style={styles.discoverIconImage} resizeMode="contain" />
+              </Animated.View>
+              {/* Speech bubble icon - 12 o'clock position */}
+              <Animated.View style={[styles.discoverIconTop, heartLargeStyle]}>
+                <Image source={DiscoverIconRight} style={styles.discoverIconImage} resizeMode="contain" />
+              </Animated.View>
+              {/* Pentagon/spiral icon - 1 o'clock position */}
+              <Animated.View style={[styles.discoverIconRight, heartMediumStyle]}>
+                <Image source={DiscoverIconLeft} style={styles.discoverIconImage} resizeMode="contain" />
+              </Animated.View>
+            </View>
+          )}
+
+          {/* Character image */}
+          {renderCharacter()}
+        </Animated.View>
+      </View>
+
+      {/* Tagline */}
+      <Text style={styles.tagline}>{slide.tagline}</Text>
+    </Animated.View>
+  );
+};
+
 const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
@@ -698,297 +999,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       }),
     [colors, isDarkMode]
   );
-
-  // so-u41t: PaginationDot + NavArrow hoisted to module scope above so
-  // their identities stay stable across parent re-renders (Reanimated
-  // shared values are no longer reseeded every keystroke).
-
-  // ============================================
-  // Slide Content Component (for crossfade)
-  // ============================================
-  const SlideContent: React.FC<SlideContentProps> = ({
-    slide,
-    opacity,
-    scale,
-    floatY,
-    rotation,
-    decorOpacity,
-    starFloat,
-    heartLargeFloat,
-    heartMediumFloat,
-    heartSmallFloat,
-    sideCharactersScale,
-    sideCharactersOpacity,
-  }) => {
-    // Main content opacity (text, main character)
-    const containerStyle = useAnimatedStyle(() => ({
-      opacity: opacity.value,
-    }));
-
-    // Main character animation
-    const characterStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateY: floatY.value },
-        { scale: scale.value },
-        { rotate: `${rotation.value}deg` },
-      ],
-    }));
-
-    // Side characters (SoulPal left/right) - animate separately
-    const sideCharacterLeftStyle = useAnimatedStyle(() => ({
-      opacity: sideCharactersOpacity.value,
-      transform: [
-        { translateY: floatY.value },
-        { scale: sideCharactersScale.value },
-        { translateX: (1 - sideCharactersScale.value) * 50 }, // Slide in from center
-      ],
-    }));
-
-    const sideCharacterRightStyle = useAnimatedStyle(() => ({
-      opacity: sideCharactersOpacity.value,
-      transform: [
-        { translateY: floatY.value },
-        { scale: sideCharactersScale.value },
-        { translateX: -(1 - sideCharactersScale.value) * 50 }, // Slide in from center
-      ],
-    }));
-
-    const decorStyle = useAnimatedStyle(() => ({
-      opacity: decorOpacity.value,
-    }));
-
-    const starStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: starFloat.value }],
-    }));
-
-    const heartLargeStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: heartLargeFloat.value }],
-    }));
-
-    const heartMediumStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: heartMediumFloat.value }],
-    }));
-
-    const heartSmallStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: heartSmallFloat.value }],
-    }));
-
-    const renderCharacter = () => {
-      switch (slide.characterType) {
-        case 'soulpal':
-          // SoulPal slide: main character + animated side characters
-          return (
-            <View style={styles.soulpalComposite}>
-              {/* Side characters animate in separately */}
-              <Animated.Image
-                source={SoulpalLeft}
-                style={[styles.soulpalLeft, sideCharacterLeftStyle]}
-                resizeMode="contain"
-              />
-              <Animated.Image
-                source={SoulpalRight}
-                style={[styles.soulpalRight, sideCharacterRightStyle]}
-                resizeMode="contain"
-              />
-              {/* Main character stays in place (morphs from Welcome character) */}
-              <Image source={SoulpalMain} style={styles.soulpalMain} resizeMode="contain" />
-            </View>
-          );
-        case 'discover':
-          return (
-            <Image source={CharacterDiscover} style={styles.characterImage} resizeMode="contain" />
-          );
-        case 'welcome':
-        default:
-          return (
-            <Image source={CharacterWelcome} style={styles.characterImage} resizeMode="contain" />
-          );
-      }
-    };
-
-    if (slide.characterType === 'terms') {
-      // so-jokw + so-hqu6: terms slide with tabbed Privacy/Terms UX matching
-      // the Settings-accessed TermsScreen. Single ScrollView shows only the
-      // active doc; tab switch resets scroll to top. The "I Accept" CTA
-      // lives in the navigationRow at the bottom (rendered by the parent),
-      // and acceptance covers both docs ("by tapping Accept, you agree to
-      // our Terms and Privacy Policy"). Tab is reset to 'privacy' on
-      // every onboarding entry via the useFocusEffect above.
-      const currentDoc = activeLegalTab === 'privacy' ? privacyPolicy : termsOfService;
-      return (
-        <Animated.View style={[styles.slideContent, styles.termsSlideContent, containerStyle]}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.titleStart}>{slide.titleStart}</Text>
-            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-          </View>
-          <View style={styles.termsTabRow}>
-            <Pressable
-              style={[
-                styles.termsTab,
-                activeLegalTab === 'privacy' && styles.termsTabActive,
-              ]}
-              onPress={() => handleLegalTabSwitch('privacy')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeLegalTab === 'privacy' }}
-            >
-              <Text
-                style={[
-                  styles.termsTabText,
-                  activeLegalTab === 'privacy' && styles.termsTabTextActive,
-                ]}
-              >
-                Privacy Policy
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.termsTab,
-                activeLegalTab === 'terms' && styles.termsTabActive,
-              ]}
-              onPress={() => handleLegalTabSwitch('terms')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeLegalTab === 'terms' }}
-            >
-              <Text
-                style={[
-                  styles.termsTabText,
-                  activeLegalTab === 'terms' && styles.termsTabTextActive,
-                ]}
-              >
-                Terms of Service
-              </Text>
-            </Pressable>
-          </View>
-          <View style={styles.termsScrollFrame}>
-            <ScrollView
-              ref={legalScrollRef}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.termsScrollContent}
-              nestedScrollEnabled
-            >
-              <Text style={styles.termsEffective}>
-                Effective: {currentDoc.effectiveDate}
-              </Text>
-              <Text style={styles.termsBody}>{currentDoc.content}</Text>
-            </ScrollView>
-          </View>
-        </Animated.View>
-      );
-    }
-
-    if (slide.characterType === 'features') {
-      // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
-      // emphasized privacy promise, all centered vertically in the available
-      // space between the safe-area top and the bottom bar.
-      return (
-        <Animated.View
-          style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
-        >
-          <View style={styles.featuresInner}>
-            <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
-              <Text style={styles.titleStart}>{slide.titleStart}</Text>
-              <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-            </View>
-            <View style={styles.featuresList}>
-              {slide.features?.map((f) => (
-                <View key={f.name} style={styles.featureRow}>
-                  <Feather
-                    name={f.icon}
-                    size={24}
-                    color={isDarkMode ? colors.white : colors.text.primary}
-                    style={styles.featureIcon}
-                  />
-                  <View style={styles.featureText}>
-                    <Text style={styles.featureName}>{f.name}</Text>
-                    <Text style={styles.featureDesc}>{f.desc}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-            {slide.privacyLine && (
-              <View style={styles.privacyBlock}>
-                <View style={styles.privacyDivider} />
-                <View style={styles.privacyRow}>
-                  <Feather
-                    name="lock"
-                    size={14}
-                    color={isDarkMode ? colors.white : colors.text.primary}
-                    style={styles.privacyLeadIcon}
-                  />
-                  <Text style={styles.privacyLine}>{slide.privacyLine}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-      );
-    }
-
-    return (
-      <Animated.View style={[styles.slideContent, containerStyle]}>
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleStart}>{slide.titleStart}</Text>
-          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-        </View>
-
-        {/* Character with decorations */}
-        <View style={styles.characterWrapper}>
-          <Animated.View style={[styles.characterContainer, characterStyle]}>
-            {/* Decorations - Welcome slide (star and hearts) */}
-            {slide.characterType === 'welcome' && (
-              <Animated.View style={[styles.decorationsContainer, decorStyle]}>
-                <Animated.Image
-                  source={StarDecoration}
-                  style={[styles.decorStar, starStyle]}
-                  resizeMode="contain"
-                />
-                <Animated.Image
-                  source={HeartLarge}
-                  style={[styles.decorHeartLarge, heartLargeStyle]}
-                  resizeMode="contain"
-                />
-                <Animated.Image
-                  source={HeartMedium}
-                  style={[styles.decorHeartMedium, heartMediumStyle]}
-                  resizeMode="contain"
-                />
-                <Animated.Image
-                  source={HeartSmall}
-                  style={[styles.decorHeartSmall, heartSmallStyle]}
-                  resizeMode="contain"
-                />
-              </Animated.View>
-            )}
-
-            {/* Decorations - Discover slide (icons) */}
-            {slide.characterType === 'discover' && (
-              <View style={styles.decorationsContainer}>
-                {/* Notebook icon - 11 o'clock position */}
-                <Animated.View style={[styles.discoverIconLeft, starStyle]}>
-                  <Image source={DiscoverIconTop} style={styles.discoverIconImage} resizeMode="contain" />
-                </Animated.View>
-                {/* Speech bubble icon - 12 o'clock position */}
-                <Animated.View style={[styles.discoverIconTop, heartLargeStyle]}>
-                  <Image source={DiscoverIconRight} style={styles.discoverIconImage} resizeMode="contain" />
-                </Animated.View>
-                {/* Pentagon/spiral icon - 1 o'clock position */}
-                <Animated.View style={[styles.discoverIconRight, heartMediumStyle]}>
-                  <Image source={DiscoverIconLeft} style={styles.discoverIconImage} resizeMode="contain" />
-                </Animated.View>
-              </View>
-            )}
-
-            {/* Character image */}
-            {renderCharacter()}
-          </Animated.View>
-        </View>
-
-        {/* Tagline */}
-        <Text style={styles.tagline}>{slide.tagline}</Text>
-      </Animated.View>
-    );
-  };
+  // SlideContent is hoisted to module scope (see so-awdk block above).
 
   // Opacity values for crossfade effect
   const slideOpacity0 = useSharedValue(1);
@@ -1343,6 +1354,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 heartSmallFloat={heartSmallFloat}
                 sideCharactersScale={sideCharactersScale}
                 sideCharactersOpacity={sideCharactersOpacity}
+                styles={styles}
+                colors={colors}
+                isDarkMode={isDarkMode}
+                activeLegalTab={activeLegalTab}
+                handleLegalTabSwitch={handleLegalTabSwitch}
+                legalScrollRef={legalScrollRef}
               />
             ))}
           </Animated.View>
