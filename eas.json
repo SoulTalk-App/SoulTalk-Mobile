@@ -26,9 +26,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "dev@soultalkapp.com",
         "ascAppId": "6759283325",
-        "appleTeamId": "7ZL49383C4"
+        "appleTeamId": "7ZL49383C4",
+        "ascApiKeyPath": "../AuthKey_DL5SC5P48T.p8",
+        "ascApiKeyId": "DL5SC5P48T",
+        "ascApiKeyIssuerId": "3b04ee28-1f50-4b31-b456-ae5cd8cedd57"
       }
     }
   }
