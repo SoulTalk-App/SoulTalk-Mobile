@@ -18,6 +18,7 @@ import SoulPalAnimated from '../components/SoulPalAnimated';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 import { useMountedRef } from '../hooks';
+import AIGeneratedLabel from '../components/AIGeneratedLabel';
 
 // so-jb0t: BE appends generate_safety_redirect text to the LLM reflection
 // when mode === 'CRISIS_OVERRIDE'. The redirect block always opens with this
@@ -258,6 +259,12 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           <View style={isDarkMode ? dk.aiLabelRow : lt.aiLabelRow}>
             {isDarkMode && <SoulPalAnimated size={32} animate={false} />}
             <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
+            {/* so-7r4y: persistent AI-disclosure label next to the
+                SoulPal name header — every journal AI response gets
+                tagged so the user always sees the disclosure where the
+                content surfaces. tone="auto" picks the right palette
+                per active theme. */}
+            <AIGeneratedLabel size="compact" tone="auto" style={{ marginLeft: 8 }} />
           </View>
           {entry!.ai_response?.text ? (() => {
             const raw = entry!.ai_response.text.replace(/\*+/g, '');

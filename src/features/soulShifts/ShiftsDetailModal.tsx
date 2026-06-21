@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, fonts } from '../../theme';
 import { formatRelativeTime } from '../../utils/time';
+import AIGeneratedLabel from '../../components/AIGeneratedLabel';
 import { ShiftDetail, SoulpalVariant, STAGES } from './types';
 import {
   PINK,
@@ -240,6 +241,16 @@ export function ShiftsDetailModal({
               >
                 {displayTitle}
               </Text>
+
+              {/* so-7r4y / so-oj9j MAJOR-2: persistent AI-disclosure label
+                  on every SoulShift modal — Shifts narratives are AI-generated
+                  but were missing from the initial so-7r4y rollout. tone
+                  follows theme so contrast is correct on both palettes. */}
+              <AIGeneratedLabel
+                size="compact"
+                tone={isDark ? 'light' : 'dark'}
+                style={{ marginTop: 6, marginBottom: 10 }}
+              />
 
               <View style={styles.stepperWrap}>
                 <StageStepper shift={detail} theme={theme} />
