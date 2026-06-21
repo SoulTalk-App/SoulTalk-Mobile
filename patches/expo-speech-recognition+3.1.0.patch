@@ -2,7 +2,7 @@ diff --git a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
 index 1111111..2222222 100644
 --- a/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
 +++ b/node_modules/expo-speech-recognition/ios/ExpoSpeechRecognizer.swift
-@@ -784,7 +784,33 @@
+@@ -784,6 +784,33 @@
      let audioFormat = Self.getAudioFormat(forEngine: newEngine)
      let mixerNode = AVAudioMixerNode()
      newEngine.attach(mixerNode)
@@ -35,14 +35,14 @@ index 1111111..2222222 100644
 +            caught.name.rawValue, caught.reason ?? "(no reason)")
 +      return false
 +    }
-
+ 
      do {
 diff --git a/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h
 new file mode 100644
 index 0000000..3333333
 --- /dev/null
 +++ b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.h
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,32 @@
 +//
 +// SoulTalkSpeechExceptionCatcher.h
 +//
@@ -80,7 +80,7 @@ new file mode 100644
 index 0000000..4444444
 --- /dev/null
 +++ b/node_modules/expo-speech-recognition/ios/SoulTalkSpeechExceptionCatcher.m
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,20 @@
 +//
 +// SoulTalkSpeechExceptionCatcher.m
 +//
