@@ -156,6 +156,8 @@ const SettingsScreen = ({ navigation }: any) => {
   // leaves a persisted draft; surface a non-blocking retry affordance.
   const [pendingSaveFailed, setPendingSaveFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  // so-sjua: in-flight guard for the data-export request.
+  const [exportingData, setExportingData] = useState(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
   // restored draft) has run, so we don't autosave an empty form or clobber
@@ -361,6 +363,28 @@ const SettingsScreen = ({ navigation }: any) => {
     navigation.navigate('ChangePassword');
   };
 
+  // so-sjua: CCPA data export. Kicks the background job via the service, then
+  // confirms. In-progress state disables the row so a double-tap can't queue
+  // two jobs; errors surface a retryable alert.
+  const handleExportData = async () => {
+    if (exportingData) return;
+    setExportingData(true);
+    try {
+      await authService.requestDataExport();
+      Alert.alert(
+        'Preparing your data',
+        "We're preparing your data. You'll get an email with a secure download link shortly.",
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Export failed',
+        error?.message || 'Could not start your data export. Please try again.',
+      );
+    } finally {
+      setExportingData(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       // so-5eu1: belt-and-suspenders — drop this user's local profile draft on
@@ -544,6 +568,21 @@ const SettingsScreen = ({ navigation }: any) => {
             })}
           </View>
         </View>
+
+        {/* Export My Data (so-sjua — CCPA portability) */}
+        <View style={styles.separator} />
+        <Pressable
+          onPress={handleExportData}
+          disabled={exportingData}
+          style={styles.resetButton}
+          accessibilityRole="button"
+          accessibilityLabel="Export my data"
+          accessibilityState={{ disabled: exportingData, busy: exportingData }}
+        >
+          <Text style={styles.resetButtonText}>
+            {exportingData ? 'PREPARING…' : 'EXPORT MY DATA'}
+          </Text>
+        </Pressable>
 
         {/* Log Out */}
         <Pressable onPress={handleLogout}>
