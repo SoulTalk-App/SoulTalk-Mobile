@@ -90,7 +90,7 @@ const HomeScreen = ({ navigation }: any) => {
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
-  const { soulBar, fetchSoulBar, hasEntryToday } = useJournal();
+  const { soulBar, fetchSoulBar, hasEntryToday, fetchEntries } = useJournal();
 
   // SoulBar wiring (canonical GreetingHero).
   const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
@@ -873,15 +873,23 @@ const HomeScreen = ({ navigation }: any) => {
     [colors]
   );
 
-  // Refresh soul bar and mood whenever Home screen gains focus
+  // Refresh soul bar, entries and mood whenever Home screen gains focus
   useFocusEffect(
     useCallback(() => {
-      // so-urv4 #1: parallelize the two refresh calls via Promise.all so
-      // the parallelism is semantic, not incidental fire-and-forget. One
-      // .catch site for both, and any future awaiter (e.g. a refresh
-      // spinner) only blocks once.
+      // so-urv4 #1: parallelize the refresh calls via Promise.all so the
+      // parallelism is semantic, not incidental fire-and-forget. One .catch
+      // site for all, and any future awaiter (e.g. a refresh spinner) only
+      // blocks once.
+      // so-3yp4: also re-fetch entries on focus. The entry count / "journaled
+      // today" state (hasEntryToday) is derived from the entries list, which
+      // was only ever populated by JournalScreen — so after creating an entry
+      // and returning (or on a fresh launch that lands on Home), Home showed a
+      // stale count. An unfiltered fetch keeps it authoritative; JournalScreen
+      // re-fetches (and re-applies its filters) on its own mount, so this does
+      // not disturb a filtered list.
       Promise.all([
         fetchSoulBar(),
+        fetchEntries(),
         JournalService.getTodayMood().then((data) => {
           if (data.mood_word) {
             setMoodWord(data.mood_word);
@@ -889,7 +897,7 @@ const HomeScreen = ({ navigation }: any) => {
           }
         }),
       ]).catch(() => {});
-    }, [fetchSoulBar])
+    }, [fetchSoulBar, fetchEntries])
   );
 
   // so-loo3: tab raise/label animations moved into BottomTabBar (extracted
