@@ -41,7 +41,12 @@ const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
   onTap,
   style,
 }) => {
-  const { bodyImage, eyesImage } = useSoulPal();
+  const { bodyImage, homeImage, eyesImage } = useSoulPal();
+
+  // Celebratory poses use the cheerful, arms-up artwork (home_<id>.png);
+  // every other pose uses the resting body (body_<id>.png). The arms-down
+  // body reads as "sad" on celebratory surfaces (so-vwu1).
+  const poseImage = pose === 'celebrating' || pose === 'home' ? homeImage : bodyImage;
 
   // Idle animations
   const breatheScale = useSharedValue(1);
@@ -178,7 +183,7 @@ const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
   const content = (
     <Animated.View style={[styles.container, { width: imageWidth, height: imageHeight }, bodyStyle, style]}>
       <Image
-        source={bodyImage}
+        source={poseImage}
         style={{ width: imageWidth, height: imageHeight }}
         resizeMode="contain"
       />

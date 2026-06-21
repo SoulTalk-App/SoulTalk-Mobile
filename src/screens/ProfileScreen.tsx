@@ -215,7 +215,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <GlassCard style={dk.soulPalCard}>
             <View style={dk.soulPalCardInner}>
               <View style={dk.soulPalCharArea}>
-                <SoulPalAnimated pose="profile" size={65} animate={true} />
+                <SoulPalAnimated pose="celebrating" size={65} animate={true} />
               </View>
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
@@ -369,7 +369,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={lt.soulPalCard}>
           <View style={lt.soulPalCardInner}>
             <View style={lt.soulPalCharArea}>
-              <SoulPalAnimated pose="profile" size={65} animate={true} />
+              <SoulPalAnimated pose="celebrating" size={65} animate={true} />
             </View>
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>
