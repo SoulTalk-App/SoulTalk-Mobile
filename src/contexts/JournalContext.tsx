@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import JournalService, {
   JournalEntry,
   Mood,
@@ -9,6 +10,22 @@ import JournalService, {
 import { useWS } from './WebSocketContext';
 import { useAuth } from './AuthContext';
 import { getDeviceTimezone } from '../utils/timezone';
+
+// so-hl09: persisted finalize-intent payload. If finalizeDraft fails
+// (network drop mid-PUT), we stash the intent and retry on the next
+// app launch so the entry doesn't sit stranded as a draft. Per-user
+// scoped to prevent cross-user bleed on a shared device.
+const PENDING_FINALIZE_KEY_PREFIX = '@soultalk_pending_finalize';
+const pendingFinalizeKey = (userId: string) =>
+  `${PENDING_FINALIZE_KEY_PREFIX}:${userId}`;
+const MAX_FINALIZE_RETRY_ATTEMPTS = 5;
+
+interface PendingFinalize {
+  draftId: string;
+  text: string;
+  mood?: Mood;
+  attempts: number;
+}
 
 interface JournalContextType {
   entries: JournalEntry[];
@@ -28,6 +45,9 @@ interface JournalContextType {
   fetchSoulBar: () => Promise<void>;
   saveDraft: (text: string, mood?: Mood, draftId?: string) => Promise<JournalEntry>;
   finalizeDraft: (draftId: string, text: string, mood?: Mood) => Promise<JournalEntry>;
+  // so-hl09: persist a failed finalize so the next launch can retry it.
+  // Called by CreateJournalScreen.handleSave's catch on network failure.
+  persistPendingFinalize: (draftId: string, text: string, mood?: Mood) => Promise<void>;
 }
 
 const JournalContext = createContext<JournalContextType | undefined>(undefined);
@@ -133,6 +153,87 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     fetchSoulBar();
   }, [fetchStreak, fetchSoulBar]);
 
+  // so-hl09: persist + retry finalize intent. If finalizeDraft fails
+  // mid-PUT (network drop, app backgrounded), the draftId/text/mood
+  // payload is stashed under a per-user key; the next app launch picks
+  // it up and re-attempts the PUT is_draft:false. PUT is_draft:false is
+  // idempotent on the BE so the retry is safe even if the original
+  // request actually succeeded — the second PUT no-ops the BE side.
+  // A 409 (so-z961: BE will hard-block published->draft, also surfaces
+  // for already-finalized entries) is treated as "already published,
+  // drop the pending intent and move on."
+  const persistPendingFinalize = useCallback(
+    async (draftId: string, text: string, mood?: Mood) => {
+      const userId = user?.id;
+      if (!userId) return;
+      const payload: PendingFinalize = { draftId, text, mood, attempts: 0 };
+      try {
+        await AsyncStorage.setItem(
+          pendingFinalizeKey(userId),
+          JSON.stringify(payload),
+        );
+      } catch (err) {
+        console.warn('[JournalContext] persistPendingFinalize failed:', err);
+      }
+    },
+    [user?.id],
+  );
+
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+    const key = pendingFinalizeKey(userId);
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(key);
+        if (!raw || cancelled) return;
+        let payload: PendingFinalize;
+        try {
+          payload = JSON.parse(raw);
+        } catch {
+          await AsyncStorage.removeItem(key);
+          return;
+        }
+        if (!payload?.draftId || (payload.attempts ?? 0) >= MAX_FINALIZE_RETRY_ATTEMPTS) {
+          await AsyncStorage.removeItem(key);
+          return;
+        }
+        try {
+          await JournalService.updateEntry(payload.draftId, {
+            raw_text: payload.text,
+            mood: payload.mood,
+            is_draft: false,
+          });
+          await AsyncStorage.removeItem(key);
+          // Re-fetch streak + soulBar in case the BE awarded points on
+          // the retried finalize.
+          fetchStreak();
+          fetchSoulBar();
+        } catch (err: any) {
+          const status = err?.response?.status;
+          if (status === 409) {
+            // so-z961: BE rejects published->draft AND treats a finalize
+            // on an already-finalized entry as a 409. Either way, the
+            // intent is satisfied — drop it.
+            await AsyncStorage.removeItem(key);
+            return;
+          }
+          // Network / 5xx — bump attempts and leave for the next launch.
+          const next: PendingFinalize = { ...payload, attempts: (payload.attempts ?? 0) + 1 };
+          try {
+            await AsyncStorage.setItem(key, JSON.stringify(next));
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('[JournalContext] flushPendingFinalize threw:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, fetchStreak, fetchSoulBar]);
+
   const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false) => {
     const entry = await JournalService.createEntry(rawText, mood, isDraft);
     if (!isDraft) {
@@ -183,6 +284,24 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
 
   const saveDraft = useCallback(async (text: string, mood?: Mood, draftId?: string) => {
     if (draftId) {
+      // so-hl09: belt-and-suspenders guard against the autosave-after-
+      // finalize race. CreateJournalScreen.handleSave now cancels the
+      // autosave timer + nulls draftId on finalize success, but if a
+      // saveDraft call still slips through (e.g. a tick that already
+      // started in the JS event loop before cancel() fired), do not
+      // resurrect the published entry by PUT'ing is_draft:true. Look up
+      // the draftId in entries-state; if it resolves to is_draft:false,
+      // no-op and return the existing entry. The audit on so-z961 will
+      // make the BE 409 published->draft transitions; this catches it
+      // client-side first so we never even send the bad PUT.
+      const existing = entriesRef.current.find((e) => e.id === draftId);
+      if (existing && existing.is_draft === false) {
+        console.warn(
+          '[JournalContext] so-hl09: refused saveDraft against finalized entry',
+          draftId,
+        );
+        return existing;
+      }
       return await JournalService.updateEntry(draftId, { raw_text: text, mood, is_draft: true });
     }
     return await JournalService.createEntry(text, mood, true);
@@ -250,6 +369,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       fetchSoulBar,
       saveDraft,
       finalizeDraft,
+      persistPendingFinalize,
     }),
     [
       entries,
@@ -268,6 +388,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       fetchSoulBar,
       saveDraft,
       finalizeDraft,
+      persistPendingFinalize,
     ],
   );
 
