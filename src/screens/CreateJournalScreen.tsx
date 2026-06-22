@@ -51,7 +51,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { createEntry, updateEntry, finalizeDraft, entries } = useJournal();
+  const { createEntry, updateEntry, finalizeDraft, entries, persistPendingFinalize } = useJournal();
 
   const dkS = useMemo(
     () =>
@@ -115,8 +115,11 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const [analysisDone, setAnalysisDone] = useState(false);
   const savedEntryIdRef = React.useRef<string | null>(null);
 
-  // Auto-save hook (only for new entries, not edits of existing non-drafts)
-  useAutoSave({
+  // Auto-save hook (only for new entries, not edits of existing non-drafts).
+  // so-hl09: cancel() is the imperative kill-switch we fire on finalize
+  // success so a still-pending 30s tick can't race the publish PUT and
+  // re-draft it.
+  const { cancel: cancelAutoSave } = useAutoSave({
     text,
     mood: undefined,
     draftId,
@@ -207,18 +210,32 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       return;
     }
     setIsSaving(true);
+    // so-hl09: snapshot the draftId BEFORE any state changes — we need
+    // the original id both for persistPendingFinalize on failure and as
+    // the source of truth for which entry to finalize. setDraftId(null)
+    // below would otherwise lose the value before the catch can stash it.
+    const finalizingDraftId = draftId;
+    const finalizingText = text.trim();
     try {
       let entryId: string | null = null;
-      if (draftId) {
-        const result = await finalizeDraft(draftId, text.trim());
-        entryId = result?.id || draftId;
+      if (finalizingDraftId) {
+        // so-hl09: kill the autosave timer FIRST + drop the draftId from
+        // screen state so even a JS-event-loop-queued saveNow that
+        // executes after this point sees no draftId and cannot resurrect
+        // the entry. Done before the PUT — if the PUT fails, the catch
+        // re-arms the local-draft recovery path; if the PUT succeeds we
+        // navigate away and the screen unmounts the autosave hook.
+        cancelAutoSave();
+        setDraftId(null);
+        const result = await finalizeDraft(finalizingDraftId, finalizingText);
+        entryId = result?.id || finalizingDraftId;
       } else if (isEdit) {
         await updateEntry(editEntry.id, {
-          raw_text: text.trim(),
+          raw_text: finalizingText,
         });
         entryId = editEntry.id;
       } else {
-        const result = await createEntry(text.trim());
+        const result = await createEntry(finalizingText);
         entryId = result?.id || null;
       }
       savedEntryIdRef.current = entryId;
@@ -238,7 +255,25 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         : detail;
       if (status === 409) {
         Alert.alert('Daily Limit', detailMsg || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
+      } else if (status === 400 && /max(imum)?\s*edits|edit\s*limit/i.test(detailMsg || '')) {
+        // so-uba4: BE returns 400 with a max-edits message when the user
+        // has exhausted the 3-edit cap. The generic "Failed to save entry"
+        // dialog was misleading — give them the actual reason.
+        Alert.alert(
+          'Edit limit reached',
+          detailMsg || "You've reached the maximum of 3 edits for this entry.",
+        );
       } else {
+        // so-hl09: stash a finalize-retry intent for any non-409 failure
+        // on the draft-finalize path — typically network drop or 5xx.
+        // The next app launch's flushPendingFinalize will re-attempt the
+        // PUT is_draft:false (idempotent on the BE). Without this, a
+        // dropped finalize lost the entry as a stranded draft (the bug
+        // that hit Chey). 409 is handled above + intentionally not
+        // persisted (daily-limit gate).
+        if (finalizingDraftId) {
+          persistPendingFinalize(finalizingDraftId, finalizingText).catch(() => {});
+        }
         Alert.alert('Error', detailMsg || error.message || 'Failed to save entry');
       }
       setIsSaving(false);
@@ -270,6 +305,15 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     const poll = async () => {
       while (!cancelled) {
         if (attempts >= MAX_ATTEMPTS) {
+          // so-uba4: timed out waiting for the AI re-run. Don't pretend
+          // this was a clean completion — log so field traces capture
+          // it, then dismiss the save-animation. The detail screen
+          // (JournalEntryScreen) re-arms its own poll on focus and will
+          // surface the failure inline with a retry affordance if the
+          // BE never settles. User isn't stranded on this loader.
+          console.warn(
+            '[CreateJournalScreen] so-uba4: AI poll timed out, dismissing save-animation',
+          );
           if (!cancelled) setAnalysisDone(true);
           return;
         }
@@ -277,12 +321,24 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         try {
           const entry = await JournalService.getEntry(id);
           const status = entry.ai_processing_status;
+          if (status === 'failed') {
+            // so-uba4: same telemetry log for hard failures. Detail
+            // screen will render the failure text + retry row.
+            console.warn(
+              '[CreateJournalScreen] so-uba4: AI processing failed for entry',
+              id,
+            );
+          }
           if (status === 'complete' || status === 'failed') {
             if (!cancelled) setAnalysisDone(true);
             return;
           }
-        } catch {
-          // Silent retry — transient network errors shouldn't kill the loop.
+        } catch (err) {
+          // so-uba4: surface mid-poll fetch errors via a log instead of
+          // a bare catch{}. Behavior unchanged (transient errors still
+          // don't kill the loop — we just no longer pretend they didn't
+          // happen).
+          console.warn('[CreateJournalScreen] so-uba4: AI poll fetch error:', err);
         }
         await new Promise((r) => setTimeout(r, POLL_MS));
       }

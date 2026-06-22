@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
@@ -193,6 +194,13 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   // (same crash class as so-3i78). Uses the so-pw5d useMountedRef primitive.
   const mountedRef = useMountedRef();
 
+  // so-uba4: track AI-refresh surfacing — set when the detail poll runs
+  // into a failed status OR times out (MAX_POLL_ATTEMPTS). Render a
+  // non-blocking inline "Couldn't refresh insight — tap to retry" so the
+  // user isn't silently shown a stale ai_response. Clearing the flag
+  // resets the poll budget and re-arms the existing 5s loop.
+  const [aiRefreshError, setAiRefreshError] = useState(false);
+
   useEffect(() => {
     JournalService.getEntry(entryId)
       .then((fetched) => {
@@ -203,6 +211,34 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         if (found && mountedRef.current) setEntry(found);
       });
   }, [entryId]);
+
+  // so-uba4: refetch on screen focus. Returning from the editor (which
+  // goBack()s here for edits) didn't change entryId, so the entryId-keyed
+  // effect above never re-ran and the user saw the pre-edit text + stale
+  // ai_response + edit_count 0/3. useFocusEffect runs on every focus
+  // gain after the initial mount — fresh state every time the user lands
+  // on this screen. Skip the very first focus (the entryId effect already
+  // covers initial mount) by tracking a flag.
+  const initialFocusRef = React.useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (initialFocusRef.current) {
+        initialFocusRef.current = false;
+        return;
+      }
+      // Clear any lingering surfaced AI-refresh error on re-focus — the
+      // refetch below will arm a fresh poll cycle.
+      setAiRefreshError(false);
+      JournalService.getEntry(entryId)
+        .then((fetched) => {
+          if (mountedRef.current) setEntry(fetched);
+        })
+        .catch(() => {
+          // Stay on the prior entry view if the refetch fails (network);
+          // the user can tap back/forward to retry. Don't blank the screen.
+        });
+    }, [entryId, mountedRef]),
+  );
 
   useEffect(() => {
     const found = entries.find((e) => e.id === entryId);
@@ -221,27 +257,78 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
 
   useEffect(() => {
     if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.is_draft) return;
+    if (aiRefreshError) return; // so-uba4: stop polling once we've surfaced the error; resume on retry tap.
     // so-urv4 #3: cancelled flag scoped to this poll session. clearInterval
     // stops future ticks but doesn't cancel an in-flight tick's await —
     // setEntry could land on an unmounted/blurred screen. Mirror the
     // AffirmationMirrorScreen useFocusEffect pattern: flip on cleanup,
     // check after await.
     const ctrl = { cancelled: false };
+    // so-uba4: cap the poll budget. Previously the loop ran forever if the
+    // BE never settled the AI processing status — and any network error
+    // inside the tick was swallowed by `catch {}`, hiding real failures
+    // from the user. 30 ticks × 5s = 2.5min, matches the CreateJournal
+    // save-animation budget; if still 'pending' past that, the BE work
+    // almost certainly failed and we surface a retry affordance.
+    const MAX_POLL_ATTEMPTS = 30;
+    let attempts = 0;
     const interval = setInterval(async () => {
+      attempts += 1;
       try {
         const fresh = await JournalService.getEntry(entryId);
         if (ctrl.cancelled) return;
-        if (fresh.ai_processing_status === 'complete' || fresh.ai_processing_status === 'failed') {
+        if (fresh.ai_processing_status === 'failed') {
           setEntry(fresh);
           clearInterval(interval);
+          // so-uba4: surface the failure — don't silently show the stale
+          // ai_response below.
+          setAiRefreshError(true);
+          return;
         }
-      } catch {}
+        if (fresh.ai_processing_status === 'complete') {
+          setEntry(fresh);
+          clearInterval(interval);
+          return;
+        }
+        if (attempts >= MAX_POLL_ATTEMPTS) {
+          // so-uba4: budget exhausted with status still pending/none.
+          // Treat as a refresh failure rather than letting the poll run
+          // forever or quietly disappear.
+          clearInterval(interval);
+          if (!ctrl.cancelled && mountedRef.current) setAiRefreshError(true);
+        }
+      } catch {
+        // so-uba4: network blip mid-poll — count toward the budget so a
+        // persistent outage eventually surfaces as a retry affordance
+        // instead of silently looping.
+        if (attempts >= MAX_POLL_ATTEMPTS) {
+          clearInterval(interval);
+          if (!ctrl.cancelled && mountedRef.current) setAiRefreshError(true);
+        }
+      }
     }, 5000);
     return () => {
       ctrl.cancelled = true;
       clearInterval(interval);
     };
-  }, [entry?.ai_processing_status, entryId]);
+  }, [entry?.ai_processing_status, entry?.is_draft, entryId, aiRefreshError, mountedRef]);
+
+  // so-uba4: retry handler for the inline "Couldn't refresh insight" affordance.
+  // Refetch once + reset the error flag so the polling effect above re-arms
+  // (if the entry is still pending) or settles directly (if the BE already
+  // produced the AI response since we last looked).
+  const handleRetryAiRefresh = useCallback(() => {
+    setAiRefreshError(false);
+    JournalService.getEntry(entryId)
+      .then((fetched) => {
+        if (mountedRef.current) setEntry(fetched);
+      })
+      .catch(() => {
+        // Network still down — re-set the error flag so the affordance
+        // stays visible.
+        if (mountedRef.current) setAiRefreshError(true);
+      });
+  }, [entryId, mountedRef]);
 
   const editCount = entry?.edit_count ?? 0;
   const canEdit = isLatest && editCount < 3;
@@ -251,8 +338,43 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     navigation.navigate('CreateJournal', { entry });
   };
 
+  // so-uba4: tappable inline affordance. Sits below the failure/loading
+  // copy so the user sees the cause AND a retry path in the same row.
+  const renderAiRetryRow = () => (
+    <Pressable
+      onPress={handleRetryAiRefresh}
+      hitSlop={TOUCH_HITSLOP_SMALL}
+      accessibilityRole="button"
+      accessibilityLabel="Retry refreshing insight"
+      style={{ marginTop: 8 }}
+    >
+      <Text
+        style={[
+          isDarkMode ? dk.aiLoadingText : lt.aiLoadingText,
+          { color: isDarkMode ? colors.primary : colors.primary, textDecorationLine: 'underline' },
+        ]}
+      >
+        Couldn’t refresh insight — tap to retry
+      </Text>
+    </Pressable>
+  );
+
   // ── Shared content helpers ──
   const renderAiSection = () => {
+    // so-uba4: error surfacing takes precedence over the optimistic
+    // 'complete' branch — otherwise a stale ai_response from before an
+    // edit would render as the current report even though we know the
+    // re-run failed.
+    if (aiRefreshError) {
+      return (
+        <>
+          <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>
+            Insight couldn’t be refreshed right now.
+          </Text>
+          {renderAiRetryRow()}
+        </>
+      );
+    }
     if (entry!.ai_processing_status === 'complete') {
       return (
         <>
@@ -318,7 +440,14 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       );
     }
     if (entry!.ai_processing_status === 'failed') {
-      return <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>AI processing failed.</Text>;
+      // so-uba4: pair the failure copy with the retry affordance so the
+      // user can re-attempt without leaving the screen.
+      return (
+        <>
+          <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>AI processing failed.</Text>
+          {renderAiRetryRow()}
+        </>
+      );
     }
     return (
       <View style={isDarkMode ? dk.aiLoadingRow : lt.aiLoadingRow}>

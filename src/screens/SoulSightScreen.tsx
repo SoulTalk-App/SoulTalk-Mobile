@@ -18,6 +18,7 @@ import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPalName } from '../contexts/SoulPalContext';
+import { useJournal } from '../contexts/JournalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, {
   EligibilityResponse,
@@ -88,6 +89,14 @@ const SoulSightScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const isDark = isDarkMode;
   const soulPalName = useSoulPalName();
+  // so-rhap: refetch the SoulBar whenever a generation settles. The
+  // BE resets the bar server-side on complete/safety_redirect (a new
+  // SoulSight rolls forward the "since" boundary in the on-demand
+  // computation) and the eligibility refresh on failed paths can also
+  // shift the cap. checkEligibility doesn't return bar state, so the
+  // local soulBar in JournalContext would stay stale until the next
+  // Home focus without an explicit refetch here.
+  const { fetchSoulBar } = useJournal();
 
   const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
   const [soulsights, setSoulsights] = useState<SoulsightSummary[]>([]);
@@ -135,6 +144,10 @@ const SoulSightScreen = ({ navigation }: any) => {
           stopPolling();
           setIsGenerating(false);
           setGeneratingId(null);
+          // so-rhap: BE rolls the SoulBar forward when a SoulSight is
+          // produced; pull the new value so the Home cap doesn't display
+          // the pre-reset reading on next focus.
+          fetchSoulBar();
           navigation.navigate('SoulSightDetail', { soulsightId: generatingId });
         } else if (status.status === 'failed') {
           stopPolling();
@@ -145,10 +158,18 @@ const SoulSightScreen = ({ navigation }: any) => {
             status.error_message || 'Something went wrong. Please try again.',
           );
           fetchData();
+          // so-rhap: on a failed generate the BE may still have rolled
+          // intermediate state; refetch defensively so the Home bar
+          // stays in sync.
+          fetchSoulBar();
         } else if (status.status === 'safety_redirect') {
           stopPolling();
           setIsGenerating(false);
           setGeneratingId(null);
+          // so-rhap: safety_redirect counts as a generated SoulSight on
+          // the BE (it advances the boundary that resets the bar);
+          // refetch.
+          fetchSoulBar();
           navigation.navigate('SoulSightDetail', { soulsightId: generatingId });
         }
       } catch {
@@ -156,7 +177,7 @@ const SoulSightScreen = ({ navigation }: any) => {
       }
     }, 3000);
     return () => stopPolling();
-  }, [generatingId, fetchData, navigation]);
+  }, [generatingId, fetchData, fetchSoulBar, navigation]);
 
   const handleGenerate = async () => {
     try {
