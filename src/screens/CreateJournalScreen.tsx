@@ -255,6 +255,14 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         : detail;
       if (status === 409) {
         Alert.alert('Daily Limit', detailMsg || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
+      } else if (status === 400 && /max(imum)?\s*edits|edit\s*limit/i.test(detailMsg || '')) {
+        // so-uba4: BE returns 400 with a max-edits message when the user
+        // has exhausted the 3-edit cap. The generic "Failed to save entry"
+        // dialog was misleading — give them the actual reason.
+        Alert.alert(
+          'Edit limit reached',
+          detailMsg || "You've reached the maximum of 3 edits for this entry.",
+        );
       } else {
         // so-hl09: stash a finalize-retry intent for any non-409 failure
         // on the draft-finalize path — typically network drop or 5xx.
@@ -297,6 +305,15 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     const poll = async () => {
       while (!cancelled) {
         if (attempts >= MAX_ATTEMPTS) {
+          // so-uba4: timed out waiting for the AI re-run. Don't pretend
+          // this was a clean completion — log so field traces capture
+          // it, then dismiss the save-animation. The detail screen
+          // (JournalEntryScreen) re-arms its own poll on focus and will
+          // surface the failure inline with a retry affordance if the
+          // BE never settles. User isn't stranded on this loader.
+          console.warn(
+            '[CreateJournalScreen] so-uba4: AI poll timed out, dismissing save-animation',
+          );
           if (!cancelled) setAnalysisDone(true);
           return;
         }
@@ -304,12 +321,24 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         try {
           const entry = await JournalService.getEntry(id);
           const status = entry.ai_processing_status;
+          if (status === 'failed') {
+            // so-uba4: same telemetry log for hard failures. Detail
+            // screen will render the failure text + retry row.
+            console.warn(
+              '[CreateJournalScreen] so-uba4: AI processing failed for entry',
+              id,
+            );
+          }
           if (status === 'complete' || status === 'failed') {
             if (!cancelled) setAnalysisDone(true);
             return;
           }
-        } catch {
-          // Silent retry — transient network errors shouldn't kill the loop.
+        } catch (err) {
+          // so-uba4: surface mid-poll fetch errors via a log instead of
+          // a bare catch{}. Behavior unchanged (transient errors still
+          // don't kill the loop — we just no longer pretend they didn't
+          // happen).
+          console.warn('[CreateJournalScreen] so-uba4: AI poll fetch error:', err);
         }
         await new Promise((r) => setTimeout(r, POLL_MS));
       }
