@@ -129,9 +129,23 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     await fetchEntries(lastParams);
   }, [fetchEntries, lastParams]);
 
+  // so-rhap: fetchStreak / fetchSoulBar are called fire-and-forget from
+  // ~8 sites (mount, createEntry, finalizeDraft, updateEntry, pending
+  // finalize retry, deleteEntry, HomeScreen focus, SoulSight generate).
+  // When two overlap, an OLDER response can land AFTER a newer one and
+  // setSoulBar/setStreak to a stale (often LOWER) value — the tester
+  // "soul bar charged backward after journaling" trace was this exact
+  // race. Each fetch now captures a monotonically increasing request id;
+  // its resolve only commits if no newer request has started.
+  const streakRequestIdRef = useRef(0);
+  const soulBarRequestIdRef = useRef(0);
+
   const fetchStreak = useCallback(async () => {
+    const requestId = ++streakRequestIdRef.current;
     try {
       const data = await JournalService.getStreak();
+      // so-rhap: drop stale resolves.
+      if (requestId !== streakRequestIdRef.current) return;
       setStreak(data);
     } catch (error) {
       console.error('Failed to fetch streak:', error);
@@ -139,8 +153,13 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   }, []);
 
   const fetchSoulBar = useCallback(async () => {
+    const requestId = ++soulBarRequestIdRef.current;
     try {
       const data = await JournalService.getSoulBar();
+      // so-rhap: drop stale resolves. Without this guard, an older
+      // fetch resolving after a newer one rewinds the bar to a stale
+      // value — the "backward charge" repro.
+      if (requestId !== soulBarRequestIdRef.current) return;
       setSoulBar(data);
     } catch (error) {
       console.error('Failed to fetch soul bar:', error);
@@ -280,7 +299,14 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     setEntries((prev) => prev.filter((e) => e.id !== id));
     setTotal((prev) => prev - 1);
     if (currentEntry?.id === id) setCurrentEntry(null);
-  }, [currentEntry]);
+    // so-rhap: deleting a published entry can reduce the SoulBar (and
+    // streak when the deletion crosses a day boundary). Refetch both —
+    // the request-id guard above keeps a concurrent older fetch from
+    // overwriting the new value. Pre-fix the bar stayed stale (visibly
+    // too high) until the next Home focus.
+    fetchStreak();
+    fetchSoulBar();
+  }, [currentEntry, fetchStreak, fetchSoulBar]);
 
   const saveDraft = useCallback(async (text: string, mood?: Mood, draftId?: string) => {
     if (draftId) {
