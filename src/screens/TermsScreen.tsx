@@ -115,12 +115,13 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
           ...typography.bodyLarge,
           color: colors.text.primary,
         },
+        // so-ffl4: the Accept footer sat as an opaque white slab over the
+        // CosmicScreen ("void") backdrop — jarring against the dark space
+        // theme (and a light slab in dark mode). Transparent lets the cosmic
+        // backdrop show through continuously behind the Accept CTA in both
+        // themes; the white separator line is dropped with it.
         bottomContainer: {
-          backgroundColor: colors.white,
-        },
-        separator: {
-          height: 1,
-          backgroundColor: colors.border,
+          backgroundColor: 'transparent',
         },
         buttonContainer: {
           paddingHorizontal: 24,
@@ -297,7 +298,6 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
       </Animated.View>
 
       <Animated.View style={[styles.bottomContainer, buttonContainerStyle]}>
-        <View style={styles.separator} />
         <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
           <Text style={styles.agreementText}>
             By tapping Accept, you agree to our Terms and Privacy Policy
