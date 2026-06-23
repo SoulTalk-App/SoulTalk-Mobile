@@ -25,6 +25,7 @@ import {
 import SoulSignalsService from '../services/SoulSignalsService';
 import SoulShiftsService from '../services/SoulShiftsService';
 import SoulSightService from '../services/SoulSightService';
+import { normalizeError } from '../utils/normalizeError';
 
 // Matches soul_bar_service.compute_progress on the backend (is_full = entries_since >= 6).
 // Design spec drafted '5 more' approximately; backend is the source of truth.
@@ -34,6 +35,14 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
+
+  // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
+  // normalized message (never raw axios/technical strings) and keep a dev
+  // breadcrumb. Loading/submitting state is reset by each handler's finally.
+  const surfaceError = (scope: string, err: unknown) => {
+    if (__DEV__) console.warn(`[SoulSignals] ${scope}:`, err);
+    Alert.alert('Something went wrong', normalizeError(err));
+  };
   const statusOverride: SignalsStatus | undefined = route?.params?.displayStatus;
 
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -80,12 +89,12 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         if (sigResult.status === 'fulfilled') {
           setSignals(sigResult.value);
         } else {
-          console.log('[SoulSignals] List fetch error:', sigResult.reason?.message);
+          surfaceError('List fetch error', sigResult.reason);
         }
         if (eligResult.status === 'fulfilled') {
           setEntriesSinceSight(eligResult.value.points ?? 0);
         } else {
-          console.log('[SoulSignals] Eligibility fetch error:', eligResult.reason?.message);
+          if (__DEV__) console.warn('[SoulSignals] Eligibility fetch error:', eligResult.reason);
         }
       })
       .finally(() => setIsLoading(false));
@@ -124,9 +133,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     setSelectedId(id);
     SoulSignalsService.getDetail(id)
       .then(setDetail)
-      .catch((err) =>
-        console.log('[SoulSignals] Detail fetch error:', err?.message),
-      );
+      .catch((err) => surfaceError('Detail fetch error', err));
   };
 
   const handleClose = () => {
@@ -156,7 +163,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
                 setSignals((prev) => prev.filter((s) => s.id !== id));
                 handleClose();
               } catch (err: any) {
-                console.log('[SoulSignals] not_quite + mute error:', err?.message);
+                surfaceError('Mute error', err);
               } finally {
                 setResonanceSubmitting(null);
               }
@@ -175,7 +182,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       }
       if (value === 'yes') setResonanceToastVisible(true);
     } catch (err: any) {
-      console.log('[SoulSignals] Resonance error:', err?.message);
+      surfaceError('Resonance error', err);
     } finally {
       setResonanceSubmitting(null);
     }
@@ -197,7 +204,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       setMuteOpen(false);
       handleClose();
     } catch (err: any) {
-      console.log('[SoulSignals] Mute error:', err?.message);
+      surfaceError('Mute error', err);
     } finally {
       setMuteSubmitting(false);
     }
@@ -216,9 +223,11 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
             all.filter((s) => s.muteUntil != null || s.mutedForever === true),
           );
         })
-        .catch((err) =>
-          console.log('[SoulSignals] Muted list error:', err?.message),
-        );
+        .catch((err) => {
+          // Allow a later retry since this fetch has no loading state of its own.
+          setMutedFetched(false);
+          surfaceError('Muted list error', err);
+        });
     }
   };
 
@@ -236,7 +245,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       );
       handleClose();
     } catch (err: any) {
-      console.log('[SoulSignals] Unmute error:', err?.message);
+      surfaceError('Unmute error', err);
     }
   };
 
@@ -247,7 +256,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       const result = await SoulSignalsService.getPatternByTag(tag);
       setPatternAggregate(result);
     } catch (err: any) {
-      console.log('[SoulSignals] Pattern fetch error:', err?.message);
+      if (__DEV__) console.warn('[SoulSignals] Pattern fetch error:', err);
       // Surface the empty-state path inside the modal rather than catching
       // and silently dismissing — matches the so-pjv suggestion modal
       // behavior where a fetch failure shows the empty-state copy.
@@ -370,7 +379,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
             : [{ text: 'OK', style: 'cancel' }],
         );
       } else {
-        console.log('[SoulSignals] TurnToShift error:', err?.message);
+        surfaceError('TurnToShift error', err);
       }
     } finally {
       setTurnSubmitting(false);
@@ -392,7 +401,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         setDetail({ ...detail, ...updated, isSaved: nextSaved });
       }
     } catch (err: any) {
-      console.log('[SoulSignals] Save error:', err?.message);
+      surfaceError('Save error', err);
     } finally {
       setSaveSubmitting(false);
     }

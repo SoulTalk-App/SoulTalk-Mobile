@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,11 +22,20 @@ import {
   ShiftSuggestionResponse,
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
+import { normalizeError } from '../utils/normalizeError';
 
 const SoulShiftsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
+
+  // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
+  // normalized message (never raw axios/technical strings) and keep a dev
+  // breadcrumb. Loading/submitting state is reset by each handler's finally.
+  const surfaceError = (scope: string, err: unknown) => {
+    if (__DEV__) console.warn(`[SoulShifts] ${scope}:`, err);
+    Alert.alert('Something went wrong', normalizeError(err));
+  };
 
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +89,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     SoulShiftsService.list()
       .then(setShifts)
-      .catch((err) => console.log('[SoulShifts] List fetch error:', err.message))
+      .catch((err) => surfaceError('List fetch error', err))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -89,7 +98,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setDetailLoading(true);
     SoulShiftsService.getDetail(id)
       .then(setDetail)
-      .catch((err) => console.log('[SoulShifts] Detail fetch error:', err.message))
+      .catch((err) => surfaceError('Detail fetch error', err))
       .finally(() => setDetailLoading(false));
   };
 
@@ -115,7 +124,11 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setReleasedFetched(true);
     SoulShiftsService.list({ statusFilter: 'released' })
       .then(setReleasedShifts)
-      .catch((err) => console.log('[SoulShifts] Released list error:', err.message));
+      .catch((err) => {
+        // Allow a later retry since this fetch has no loading state of its own.
+        setReleasedFetched(false);
+        surfaceError('Released list error', err);
+      });
   };
 
   const handleRestore = async () => {
@@ -127,7 +140,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setShifts((prev) => [restored, ...prev]);
       handleClose();
     } catch (err: any) {
-      console.log('[SoulShifts] Restore error:', err?.message);
+      surfaceError('Restore error', err);
     }
   };
 
@@ -187,7 +200,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         });
       }
     } catch (err: any) {
-      console.log('[SoulShifts] Tend error:', err?.message);
+      surfaceError('Tend error', err);
     } finally {
       setTendSubmitting(false);
     }
@@ -220,7 +233,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setSnoozeOpen(false);
       handleClose();
     } catch (err: any) {
-      console.log('[SoulShifts] Snooze error:', err?.message);
+      surfaceError('Snooze error', err);
     } finally {
       setSnoozeSubmitting(false);
     }
@@ -255,7 +268,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
       }
     } catch (err: any) {
-      console.log('[SoulShifts] markIntegrated error:', err?.message);
+      surfaceError('Integrate error', err);
     } finally {
       setIntegratedSubmitting(false);
     }
@@ -272,7 +285,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setReleaseOpen(false);
       handleClose();
     } catch (err: any) {
-      console.log('[SoulShifts] Release error:', err?.message);
+      surfaceError('Release error', err);
     } finally {
       setReleaseSubmitting(false);
     }
@@ -290,13 +303,14 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         const seen = shownSuggestionIdsRef.current;
         if (!seen.has(result.id)) {
           seen.add(result.id);
-          SoulShiftsService.markSuggestionShown(result.id).catch((err) =>
-            console.log('[SoulShifts] markSuggestionShown error:', err?.message),
-          );
+          SoulShiftsService.markSuggestionShown(result.id).catch((err) => {
+            // Fire-and-forget analytics marker — not user-facing, dev log only.
+            if (__DEV__) console.warn('[SoulShifts] markSuggestionShown error:', err);
+          });
         }
       }
     } catch (err: any) {
-      console.log('[SoulShifts] Suggestions fetch error:', err?.message);
+      surfaceError('Suggestions fetch error', err);
       setSuggestResponse({
         id: null,
         candidates: [],
@@ -325,7 +339,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setSuggestOpen(false);
       setSuggestResponse(null);
     } catch (err: any) {
-      console.log('[SoulShifts] Accept suggestion error:', err?.message);
+      surfaceError('Accept suggestion error', err);
     } finally {
       setSuggestSubmitting(false);
     }
