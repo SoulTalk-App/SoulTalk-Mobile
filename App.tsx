@@ -23,6 +23,8 @@ import {
 } from "@expo-google-fonts/outfit";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
+import { EntitlementProvider } from "./src/contexts/EntitlementContext";
+import { activateAdapty } from "./src/services/adapty";
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import TermsScreen from "./src/screens/TermsScreen";
@@ -377,6 +379,13 @@ Audio.setAudioModeAsync({
   interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
 }).catch((err) => console.warn('Failed to set audio mode:', err));
 
+// so-jyw0: boot the Adapty SDK once, at module load, with the public
+// SDK key from app.config.extra.adaptyConfig (wired by infra so-153d).
+// Idempotent + fail-closed — missing key / activation error logs and
+// degrades to "no Pro from SDK" without blocking app boot. The
+// EntitlementProvider takes it from here for identify/profile/refresh.
+activateAdapty().catch((err) => console.warn('Adapty activate failed:', err));
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     // Outfit fonts (Google Fonts)
@@ -415,17 +424,27 @@ export default function App() {
         <ThemeProvider>
           <SoulPalProvider>
           <AuthProvider>
-            <WebSocketProvider>
-              <StatusBar style="auto" />
-              {/* so-ve7q: root ErrorBoundary catches render-time throws in
-                  any screen and shows a recovery UI instead of unmounting
-                  to a white screen. Wrapping Navigation (not the whole
-                  tree) keeps providers alive on reset so the user's auth
-                  + theme + soulpal state survives the retry. */}
-              <ErrorBoundary>
-                <Navigation />
-              </ErrorBoundary>
-            </WebSocketProvider>
+            {/* so-jyw0: EntitlementProvider mounts INSIDE AuthProvider so
+                useAuth() is available — it watches the user transition
+                to drive adapty.identify / adapty.logout, and pulls the
+                trial-clock fields off /auth/me. Wrapping
+                WebSocketProvider keeps the entitlement state available
+                to any screen below. Fail-closed: SDK errors leave
+                isPro=false, the server-side accessGranted (trial)
+                still flows through unaffected. */}
+            <EntitlementProvider>
+              <WebSocketProvider>
+                <StatusBar style="auto" />
+                {/* so-ve7q: root ErrorBoundary catches render-time throws in
+                    any screen and shows a recovery UI instead of unmounting
+                    to a white screen. Wrapping Navigation (not the whole
+                    tree) keeps providers alive on reset so the user's auth
+                    + theme + soulpal state survives the retry. */}
+                <ErrorBoundary>
+                  <Navigation />
+                </ErrorBoundary>
+              </WebSocketProvider>
+            </EntitlementProvider>
           </AuthProvider>
           </SoulPalProvider>
         </ThemeProvider>
