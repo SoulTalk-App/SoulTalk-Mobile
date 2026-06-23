@@ -68,6 +68,11 @@ const LOG_PREFIX = '[adapty]';
 // is a backstop for that path.
 let activated = false;
 let activationFailedReason: string | null = null;
+// Caches the in-flight activation so concurrent callers (App.tsx's boot-side
+// kick-off + EntitlementProvider's mount/identify effects) coalesce onto a
+// single adapty.activate() instead of racing two native activations. Cleared
+// is unnecessary: once resolved, `activated` short-circuits before we look here.
+let activationPromise: Promise<void> | null = null;
 
 const getPublicSdkKey = (): string | null => {
   // so-153d wired the key through Constants.expoConfig.extra.adaptyConfig.
@@ -90,8 +95,14 @@ export const getAdaptyActivationError = (): string | null =>
  * can await first activation if they need profile data immediately;
  * fire-and-forget is fine for App.tsx's boot-side call.
  */
-export const activateAdapty = async (): Promise<void> => {
-  if (activated) return;
+export const activateAdapty = (): Promise<void> => {
+  if (activated) return Promise.resolve();
+  if (activationPromise) return activationPromise;
+  activationPromise = activateAdaptyInner();
+  return activationPromise;
+};
+
+const activateAdaptyInner = async (): Promise<void> => {
   if (Platform.OS !== 'ios') {
     // iOS-only this round (see file header). Mark "activated" so
     // identify/logout calls become no-ops without per-call Platform
