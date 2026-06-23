@@ -375,14 +375,25 @@ export function AffirmationReveal({
   const idleVideoAnimStyle = useAnimatedStyle(() => ({ opacity: idleVideoOpacity.value }));
   const revealedVideoAnimStyle = useAnimatedStyle(() => ({ opacity: revealedVideoOpacity.value }));
 
-  const containerBg = isDarkMode ? '#33335B' : colors.accent.pink;
+  // so-ck0m: dark top-half retuned to blend into the new dark videos
+  // shipped via so-ogr1. Sampled video tops (ffmpeg, lead's analysis):
+  // idle = #432566, revealed/look-up = #411688. Pre-fix the screen used
+  // gray-indigo #33335B which left a visible gray seam against the
+  // saturated purple video top. Container bg sits at the revealed-top
+  // color so the area behind the (semi-transparent, opacity-0.35) cloud
+  // PNGs settles into the same hue the video uses at the seam; the
+  // LinearGradient lifts the top of the visible area to a deeper purple
+  // so the screen edge doesn't read as a flat color, and the locations
+  // weight the lower 40% to the seam color (which both idle and revealed
+  // videos approximate within ~5% lightness — no separate handling).
+  const containerBg = isDarkMode ? '#411688' : colors.accent.pink;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
       {isDarkMode && (
         <LinearGradient
-          colors={['#2B2B54', '#33335B', '#33335B']}
-          locations={[0, 0.5, 1]}
+          colors={['#2A1650', '#3B1A7A', '#411688']}
+          locations={[0, 0.6, 1]}
           style={StyleSheet.absoluteFill}
         />
       )}

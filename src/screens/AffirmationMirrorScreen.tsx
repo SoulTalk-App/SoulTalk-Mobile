@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,11 +13,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useJournal } from '../contexts/JournalContext';
 import { useAuth } from '../contexts/AuthContext';
 import JournalService from '../services/JournalService';
 import { formatLocalDateKey, getDeviceTimezone } from '../utils/timezone';
 import { normalizeError } from '../utils/normalizeError';
+
+// so-ck0m: same key AffirmationReveal writes after a successful reveal.
+// Used here to detect "already revealed today" and skip the reveal entry
+// page so it doesn't flash for returning users.
+const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { ReadyState, AffirmationItem } from '../features/affirmationMirror/ReadyState';
 import { AffirmationReveal } from '../features/affirmationMirror/AffirmationReveal';
@@ -48,11 +54,48 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   // first paint on listAffirmations(30,0); users saw a spinner while the
   // 30-item history loaded. Now we render AffirmationReveal immediately
   // (its own idle video + clouds is the perceived launch) and upgrade to
-  // 'ready' only if the list resolves with today's row present. Cost:
-  // returning users with an already-generated today flash reveal briefly
-  // before snapping to ready; the AffirmationReveal AsyncStorage replay
-  // marker already softens that for users who tapped reveal once today.
+  // 'ready' only if the list resolves with today's row present.
+  //
+  // so-ck0m: returning users — those who already revealed today — used
+  // to see the reveal page flash for a frame before fetchData snapped to
+  // ready. Initialise the state synchronously to 'loading' when we
+  // determine that almost certainly applies (revealed-today marker hit);
+  // the AsyncStorage check runs in a layout effect below and rewrites
+  // state ASAP. For first-time-today entry the initial 'reveal' value
+  // stands so the perceived launch is unchanged.
   const [state, setState] = useState<ScreenState>({ kind: 'reveal' });
+
+  // so-ck0m: synchronous-ish AsyncStorage probe — if the revealed-today
+  // marker is set, hop into 'loading' (the brief spinner-then-ready path)
+  // instead of letting the reveal entry flash before fetchData lands.
+  // Reads user.timezone (so-zmjn) to match the BE's date_key exactly;
+  // the AffirmationReveal write also uses BE-supplied date_keys.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const userTz = user?.timezone || getDeviceTimezone() || 'UTC';
+        const todayKey = formatLocalDateKey(new Date(), userTz);
+        const revealed = await AsyncStorage.getItem(REVEALED_DATE_KEY);
+        if (cancelled) return;
+        if (revealed && revealed === todayKey) {
+          setState((prev) =>
+            // Don't clobber if fetchData has already advanced past
+            // 'reveal' — its 'ready' / late-error 'reveal' decisions
+            // should win once they land.
+            prev.kind === 'reveal' ? { kind: 'loading' } : prev,
+          );
+        }
+      } catch (err) {
+        // Storage probes are best-effort; the worst case is the legacy
+        // reveal-flash, which the rest of the codebase already handles.
+        console.warn('[AffirmationMirrorScreen] so-ck0m: revealed-today probe failed:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.timezone]);
 
   const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
