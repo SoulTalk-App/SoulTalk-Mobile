@@ -24,6 +24,9 @@ import {
 } from "@expo-google-fonts/outfit";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
+import { EntitlementProvider, useEntitlement } from "./src/contexts/EntitlementContext";
+import { activateAdapty } from "./src/services/adapty";
+import PaywallGateScreen from "./src/screens/PaywallGateScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import TermsScreen from "./src/screens/TermsScreen";
@@ -260,6 +263,33 @@ const tabScreenOptions = {
   cardOverlayEnabled: false,
 };
 
+// so-fwva: PaywallStack — what the user sees when /auth/me reports
+// access_granted=false (trial over, not Pro). The full app is hidden
+// behind PaywallGate; only the don't-trap carve-outs are reachable
+// (Settings → Delete Account/Logout, Help/crisis, Terms/Privacy,
+// Manage Subscription/Restore via PaywallGate's CTAs). Apple review +
+// duty-of-care: the gate must not lock the user out of these.
+const PaywallStack = () => (
+  <Stack.Navigator
+    screenOptions={{ headerShown: false }}
+    initialRouteName="PaywallGate"
+  >
+    <Stack.Screen
+      name="PaywallGate"
+      component={PaywallGateScreen}
+      options={{ gestureEnabled: false }}
+    />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Help" component={HelpScreen} />
+    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+    <Stack.Screen
+      name="Terms"
+      component={TermsScreen}
+      options={{ gestureEnabled: false }}
+    />
+  </Stack.Navigator>
+);
+
 const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
   useNotifications();
 
@@ -299,6 +329,14 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  // so-fwva: server-side access gate. accessGranted is the trial-
+  // clock + Pro authority (null while /auth/me hasn't landed; false
+  // when the trial is over and the user isn't Pro). isPro is the
+  // Adapty side; either trues out the gate. Default-open while
+  // accessGranted is null so we don't flash a paywall on cold-boot
+  // before /auth/me resolves.
+  const { isPro, accessGranted } = useEntitlement();
+  const accessLocked = accessGranted === false && !isPro;
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
@@ -351,7 +389,14 @@ const Navigation = () => {
   return (
     <NavigationContainer linking={linking}>
       {isAuthenticated ? (
-        <AppStack setupComplete={setupComplete} />
+        accessLocked ? (
+          // so-fwva: server says trial over and not Pro — hide the
+          // whole app behind the paywall gate. Carve-outs still
+          // reachable via PaywallStack.
+          <PaywallStack />
+        ) : (
+          <AppStack setupComplete={setupComplete} />
+        )
       ) : onboardingComplete ? (
         <AuthStack />
       ) : (
@@ -377,6 +422,14 @@ Audio.setAudioModeAsync({
   shouldDuckAndroid: true,
   interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
 }).catch((err) => console.warn('Failed to set audio mode:', err));
+
+// so-jyw0: boot the Adapty SDK once, at module load, with the public
+// SDK key from app.config.extra.adaptyConfig (wired by infra so-153d).
+// Idempotent + fail-closed — missing key / activation error logs and
+// degrades to "no Pro from SDK" without blocking app boot. The
+// EntitlementProvider awaits this same (deduped) activation before
+// identify.
+activateAdapty().catch((err) => console.warn('Adapty activate failed:', err));
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -423,6 +476,15 @@ export default function App() {
           <AppAlertProvider>
             <SoulPalProvider>
             <AuthProvider>
+            {/* so-jyw0: EntitlementProvider mounts INSIDE AuthProvider so
+                useAuth() is available — it watches the user transition
+                to drive adapty.identify / adapty.logout, and pulls the
+                trial-clock fields off /auth/me. Wrapping
+                WebSocketProvider keeps the entitlement state available
+                to any screen below. Fail-closed: SDK errors leave
+                isPro=false, the server-side accessGranted (trial)
+                still flows through unaffected. */}
+            <EntitlementProvider>
               <WebSocketProvider>
                 <StatusBar style="auto" />
                 {/* so-ve7q: root ErrorBoundary catches render-time throws in
@@ -434,6 +496,7 @@ export default function App() {
                   <Navigation />
                 </ErrorBoundary>
               </WebSocketProvider>
+            </EntitlementProvider>
             </AuthProvider>
             </SoulPalProvider>
           </AppAlertProvider>

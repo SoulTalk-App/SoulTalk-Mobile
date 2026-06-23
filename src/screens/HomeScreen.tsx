@@ -29,6 +29,7 @@ import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
 import authService from '../services/AuthService';
 import { TermsReacceptanceModal } from '../components/TermsReacceptanceModal';
+import TrialBanner from '../components/TrialBanner';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { useAppAlert } from '../components/AppAlertProvider';
@@ -1088,6 +1089,11 @@ const HomeScreen = ({ navigation }: any) => {
               <View style={dk.greetingTextSection}>
                 <Text style={dk.welcomeLine}>Welcome back,</Text>
                 <Text style={dk.welcomeLine}>{displayName}.</Text>
+                {/* so-fwva: subtle "X days left in your free trial"
+                    pill. Renders only during the trial window (hidden
+                    for Pro users + when days_left isn't carried by
+                    /auth/me yet). Tappable — opens the paywall. */}
+                <TrialBanner style={{ marginTop: 6 }} />
               </View>
               <Pressable
                 style={dk.settingsBtn}
@@ -1363,6 +1369,10 @@ const HomeScreen = ({ navigation }: any) => {
             <View style={lt.greetingTextSection}>
               <Text style={lt.welcomeLine}>Welcome back,</Text>
               <Text style={lt.welcomeLine}>{displayName}.</Text>
+              {/* so-fwva: trial pill in light theme — same component as
+                  dark; reads days_left from /auth/me + isPro from
+                  Adapty via useEntitlement. */}
+              <TrialBanner style={{ marginTop: 6 }} />
             </View>
             <Pressable
               style={lt.settingsBtn}

@@ -16,6 +16,12 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/AuthService';
 import JournalService from '../services/JournalService';
+import { useEntitlement } from '../contexts/EntitlementContext';
+import {
+  openManageSubscription,
+  restorePurchases,
+  wasUnlocked,
+} from '../services/paywall';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -161,6 +167,9 @@ const SettingsScreen = ({ navigation }: any) => {
   const [retrying, setRetrying] = useState(false);
   // so-sjua: in-flight guard for the data-export request.
   const [exportingData, setExportingData] = useState(false);
+  // so-fwva: in-flight guard for restore-purchases (sandbox can take a
+  // few seconds to round-trip Adapty → App Store).
+  const [restoring, setRestoring] = useState(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
   // restored draft) has run, so we don't autosave an empty form or clobber
@@ -389,6 +398,52 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
+  // so-fwva: pull useEntitlement().refresh so a successful restore
+  // immediately re-derives isPro and unblocks the app.
+  const { refresh: refreshEntitlement } = useEntitlement();
+
+  const handleRestorePurchases = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      const outcome = await restorePurchases();
+      if (wasUnlocked(outcome)) {
+        await refreshEntitlement();
+        Alert.alert(
+          'Restore',
+          'Your subscription was restored. Welcome back to SoulTalk Pro.',
+        );
+        return;
+      }
+      if (outcome.kind === 'restored') {
+        Alert.alert(
+          'Restore',
+          "We checked, but no active subscription was found on this Apple ID.",
+        );
+        return;
+      }
+      // sdk-inactive or error — surface friendly copy.
+      Alert.alert(
+        'Restore',
+        outcome.kind === 'error'
+          ? outcome.message
+          : "We couldn't open the App Store right now. Please try again in a moment.",
+      );
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    const ok = await openManageSubscription();
+    if (!ok) {
+      Alert.alert(
+        'Manage subscription',
+        "We couldn't open the App Store right now. Please try from your phone's Settings app.",
+      );
+    }
+  };
+
   const handleLogout = async () => {
     try {
       // so-5eu1: belt-and-suspenders — drop this user's local profile draft on
@@ -580,6 +635,35 @@ const SettingsScreen = ({ navigation }: any) => {
             })}
           </View>
         </View>
+
+        {/* so-fwva: Subscription affordances. Restore is required by
+            Apple review (any IAP app must allow restoring purchases on
+            a new device); Manage Subscription is the deep link into
+            the Apple-managed centre (Adapty has no Customer Center).
+            Both live above the data/account rows so they're easy to
+            find when the user lands on Settings from the paywall
+            gate's "Settings" carve-out. */}
+        <View style={styles.separator} />
+        <Pressable
+          onPress={handleRestorePurchases}
+          disabled={restoring}
+          style={styles.resetButton}
+          accessibilityRole="button"
+          accessibilityLabel="Restore Purchases"
+          accessibilityState={{ disabled: restoring, busy: restoring }}
+        >
+          <Text style={styles.resetButtonText}>
+            {restoring ? 'RESTORING…' : 'RESTORE PURCHASES'}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={handleManageSubscription}
+          style={styles.resetButton}
+          accessibilityRole="button"
+          accessibilityLabel="Manage Subscription on App Store"
+        >
+          <Text style={styles.resetButtonText}>MANAGE SUBSCRIPTION</Text>
+        </Pressable>
 
         {/* Export My Data (so-sjua — CCPA portability) */}
         <View style={styles.separator} />

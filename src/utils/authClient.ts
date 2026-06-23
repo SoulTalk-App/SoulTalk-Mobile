@@ -1,6 +1,11 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import SecureStorage from './SecureStorage';
+import {
+  presentPaywall,
+  wasUnlocked,
+  checkAdaptyPro,
+} from '../services/paywall';
 
 /**
  * Shared single-flight refresh-token helper + axios interceptor installer.
@@ -23,6 +28,26 @@ const getApiBaseUrl = (): string =>
 // While non-null, every caller awaits the same promise — guaranteeing one
 // network call, one SecureStorage write, and one resolved access token.
 let inflightRefresh: Promise<string | null> | null = null;
+
+/**
+ * so-fwva: post-purchase hook. The React layer registers a callback that
+ * refetches /auth/me (the server is the trial-clock + access authority)
+ * so the EntitlementContext immediately picks up the unlock without
+ * waiting for the next natural refresh. The 402 interceptor invokes it
+ * after a successful paywall unlock, before retrying the original
+ * request.
+ *
+ * Held at module level so the interceptor doesn't import React state.
+ * Null when no listener is registered (rare — only in cold-boot before
+ * the EntitlementProvider mounts, where no API call has fired yet
+ * anyway).
+ */
+type PostUnlockHook = () => Promise<void> | void;
+let postUnlockHook: PostUnlockHook | null = null;
+
+export const registerPostUnlockHook = (hook: PostUnlockHook | null): void => {
+  postUnlockHook = hook;
+};
 
 /**
  * Refresh the access token, coalescing concurrent callers onto one in-flight
@@ -90,7 +115,10 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
     (response: AxiosResponse) => response,
     async (error) => {
       const originalRequest = error?.config as
-        | (InternalAxiosRequestConfig & { _retry?: boolean })
+        | (InternalAxiosRequestConfig & {
+            _retry?: boolean;
+            _paywallRetry?: boolean;
+          })
         | undefined;
 
       if (
@@ -104,6 +132,41 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
 
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return instance.request(originalRequest);
+      }
+
+      // so-fwva: HTTP 402 with code='subscription_required' is the BE
+      // (so-r964) telling us the trial is over and the user isn't Pro.
+      // Present the Adapty paywall as a blocking gate; on a successful
+      // unlock, refetch /auth/me and retry the request once. Otherwise
+      // reject so the caller surfaces nothing (the paywall WAS the
+      // user feedback — no inline error).
+      if (
+        error?.response?.status === 402 &&
+        error?.response?.data?.code === 'subscription_required' &&
+        originalRequest &&
+        !originalRequest._paywallRetry
+      ) {
+        originalRequest._paywallRetry = true;
+        const outcome = await presentPaywall();
+        // Also poll Adapty's profile in case the purchase landed but
+        // the webhook→/auth/me round-trip lags slightly behind the
+        // local SDK state — wasUnlocked covers explicit
+        // purchase/restore; checkAdaptyPro covers the lag window.
+        const unlocked = wasUnlocked(outcome) || (await checkAdaptyPro());
+        if (!unlocked) return Promise.reject(error);
+
+        if (postUnlockHook) {
+          try {
+            await postUnlockHook();
+          } catch (hookErr) {
+            // Don't fail the retry just because the hook threw — log
+            // and continue. /auth/me will refresh on the next natural
+            // tick.
+            // eslint-disable-next-line no-console
+            console.warn('postUnlockHook threw:', hookErr);
+          }
+        }
         return instance.request(originalRequest);
       }
 
