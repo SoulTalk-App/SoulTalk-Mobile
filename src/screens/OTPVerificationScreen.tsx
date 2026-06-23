@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 interface OTPVerificationScreenProps {
   navigation: any;
@@ -25,6 +25,8 @@ const RESEND_COOLDOWN_SECONDS = 60;
 const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
   // so-xllj #3: guard against nav/deep-link with no params (was crashing on
   // mount when route.params was undefined).
   const email = route.params?.email;
@@ -195,7 +197,10 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
       setError('');
       await resendVerificationEmail(email);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      Alert.alert('Code Resent', 'A new verification code has been sent to your email.');
+      showAlert({
+        title: 'Code Resent',
+        message: 'A new verification code has been sent to your email.',
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to resend code. Please try again.');
     } finally {

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
 import { SoulPalProvider } from "./src/contexts/SoulPalContext";
 import ErrorBoundary from "./src/components/ErrorBoundary";
+import { AppAlertProvider } from "./src/components/AppAlertProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ExpoSplashScreen from "expo-splash-screen";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
@@ -413,21 +414,29 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <SoulPalProvider>
-          <AuthProvider>
-            <WebSocketProvider>
-              <StatusBar style="auto" />
-              {/* so-ve7q: root ErrorBoundary catches render-time throws in
-                  any screen and shows a recovery UI instead of unmounting
-                  to a white screen. Wrapping Navigation (not the whole
-                  tree) keeps providers alive on reset so the user's auth
-                  + theme + soulpal state survives the retry. */}
-              <ErrorBoundary>
-                <Navigation />
-              </ErrorBoundary>
-            </WebSocketProvider>
-          </AuthProvider>
-          </SoulPalProvider>
+          {/* so-1zn0: themed in-app alert provider mounts directly inside
+              ThemeProvider so showAlert/showError can read the active
+              theme tokens (useThemeColors + isDarkMode). RN <Modal>
+              hoists the alert above the navigator regardless of where
+              the provider sits in the tree, so wrapping everything below
+              is purely for theme access — no Z-order concerns. */}
+          <AppAlertProvider>
+            <SoulPalProvider>
+            <AuthProvider>
+              <WebSocketProvider>
+                <StatusBar style="auto" />
+                {/* so-ve7q: root ErrorBoundary catches render-time throws in
+                    any screen and shows a recovery UI instead of unmounting
+                    to a white screen. Wrapping Navigation (not the whole
+                    tree) keeps providers alive on reset so the user's auth
+                    + theme + soulpal state survives the retry. */}
+                <ErrorBoundary>
+                  <Navigation />
+                </ErrorBoundary>
+              </WebSocketProvider>
+            </AuthProvider>
+            </SoulPalProvider>
+          </AppAlertProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

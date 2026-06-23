@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -25,7 +25,7 @@ import {
 import SoulSignalsService from '../services/SoulSignalsService';
 import SoulShiftsService from '../services/SoulShiftsService';
 import SoulSightService from '../services/SoulSightService';
-import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 // Matches soul_bar_service.compute_progress on the backend (is_full = entries_since >= 6).
 // Design spec drafted '5 more' approximately; backend is the source of truth.
@@ -35,13 +35,19 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
+  // so-1zn0: themed alert replaces native Alert across this surface.
+  const { showAlert, showError } = useAppAlert();
 
   // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
   // normalized message (never raw axios/technical strings) and keep a dev
   // breadcrumb. Loading/submitting state is reset by each handler's finally.
+  // so-iiw8: the generic "Something went wrong" title told the user nothing
+  // about WHERE the error happened ("a signal?" "the network?") — surface
+  // the scope so the title is specific. Body text still goes through
+  // normalizeError so SDK / axios strings never reach the user.
   const surfaceError = (scope: string, err: unknown) => {
     if (__DEV__) console.warn(`[SoulSignals] ${scope}:`, err);
-    Alert.alert('Something went wrong', normalizeError(err));
+    showError(err, { title: "Couldn't load signals" });
   };
   const statusOverride: SignalsStatus | undefined = route?.params?.displayStatus;
 
@@ -146,10 +152,11 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       // so-xli: 'Not quite' now means mute indefinitely. Confirm first; on
       // confirm, record the vote AND mute forever, then drop from the active
       // feed. Cancel is a true no-op (no vote recorded).
-      Alert.alert(
-        'Mute this signal?',
-        "We'll stop showing this signal. You can unmute it later from the Muted filter.",
-        [
+      showAlert({
+        title: 'Mute this signal?',
+        message:
+          "We'll stop showing this signal. You can unmute it later from the Muted filter.",
+        buttons: [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Mute',
@@ -170,7 +177,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
             },
           },
         ],
-      );
+      });
       return;
     }
     setResonanceSubmitting(value);
@@ -357,11 +364,12 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       if (err?.response?.status === 409) {
         const existingShiftId: string | undefined =
           err.response.data?.existing_shift_id;
-        Alert.alert(
-          'Already turned into a shift',
-          err.response.data?.message ??
+        showAlert({
+          title: 'Already turned into a shift',
+          message:
+            err.response.data?.message ??
             'This pattern already has an active shift.',
-          existingShiftId
+          buttons: existingShiftId
             ? [
                 { text: 'Dismiss', style: 'cancel' },
                 {
@@ -377,7 +385,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
                 },
               ]
             : [{ text: 'OK', style: 'cancel' }],
-        );
+        });
       } else {
         surfaceError('TurnToShift error', err);
       }

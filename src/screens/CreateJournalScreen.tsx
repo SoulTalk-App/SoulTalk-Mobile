@@ -6,7 +6,6 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -23,7 +22,7 @@ import {
   clearLocalDraft,
 } from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
-import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
@@ -53,6 +52,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { createEntry, updateEntry, finalizeDraft, entries, persistPendingFinalize } = useJournal();
+  // so-1zn0: themed alert replaces native Alert across this surface.
+  const { showAlert, showError } = useAppAlert();
 
   const dkS = useMemo(
     () =>
@@ -173,26 +174,39 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             }
           }
           combined = combined.slice(0, cut);
-          Alert.alert(
-            'Entry trimmed',
-            `Voice transcription would have exceeded the ${MAX_ENTRY_WORDS}-word limit. Your entry was trimmed to fit.`,
-          );
+          showAlert({
+            title: 'Entry trimmed',
+            message: `Voice transcription would have exceeded the ${MAX_ENTRY_WORDS}-word limit. Your entry was trimmed to fit.`,
+          });
         }
         setText(combined);
         setLiveTranscript(null);
       } catch (error: any) {
         setLiveTranscript(null);
-        Alert.alert('Transcription Error', error.message || 'Failed to transcribe audio');
+        // so-iiw8: was "Failed to transcribe audio" — too technical and
+        // didn't tell the user what to do. The raw error.message could
+        // also leak SDK strings ("AVAudioSession activation failed").
+        showAlert({
+          title: 'Transcription',
+          message: "Couldn't hear you clearly. Please try again.",
+        });
       }
     } else {
       try {
         textBeforeRecordingRef.current = text;
         await startRecording();
       } catch (error: any) {
-        Alert.alert('Recording Error', error.message || 'Failed to start recording');
+        // so-iiw8: was "Failed to start recording" + raw error.message.
+        // Almost always a missing-mic-permission case — point the user
+        // at Settings instead of dumping the SDK error.
+        showAlert({
+          title: 'Microphone',
+          message:
+            'We need microphone access. Check your phone settings.',
+        });
       }
     }
-  }, [isRecording, startRecording, stopRecording, text]);
+  }, [isRecording, startRecording, stopRecording, text, showAlert]);
 
   const handleSave = async () => {
     // so-m5oj: dismiss the keyboard before doing anything else so the
@@ -204,10 +218,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     // generous maxLength prevents most paste/voice over-runs but a user who
     // pastes a wall of text could still cross the line.
     if (countWords(text) > MAX_ENTRY_WORDS) {
-      Alert.alert(
-        'Entry too long',
-        `Journal entries are capped at ${MAX_ENTRY_WORDS} words. Trim a little and try again.`,
-      );
+      showAlert({
+        title: 'Entry too long',
+        message: `Journal entries are capped at ${MAX_ENTRY_WORDS} words. Trim a little and try again.`,
+      });
       return;
     }
     setIsSaving(true);
@@ -261,15 +275,21 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         ? detail.map((d) => d?.msg || JSON.stringify(d)).join('; ')
         : detail;
       if (status === 409) {
-        Alert.alert('Daily Limit', detailMsg || "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.");
+        showAlert({
+          title: 'Daily Limit',
+          message:
+            detailMsg ||
+            "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.",
+        });
       } else if (status === 400 && /max(imum)?\s*edits|edit\s*limit/i.test(detailMsg || '')) {
         // so-uba4: BE returns 400 with a max-edits message when the user
         // has exhausted the 3-edit cap. The generic "Failed to save entry"
         // dialog was misleading — give them the actual reason.
-        Alert.alert(
-          'Edit limit reached',
-          detailMsg || "You've reached the maximum of 3 edits for this entry.",
-        );
+        showAlert({
+          title: 'Edit limit reached',
+          message:
+            detailMsg || "You've reached the maximum of 3 edits for this entry.",
+        });
       } else {
         // so-hl09: stash a finalize-retry intent for any non-409 failure
         // on the draft-finalize path — typically network drop or 5xx.
@@ -286,7 +306,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         // handles BE detail, Pydantic 422, status copy, and network /
         // timeout — no more raw axios strings ("Network Error",
         // "timeout of 10000ms exceeded") leaking into the dialog.
-        Alert.alert('Error', normalizeError(error));
+        showError(error);
       }
       setIsSaving(false);
     }
@@ -405,10 +425,11 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         clearLocalDraft();
         return;
       }
-      Alert.alert(
-        'Restore unfinished entry?',
-        "We saved your last entry locally before it was interrupted. Want to pick up where you left off?",
-        [
+      showAlert({
+        title: 'Restore unfinished entry?',
+        message:
+          "We saved your last entry locally before it was interrupted. Want to pick up where you left off?",
+        buttons: [
           {
             text: 'Discard',
             style: 'destructive',
@@ -434,7 +455,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             },
           },
         ],
-      );
+      });
     })();
     return () => {
       cancelled = true;

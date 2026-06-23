@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Image,
-  Alert,
   TextInput,
   Modal,
   FlatList,
@@ -17,10 +16,11 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/AuthService';
 import JournalService from '../services/JournalService';
-import { normalizeError } from '../utils/normalizeError';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { useAppAlert } from '../components/AppAlertProvider';
+import { normalizeError } from '../utils/normalizeError';
 
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
@@ -119,6 +119,8 @@ const SettingsScreen = ({ navigation }: any) => {
   const { user, logout, updateProfile, deleteAccount } = useAuth();
   const { isDarkMode, themePref, setThemePref } = useTheme();
   const colors = useThemeColors();
+  // so-1zn0: themed alert replaces native Alert across this surface.
+  const { showAlert, showError } = useAppAlert();
   const styles = useMemo(() => buildStyles(colors, isDarkMode), [colors, isDarkMode]);
   const placeholderColor = isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.5)';
   const lockIconColor = isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(58,14,102,0.55)';
@@ -372,15 +374,16 @@ const SettingsScreen = ({ navigation }: any) => {
     setExportingData(true);
     try {
       await authService.requestDataExport();
-      Alert.alert(
-        'Preparing your data',
-        "We're preparing your data. You'll get an email with a secure download link shortly.",
-      );
+      showAlert({
+        title: 'Preparing your data',
+        message:
+          "We're preparing your data. You'll get an email with a secure download link shortly.",
+      });
     } catch (error: any) {
       // so-fntk: normalizeError handles BE detail, Pydantic 422,
       // network/timeout, and status-based fallbacks; no raw axios
       // strings leak into the dialog.
-      Alert.alert('Export failed', normalizeError(error));
+      showError(error, { title: 'Export failed' });
     } finally {
       setExportingData(false);
     }
@@ -399,7 +402,10 @@ const SettingsScreen = ({ navigation }: any) => {
       }
       await logout();
     } catch {
-      Alert.alert('Error', 'Failed to log out. Please try again.');
+      showAlert({
+        title: 'Logout failed',
+        message: "We couldn't sign you out. Please try again.",
+      });
     }
   };
 
@@ -408,40 +414,43 @@ const SettingsScreen = ({ navigation }: any) => {
       await deleteAccount();
     } catch (error: any) {
       // so-fntk: friendly fallback via normalizeError. Retry action is
-      // preserved.
-      Alert.alert(
-        'Deletion Failed',
-        normalizeError(error),
-        [
+      // preserved. so-1zn0: themed showAlert renders the same Cancel +
+      // destructive Retry pair the native Alert had.
+      showAlert({
+        title: 'Deletion Failed',
+        message: normalizeError(error),
+        buttons: [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Retry', style: 'destructive', onPress: performDeleteAccount },
         ],
-      );
+      });
     }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete your SoulTalk account?',
-      'This permanently removes your journal entries, soul signals, soul shifts, soulsights, mood history, and personality test results. This cannot be undone.',
-      [
+    showAlert({
+      title: 'Delete your SoulTalk account?',
+      message:
+        'This permanently removes your journal entries, soul signals, soul shifts, soulsights, mood history, and personality test results. This cannot be undone.',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Continue',
           style: 'destructive',
           onPress: () => {
-            Alert.alert(
-              'Are you absolutely sure?',
-              'Your account and all related data will be permanently deleted.',
-              [
+            showAlert({
+              title: 'Are you absolutely sure?',
+              message:
+                'Your account and all related data will be permanently deleted.',
+              buttons: [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Delete forever', style: 'destructive', onPress: performDeleteAccount },
               ],
-            );
+            });
           },
         },
       ],
-    );
+    });
   };
 
   return (

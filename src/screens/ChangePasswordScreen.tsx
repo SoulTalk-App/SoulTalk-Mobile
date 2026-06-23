@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -18,11 +17,14 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 const ChangePasswordScreen = ({ navigation }: any) => {
   const { changePassword } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showError } = useAppAlert();
   const styles = useMemo(() => buildStyles(colors, isDarkMode), [colors, isDarkMode]);
   const iconColor = isDarkMode ? colors.white : colors.text.primary;
   const [currentPassword, setCurrentPassword] = useState('');
@@ -92,7 +94,7 @@ const ChangePasswordScreen = ({ navigation }: any) => {
       await changePassword(currentPassword, newPassword);
       // changePassword calls logout — user will be redirected to login automatically
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to change password');
+      showError(error, { title: "Couldn't change password" });
     } finally {
       setIsLoading(false);
     }

@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -25,6 +25,8 @@ interface ForgotPasswordScreenProps {
 const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -206,7 +208,10 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation 
 
   const handleSendResetLink = async () => {
     if (!validateEmail(email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address');
+      showAlert({
+        title: 'Invalid Email',
+        message: 'Please enter a valid email address.',
+      });
       return;
     }
 

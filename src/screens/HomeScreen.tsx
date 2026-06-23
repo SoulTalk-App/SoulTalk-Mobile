@@ -8,7 +8,6 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -32,6 +31,7 @@ import authService from '../services/AuthService';
 import { TermsReacceptanceModal } from '../components/TermsReacceptanceModal';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
+import { useAppAlert } from '../components/AppAlertProvider';
 import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { cosmicTextShadow } from '../components/CosmicText';
@@ -78,6 +78,8 @@ const HomeScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { homeImage, bodyImage, colorId } = useSoulPal();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
   const soulPalHex = getSoulPalHex(colorId, isDarkMode);
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
@@ -967,7 +969,12 @@ const HomeScreen = ({ navigation }: any) => {
       await authService.acceptTerms(termsCurrentVersion, new Date().toISOString());
       setTermsModalVisible(false);
     } catch {
-      Alert.alert('Something went wrong', 'Could not record your acceptance. Please try again.');
+      // so-iiw8: specific title — was generic "Something went wrong"
+      // (the body already says what failed). showAlert keeps it themed.
+      showAlert({
+        title: "We couldn't save your response.",
+        message: 'Please try again in a moment.',
+      });
     } finally {
       setTermsAccepting(false);
     }

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +28,8 @@ import {
 } from '../../data/personalityTests/types';
 import PersonalityService from '../../services/PersonalityService';
 import { usePersonality } from '../../contexts/PersonalityContext';
+import { useAppAlert } from '../../components/AppAlertProvider';
+import { normalizeError } from '../../utils/normalizeError';
 
 const LIKERT_ORDER: LikertValue[] = [1, 2, 3, 4, 5];
 
@@ -41,6 +42,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   const testType: TestType = route.params?.testType;
   const def = getTest(testType);
   const { setResult } = usePersonality();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LikertValue>>({});
@@ -92,11 +95,12 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
         navigation.replace('PersonalityResult', { resultId: result.id });
       } catch (err: any) {
         setIsSubmitting(false);
-        const detail = err?.response?.data?.detail;
-        Alert.alert(
-          'Submission failed',
-          detail || err?.message || 'Could not save your test. Please try again.',
-        );
+        // so-iiw8: drop raw err.message; normalizeError handles BE
+        // detail/Pydantic/network so the message stays user-grade.
+        showAlert({
+          title: 'Submission failed',
+          message: normalizeError(err),
+        });
       }
     },
     [testType, def.version, navigation, setResult],
@@ -132,14 +136,14 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   };
 
   const handleExit = () => {
-    Alert.alert(
-      'Leave test?',
-      'Your progress will be lost.',
-      [
+    showAlert({
+      title: 'Leave test?',
+      message: 'Your progress will be lost.',
+      buttons: [
         { text: 'Keep going', style: 'cancel' },
         { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
       ],
-    );
+    });
   };
 
   // ==============================

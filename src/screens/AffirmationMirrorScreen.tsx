@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +16,7 @@ import { useJournal } from '../contexts/JournalContext';
 import { useAuth } from '../contexts/AuthContext';
 import JournalService from '../services/JournalService';
 import { formatLocalDateKey, getDeviceTimezone } from '../utils/timezone';
-import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { ReadyState, AffirmationItem } from '../features/affirmationMirror/ReadyState';
 import { AffirmationReveal } from '../features/affirmationMirror/AffirmationReveal';
@@ -43,6 +42,8 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   // "today" date_key matches the BE's computation exactly. Falls back
   // to device tz, then UTC, mirroring JournalContext.hasEntryToday.
   const { user } = useAuth();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showError } = useAppAlert();
 
   // so-urv4 #2: optimistic-reveal on mount. Previously the screen blocked
   // first paint on listAffirmations(30,0); users saw a spinner while the
@@ -92,11 +93,11 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         setState({ kind: 'reveal' });
       } else {
         // so-fntk: friendly fallback via normalizeError.
-        Alert.alert('Affirmation Mirror', normalizeError(err));
+        showError(err, { title: 'Affirmation Mirror' });
         setState({ kind: 'reveal' });
       }
     }
-  }, [user?.timezone]);
+  }, [user?.timezone, showError]);
 
   useFocusEffect(
     useCallback(() => {
@@ -150,10 +151,10 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       // so-fntk: friendly text via normalizeError. The thrown Error
       // messages above (trimmed-text / missing date_key) pass through
       // because they're already user-grade.
-      Alert.alert('Affirmation Mirror', normalizeError(err));
+      showError(err, { title: 'Affirmation Mirror' });
       throw err;
     }
-  }, []);
+  }, [showError]);
 
   const handleReplay = useCallback(() => {
     if (state.kind !== 'ready') return;
