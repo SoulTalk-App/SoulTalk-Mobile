@@ -82,6 +82,16 @@ interface LinkedAccount {
   linked_at: string;
 }
 
+// so-cywf / so-fqgr contract: server-authoritative terms-of-service consent.
+// terms_version is the user's last-accepted version (0 = never accepted);
+// trust acceptance_required directly (no client-side version comparison).
+interface TermsStatus {
+  terms_version: number;
+  current_version: number;
+  acceptance_required: boolean;
+  terms_accepted_at: string | null;
+}
+
 class AuthService {
   private keycloakConfig: KeycloakConfig;
   private apiConfig: ApiConfig;
@@ -203,6 +213,36 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       throw new Error(normalizeError(error));
+    }
+  }
+
+  // so-cywf / so-fqgr: terms-of-service consent (proof-of-consent on the server).
+  // Flow: getTermsStatus() first to read current_version + acceptance_required;
+  // if required, prompt, then acceptTerms(current_version). Never hardcode the
+  // version — always echo current_version from getTermsStatus().
+  async getTermsStatus(): Promise<TermsStatus> {
+    try {
+      const response: AxiosResponse<TermsStatus> =
+        await this.axiosInstance.get('/auth/terms-status');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get terms status');
+    }
+  }
+
+  // version MUST equal the server's current_version (from getTermsStatus) — a
+  // mismatch returns 4xx StaleTermsVersionError. accepted_at is the optional
+  // device timestamp (ISO-8601); the server records an immutable audit row.
+  async acceptTerms(version: number, acceptedAt?: string): Promise<TermsStatus> {
+    try {
+      const response: AxiosResponse<TermsStatus> =
+        await this.axiosInstance.post('/auth/terms-accept', {
+          version,
+          accepted_at: acceptedAt ?? null,
+        });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to record terms acceptance');
     }
   }
 
