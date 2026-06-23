@@ -495,36 +495,42 @@ const SlideContent: React.FC<SlideContentProps> = ({
   }
 
   if (slide.characterType === 'disclaimer') {
-    // so-7r4y: same layout shell as the features slide — title + a
-    // ScrollView body — so the long-form disclaimer copy can flow and
-    // scroll on smaller screens / Dynamic Type without clipping.
+    // so-bemc: previously wrapped termsScrollFrame in
+    // featuresSlideContent + featuresInner. featuresSlideContent forces
+    // justifyContent:'center' and featuresInner has no height/flex — so
+    // termsScrollFrame's flex:1 had no axis to grow into and collapsed
+    // to ~0 height, leaving only the frame's top border visible (the
+    // disclaimer paragraphs were clipped to zero). Reuse the working
+    // TERMS slide shell instead: slideContent is position:absolute with
+    // top/left/right/bottom all 0, so under termsSlideContent the frame
+    // is a direct flex sibling of the title and gets real vertical
+    // space. Long disclaimer copy now scrolls inside the frame the same
+    // way the privacy/terms doc does.
     // PLACEHOLDER paragraphs (see slide definitions above) — final copy
     // owned by Chey/Randy.
     return (
       <Animated.View
-        style={[styles.slideContent, styles.featuresSlideContent, containerStyle]}
+        style={[styles.slideContent, styles.termsSlideContent, containerStyle]}
       >
-        <View style={styles.featuresInner}>
-          <View style={[styles.titleContainer, styles.featuresTitleContainer]}>
-            <Text style={styles.titleStart}>{slide.titleStart}</Text>
-            <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-          </View>
-          <View style={styles.termsScrollFrame}>
-            <ScrollView
-              showsVerticalScrollIndicator
-              contentContainerStyle={styles.termsScrollContent}
-              nestedScrollEnabled
-            >
-              {(slide.disclaimerParagraphs ?? []).map((para, i) => (
-                <Text
-                  key={i}
-                  style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
-                >
-                  {para}
-                </Text>
-              ))}
-            </ScrollView>
-          </View>
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleStart}>{slide.titleStart}</Text>
+          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
+        </View>
+        <View style={styles.termsScrollFrame}>
+          <ScrollView
+            showsVerticalScrollIndicator
+            contentContainerStyle={styles.termsScrollContent}
+            nestedScrollEnabled
+          >
+            {(slide.disclaimerParagraphs ?? []).map((para, i) => (
+              <Text
+                key={i}
+                style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
+              >
+                {para}
+              </Text>
+            ))}
+          </ScrollView>
         </View>
       </Animated.View>
     );
