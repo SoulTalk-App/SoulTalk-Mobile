@@ -64,6 +64,13 @@ export const lightColors = {
   // Transparent variants
   overlay: 'rgba(79, 23, 134, 0.1)',
   overlayDark: 'rgba(0, 0, 0, 0.5)',
+
+  // so-4j34: dedicated accent for the on-brand journal-reflecting
+  // loader. Hex #59168B was previously baked in across
+  // JournalLoader (dots), JournalEntryScreen (pending spinner), and
+  // SaveAnimation (overlay wash). Lifted here so the loader stays
+  // theme-aware via useThemeColors instead of carrying inline TODOs.
+  loaderAccent: '#59168B',
 } as const;
 
 /**
@@ -123,6 +130,11 @@ export const darkColors: typeof lightColors = {
 
   overlay: 'rgba(255, 255, 255, 0.1)',
   overlayDark: 'rgba(0, 0, 0, 0.7)',
+
+  // so-4j34: dark-mode mirror of lightColors.loaderAccent. Teal mirrors
+  // colors.primary so the loader feels native to the cosmic-void palette
+  // (status text, dot fill, completion-beat ring).
+  loaderAccent: '#4DE8D4',
 } as const;
 
 /**

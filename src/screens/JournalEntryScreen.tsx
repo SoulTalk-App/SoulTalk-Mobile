@@ -20,6 +20,7 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 import { useMountedRef } from '../hooks';
 import AIGeneratedLabel from '../components/AIGeneratedLabel';
+import JournalLoader from '../components/JournalLoader';
 
 // so-jb0t: BE appends generate_safety_redirect text to the LLM reflection
 // when mode === 'CRISIS_OVERRIDE'. The redirect block always opens with this
@@ -449,13 +450,16 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         </>
       );
     }
-    return (
-      <View style={isDarkMode ? dk.aiLoadingRow : lt.aiLoadingRow}>
-        {/* TODO(theme): map light '#59168B' to palette key */}
-        <ActivityIndicator color={isDarkMode ? colors.primary : '#59168B'} size="small" />
-        <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>Preparing your reflection...</Text>
-      </View>
-    );
+    // so-4j34: unify the pending UI with the submit-flow loader. The
+    // legacy ActivityIndicator + faint "Preparing your reflection..."
+    // line read as a different visual language from
+    // CreateJournalScreen's overlay; mid-processing navigation to the
+    // detail flipped the user from one loader to a noticeably
+    // different one. JournalLoader.inline now reuses the same SoulPal
+    // breathing + writing-dots + rotating status scene, theme-aware
+    // via useThemeColors. The old TODO(theme) at #59168B is folded
+    // into colors.loaderAccent inside the component.
+    return <JournalLoader variant="inline" />;
   };
 
   // ════════════════════════════════════════

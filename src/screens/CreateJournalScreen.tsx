@@ -23,7 +23,7 @@ import {
 } from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { useAppAlert } from '../components/AppAlertProvider';
-import SaveAnimation from '../components/SaveAnimation';
+import JournalLoader from '../components/JournalLoader';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 import SoulPalAnimated from '../components/SoulPalAnimated';
@@ -524,7 +524,20 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <SaveAnimation visible={showSaveAnimation} done={analysisDone} onComplete={handleSaveAnimationComplete} />
+        {/* so-4j34: rainbow SaveAnimation retired. JournalLoader's
+            overlay variant matches the SaveAnimation contract
+            (visible/done/onComplete) but loops a SoulPal reflecting
+            scene with a rotating status line and an on-brand
+            celebrating-SoulPal completion beat. The 30s poll, WS
+            journal_ai_complete fast-path (JournalContext), and so-uba4
+            timeout dismissal are untouched — only the overlay surface
+            changed. */}
+        <JournalLoader
+          variant="overlay"
+          visible={showSaveAnimation}
+          done={analysisDone}
+          onComplete={handleSaveAnimationComplete}
+        />
       </CosmicScreen>
     );
   }
@@ -586,7 +599,13 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-      <SaveAnimation visible={showSaveAnimation} done={analysisDone} onComplete={handleSaveAnimationComplete} />
+      {/* so-4j34: see dark-mode branch for full rationale. */}
+      <JournalLoader
+        variant="overlay"
+        visible={showSaveAnimation}
+        done={analysisDone}
+        onComplete={handleSaveAnimationComplete}
+      />
     </CosmicScreen>
   );
 };
