@@ -203,7 +203,15 @@ export function AffirmationReveal({
           videoZoom.value = 1.08;
           idlePlayer.pause();
         }
-      } catch {}
+      } catch (err) {
+        // so-zmjn: previously swallowed silently. A failed
+        // AsyncStorage.getItem here means the user sees the reveal
+        // button (and can replay the affirmation) instead of jumping
+        // straight to the revealed state on the next mount. We can't
+        // recover but we DO need to log so a regression in storage is
+        // visible in field traces — silent break is the audit smell.
+        console.warn('[AffirmationReveal] so-zmjn: checkRevealed AsyncStorage read failed:', err);
+      }
     };
     checkRevealed();
   }, []);
@@ -233,10 +241,30 @@ export function AffirmationReveal({
     isRevealedRef.current = true;
     setIsRevealed(true);
 
-    if (revealDateKey) {
+    // so-zmjn: only write a real date_key. Pre-fix an undefined /
+    // empty key would write nothing usefully (the `if (revealDateKey)`
+    // already protected against undefined) but a literally-empty
+    // string from a degenerate BE response would still land as ''.
+    // Defensive trim before the write.
+    const writableKey = typeof revealDateKey === 'string' ? revealDateKey.trim() : '';
+    if (writableKey) {
       try {
-        await AsyncStorage.setItem(REVEALED_DATE_KEY, revealDateKey);
-      } catch {}
+        await AsyncStorage.setItem(REVEALED_DATE_KEY, writableKey);
+      } catch (err) {
+        // so-zmjn: previously swallowed silently. If this write fails
+        // the user can replay the same affirmation tomorrow's mount —
+        // i.e. reveal-once silently breaks. Surface to logs so the
+        // failure isn't invisible.
+        console.warn('[AffirmationReveal] so-zmjn: REVEALED_DATE_KEY write failed:', err);
+      }
+    } else {
+      // so-zmjn: defensive log so a BE that ships a blank date_key
+      // surfaces in field traces. The replay UX still works for the
+      // current session because isRevealedRef is set above; only the
+      // cross-session memory is missed.
+      console.warn(
+        '[AffirmationReveal] so-zmjn: skipped REVEALED_DATE_KEY write — blank/missing date_key',
+      );
     }
 
     buttonOpacity.value = withTiming(0, { duration: 250 });

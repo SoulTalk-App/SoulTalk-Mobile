@@ -14,7 +14,10 @@ import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
+import { useAuth } from '../contexts/AuthContext';
 import JournalService from '../services/JournalService';
+import { formatLocalDateKey, getDeviceTimezone } from '../utils/timezone';
+import { normalizeError } from '../utils/normalizeError';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { ReadyState, AffirmationItem } from '../features/affirmationMirror/ReadyState';
 import { AffirmationReveal } from '../features/affirmationMirror/AffirmationReveal';
@@ -36,6 +39,10 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   const colors = useThemeColors();
   const theme = isDarkMode ? 'dark' : 'light';
   const { hasEntryToday } = useJournal();
+  // so-zmjn: pull the BE-authoritative user.timezone so the client's
+  // "today" date_key matches the BE's computation exactly. Falls back
+  // to device tz, then UTC, mirroring JournalContext.hasEntryToday.
+  const { user } = useAuth();
 
   // so-urv4 #2: optimistic-reveal on mount. Previously the screen blocked
   // first paint on listAffirmations(30,0); users saw a spinner while the
@@ -61,7 +68,13 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     try {
       const list = await JournalService.listAffirmations(30, 0);
       if (cancelled()) return;
-      const todayIso = new Date().toISOString().slice(0, 10);
+      // so-zmjn: format the date_key in the USER'S timezone. The
+      // previous `new Date().toISOString().slice(0, 10)` was UTC, which
+      // disagrees with the BE (BE uses users.timezone) at every
+      // UTC/local boundary — the "today" check then missed today's row
+      // and offered a duplicate reveal. Match the BE exactly.
+      const userTz = user?.timezone || getDeviceTimezone() || 'UTC';
+      const todayIso = formatLocalDateKey(new Date(), userTz);
       // BE includes today's row in history when /today has already generated;
       // detect it by date_key matching today's local date.
       const today = list.items.find((it) => it.date_key === todayIso) ?? null;
@@ -78,12 +91,12 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       if (status === 404 || status === 405) {
         setState({ kind: 'reveal' });
       } else {
-        const msg = err?.response?.data?.detail || 'Could not load affirmations.';
-        Alert.alert('Affirmation Mirror', msg);
+        // so-fntk: friendly fallback via normalizeError.
+        Alert.alert('Affirmation Mirror', normalizeError(err));
         setState({ kind: 'reveal' });
       }
     }
-  }, []);
+  }, [user?.timezone]);
 
   useFocusEffect(
     useCallback(() => {
@@ -117,17 +130,27 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   }> => {
     try {
       const data = await JournalService.getTodayAffirmation();
-      if (!data?.affirmation_text) {
-        throw new Error('Empty affirmation response');
+      // so-zmjn: surface a friendly error instead of animating to a
+      // blank mirror if the BE returns an empty/whitespace text OR
+      // omits date_key entirely (defensive guard — the reveal-once
+      // AsyncStorage write below depends on a real key, see
+      // AffirmationReveal handleReveal).
+      const trimmedText = data?.affirmation_text?.trim();
+      if (!trimmedText) {
+        throw new Error('Affirmation came back empty. Please try again in a moment.');
+      }
+      if (!data?.date_key) {
+        throw new Error("Couldn't tag today's affirmation. Please try again in a moment.");
       }
       return {
-        affirmation_text: data.affirmation_text,
+        affirmation_text: trimmedText,
         date_key: data.date_key,
       };
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail || 'Something went wrong. Please try again later.';
-      Alert.alert('Affirmation Mirror', msg);
+      // so-fntk: friendly text via normalizeError. The thrown Error
+      // messages above (trimmed-text / missing date_key) pass through
+      // because they're already user-grade.
+      Alert.alert('Affirmation Mirror', normalizeError(err));
       throw err;
     }
   }, []);
