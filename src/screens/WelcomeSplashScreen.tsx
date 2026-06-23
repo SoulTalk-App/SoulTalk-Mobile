@@ -9,7 +9,6 @@ import {
   Platform,
   Pressable,
   Image,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +16,7 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -31,6 +31,8 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
   const { isDarkMode } = useTheme();
   const { updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
   const [username, setUsername] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -184,11 +186,13 @@ const WelcomeSplashScreen: React.FC<WelcomeSplashScreenProps> = ({ navigation })
     try {
       await updateProfile({ display_first_name: trimmed });
     } catch (error: any) {
-      Alert.alert(
-        'Could not save your name',
-        error?.message ||
+      // so-iiw8: drop raw error?.message — could leak axios noise. The
+      // device-fallback copy already tells the user what to do.
+      showAlert({
+        title: 'Could not save your name',
+        message:
           'Your name is saved on this device and will sync when you reconnect.',
-      );
+      });
     }
     navigation.navigate('SoulPalName');
   };

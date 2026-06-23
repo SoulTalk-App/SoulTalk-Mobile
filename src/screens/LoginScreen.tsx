@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
 import { normalizeError } from "../utils/normalizeError";
+import { useAppAlert } from "../components/AppAlertProvider";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { useAppleAuth } from "../hooks/useAppleAuth";
@@ -33,6 +33,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  // so-1zn0: themed alert hook replaces native Alert.alert across this
+  // surface. showError(err, {title}) runs through normalizeError so social
+  // SDK strings ("DEVELOPER_ERROR", "No ID token") never reach the user.
+  const { showAlert, showError } = useAppAlert();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -329,7 +333,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         handleGoogleLogin(idToken);
       }
     } else if (googleResponse?.type === 'error') {
-      Alert.alert('Google Sign-In Failed', googleResponse.error?.message || 'An error occurred');
+      // so-iiw8: route through showError so the SDK's "An error occurred"
+      // fallback / raw "DEVELOPER_ERROR" strings get re-mapped to the
+      // friendly copy set by useGoogleAuth.ts (so-iiw8 #1).
+      showError(googleResponse.error, { title: 'Google Sign-In Failed' });
     }
   }, [googleResponse]);
 
@@ -341,7 +348,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         handleFacebookLogin(accessToken);
       }
     } else if (facebookResponse?.type === 'error') {
-      Alert.alert('Facebook Login Failed', facebookResponse.error?.message || 'An error occurred');
+      // so-iiw8: same routing fix as Google — kills the raw SDK string +
+      // "An error occurred" fallback that used to leak through.
+      showError(facebookResponse.error, { title: 'Facebook Login Failed' });
     }
   }, [facebookResponse]);
 
@@ -353,7 +362,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         handleAppleLogin(identityToken, getAppleFullName());
       }
     } else if (appleResponse?.type === 'error') {
-      Alert.alert('Apple Sign-In Failed', appleResponse.error?.message || 'An error occurred');
+      // so-iiw8: friendly copy via showError; useAppleAuth.ts already
+      // pre-normalizes its error.message to the user-safe phrase.
+      showError(appleResponse.error, { title: 'Apple Sign-In Failed' });
     }
   }, [appleResponse]);
 
@@ -363,7 +374,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithGoogle(idToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Google Login Failed', normalizeError(error));
+      showError(error, { title: 'Google Login Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -375,7 +386,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithFacebook(accessToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Facebook Login Failed', normalizeError(error));
+      showError(error, { title: 'Facebook Login Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -387,7 +398,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithApple(identityToken, fullName);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Apple Sign-In Failed', normalizeError(error));
+      showError(error, { title: 'Apple Sign-In Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -402,7 +413,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password");
+      showAlert({
+        title: 'Missing details',
+        message: 'Please enter both your email and password.',
+      });
       return;
     }
 
@@ -432,7 +446,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       if (isUnverified) {
         navigation.navigate('OTPVerification', { email });
       } else {
-        Alert.alert("Login Failed", msg);
+        showAlert({ title: 'Login Failed', message: msg });
       }
     } finally {
       setIsLoading(false);
@@ -445,13 +459,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       if (success) {
         // Navigation will be handled by the auth state change
       } else {
-        Alert.alert(
-          "Authentication Failed",
-          "Biometric authentication was not successful",
-        );
+        // so-iiw8: "Biometric authentication was not successful" was
+        // jargon; tell the user what to do next.
+        showAlert({
+          title: 'Biometric Sign-In',
+          message:
+            "Biometric sign-in didn't work. Use your password instead.",
+        });
       }
     } catch (error: any) {
-      Alert.alert("Error", normalizeError(error));
+      showError(error, { title: 'Biometric Sign-In' });
     }
   };
 

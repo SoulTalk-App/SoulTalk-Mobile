@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 interface ResetPasswordConfirmScreenProps {
   navigation: any;
@@ -26,6 +26,8 @@ interface ResetPasswordConfirmScreenProps {
 const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
+  // so-1zn0: themed alert replaces native Alert.
+  const { showAlert } = useAppAlert();
   const { token } = route.params || {};
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -244,12 +246,21 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
 
   const handleResetPassword = async () => {
     if (!token) {
-      Alert.alert('Error', 'Invalid or missing reset token');
+      // so-iiw8: "Invalid or missing reset token" was jargon — the user
+      // doesn't know what a token is. Tell them what to do.
+      showAlert({
+        title: 'Link not valid',
+        message:
+          "This link isn't valid. Request a new password reset email.",
+      });
       return;
     }
 
     if (!isFormValid) {
-      Alert.alert('Error', 'Please fill in all fields correctly');
+      showAlert({
+        title: 'Almost there',
+        message: 'Please fill in all fields correctly.',
+      });
       return;
     }
 
@@ -258,7 +269,13 @@ const ResetPasswordConfirmScreen: React.FC<ResetPasswordConfirmScreenProps> = ({
       await confirmPasswordReset(token, password);
       setResetComplete(true);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to reset password. The link may have expired.');
+      // so-iiw8: drop raw error.message — could be axios noise. The
+      // friendly "link may have expired" already covers the common cause.
+      showAlert({
+        title: 'Reset failed',
+        message:
+          'We couldn’t reset your password. The link may have expired — request a new one and try again.',
+      });
     } finally {
       setIsLoading(false);
     }

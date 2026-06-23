@@ -44,8 +44,12 @@ export const useGoogleAuth = (): UseGoogleAuthReturn => {
       if (idToken) {
         setResponse({ type: 'success', idToken });
       } else {
-        setResponse({ type: 'error', error: { message: 'No ID token received' } });
-        setError('No ID token received');
+        // so-iiw8: user-facing copy — raw "No ID token received" was an
+        // SDK-internal phrase ("ID token" reads as jargon). Match the
+        // friendly tone of the rest of the auth surface.
+        const friendly = "Google sign-in didn't complete. Please try again.";
+        setResponse({ type: 'error', error: { message: friendly } });
+        setError(friendly);
       }
       return result;
     } catch (err: any) {
@@ -54,9 +58,15 @@ export const useGoogleAuth = (): UseGoogleAuthReturn => {
       } else if (err.code === statusCodes.IN_PROGRESS) {
         // Sign-in already in progress
       } else {
-        const message = err.message || 'Failed to initiate Google sign-in';
-        setError(message);
-        setResponse({ type: 'error', error: { message } });
+        // so-iiw8: don't expose raw SDK err.message to the screen — it
+        // surfaces things like "DEVELOPER_ERROR" verbatim. The actual
+        // message rendered to the user goes through normalizeError +
+        // useAppAlert at the call site; this just keeps an internal
+        // signal for the hook state machine.
+        const friendly =
+          "Google sign-in didn't complete. Please try again.";
+        setError(friendly);
+        setResponse({ type: 'error', error: { message: friendly } });
       }
       throw err;
     } finally {

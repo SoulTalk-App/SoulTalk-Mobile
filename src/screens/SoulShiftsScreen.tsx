@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,19 +22,23 @@ import {
   ShiftSuggestionResponse,
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
-import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 
 const SoulShiftsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
+  // so-1zn0: themed alert replaces native Alert.
+  const { showError } = useAppAlert();
 
   // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
   // normalized message (never raw axios/technical strings) and keep a dev
   // breadcrumb. Loading/submitting state is reset by each handler's finally.
+  // so-iiw8: was a generic "Something went wrong" title — swap for a
+  // specific scope ("Couldn't load shifts") so users know what failed.
   const surfaceError = (scope: string, err: unknown) => {
     if (__DEV__) console.warn(`[SoulShifts] ${scope}:`, err);
-    Alert.alert('Something went wrong', normalizeError(err));
+    showError(err, { title: "Couldn't load shifts" });
   };
 
   const [shifts, setShifts] = useState<Shift[]>([]);

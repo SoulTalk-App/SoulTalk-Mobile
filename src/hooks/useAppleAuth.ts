@@ -69,7 +69,9 @@ export const useAppleAuth = (): UseAppleAuthReturn => {
           fullName: formatFullName(credential.fullName),
         });
       } else {
-        const message = 'No identity token received from Apple';
+        // so-iiw8: "No identity token received from Apple" is SDK jargon
+        // — replace with the same friendly tone used by the Google path.
+        const message = "Apple sign-in didn't complete. Please try again.";
         setError(message);
         setResponse({ type: 'error', error: { message } });
       }
@@ -78,7 +80,10 @@ export const useAppleAuth = (): UseAppleAuthReturn => {
       if (err?.code === 'ERR_REQUEST_CANCELED') {
         setResponse(null);
       } else {
-        const message = err?.message || 'Failed to sign in with Apple';
+        // so-iiw8: drop raw SDK err.message — it can read like
+        // "AuthorizationCredential is invalid". Caller does the user
+        // surfacing via showError/normalizeError.
+        const message = "Apple sign-in didn't complete. Please try again.";
         setError(message);
         setResponse({ type: 'error', error: { message } });
       }

@@ -5,7 +5,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
 import { useAppleAuth } from '../hooks/useAppleAuth';
@@ -43,6 +43,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  // so-1zn0: themed alert hook replaces native Alert across this surface.
+  // showError(err, {title}) runs through normalizeError so social SDK
+  // strings + "An error occurred" never leak to the user (so-iiw8).
+  const { showError } = useAppAlert();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -360,7 +364,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         handleGoogleSignUp(idToken);
       }
     } else if (googleResponse?.type === 'error') {
-      Alert.alert('Google Sign-Up Failed', googleResponse.error?.message || 'An error occurred');
+      // so-iiw8: route through showError so the SDK's "An error occurred"
+      // fallback / raw status code strings get re-mapped to the friendly
+      // copy set by useGoogleAuth.ts (so-iiw8 #1).
+      showError(googleResponse.error, { title: 'Google Sign-Up Failed' });
     }
   }, [googleResponse]);
 
@@ -372,7 +379,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         handleFacebookSignUp(accessToken);
       }
     } else if (facebookResponse?.type === 'error') {
-      Alert.alert('Facebook Sign-Up Failed', facebookResponse.error?.message || 'An error occurred');
+      // so-iiw8: same routing fix as Google.
+      showError(facebookResponse.error, { title: 'Facebook Sign-Up Failed' });
     }
   }, [facebookResponse]);
 
@@ -384,7 +392,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         handleAppleSignUp(identityToken, getAppleFullName());
       }
     } else if (appleResponse?.type === 'error') {
-      Alert.alert('Apple Sign-Up Failed', appleResponse.error?.message || 'An error occurred');
+      // so-iiw8: friendly copy via showError; useAppleAuth.ts pre-
+      // normalizes its error.message.
+      showError(appleResponse.error, { title: 'Apple Sign-Up Failed' });
     }
   }, [appleResponse]);
 
@@ -399,7 +409,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithGoogle(idToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Google Sign-Up Failed', normalizeError(error));
+      showError(error, { title: 'Google Sign-Up Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -413,7 +423,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithFacebook(accessToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Facebook Sign-Up Failed', normalizeError(error));
+      showError(error, { title: 'Facebook Sign-Up Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -427,7 +437,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithApple(identityToken, fullName);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Apple Sign-Up Failed', normalizeError(error));
+      showError(error, { title: 'Apple Sign-Up Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -573,7 +583,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         navigation.navigate('UnderageBlock');
         return;
       }
-      Alert.alert('Registration Failed', normalizeError(error));
+      showError(error, { title: 'Registration Failed' });
     } finally {
       setIsLoading(false);
     }
@@ -711,6 +721,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
             <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
               <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
+              {/* so-2ohe: do NOT add a `key` to this TextInput or wrap it
+                  in a conditional render that swaps component identity on
+                  the show/hide eye toggle — that re-mount mid-AutoFill is
+                  what Apple's docs flag as a cause of the field locking
+                  yellow + unresponsive. Only `secureTextEntry` flips with
+                  the toggle; React reuses the same native view. */}
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
@@ -755,15 +771,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
-                // so-cnqc: iOS Strong Password engine bails when it sees
-                // two adjacent newPassword fields. Keep newPassword on the
-                // primary input only; the confirm field uses 'password' so
-                // Apple's chain semantics still fill both from the
-                // suggestion bubble without aborting it.
-                // autoComplete='new-password' stays on both — RN/HTML
-                // spec doesn't have the same conflict at that layer.
-                textContentType="password"
+                // so-2ohe: reverts so-cnqc — the 'password' (sign-in)
+                // textContentType on a confirm field next to a 'newPassword'
+                // field is what Apple flags as a known cause of the
+                // Strong-Password AutoFill lock-up (both fields go solid
+                // yellow + unclickable). Apple's documented pattern for a
+                // new-password + confirm pair is BOTH 'newPassword' so iOS
+                // fills them as a pair from the same generated suggestion.
+                // autoComplete='new-password' (RN/HTML) was already on
+                // both — only the iOS textContentType disagreed.
+                textContentType="newPassword"
                 autoComplete="new-password"
+                passwordRules="minlength: 8; required: lower; required: upper; required: digit; required: special;"
               />
               <Pressable
                 style={({ pressed }) => [styles.eyeIcon, pressed && { opacity: TOUCH_PRESS_OPACITY }]}

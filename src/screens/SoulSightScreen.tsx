@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -19,7 +18,7 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPalName } from '../contexts/SoulPalContext';
 import { useJournal } from '../contexts/JournalContext';
-import { normalizeError } from '../utils/normalizeError';
+import { useAppAlert } from '../components/AppAlertProvider';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, {
   EligibilityResponse,
@@ -98,6 +97,8 @@ const SoulSightScreen = ({ navigation }: any) => {
   // local soulBar in JournalContext would stay stale until the next
   // Home focus without an explicit refetch here.
   const { fetchSoulBar } = useJournal();
+  // so-1zn0: themed alert replaces native Alert across this surface.
+  const { showAlert, showError } = useAppAlert();
 
   const [eligibility, setEligibility] = useState<EligibilityResponse | null>(null);
   const [soulsights, setSoulsights] = useState<SoulsightSummary[]>([]);
@@ -154,10 +155,11 @@ const SoulSightScreen = ({ navigation }: any) => {
           stopPolling();
           setIsGenerating(false);
           setGeneratingId(null);
-          Alert.alert(
-            'Generation Failed',
-            status.error_message || 'Something went wrong. Please try again.',
-          );
+          showAlert({
+            title: 'Generation Failed',
+            message:
+              status.error_message || 'Something went wrong. Please try again.',
+          });
           fetchData();
           // so-rhap: on a failed generate the BE may still have rolled
           // intermediate state; refetch defensively so the Home bar
@@ -191,7 +193,7 @@ const SoulSightScreen = ({ navigation }: any) => {
       // status-based copy, and network/timeout fallbacks. Drops the
       // bespoke detail/message/literal cascade that used to surface raw
       // axios strings on a generate failure.
-      Alert.alert('Error', normalizeError(err));
+      showError(err);
     }
   };
 

@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 /**
  * so-fntk: centralized error normalization for SoulTalk-Mobile.
  *
@@ -152,14 +150,11 @@ export const normalizeError = (err: unknown): string => {
   return DEFAULT_FALLBACK;
 };
 
-/**
- * Convenience: show a normalized error inside the standard Alert
- * surface. Title defaults to the brand-neutral 'Error' string used
- * across the app today. Callers that want a custom title should pass
- * one (`showError(err, 'Sign-in failed')`).
- */
-export const showError = (err: unknown, title: string = 'Error'): void => {
-  Alert.alert(title, normalizeError(err));
-};
+// so-1zn0: dropped the Alert.alert-backed showError() helper that used
+// to live here. The user-facing presentation surface is now
+// useAppAlert().showError from src/components/AppAlertProvider — it
+// runs the same normalizeError under the hood and renders inside the
+// themed in-app alert instead of iOS's gray system modal. Importers
+// of the legacy helper switched to useAppAlert in the same change.
 
 export default normalizeError;
