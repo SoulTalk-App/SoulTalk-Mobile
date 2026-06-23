@@ -45,10 +45,10 @@ import { normalizeError } from '../utils/normalizeError';
  * configured in the Adapty dashboard → Placements. If Overseer renames
  * it, change this one constant.
  *
- * 'soultalk_default' is the seed name; if the dashboard uses a
- * different id, this is the single source of truth to update.
+ * 'placement_main' is the live Adapty dashboard placement id; if the
+ * dashboard renames it, this is the single source of truth to update.
  */
-export const PAYWALL_PLACEMENT_ID = 'soultalk_default';
+export const PAYWALL_PLACEMENT_ID = 'placement_main';
 
 /** Apple-managed subscription centre — deep link from Settings. */
 const APPLE_SUBSCRIPTIONS_URL = 'itms-apps://apps.apple.com/account/subscriptions';
