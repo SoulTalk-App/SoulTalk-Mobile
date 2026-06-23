@@ -59,6 +59,7 @@ import {
   isPremiumFromProfile,
   logoutAdaptyUser,
 } from '../services/adapty';
+import { registerPostUnlockHook } from '../utils/authClient';
 
 export interface EntitlementState {
   /**
@@ -132,7 +133,7 @@ interface EntitlementProviderProps {
 export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
   children,
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const [profile, setProfile] = useState<AdaptyProfile | null>(null);
 
   // Track the last user id we identified so we don't fire
@@ -194,6 +195,25 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
     });
     return unsubscribe;
   }, []);
+
+  // so-fwva: register a post-unlock hook with the shared axios layer
+  // so the 402 interceptor can refetch /auth/me after a successful
+  // paywall purchase + propagate the new access_granted / is_pro
+  // values into the EntitlementContext (and the rest of the app) in
+  // the same tick the original request gets retried. Also pulls a
+  // fresh Adapty profile so isPro reflects the unlock immediately.
+  useEffect(() => {
+    registerPostUnlockHook(async () => {
+      try {
+        await refreshUser();
+      } catch (err) {
+        // Ignored; refreshUser logs its own failures and the next
+        // natural refresh will catch up.
+      }
+      await pullProfile();
+    });
+    return () => registerPostUnlockHook(null);
+  }, [refreshUser, pullProfile]);
 
   const isPro = useMemo(() => isPremiumFromProfile(profile), [profile]);
 

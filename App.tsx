@@ -23,8 +23,9 @@ import {
 } from "@expo-google-fonts/outfit";
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
-import { EntitlementProvider } from "./src/contexts/EntitlementContext";
+import { EntitlementProvider, useEntitlement } from "./src/contexts/EntitlementContext";
 import { activateAdapty } from "./src/services/adapty";
+import PaywallGateScreen from "./src/screens/PaywallGateScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
 import TermsScreen from "./src/screens/TermsScreen";
@@ -261,6 +262,33 @@ const tabScreenOptions = {
   cardOverlayEnabled: false,
 };
 
+// so-fwva: PaywallStack — what the user sees when /auth/me reports
+// access_granted=false (trial over, not Pro). The full app is hidden
+// behind PaywallGate; only the don't-trap carve-outs are reachable
+// (Settings → Delete Account/Logout, Help/crisis, Terms/Privacy,
+// Manage Subscription/Restore via PaywallGate's CTAs). Apple review +
+// duty-of-care: the gate must not lock the user out of these.
+const PaywallStack = () => (
+  <Stack.Navigator
+    screenOptions={{ headerShown: false }}
+    initialRouteName="PaywallGate"
+  >
+    <Stack.Screen
+      name="PaywallGate"
+      component={PaywallGateScreen}
+      options={{ gestureEnabled: false }}
+    />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Help" component={HelpScreen} />
+    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+    <Stack.Screen
+      name="Terms"
+      component={TermsScreen}
+      options={{ gestureEnabled: false }}
+    />
+  </Stack.Navigator>
+);
+
 const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
   useNotifications();
 
@@ -300,6 +328,14 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  // so-fwva: server-side access gate. accessGranted is the trial-
+  // clock + Pro authority (null while /auth/me hasn't landed; false
+  // when the trial is over and the user isn't Pro). isPro is the
+  // Adapty side; either trues out the gate. Default-open while
+  // accessGranted is null so we don't flash a paywall on cold-boot
+  // before /auth/me resolves.
+  const { isPro, accessGranted } = useEntitlement();
+  const accessLocked = accessGranted === false && !isPro;
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
@@ -352,7 +388,14 @@ const Navigation = () => {
   return (
     <NavigationContainer linking={linking}>
       {isAuthenticated ? (
-        <AppStack setupComplete={setupComplete} />
+        accessLocked ? (
+          // so-fwva: server says trial over and not Pro — hide the
+          // whole app behind the paywall gate. Carve-outs still
+          // reachable via PaywallStack.
+          <PaywallStack />
+        ) : (
+          <AppStack setupComplete={setupComplete} />
+        )
       ) : onboardingComplete ? (
         <AuthStack />
       ) : (
