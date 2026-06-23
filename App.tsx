@@ -383,7 +383,8 @@ Audio.setAudioModeAsync({
 // SDK key from app.config.extra.adaptyConfig (wired by infra so-153d).
 // Idempotent + fail-closed — missing key / activation error logs and
 // degrades to "no Pro from SDK" without blocking app boot. The
-// EntitlementProvider takes it from here for identify/profile/refresh.
+// EntitlementProvider awaits this same (deduped) activation before
+// identify.
 activateAdapty().catch((err) => console.warn('Adapty activate failed:', err));
 
 export default function App() {
