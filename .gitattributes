@@ -1,0 +1,8 @@
+# so-k02u: patch-package patches encode unified-diff context lines as a
+# single space followed by the unchanged source content. A whitespace
+# normalizer (e.g. a pre-commit hook stripping trailing spaces) corrupts
+# blank context lines (" \n" → "\n") and patch-package then bails with
+# "could not be parsed." Pin .patch files so git's whitespace handling
+# (and any normalization driven via the whitespace attribute) leaves them
+# byte-exact.
+*.patch -whitespace
