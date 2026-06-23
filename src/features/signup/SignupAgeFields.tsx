@@ -1,7 +1,9 @@
 // so-cbhq: signup age-gate form fields — a masked DOB input and a searchable
-// country picker. Self-contained (own theme-aware styling via useThemeColors)
-// so they drop into RegisterScreen without threading the screen's StyleSheet.
-// Pure JS — no native date/country deps (worktree is edit-only).
+// country picker. Pure JS — no native date/country deps (worktree is edit-only).
+//
+// so-7jzs: restyled to match RegisterScreen's other fields — the dark, rounded,
+// frosted inputContainer with a leading icon and placeholder-INSIDE (no
+// label-above white boxes). Theme-aware via useThemeColors + useTheme.
 import React, { useMemo, useState } from 'react';
 import {
   View,
@@ -12,58 +14,58 @@ import {
   FlatList,
   StyleSheet,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../../theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { maskDobInput } from '../../utils/ageGate';
 import { COUNTRIES, countryNameForCode } from '../../data/countries';
 
 const useFieldStyles = () => {
   const colors = useThemeColors();
+  const { isDarkMode } = useTheme();
   return useMemo(
     () =>
       StyleSheet.create({
-        label: {
-          fontFamily: fonts.outfit.medium,
-          fontSize: 13,
-          color: colors.text.secondary,
-          marginBottom: 6,
-        },
-        input: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 16,
-          color: colors.text.primary,
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          backgroundColor: colors.white,
-        },
-        inputFocused: { borderColor: colors.primary },
-        pickerRow: {
+        // Mirrors RegisterScreen.inputContainer (so-7jzs).
+        inputContainer: {
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderWidth: 1.5,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : colors.border,
           borderRadius: 12,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          backgroundColor: colors.white,
+          marginBottom: 16,
+          paddingHorizontal: 12,
+          height: 56,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
         },
-        pickerText: {
+        inputContainerFocused: {
+          borderColor: colors.primary,
+          borderWidth: 2,
+        },
+        inputIcon: { marginRight: 12 },
+        input: {
+          flex: 1,
           fontFamily: fonts.outfit.regular,
           fontSize: 16,
-          color: colors.text.primary,
+          color: colors.text.dark,
         },
-        pickerPlaceholder: { color: colors.text.light },
-        error: {
+        // Country picker row reads as an input but shows selected/placeholder text.
+        pickerText: {
+          flex: 1,
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.dark,
+        },
+        pickerPlaceholder: { color: colors.text.secondary },
+        errorText: {
           fontFamily: fonts.outfit.regular,
           fontSize: 12,
-          color: '#E5484D',
-          marginTop: 4,
+          color: colors.error,
+          marginTop: -8,
+          marginBottom: 8,
+          marginLeft: 4,
         },
-        // Modal
+        // ── Country modal ──
         modalOverlay: {
           flex: 1,
           backgroundColor: 'rgba(0,0,0,0.45)',
@@ -87,14 +89,15 @@ const useFieldStyles = () => {
         searchInput: {
           fontFamily: fonts.outfit.regular,
           fontSize: 16,
-          color: colors.text.primary,
-          borderWidth: 1,
-          borderColor: colors.border,
+          color: colors.text.dark,
+          borderWidth: 1.5,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.14)' : colors.border,
           borderRadius: 12,
           paddingHorizontal: 14,
           paddingVertical: 10,
           marginHorizontal: 16,
           marginBottom: 8,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.white,
         },
         countryRow: {
           flexDirection: 'row',
@@ -116,7 +119,7 @@ const useFieldStyles = () => {
         },
         rowSep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
       }),
-    [colors],
+    [colors, isDarkMode],
   );
 };
 
@@ -131,22 +134,25 @@ export const DateOfBirthField: React.FC<DobProps> = ({ value, onChange, error })
   const styles = useFieldStyles();
   const colors = useThemeColors();
   const [focused, setFocused] = useState(false);
+  const accent = focused ? colors.primary : colors.text.secondary;
   return (
     <View>
-      <Text style={styles.label}>Date of birth</Text>
-      <TextInput
-        value={value}
-        onChangeText={(t) => onChange(maskDobInput(t))}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        placeholder="MM/DD/YYYY"
-        placeholderTextColor={colors.text.light}
-        keyboardType="number-pad"
-        maxLength={10}
-        style={[styles.input, focused && styles.inputFocused]}
-        accessibilityLabel="Date of birth, month day year"
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={[styles.inputContainer, focused && styles.inputContainerFocused]}>
+        <Ionicons name="calendar-outline" size={20} color={accent} style={styles.inputIcon} />
+        <TextInput
+          value={value}
+          onChangeText={(t) => onChange(maskDobInput(t))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Date of birth (MM/DD/YYYY)"
+          placeholderTextColor={accent}
+          keyboardType="number-pad"
+          maxLength={10}
+          style={styles.input}
+          accessibilityLabel="Date of birth, month day year"
+        />
+      </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
 };
@@ -179,23 +185,29 @@ export const CountryPickerField: React.FC<CountryProps> = ({
 
   return (
     <View>
-      <Text style={styles.label}>Country</Text>
       <Pressable
-        style={styles.pickerRow}
+        style={[styles.inputContainer, open && styles.inputContainerFocused]}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={
           selectedName ? `Country: ${selectedName}` : 'Select your country'
         }
       >
+        <Ionicons
+          name="earth-outline"
+          size={20}
+          color={open ? colors.primary : colors.text.secondary}
+          style={styles.inputIcon}
+        />
         <Text
           style={[styles.pickerText, !selectedName && styles.pickerPlaceholder]}
+          numberOfLines={1}
         >
-          {selectedName ?? 'Select your country'}
+          {selectedName ?? 'Country'}
         </Text>
-        <Feather name="chevron-down" size={20} color={colors.text.light} />
+        <Feather name="chevron-down" size={20} color={colors.text.secondary} />
       </Pressable>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
@@ -207,7 +219,7 @@ export const CountryPickerField: React.FC<CountryProps> = ({
               value={query}
               onChangeText={setQuery}
               placeholder="Search countries"
-              placeholderTextColor={colors.text.light}
+              placeholderTextColor={colors.text.secondary}
               style={styles.searchInput}
               autoCorrect={false}
               autoCapitalize="none"

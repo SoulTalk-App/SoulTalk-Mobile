@@ -791,8 +791,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
             </View>
 
-            {/* so-cbhq: age-gate (DOB) + jurisdiction (country) capture. */}
-            <View style={{ gap: 14, marginBottom: 4 }}>
+            {/* so-cbhq: age-gate (DOB) + jurisdiction (country) capture.
+                so-7jzs: no wrapper gap/margin — each field carries the same
+                marginBottom:16 as the sibling inputs, so the rhythm matches. */}
+            <View>
               <DateOfBirthField
                 value={dobMasked}
                 onChange={(masked) => {
