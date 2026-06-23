@@ -28,6 +28,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
+import authService from '../services/AuthService';
+import { TermsReacceptanceModal } from '../components/TermsReacceptanceModal';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { ChargeUpGrid } from '../features/homeV2';
@@ -928,6 +930,49 @@ const HomeScreen = ({ navigation }: any) => {
     if (user?.id) JournalService.flushPendingSoulPalName(user.id);
   }, [user?.id]);
 
+  // so-cywf: server-authoritative terms-of-service consent check. Home is the
+  // authenticated entry route, so this is the "on launch" checkpoint. If the
+  // server says acceptance is required (a freshly-registered user at version 0,
+  // OR an existing user whose accepted version is behind current), surface the
+  // blocking re-acceptance modal and record consent via /auth/terms-accept.
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [termsCurrentVersion, setTermsCurrentVersion] = useState(0);
+  const [termsAccepting, setTermsAccepting] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    authService
+      .getTermsStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (status.acceptance_required) {
+          setTermsCurrentVersion(status.current_version);
+          setTermsModalVisible(true);
+        }
+      })
+      .catch(() => {
+        // Non-fatal: don't block Home on a transient status fetch failure;
+        // re-checked on the next launch.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const handleAcceptTerms = useCallback(async () => {
+    setTermsAccepting(true);
+    try {
+      // Echo the server's current_version — never hardcode (stale-version 4xx).
+      await authService.acceptTerms(termsCurrentVersion, new Date().toISOString());
+      setTermsModalVisible(false);
+    } catch {
+      Alert.alert('Something went wrong', 'Could not record your acceptance. Please try again.');
+    } finally {
+      setTermsAccepting(false);
+    }
+  }, [termsCurrentVersion]);
+
   // SoulPal float (canonical GreetingHero).
   useEffect(() => {
     palBobY.value = withRepeat(
@@ -1278,6 +1323,12 @@ const HomeScreen = ({ navigation }: any) => {
           tabBarAnimStyle={tabBarAnimStyle}
         />
         <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
+        <TermsReacceptanceModal
+          visible={termsModalVisible}
+          currentVersion={termsCurrentVersion}
+          onAccept={handleAcceptTerms}
+          loading={termsAccepting}
+        />
       </CosmicScreen>
     );
   }
@@ -1537,6 +1588,12 @@ const HomeScreen = ({ navigation }: any) => {
         tabBarAnimStyle={tabBarAnimStyle}
       />
       <MoodToast kind={moodToast} isDarkMode={isDarkMode} onDismiss={dismissMoodToast} />
+      <TermsReacceptanceModal
+        visible={termsModalVisible}
+        currentVersion={termsCurrentVersion}
+        onAccept={handleAcceptTerms}
+        loading={termsAccepting}
+      />
     </CosmicScreen>
   );
 };
