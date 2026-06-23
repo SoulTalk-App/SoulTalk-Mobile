@@ -19,6 +19,7 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPalName } from '../contexts/SoulPalContext';
 import { useJournal } from '../contexts/JournalContext';
+import { normalizeError } from '../utils/normalizeError';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, {
   EligibilityResponse,
@@ -186,8 +187,11 @@ const SoulSightScreen = ({ navigation }: any) => {
       setGeneratingId(result.soulsight_id);
     } catch (err: any) {
       setIsGenerating(false);
-      const detail = err?.response?.data?.detail;
-      Alert.alert('Error', detail || err.message || 'Failed to start generation.');
+      // so-fntk: normalize handles BE detail (string or Pydantic array),
+      // status-based copy, and network/timeout fallbacks. Drops the
+      // bespoke detail/message/literal cascade that used to surface raw
+      // axios strings on a generate failure.
+      Alert.alert('Error', normalizeError(err));
     }
   };
 
