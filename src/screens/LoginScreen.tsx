@@ -16,6 +16,7 @@ import { Feather, Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
+import { normalizeError } from "../utils/normalizeError";
 import { useGoogleAuth } from "../hooks/useGoogleAuth";
 import { useFacebookAuth } from "../hooks/useFacebookAuth";
 import { useAppleAuth } from "../hooks/useAppleAuth";
@@ -362,7 +363,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithGoogle(idToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Google Login Failed', error.message || 'An error occurred');
+      Alert.alert('Google Login Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -374,7 +375,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithFacebook(accessToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Facebook Login Failed', error.message || 'An error occurred');
+      Alert.alert('Facebook Login Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -386,7 +387,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await loginWithApple(identityToken, fullName);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Apple Sign-In Failed', error.message || 'An error occurred');
+      Alert.alert('Apple Sign-In Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -411,7 +412,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       // Navigation is handled by the auth state change.
       await login(email, password);
     } catch (error: any) {
-      const msg = error.message || "An error occurred during login";
+      // so-fntk: friendly text via normalizeError. The unverified-email
+      // regex below still wants a string to substring-test against; we
+      // also keep error.message as the regex source because that's the
+      // BE-shipped phrase we're sniffing (normalizeError might rewrite
+      // it for the dialog), and the Alert separately renders the
+      // normalized version.
+      const msg = normalizeError(error);
+      const rawMsg = (typeof error?.message === 'string' && error.message) || msg;
       // so-5lt7: stopgap detector for the "unverified account" funnel.
       // Previously a fragile substring on a single BE phrase
       // ("verify your email") — any BE copy rewording silently broke the
@@ -420,7 +428,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       // error_code field (filed alongside so-5lt7 as the proper fix).
       const isUnverified =
         /\b(verify|verification|not\s*verified|unverified|confirm)\b.*\bemail\b|\bemail\b.*\b(verify|verification|not\s*verified|unverified|confirm)\b/i
-          .test(msg);
+          .test(rawMsg);
       if (isUnverified) {
         navigation.navigate('OTPVerification', { email });
       } else {
@@ -443,7 +451,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         );
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Biometric authentication failed");
+      Alert.alert("Error", normalizeError(error));
     }
   };
 

@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import axios, { AxiosResponse } from 'axios';
 import { installAuthInterceptors, refreshAccessToken } from '../utils/authClient';
+import { normalizeError } from '../utils/normalizeError';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -125,7 +126,7 @@ class AuthService {
       
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -134,14 +135,7 @@ class AuthService {
       const response = await this.axiosInstance.post('/auth/register', userData);
       return response.data;
     } catch (error: any) {
-      const detail = error.response?.data?.detail;
-      let message = 'Registration failed';
-      if (typeof detail === 'string') {
-        message = detail;
-      } else if (Array.isArray(detail) && detail.length > 0) {
-        message = detail.map((d: any) => d.msg).join(', ');
-      }
-      throw new Error(message);
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -166,7 +160,7 @@ class AuthService {
       await this.axiosInstance.delete('/auth/me');
       await this.clearStoredTokens();
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Account deletion failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -182,7 +176,7 @@ class AuthService {
     try {
       await this.axiosInstance.post('/data-export');
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Could not start your data export');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -199,7 +193,7 @@ class AuthService {
       const response: AxiosResponse<UserInfo> = await this.axiosInstance.get('/auth/me');
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to get user info');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -208,7 +202,7 @@ class AuthService {
       const response: AxiosResponse<UserInfo> = await this.axiosInstance.put('/auth/me', data);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to update profile');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -216,7 +210,7 @@ class AuthService {
     try {
       await this.axiosInstance.post('/auth/reset-password', { email });
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Password reset failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -227,7 +221,7 @@ class AuthService {
         new_password: newPassword,
       });
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Password change failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -261,7 +255,7 @@ class AuthService {
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Google login failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -277,7 +271,7 @@ class AuthService {
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Apple login failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -292,7 +286,7 @@ class AuthService {
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Facebook login failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -303,7 +297,7 @@ class AuthService {
       });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to link Google account');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -314,7 +308,7 @@ class AuthService {
       });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to link Facebook account');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -323,7 +317,7 @@ class AuthService {
       const response = await this.axiosInstance.delete(`/auth/link/${provider}`);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || `Failed to unlink ${provider} account`);
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -332,7 +326,7 @@ class AuthService {
       const response = await this.axiosInstance.get('/auth/linked-accounts');
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to get linked accounts');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -347,7 +341,7 @@ class AuthService {
       await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
       return tokenData;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Email verification failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -356,7 +350,7 @@ class AuthService {
       const response = await this.axiosInstance.post('/auth/resend-verification', { email });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to resend verification email');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -369,7 +363,7 @@ class AuthService {
       });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Password reset failed');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -378,7 +372,7 @@ class AuthService {
       const response = await this.axiosInstance.post('/auth/set-password', { password });
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to set password');
+      throw new Error(normalizeError(error));
     }
   }
 
@@ -389,7 +383,7 @@ class AuthService {
       await this.clearStoredTokens();
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Failed to logout from all devices');
+      throw new Error(normalizeError(error));
     }
   }
 

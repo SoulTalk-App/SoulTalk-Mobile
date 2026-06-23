@@ -23,6 +23,7 @@ import {
   clearLocalDraft,
 } from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
+import { normalizeError } from '../utils/normalizeError';
 import SaveAnimation from '../components/SaveAnimation';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
@@ -249,7 +250,13 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       const detail = error?.response?.data?.detail;
       // so-irkq: Pydantic 422 returns `detail` as an array of {loc,msg,type}.
       // Stringifying it raw produces "[object Object]" and the user sees
-      // nothing useful — flatten to a readable message.
+      // nothing useful. so-fntk delegates the flatten + friendly fallback
+      // to normalizeError; we still extract detail locally just to keep
+      // the 400/max-edits regex check below working against the BE's
+      // raw string. The 409 / 400-max-edits branches keep their bespoke
+      // copy (the BE-shipped Daily-Limit + Edit-limit messages are the
+      // user-grade source of truth here; we only swap the generic
+      // fallback at the bottom).
       const detailMsg = Array.isArray(detail)
         ? detail.map((d) => d?.msg || JSON.stringify(d)).join('; ')
         : detail;
@@ -274,7 +281,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         if (finalizingDraftId) {
           persistPendingFinalize(finalizingDraftId, finalizingText).catch(() => {});
         }
-        Alert.alert('Error', detailMsg || error.message || 'Failed to save entry');
+        // so-fntk: friendly fallback for everything not caught by the
+        // 409 (daily limit) or 400/max-edits branches above. normalize
+        // handles BE detail, Pydantic 422, status copy, and network /
+        // timeout — no more raw axios strings ("Network Error",
+        // "timeout of 10000ms exceeded") leaking into the dialog.
+        Alert.alert('Error', normalizeError(error));
       }
       setIsSaving(false);
     }

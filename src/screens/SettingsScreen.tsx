@@ -17,6 +17,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/AuthService';
 import JournalService from '../services/JournalService';
+import { normalizeError } from '../utils/normalizeError';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -376,10 +377,10 @@ const SettingsScreen = ({ navigation }: any) => {
         "We're preparing your data. You'll get an email with a secure download link shortly.",
       );
     } catch (error: any) {
-      Alert.alert(
-        'Export failed',
-        error?.message || 'Could not start your data export. Please try again.',
-      );
+      // so-fntk: normalizeError handles BE detail, Pydantic 422,
+      // network/timeout, and status-based fallbacks; no raw axios
+      // strings leak into the dialog.
+      Alert.alert('Export failed', normalizeError(error));
     } finally {
       setExportingData(false);
     }
@@ -406,9 +407,11 @@ const SettingsScreen = ({ navigation }: any) => {
     try {
       await deleteAccount();
     } catch (error: any) {
+      // so-fntk: friendly fallback via normalizeError. Retry action is
+      // preserved.
       Alert.alert(
         'Deletion Failed',
-        error?.message || 'Could not delete your account. Please try again.',
+        normalizeError(error),
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Retry', style: 'destructive', onPress: performDeleteAccount },

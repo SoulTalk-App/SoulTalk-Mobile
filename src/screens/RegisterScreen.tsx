@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { normalizeError } from '../utils/normalizeError';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
 import { useFacebookAuth } from '../hooks/useFacebookAuth';
 import { useAppleAuth } from '../hooks/useAppleAuth';
@@ -397,7 +398,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithGoogle(idToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Google Sign-Up Failed', error.message || 'An error occurred');
+      Alert.alert('Google Sign-Up Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -411,7 +412,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithFacebook(accessToken);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Facebook Sign-Up Failed', error.message || 'An error occurred');
+      Alert.alert('Facebook Sign-Up Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -425,7 +426,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       await loginWithApple(identityToken, fullName);
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert('Apple Sign-Up Failed', error.message || 'An error occurred');
+      Alert.alert('Apple Sign-Up Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
@@ -572,7 +573,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         navigation.navigate('UnderageBlock');
         return;
       }
-      Alert.alert('Registration Failed', error.message || 'An error occurred during registration');
+      Alert.alert('Registration Failed', normalizeError(error));
     } finally {
       setIsLoading(false);
     }
