@@ -1,9 +1,14 @@
-// so-cbhq: signup age-gate form fields — a masked DOB input and a searchable
-// country picker. Pure JS — no native date/country deps (worktree is edit-only).
+// so-cbhq: signup age-gate form fields — a DOB picker and a searchable
+// country picker.
 //
 // so-7jzs: restyled to match RegisterScreen's other fields — the dark, rounded,
 // frosted inputContainer with a leading icon and placeholder-INSIDE (no
 // label-above white boxes). Theme-aware via useThemeColors + useTheme.
+//
+// so-7yb8: DOB is now a native date-wheel (@react-native-community/datetimepicker)
+// instead of a masked text input. The field face stays the themed inputContainer;
+// tapping it opens the platform picker. 18+ logic is unchanged (parent derives
+// DobParts from the chosen Date).
 import React, { useMemo, useState } from 'react';
 import {
   View,
@@ -12,13 +17,22 @@ import {
   Pressable,
   Modal,
   FlatList,
+  Platform,
   StyleSheet,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { maskDobInput } from '../../utils/ageGate';
+import { formatDobDisplay } from '../../utils/ageGate';
 import { COUNTRIES, countryNameForCode } from '../../data/countries';
+
+// Wheel starts ~18 years back (a plausible adult DOB) when nothing is chosen.
+const defaultPickerDate = (): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
+};
+const MIN_DOB = new Date(1900, 0, 1); // matches backend lower bound (so-8544)
 
 const useFieldStyles = () => {
   const colors = useThemeColors();
@@ -118,41 +132,125 @@ const useFieldStyles = () => {
           color: colors.text.light,
         },
         rowSep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+        // so-7yb8: iOS DOB spinner sheet header (Cancel / Done).
+        pickerSheetHeader: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          paddingBottom: 4,
+        },
+        pickerSheetCancel: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 16,
+          color: colors.text.secondary,
+        },
+        pickerSheetDone: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 16,
+          color: colors.primary,
+        },
       }),
     [colors, isDarkMode],
   );
 };
 
 interface DobProps {
-  /** Masked `MM/DD/YYYY` string. */
-  value: string;
-  onChange: (masked: string) => void;
+  /** Selected date of birth, or null when not yet chosen. */
+  value: Date | null;
+  onChange: (d: Date) => void;
   error?: string | null;
 }
 
 export const DateOfBirthField: React.FC<DobProps> = ({ value, onChange, error }) => {
   const styles = useFieldStyles();
   const colors = useThemeColors();
-  const [focused, setFocused] = useState(false);
-  const accent = focused ? colors.primary : colors.text.secondary;
+  const { isDarkMode } = useTheme();
+  const [open, setOpen] = useState(false);
+  // iOS shows an inline spinner inside a sheet with a Done button, so we stage
+  // the in-progress value and only commit on Done. Android's dialog commits on
+  // the onChange 'set' event directly.
+  const [tempDate, setTempDate] = useState<Date>(value ?? defaultPickerDate());
+  const today = new Date();
+
+  const openPicker = () => {
+    setTempDate(value ?? defaultPickerDate());
+    setOpen(true);
+  };
+
+  const onAndroidChange = (event: DateTimePickerEvent, date?: Date) => {
+    setOpen(false);
+    if (event.type === 'set' && date) onChange(date);
+  };
+
+  const accent = open ? colors.primary : colors.text.secondary;
+
   return (
     <View>
-      <View style={[styles.inputContainer, focused && styles.inputContainerFocused]}>
+      <Pressable
+        style={[styles.inputContainer, open && styles.inputContainerFocused]}
+        onPress={openPicker}
+        accessibilityRole="button"
+        accessibilityLabel={
+          value ? `Date of birth: ${formatDobDisplay(value)}` : 'Select your date of birth'
+        }
+      >
         <Ionicons name="calendar-outline" size={20} color={accent} style={styles.inputIcon} />
-        <TextInput
-          value={value}
-          onChangeText={(t) => onChange(maskDobInput(t))}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder="Date of birth (MM/DD/YYYY)"
-          placeholderTextColor={accent}
-          keyboardType="number-pad"
-          maxLength={10}
-          style={styles.input}
-          accessibilityLabel="Date of birth, month day year"
-        />
-      </View>
+        <Text
+          style={[styles.pickerText, !value && styles.pickerPlaceholder]}
+          numberOfLines={1}
+        >
+          {value ? formatDobDisplay(value) : 'Date of birth'}
+        </Text>
+      </Pressable>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {/* Android: native dialog, commits on selection. */}
+      {open && Platform.OS === 'android' ? (
+        <DateTimePicker
+          mode="date"
+          display="default"
+          value={value ?? defaultPickerDate()}
+          maximumDate={today}
+          minimumDate={MIN_DOB}
+          onChange={onAndroidChange}
+        />
+      ) : null}
+
+      {/* iOS: spinner inside a themed bottom sheet with Cancel/Done. */}
+      {Platform.OS === 'ios' ? (
+        <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
+            <Pressable style={styles.modalSheet} onPress={() => {}}>
+              <View style={styles.pickerSheetHeader}>
+                <Pressable onPress={() => setOpen(false)} accessibilityRole="button">
+                  <Text style={styles.pickerSheetCancel}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    onChange(tempDate);
+                    setOpen(false);
+                  }}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.pickerSheetDone}>Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                mode="date"
+                display="spinner"
+                value={tempDate}
+                maximumDate={today}
+                minimumDate={MIN_DOB}
+                themeVariant={isDarkMode ? 'dark' : 'light'}
+                onChange={(_e, date) => {
+                  if (date) setTempDate(date);
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </View>
   );
 };

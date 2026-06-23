@@ -59,24 +59,20 @@ const pad2 = (n: number): string => String(n).padStart(2, '0');
 export const toIsoDate = ({ month, day, year }: DobParts): string =>
   `${String(year).padStart(4, '0')}-${pad2(month)}-${pad2(day)}`;
 
-/** Format raw digit input into an `MM/DD/YYYY` mask as the user types. */
-export const maskDobInput = (raw: string): string => {
-  const digits = raw.replace(/\D/g, '').slice(0, 8); // MMDDYYYY
-  const mm = digits.slice(0, 2);
-  const dd = digits.slice(2, 4);
-  const yyyy = digits.slice(4, 8);
-  let out = mm;
-  if (digits.length >= 2) out += '/' + dd;
-  if (digits.length >= 4) out += '/' + yyyy;
-  return out;
-};
+// so-7yb8: native date-picker yields a JS Date; convert to our DobParts.
+export const dobPartsFromDate = (d: Date): DobParts => ({
+  month: d.getMonth() + 1,
+  day: d.getDate(),
+  year: d.getFullYear(),
+});
 
-/** Parse an `MM/DD/YYYY` masked string into parts, or null if incomplete. */
-export const parseMaskedDob = (masked: string): DobParts | null => {
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(masked.trim());
-  if (!m) return null;
-  return { month: Number(m[1]), day: Number(m[2]), year: Number(m[3]) };
-};
+/** Human-readable DOB for the field face, e.g. "Jan 5, 1990". */
+export const formatDobDisplay = (d: Date): string =>
+  d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+// so-7yb8: the MM/DD/YYYY masking helpers (maskDobInput/parseMaskedDob) were
+// removed with the masked text input — DOB is now a native date-wheel that
+// yields a Date directly (see dobPartsFromDate above).
 
 // so-8544: the neutral wire/UX copy for an under-18 block. Kept in one place so
 // the FE renders the same message whether the block is decided client-side or

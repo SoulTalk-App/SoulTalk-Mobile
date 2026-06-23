@@ -25,7 +25,7 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
 import { DateOfBirthField, CountryPickerField } from '../features/signup/SignupAgeFields';
 import {
-  parseMaskedDob,
+  dobPartsFromDate,
   isValidDob,
   isAtLeast18,
   toIsoDate,
@@ -53,10 +53,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  // so-cbhq: age-gate + jurisdiction capture. dobMasked is the raw MM/DD/YYYY
-  // string; countryCode is ISO 3166-1 alpha-2. dobError surfaces an invalid
-  // date inline; the under-18 decision routes to the neutral block screen.
-  const [dobMasked, setDobMasked] = useState('');
+  // so-cbhq: age-gate + jurisdiction capture. countryCode is ISO 3166-1 alpha-2.
+  // dobError surfaces an invalid date inline; the under-18 decision routes to
+  // the neutral block screen.
+  // so-7yb8: dob is now a Date from the native wheel picker (was a masked string).
+  const [dob, setDob] = useState<Date | null>(null);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
   // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
@@ -514,8 +515,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     // The 18+ decision is NOT gated here — an under-18 user with a VALID date
     // can still tap Register so handleRegister can route them to the neutral
     // block screen (rather than silently disabling the button).
-    const dobParts = parseMaskedDob(dobMasked);
-    const dobValid = dobParts != null && isValidDob(dobParts);
+    const dobValid = dob != null && isValidDob(dobPartsFromDate(dob));
 
     return (
       firstName.trim() !== '' &&
@@ -527,13 +527,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       countryCode != null &&
       agreedToTerms
     );
-  }, [formData, agreedToTerms, dobMasked, countryCode]);
+  }, [formData, agreedToTerms, dob, countryCode]);
 
   const handleRegister = async () => {
     // so-cbhq: validate + age-gate before any network call.
-    const dobParts = parseMaskedDob(dobMasked);
+    const dobParts = dob ? dobPartsFromDate(dob) : null;
     if (!dobParts || !isValidDob(dobParts)) {
-      setDobError('Enter a valid date of birth (MM/DD/YYYY).');
+      setDobError('Please select a valid date of birth.');
       return;
     }
     setDobError(null);
@@ -796,9 +796,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 marginBottom:16 as the sibling inputs, so the rhythm matches. */}
             <View>
               <DateOfBirthField
-                value={dobMasked}
-                onChange={(masked) => {
-                  setDobMasked(masked);
+                value={dob}
+                onChange={(d) => {
+                  setDob(d);
                   if (dobError) setDobError(null);
                 }}
                 error={dobError}
