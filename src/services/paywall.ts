@@ -2,8 +2,9 @@
  * so-fwva: Adapty paywall presentation, restore, manage-subscription.
  *
  * Thin imperative wrapper around Adapty's Paywall Builder. We do NOT
- * hand-roll the paywall UI — `@adapty/react-native-ui` presents a
- * native iOS view configured from the Adapty dashboard.
+ * hand-roll the paywall UI — Adapty's Paywall Builder (createPaywallView,
+ * merged into react-native-adapty as of 3.3.1) presents a native iOS
+ * view configured from the Adapty dashboard.
  *
  *  - presentPaywall()          — fetch the placement, build a native
  *                                view, present it. Resolves with the
@@ -31,7 +32,11 @@
  */
 import { Linking, Platform } from 'react-native';
 import { adapty } from 'react-native-adapty';
-import { createPaywallView } from '@adapty/react-native-ui';
+// Adapty RN 3.3.1+ merged the Paywall Builder UI into the core package;
+// the standalone @adapty/react-native-ui is deprecated (its pod pulls
+// RCT-Folly, which fails under RN 0.81 / Expo SDK 54). createPaywallView
+// now ships from the core package's /dist/ui entry (so-3w4h).
+import { createPaywallView } from 'react-native-adapty/dist/ui';
 import {
   getAdaptyActivationError,
   getAdaptyProfile,

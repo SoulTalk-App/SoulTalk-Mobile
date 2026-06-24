@@ -16,7 +16,6 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "@adapty/react-native-ui": "^3.1.0",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
