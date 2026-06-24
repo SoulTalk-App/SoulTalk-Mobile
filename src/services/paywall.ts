@@ -2,8 +2,9 @@
  * so-fwva: Adapty paywall presentation, restore, manage-subscription.
  *
  * Thin imperative wrapper around Adapty's Paywall Builder. We do NOT
- * hand-roll the paywall UI — `@adapty/react-native-ui` presents a
- * native iOS view configured from the Adapty dashboard.
+ * hand-roll the paywall UI — Adapty's Paywall Builder (createPaywallView,
+ * merged into react-native-adapty as of 3.3.1) presents a native iOS
+ * view configured from the Adapty dashboard.
  *
  *  - presentPaywall()          — fetch the placement, build a native
  *                                view, present it. Resolves with the
@@ -31,7 +32,11 @@
  */
 import { Linking, Platform } from 'react-native';
 import { adapty } from 'react-native-adapty';
-import { createPaywallView } from '@adapty/react-native-ui';
+// Adapty RN 3.3.1+ merged the Paywall Builder UI into the core package;
+// the standalone @adapty/react-native-ui is deprecated (its pod pulls
+// RCT-Folly, which fails under RN 0.81 / Expo SDK 54). createPaywallView
+// now ships from the core package's /dist/ui entry (so-3w4h).
+import { createPaywallView } from 'react-native-adapty/dist/ui';
 import {
   getAdaptyActivationError,
   getAdaptyProfile,
@@ -67,10 +72,51 @@ export type PaywallOutcome =
 // not N stacked modals. Cleared in the finally of the inner promise.
 let inflightPresent: Promise<PaywallOutcome> | null = null;
 
-const friendlyError = (err: unknown): PaywallOutcome => ({
-  kind: 'error',
-  message: normalizeError(err),
-});
+// so-3w4h: isAdaptyActive() returns true even when activation was SKIPPED
+// for a missing public SDK key — adapty.ts sets activated=true plus
+// activationFailedReason='missing-public-sdk-key' WITHOUT ever calling
+// adapty.activate(). Build 53 shipped exactly that (empty key), so the guard
+// passed and getPaywall() ran against a dead SDK, throwing "Connection
+// problem". Treat any non-null activation error on iOS as inactive too — the
+// single intentional exception is the Android no-op path, which surfaces as
+// 'android-not-yet-supported'. Returns the sdk-inactive outcome to short-
+// circuit, or null when the SDK is genuinely usable (key present → reason is
+// null → happy path proceeds untouched).
+const sdkInactiveOutcome = (): PaywallOutcome | null => {
+  if (!isAdaptyActive() || Platform.OS !== 'ios') {
+    return {
+      kind: 'sdk-inactive',
+      reason: getAdaptyActivationError() ?? 'sdk-not-active',
+    };
+  }
+  const reason = getAdaptyActivationError();
+  if (reason && reason !== 'android-not-yet-supported') {
+    return { kind: 'sdk-inactive', reason };
+  }
+  return null;
+};
+
+// so-3w4h: Adapty errors carry no `.response`, so normalizeError() maps them
+// to its network fallback ("Connection problem") — misleading when the real
+// cause is a paywall/products load failure. Detect the Adapty error shape and
+// return a paywall-specific message; everything else keeps normalizeError so
+// we don't widen the blast radius of that shared helper.
+const isAdaptyError = (err: any): boolean =>
+  !!err &&
+  (err.adaptyCode != null ||
+    err.adaptyErrorCode != null ||
+    err.name === 'AdaptyError');
+
+const friendlyError = (err: unknown): PaywallOutcome => {
+  if (isAdaptyError(err)) {
+    return {
+      kind: 'error',
+      message:
+        "We couldn't load subscription options right now. Please try again in a moment.",
+    };
+  }
+  return { kind: 'error', message: normalizeError(err) };
+};
 
 /**
  * Present the Adapty paywall. Resolves once the view dismisses with
@@ -82,12 +128,8 @@ export const presentPaywall = async (
 ): Promise<PaywallOutcome> => {
   if (inflightPresent) return inflightPresent;
 
-  if (!isAdaptyActive() || Platform.OS !== 'ios') {
-    return {
-      kind: 'sdk-inactive',
-      reason: getAdaptyActivationError() ?? 'sdk-not-active',
-    };
-  }
+  const inactive = sdkInactiveOutcome();
+  if (inactive) return inactive;
 
   inflightPresent = (async (): Promise<PaywallOutcome> => {
     try {
@@ -99,8 +141,23 @@ export const presentPaywall = async (
       // a fast purchase (sandbox testers tap-through quickly) can't
       // race the subscription wire-up.
       const outcome = new Promise<PaywallOutcome>((resolve) => {
-        view.registerEventHandlers({
-          onPurchaseCompleted: (_product, _profile) => {
+        // so-3w4h: the merged react-native-adapty 3.17.1 ViewController
+        // exposes setEventHandlers (NOT the old @adapty/react-native-ui
+        // registerEventHandlers — that method doesn't exist on the new
+        // package and throws at runtime the instant the paywall presents).
+        view.setEventHandlers({
+          // so-3w4h: 3.17.1 fires a SINGLE AdaptyPurchaseResult whose
+          // .type is 'success' | 'pending' | 'user_cancelled' (the old
+          // (product, profile) signature is gone). Only 'success' is a
+          // real purchase — treating a cancel/pending as bought would
+          // falsely flip the entitlement gate and trigger a BE re-402.
+          onPurchaseCompleted: (purchaseResult) => {
+            if (purchaseResult.type !== 'success') {
+              // Cancel / deferred: keep the paywall up (return false =
+              // don't auto-dismiss) so the user can retry or close it
+              // themselves; never resolve as purchased.
+              return false;
+            }
             view.dismiss();
             resolve({ kind: 'purchased' });
           },
@@ -157,12 +214,8 @@ export const presentPaywall = async (
  * device profile. Returns whether the user now has Pro access.
  */
 export const restorePurchases = async (): Promise<PaywallOutcome> => {
-  if (!isAdaptyActive() || Platform.OS !== 'ios') {
-    return {
-      kind: 'sdk-inactive',
-      reason: getAdaptyActivationError() ?? 'sdk-not-active',
-    };
-  }
+  const inactive = sdkInactiveOutcome();
+  if (inactive) return inactive;
   try {
     const profile = await adapty.restorePurchases();
     return {

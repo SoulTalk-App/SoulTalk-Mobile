@@ -141,9 +141,15 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
       // unlock, refetch /auth/me and retry the request once. Otherwise
       // reject so the caller surfaces nothing (the paywall WAS the
       // user feedback — no inline error).
+      // so-3w4h: the BE nests the code under `detail` (access.py raises
+      // detail={message, code}), so FastAPI serialises it as
+      // data.detail.code — NOT data.code. Read detail.code first; keep
+      // data.code as a fallback in case the shape is ever flattened.
+      const subscriptionCode =
+        error?.response?.data?.detail?.code ?? error?.response?.data?.code;
       if (
         error?.response?.status === 402 &&
-        error?.response?.data?.code === 'subscription_required' &&
+        subscriptionCode === 'subscription_required' &&
         originalRequest &&
         !originalRequest._paywallRetry
       ) {
