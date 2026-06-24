@@ -58,7 +58,7 @@ const DiscoverIconLeft = require('../../assets/images/onboarding/DiscoverIcon1.p
 const DiscoverIconTop = require('../../assets/images/onboarding/DiscoverIcon2.png');    // Notebook - 12 o'clock
 const DiscoverIconRight = require('../../assets/images/onboarding/DiscoverIcon3.png'); // Speech bubble - 1 o'clock
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -252,7 +252,7 @@ const slides: Slide[] = [
     characterType: 'disclaimer',
     disclaimerParagraphs: [
       // PLACEHOLDER. Chey/Randy: replace with finalized AI-disclosure copy.
-      'SoulTalk uses AI to generate the affirmations, reflections, and pattern insights you see in the app. Anywhere you see the small "AI-generated" label, the content was produced by a language model — not a human therapist or counselor.',
+      'SoulTalk uses AI to generate the affirmations, reflections, and pattern insights you see in the app. Anywhere you see the small "AI-generated" label, the content was produced by a language model, not a human therapist or counselor.',
       'AI responses are intended to support your own reflection. They can be wrong, biased, or out of step with what you actually need on a given day. Treat them as a prompt, not a prescription.',
     ],
   },
@@ -265,7 +265,7 @@ const slides: Slide[] = [
     disclaimerParagraphs: [
       // PLACEHOLDER. Chey/Randy: replace with finalized clinical disclaimer.
       'SoulTalk is a self-reflection tool. It is not therapy, medical advice, or a crisis service. If you are in crisis or considering harm to yourself or others, please contact your local emergency services or a crisis line right away.',
-      'If you are working with a therapist or clinician, SoulTalk is designed to complement that work — not to replace it. Please share anything you learn here with them when it helps.',
+      'If you are working with a therapist or clinician, SoulTalk is designed to complement that work, not to replace it. Please share anything you learn here with them when it helps.',
     ],
   },
   // so-jokw: required terms slide. The user MUST tap "I Accept" before they
@@ -495,43 +495,41 @@ const SlideContent: React.FC<SlideContentProps> = ({
   }
 
   if (slide.characterType === 'disclaimer') {
-    // so-bemc: previously wrapped termsScrollFrame in
-    // featuresSlideContent + featuresInner. featuresSlideContent forces
-    // justifyContent:'center' and featuresInner has no height/flex — so
-    // termsScrollFrame's flex:1 had no axis to grow into and collapsed
-    // to ~0 height, leaving only the frame's top border visible (the
-    // disclaimer paragraphs were clipped to zero). Reuse the working
-    // TERMS slide shell instead: slideContent is position:absolute with
-    // top/left/right/bottom all 0, so under termsSlideContent the frame
-    // is a direct flex sibling of the title and gets real vertical
-    // space. Long disclaimer copy now scrolls inside the frame the same
-    // way the privacy/terms doc does.
+    // so-gbem: the disclaimer slides previously reused the TERMS shell
+    // (termsSlideContent flex-start + termsScrollFrame flex:1). flex:1 is
+    // right for the long scrolling Terms doc, but with only two short
+    // paragraphs it stretched the bordered card to full height and left a
+    // big empty void below. Give the disclaimers their OWN shell instead:
+    // the title+card block is vertically CENTERED (disclaimerSlideContent),
+    // and the card HUGS its content (disclaimerCard has no flex) so the
+    // border sits snug around the copy. A maxHeight cap keeps longer final
+    // copy in-bounds and lets it scroll only when it actually overflows.
+    // The Terms slide (slide 6) is untouched.
     // PLACEHOLDER paragraphs (see slide definitions above) — final copy
     // owned by Chey/Randy.
     return (
       <Animated.View
-        style={[styles.slideContent, styles.termsSlideContent, containerStyle]}
+        style={[styles.slideContent, styles.disclaimerSlideContent, containerStyle]}
       >
         <View style={styles.titleContainer}>
           <Text style={styles.titleStart}>{slide.titleStart}</Text>
           <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
         </View>
-        <View style={styles.termsScrollFrame}>
-          <ScrollView
-            showsVerticalScrollIndicator
-            contentContainerStyle={styles.termsScrollContent}
-            nestedScrollEnabled
-          >
-            {(slide.disclaimerParagraphs ?? []).map((para, i) => (
-              <Text
-                key={i}
-                style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
-              >
-                {para}
-              </Text>
-            ))}
-          </ScrollView>
-        </View>
+        <ScrollView
+          style={styles.disclaimerCard}
+          contentContainerStyle={styles.termsScrollContent}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
+          {(slide.disclaimerParagraphs ?? []).map((para, i) => (
+            <Text
+              key={i}
+              style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
+            >
+              {para}
+            </Text>
+          ))}
+        </ScrollView>
       </Animated.View>
     );
   }
@@ -1022,6 +1020,33 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
         termsScrollFrame: {
           flex: 1,
           marginTop: 12,
+          backgroundColor: isDarkMode
+            ? 'rgba(255,255,255,0.05)'
+            : 'rgba(255,255,255,0.7)',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: isDarkMode
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(58,14,102,0.10)',
+          overflow: 'hidden',
+        },
+        // so-gbem: disclaimer slide shell. Unlike the Terms slide (top-
+        // aligned, full-height scroll frame), the two short disclaimer
+        // cards are vertically CENTERED so the title+card block is
+        // balanced with no big empty area.
+        disclaimerSlideContent: {
+          justifyContent: 'center',
+          paddingTop: 60,
+          paddingBottom: 96,
+        },
+        // so-gbem: bordered card that HUGS the disclaimer copy (no flex,
+        // so it sizes to content) instead of the Terms frame's flex:1.
+        // maxHeight caps it at ~62% of the screen and the ScrollView
+        // scrolls only when longer final copy overflows. Visuals mirror
+        // termsScrollFrame (border + glass fill + dark/light theming).
+        disclaimerCard: {
+          maxHeight: SCREEN_HEIGHT * 0.62,
+          marginTop: 16,
           backgroundColor: isDarkMode
             ? 'rgba(255,255,255,0.05)'
             : 'rgba(255,255,255,0.7)',
