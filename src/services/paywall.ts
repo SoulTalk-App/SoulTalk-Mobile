@@ -72,10 +72,51 @@ export type PaywallOutcome =
 // not N stacked modals. Cleared in the finally of the inner promise.
 let inflightPresent: Promise<PaywallOutcome> | null = null;
 
-const friendlyError = (err: unknown): PaywallOutcome => ({
-  kind: 'error',
-  message: normalizeError(err),
-});
+// so-3w4h: isAdaptyActive() returns true even when activation was SKIPPED
+// for a missing public SDK key — adapty.ts sets activated=true plus
+// activationFailedReason='missing-public-sdk-key' WITHOUT ever calling
+// adapty.activate(). Build 53 shipped exactly that (empty key), so the guard
+// passed and getPaywall() ran against a dead SDK, throwing "Connection
+// problem". Treat any non-null activation error on iOS as inactive too — the
+// single intentional exception is the Android no-op path, which surfaces as
+// 'android-not-yet-supported'. Returns the sdk-inactive outcome to short-
+// circuit, or null when the SDK is genuinely usable (key present → reason is
+// null → happy path proceeds untouched).
+const sdkInactiveOutcome = (): PaywallOutcome | null => {
+  if (!isAdaptyActive() || Platform.OS !== 'ios') {
+    return {
+      kind: 'sdk-inactive',
+      reason: getAdaptyActivationError() ?? 'sdk-not-active',
+    };
+  }
+  const reason = getAdaptyActivationError();
+  if (reason && reason !== 'android-not-yet-supported') {
+    return { kind: 'sdk-inactive', reason };
+  }
+  return null;
+};
+
+// so-3w4h: Adapty errors carry no `.response`, so normalizeError() maps them
+// to its network fallback ("Connection problem") — misleading when the real
+// cause is a paywall/products load failure. Detect the Adapty error shape and
+// return a paywall-specific message; everything else keeps normalizeError so
+// we don't widen the blast radius of that shared helper.
+const isAdaptyError = (err: any): boolean =>
+  !!err &&
+  (err.adaptyCode != null ||
+    err.adaptyErrorCode != null ||
+    err.name === 'AdaptyError');
+
+const friendlyError = (err: unknown): PaywallOutcome => {
+  if (isAdaptyError(err)) {
+    return {
+      kind: 'error',
+      message:
+        "We couldn't load subscription options right now. Please try again in a moment.",
+    };
+  }
+  return { kind: 'error', message: normalizeError(err) };
+};
 
 /**
  * Present the Adapty paywall. Resolves once the view dismisses with
@@ -87,12 +128,8 @@ export const presentPaywall = async (
 ): Promise<PaywallOutcome> => {
   if (inflightPresent) return inflightPresent;
 
-  if (!isAdaptyActive() || Platform.OS !== 'ios') {
-    return {
-      kind: 'sdk-inactive',
-      reason: getAdaptyActivationError() ?? 'sdk-not-active',
-    };
-  }
+  const inactive = sdkInactiveOutcome();
+  if (inactive) return inactive;
 
   inflightPresent = (async (): Promise<PaywallOutcome> => {
     try {
@@ -177,12 +214,8 @@ export const presentPaywall = async (
  * device profile. Returns whether the user now has Pro access.
  */
 export const restorePurchases = async (): Promise<PaywallOutcome> => {
-  if (!isAdaptyActive() || Platform.OS !== 'ios') {
-    return {
-      kind: 'sdk-inactive',
-      reason: getAdaptyActivationError() ?? 'sdk-not-active',
-    };
-  }
+  const inactive = sdkInactiveOutcome();
+  if (inactive) return inactive;
   try {
     const profile = await adapty.restorePurchases();
     return {
