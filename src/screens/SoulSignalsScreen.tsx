@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -86,25 +87,43 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   const [mutedSignals, setMutedSignals] = useState<Signal[]>([]);
   const [mutedFetched, setMutedFetched] = useState(false);
 
-  useEffect(() => {
-    Promise.allSettled([
-      SoulSignalsService.list(),
-      SoulSightService.checkEligibility(),
-    ])
-      .then(([sigResult, eligResult]) => {
-        if (sigResult.status === 'fulfilled') {
-          setSignals(sigResult.value);
-        } else {
-          surfaceError('List fetch error', sigResult.reason);
-        }
-        if (eligResult.status === 'fulfilled') {
-          setEntriesSinceSight(eligResult.value.points ?? 0);
-        } else {
-          if (__DEV__) console.warn('[SoulSignals] Eligibility fetch error:', eligResult.reason);
-        }
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+  // so-72fx SS-M2: was a mount-only useEffect([]), so the feed went stale on
+  // the return seam after journaling. useFocusEffect refetches on every focus.
+  // The full-screen loader only shows for the FIRST load (hasLoadedRef);
+  // subsequent focuses refresh silently to avoid a loader flash. The `active`
+  // flag drops any in-flight result if the screen blurs first.
+  const hasLoadedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      Promise.allSettled([
+        SoulSignalsService.list(),
+        SoulSightService.checkEligibility(),
+      ])
+        .then(([sigResult, eligResult]) => {
+          if (!active) return;
+          if (sigResult.status === 'fulfilled') {
+            setSignals(sigResult.value);
+          } else {
+            surfaceError('List fetch error', sigResult.reason);
+          }
+          if (eligResult.status === 'fulfilled') {
+            setEntriesSinceSight(eligResult.value.points ?? 0);
+          } else {
+            if (__DEV__) console.warn('[SoulSignals] Eligibility fetch error:', eligResult.reason);
+          }
+        })
+        .finally(() => {
+          if (active && !hasLoadedRef.current) {
+            hasLoadedRef.current = true;
+            setIsLoading(false);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const groups = useMemo(() => buildGroups(signals, 6), [signals]);
   // Muted view renders each muted signal as its own pseudo-group (no related
@@ -362,12 +381,24 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       // Defense-in-depth: the gate on PatternModal should prevent this, but
       // races/stale state can still trigger it. Land softly.
       if (err?.response?.status === 409) {
-        const existingShiftId: string | undefined =
-          err.response.data?.existing_shift_id;
+        // so-72fx SH-M4: the BE flattened the 409 body to a detail string
+        // (no existing_shift_id). Resolve the existing shift ourselves by
+        // re-querying active shifts and matching one whose source_signal_ids
+        // overlap this pattern's signals; only then offer the deep-link.
+        let existingShiftId: string | undefined;
+        try {
+          const shifts = await SoulShiftsService.list();
+          const patternSignalIds = new Set(turnCandidate.sourceSignalIds);
+          existingShiftId = shifts.find((s) =>
+            s.source_signal_ids?.some((id) => patternSignalIds.has(id)),
+          )?.id;
+        } catch {
+          // best-effort — fall back to a no-deep-link prompt
+        }
         showAlert({
           title: 'Already turned into a shift',
           message:
-            err.response.data?.message ??
+            err.response.data?.detail ??
             'This pattern already has an active shift.',
           buttons: existingShiftId
             ? [

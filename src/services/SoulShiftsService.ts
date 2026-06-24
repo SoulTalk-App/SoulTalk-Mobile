@@ -317,12 +317,8 @@ class SoulShiftsService {
 
   /**
    * Materialize a signal pattern as an active shift (so-axs). Cross-feature
-   * write — Signals → Shifts. Provenance fields (`from_pattern_tag` +
-   * `source_signal_ids`) attribute the new shift back to the originating
-   * pattern; mirrors the so-pjv naming for consistency.
-   *
-   * [ASK] be_core: confirm `from_pattern_tag` field name; falls back to
-   * the same source_*_ids contract that acceptSuggestion uses.
+   * write — Signals → Shifts. Provenance is carried by `source_signal_ids`
+   * (so-72fx SH-M5 dropped the BE-ignored `from_pattern_tag` + `status`).
    */
   async createFromSignalPattern(input: {
     tag: string;
@@ -333,15 +329,17 @@ class SoulShiftsService {
     soulpal: SoulpalVariant;
     sourceSignalIds: string[];
   }): Promise<Shift> {
+    // so-72fx SH-M5: dropped status:'active' and from_pattern_tag — the BE
+    // schema ignores both (new shifts default to active server-side; provenance
+    // is carried by source_signal_ids). `input.tag` is retained on the call
+    // signature for the caller's own use but is no longer sent.
     const response = await this.axiosInstance.post('/soul-shifts/', {
       title: input.title,
       practice: input.practice,
       cat: input.cat,
       mood: input.mood,
       soulpal: input.soulpal,
-      status: 'active' as ShiftStatus,
       source_signal_ids: input.sourceSignalIds,
-      from_pattern_tag: input.tag,
     });
     return normalizeShift(response.data as ShiftWire);
   }
@@ -363,7 +361,7 @@ class SoulShiftsService {
       cat: candidate.cat,
       mood: candidate.tone,
       soulpal: candidate.soulpal,
-      status: 'active' as ShiftStatus,
+      // so-72fx SH-M5: dropped status:'active' — BE assigns it server-side.
       source_signal_ids: candidate.source_signal_ids,
       source_sight_ids: candidate.source_sight_ids,
       from_suggestion_id: suggestionId,
