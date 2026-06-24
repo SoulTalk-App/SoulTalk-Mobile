@@ -54,6 +54,13 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   // before snapping to ready; the AffirmationReveal AsyncStorage replay
   // marker already softens that for users who tapped reveal once today.
   const [state, setState] = useState<ScreenState>({ kind: 'reveal' });
+  // so-pq3o: false until fetchData has decided reveal-vs-ready at least once
+  // this mount. The initial optimistic {kind:'reveal'} paints AffirmationReveal
+  // instantly (so-urv4 launch feel), but its interactive Reveal CTA must stay
+  // gated until we know there's no today-row — otherwise a returning user sees
+  // the reveal page flash + can tap Reveal during that window (racing /today).
+  // Reset to false on every mount (re-entry remounts), so the gate re-arms.
+  const [settled, setSettled] = useState(false);
 
   const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
@@ -69,6 +76,10 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     try {
       const list = await JournalService.listAffirmations(30, 0);
       if (cancelled()) return;
+      // so-pq3o: fetchData has decided — release the CTA gate. Either we flip
+      // to 'ready' (history; the reveal CTA never becomes interactive) or stay
+      // 'reveal' as a genuine first-time-today (CTA now enabled).
+      setSettled(true);
       // so-zmjn: format the date_key in the USER'S timezone. The
       // previous `new Date().toISOString().slice(0, 10)` was UTC, which
       // disagrees with the BE (BE uses users.timezone) at every
@@ -86,6 +97,9 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       }
     } catch (err: any) {
       if (cancelled()) return;
+      // so-pq3o: the fetch resolved (with an error); settle so the CTA gate
+      // releases and the genuine first-time reveal flow stays usable.
+      setSettled(true);
       // History endpoint may not exist on older BE deploys; fall back to the
       // reveal entry screen so the user can still trigger /today.
       const status = err?.response?.status;
@@ -200,6 +214,11 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         onGenerate={handleGenerate}
         onOpenJournal={handleOpenJournal}
         onClose={handleRevealClose}
+        // so-pq3o: gate the interactive CTA until fetchData settles. Replay
+        // (affirmation_text supplied) only happens from a settled 'ready'
+        // state, so settled is already true there — the gate only bites on
+        // the cold optimistic-reveal window.
+        ctaReady={settled}
       />
     );
   }

@@ -81,6 +81,13 @@ type Props = {
   affirmation_text?: string;
   date_key?: string;
   onClose: () => void;
+  // so-pq3o: gates the interactive central CTA. The ambient backdrop (idle
+  // video + clouds) always renders, but while the screen hasn't yet decided
+  // reveal-vs-ready (cold re-entry, before listAffirmations resolves) the
+  // button is HIDDEN and its press is a no-op — killing the reveal-flash and
+  // the click-race where a tap during the glitch fired a redundant generate.
+  // Defaults true so the replay path and any other caller are unaffected.
+  ctaReady?: boolean;
 };
 
 export function AffirmationReveal({
@@ -91,6 +98,7 @@ export function AffirmationReveal({
   affirmation_text: initialText,
   date_key: initialDateKey,
   onClose,
+  ctaReady = true,
 }: Props) {
   const insets = useSafeAreaInsets();
   // so-i7xd: full migration to useThemeColors. `colors` is the per-active-
@@ -346,11 +354,16 @@ export function AffirmationReveal({
   //   - locked entry → routes to Journal (no generate, no reveal).
   //   - cold entry with hasEntryToday → generate then reveal.
   //   - replay (text already supplied) → reveal immediately.
-  const handleCenterPress = isLockedEntry
-    ? onOpenJournal
-    : text
-      ? () => handleReveal()
-      : handleGeneratePress;
+  // so-pq3o: until the screen settles reveal-vs-ready, the CTA is gated —
+  // hidden in render below AND its press is a no-op here (belt-and-suspenders
+  // against the click-race that double-fired generation during the flash).
+  const handleCenterPress = !ctaReady
+    ? () => {}
+    : isLockedEntry
+      ? onOpenJournal
+      : text
+        ? () => handleReveal()
+        : handleGeneratePress;
   const buttonLabel = isLockedEntry ? 'Journal to Unlock' : 'Click to Reveal';
 
   const textAnimStyle = useAnimatedStyle(() => ({
@@ -497,11 +510,11 @@ export function AffirmationReveal({
         </View>
       )}
 
-      {!isRevealed && (
+      {!isRevealed && ctaReady && (
         <Animated.View style={[styles.revealButtonContainer, buttonAnimStyle]}>
           <Pressable
             onPress={handleCenterPress}
-            disabled={isGenerating}
+            disabled={isGenerating || !ctaReady}
             accessibilityRole="button"
             accessibilityLabel={isGenerating ? 'Generating your affirmation' : buttonLabel}
             accessibilityState={{ disabled: isGenerating, busy: isGenerating }}
