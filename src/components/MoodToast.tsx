@@ -29,9 +29,11 @@ type Props = {
 };
 
 const COPY: Record<MoodToastKind, { headline: string; subline: string }> = {
+  // so-zrb8: the first mood save of the day does NOT charge the SoulBar (the
+  // bar is journal-entry-driven, not mood-driven). Honest copy instead.
   'first-fill': {
     headline: 'Mood saved',
-    subline: 'SoulBar charged ✦',
+    subline: "Today's word saved",
   },
   update: {
     headline: 'Mood updated',

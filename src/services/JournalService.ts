@@ -96,8 +96,11 @@ export interface SoulBarResponse {
 export interface DailyMoodResponse {
   date: string;
   mood_word: string | null;
-  // so-3yb: PUT returns true on the first save of the day (charges SoulBar);
-  // GET always returns false. Used by HomeScreen to differentiate the toast.
+  // so-3yb: PUT returns true on the first mood save of the day; GET always
+  // returns false. Used by HomeScreen only to pick the toast copy (first-save
+  // vs update). so-zrb8: this does NOT charge the SoulBar — the bar is
+  // journal-entry-driven, not mood-driven (the old "charges SoulBar" note was
+  // wrong).
   is_first_fill: boolean;
 }
 
