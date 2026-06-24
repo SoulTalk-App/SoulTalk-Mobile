@@ -104,8 +104,23 @@ export const presentPaywall = async (
       // a fast purchase (sandbox testers tap-through quickly) can't
       // race the subscription wire-up.
       const outcome = new Promise<PaywallOutcome>((resolve) => {
-        view.registerEventHandlers({
-          onPurchaseCompleted: (_product, _profile) => {
+        // so-3w4h: the merged react-native-adapty 3.17.1 ViewController
+        // exposes setEventHandlers (NOT the old @adapty/react-native-ui
+        // registerEventHandlers — that method doesn't exist on the new
+        // package and throws at runtime the instant the paywall presents).
+        view.setEventHandlers({
+          // so-3w4h: 3.17.1 fires a SINGLE AdaptyPurchaseResult whose
+          // .type is 'success' | 'pending' | 'user_cancelled' (the old
+          // (product, profile) signature is gone). Only 'success' is a
+          // real purchase — treating a cancel/pending as bought would
+          // falsely flip the entitlement gate and trigger a BE re-402.
+          onPurchaseCompleted: (purchaseResult) => {
+            if (purchaseResult.type !== 'success') {
+              // Cancel / deferred: keep the paywall up (return false =
+              // don't auto-dismiss) so the user can retry or close it
+              // themselves; never resolve as purchased.
+              return false;
+            }
             view.dismiss();
             resolve({ kind: 'purchased' });
           },
