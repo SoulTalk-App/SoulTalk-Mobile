@@ -4,10 +4,15 @@ import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
 import SecureStorage from '../utils/SecureStorage';
 import { refreshAccessToken } from '../utils/authClient';
+import { presentPaywall } from '../services/paywall';
 
 type MessageHandler = (data: any) => void;
 
 const AUTH_FAILURE_CODE = 4001;
+// WS-M4: server closes with 4002 when the connection needs an active
+// subscription. Terminal (like an HTTP 402) — stop reconnecting and route to
+// the paywall/entitlement-refresh flow.
+const SUBSCRIPTION_REQUIRED_CODE = 4002;
 
 const getWsUrl = (): string => {
   const apiBaseUrl =
@@ -44,7 +49,10 @@ export const useWebSocket = (
       wsRef.current.close();
       wsRef.current = null;
     }
-    retriesRef.current = 0;
+    // WS-M1: do NOT reset retriesRef here. connect() calls cleanup() first, so
+    // resetting on every reconnect pinned the backoff at 2**0=1s forever and
+    // MAX_RETRIES never tripped → infinite 1s reconnect on any outage. The
+    // counter is reset only on a successful onopen and on auth teardown.
   }, []);
 
   const connect = useCallback(async () => {
@@ -66,6 +74,12 @@ export const useWebSocket = (
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        // WS-M2: reply to the server heartbeat so its dead-client detection
+        // stays enabled. Protocol-level — not forwarded to the app handler.
+        if (data?.event === 'ping') {
+          ws.send(JSON.stringify({ event: 'pong' }));
+          return;
+        }
         onMessageRef.current(data);
       } catch {
         // ignore non-JSON messages
@@ -78,6 +92,16 @@ export const useWebSocket = (
 
     ws.onclose = (event) => {
       wsRef.current = null;
+
+      // WS-M4/ENT-M4: subscription_required is terminal — do not reconnect.
+      // Route to the same paywall/entitlement-refresh flow as an HTTP 402
+      // (presentPaywall is in-flight-coalesced, so a concurrent 402 won't
+      // double-present).
+      if (event.code === SUBSCRIPTION_REQUIRED_CODE) {
+        presentPaywall().catch(() => {});
+        return;
+      }
+
       if (retriesRef.current >= MAX_RETRIES) return;
 
       const delay = Math.min(1000 * 2 ** retriesRef.current, 30000);
@@ -102,6 +126,9 @@ export const useWebSocket = (
     if (isAuthenticated) {
       connect();
     } else {
+      // WS-M1: auth teardown is an explicit reset point for the backoff so the
+      // next login starts fresh.
+      retriesRef.current = 0;
       cleanup();
     }
     return cleanup;
@@ -127,7 +154,11 @@ export const useWebSocket = (
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         return;
       }
-      retriesRef.current = 0;
+      // WS-M1: do NOT reset retriesRef here — AppState 'active' / NetInfo
+      // regain fire frequently, and resetting re-armed the 1s reconnect loop.
+      // connect() still makes one attempt; a successful onopen resets the
+      // counter, and if we're past MAX_RETRIES a failed attempt gives up
+      // cleanly instead of looping.
       connect();
     };
 
