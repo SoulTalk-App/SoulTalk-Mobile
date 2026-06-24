@@ -1019,8 +1019,9 @@ const HomeScreen = ({ navigation }: any) => {
       const res = await JournalService.upsertTodayMood(word);
       setMoodSaved(true);
       fetchSoulBar();
-      // so-3yb: differentiate the first save of the day (charges SoulBar)
-      // from a same-day update; BE returns is_first_fill on PUT only.
+      // so-3yb/so-zrb8: differentiate the first mood save of the day from a
+      // same-day update purely for the toast copy (the mood save does NOT
+      // charge the SoulBar). BE returns is_first_fill on PUT only.
       setMoodToast(res.is_first_fill ? 'first-fill' : 'update');
     } catch (e) {
       console.warn('[Mood] Failed to persist mood:', e);

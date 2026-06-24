@@ -54,6 +54,12 @@ const SETTINGS_PROFILE_DRAFT_KEY_PREFIX = '@soultalk_settings_profile_draft';
 const settingsDraftKey = (userId: string) =>
   `${SETTINGS_PROFILE_DRAFT_KEY_PREFIX}:${userId}`;
 
+// so-zrb8: the data-export BE route (so-ruvl) is unmerged, so POST /data-export
+// 404s in prod. Hide the button until it lands — flip this to true (and ship
+// once so-ruvl is on main) to re-enable. The handler + AuthService.requestDataExport
+// are intentionally left intact so re-enabling is a one-line change.
+const DATA_EXPORT_ENABLED = false;
+
 interface ProfileFields {
   displayName: string;
   username: string;
@@ -409,26 +415,27 @@ const SettingsScreen = ({ navigation }: any) => {
       const outcome = await restorePurchases();
       if (wasUnlocked(outcome)) {
         await refreshEntitlement();
-        Alert.alert(
-          'Restore',
-          'Your subscription was restored. Welcome back to SoulTalk Pro.',
-        );
+        showAlert({
+          title: 'Restore',
+          message: 'Your subscription was restored. Welcome back to SoulTalk Pro.',
+        });
         return;
       }
       if (outcome.kind === 'restored') {
-        Alert.alert(
-          'Restore',
-          "We checked, but no active subscription was found on this Apple ID.",
-        );
+        showAlert({
+          title: 'Restore',
+          message: "We checked, but no active subscription was found on this Apple ID.",
+        });
         return;
       }
       // sdk-inactive or error — surface friendly copy.
-      Alert.alert(
-        'Restore',
-        outcome.kind === 'error'
-          ? outcome.message
-          : "We couldn't open the App Store right now. Please try again in a moment.",
-      );
+      showAlert({
+        title: 'Restore',
+        message:
+          outcome.kind === 'error'
+            ? outcome.message
+            : "We couldn't open the App Store right now. Please try again in a moment.",
+      });
     } finally {
       setRestoring(false);
     }
@@ -437,10 +444,10 @@ const SettingsScreen = ({ navigation }: any) => {
   const handleManageSubscription = async () => {
     const ok = await openManageSubscription();
     if (!ok) {
-      Alert.alert(
-        'Manage subscription',
-        "We couldn't open the App Store right now. Please try from your phone's Settings app.",
-      );
+      showAlert({
+        title: 'Manage subscription',
+        message: "We couldn't open the App Store right now. Please try from your phone's Settings app.",
+      });
     }
   };
 
@@ -665,20 +672,26 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.resetButtonText}>MANAGE SUBSCRIPTION</Text>
         </Pressable>
 
-        {/* Export My Data (so-sjua — CCPA portability) */}
-        <View style={styles.separator} />
-        <Pressable
-          onPress={handleExportData}
-          disabled={exportingData}
-          style={styles.resetButton}
-          accessibilityRole="button"
-          accessibilityLabel="Export my data"
-          accessibilityState={{ disabled: exportingData, busy: exportingData }}
-        >
-          <Text style={styles.resetButtonText}>
-            {exportingData ? 'PREPARING…' : 'EXPORT MY DATA'}
-          </Text>
-        </Pressable>
+        {/* Export My Data (so-sjua — CCPA portability).
+            so-zrb8: hidden behind DATA_EXPORT_ENABLED until the BE export route
+            (so-ruvl) merges — it 404s in prod otherwise. */}
+        {DATA_EXPORT_ENABLED && (
+          <>
+            <View style={styles.separator} />
+            <Pressable
+              onPress={handleExportData}
+              disabled={exportingData}
+              style={styles.resetButton}
+              accessibilityRole="button"
+              accessibilityLabel="Export my data"
+              accessibilityState={{ disabled: exportingData, busy: exportingData }}
+            >
+              <Text style={styles.resetButtonText}>
+                {exportingData ? 'PREPARING…' : 'EXPORT MY DATA'}
+              </Text>
+            </Pressable>
+          </>
+        )}
 
         {/* Log Out */}
         <Pressable onPress={handleLogout}>
