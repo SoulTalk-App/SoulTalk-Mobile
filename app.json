@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.soultalk.mobile",
-      "buildNumber": "52",
+      "buildNumber": "53",
       "associatedDomains": [
         "webcredentials:soultalkapp.com",
         "webcredentials:www.soultalkapp.com"
