@@ -480,10 +480,20 @@ export function AffirmationReveal({
               AI-generated affirmation. tone="light" because the reveal
               view is always on the dark cosmic backdrop regardless of
               the active app theme. */}
-          <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
-          <Animated.Text style={[styles.affirmationText, { fontSize, lineHeight }, textAnimStyle]}>
-            {text}
-          </Animated.Text>
+          {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
+              affirmation) in as one unit via textAnimStyle. Previously the
+              AIGeneratedLabel was static and popped in instantly while the
+              clouds were still dissolving — a hard cut on the top half. Now the
+              label and text resolve together with the same opacity/scale, so
+              the top half reads as one continuous reveal. Timing unchanged
+              (reuses the existing textOpacity/textScale); identical in both
+              themes (tone stays "light"). */}
+          <Animated.View style={[styles.textBlock, textAnimStyle]}>
+            <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
+            <Text style={[styles.affirmationText, { fontSize, lineHeight }]}>
+              {text}
+            </Text>
+          </Animated.View>
         </View>
       )}
 
@@ -595,6 +605,10 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     alignItems: 'center',
     paddingHorizontal: 28,
     zIndex: 5,
+  },
+  textBlock: {
+    width: '100%',
+    alignItems: 'center',
   },
   affirmationText: {
     fontFamily: fonts.outfit.light,
