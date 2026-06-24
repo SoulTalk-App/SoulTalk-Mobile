@@ -24,7 +24,6 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -38,6 +37,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useEntitlement } from '../contexts/EntitlementContext';
 import { fonts, useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { useAppAlert } from '../components/AppAlertProvider';
 import {
   TOUCH_HITSLOP_MED,
   TOUCH_PRESS_OPACITY,
@@ -60,6 +60,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
   const colors = useThemeColors();
   const { logout } = useAuth();
   const { refresh: refreshEntitlement } = useEntitlement();
+  const { showAlert } = useAppAlert();
 
   const [busy, setBusy] = useState(false);
   // Whenever we land on this screen the user has hit the gate; present
@@ -83,15 +84,17 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
           // presented (auto-mount).
           await refreshEntitlement();
         } else if (outcome.kind === 'error') {
-          Alert.alert(
-            'Subscription',
-            outcome.message || 'Something went wrong. Please try again.',
-          );
+          showAlert({
+            title: 'Subscription',
+            message:
+              outcome.message || 'Something went wrong. Please try again.',
+          });
         } else if (outcome.kind === 'sdk-inactive') {
-          Alert.alert(
-            'Subscription',
-            "We couldn't open the subscription screen right now. Please try again in a moment.",
-          );
+          showAlert({
+            title: 'Subscription',
+            message:
+              "We couldn't open the subscription screen right now. Please try again in a moment.",
+          });
         }
         // 'dismissed' is silent — the user closed the sheet without
         // purchasing; they remain on the gate.
@@ -99,7 +102,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
         setBusy(false);
       }
     },
-    [busy, refreshEntitlement],
+    [busy, refreshEntitlement, showAlert],
   );
 
   const handleRestore = useCallback(async () => {
@@ -113,32 +116,35 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
       }
       if (outcome.kind === 'restored') {
         // Restored, but no Pro on the account — surface gentle copy.
-        Alert.alert(
-          'Restore',
-          "We checked, but no active subscription was found on this Apple ID.",
-        );
+        showAlert({
+          title: 'Restore',
+          message:
+            "We checked, but no active subscription was found on this Apple ID.",
+        });
         return;
       }
-      Alert.alert(
-        'Restore',
-        outcome.kind === 'error'
-          ? outcome.message
-          : "We couldn't restore right now. Please try again in a moment.",
-      );
+      showAlert({
+        title: 'Restore',
+        message:
+          outcome.kind === 'error'
+            ? outcome.message
+            : "We couldn't restore right now. Please try again in a moment.",
+      });
     } finally {
       setBusy(false);
     }
-  }, [busy, refreshEntitlement]);
+  }, [busy, refreshEntitlement, showAlert]);
 
   const handleManage = useCallback(async () => {
     const ok = await openManageSubscription();
     if (!ok) {
-      Alert.alert(
-        'Manage subscription',
-        "We couldn't open the App Store right now. Please try from your phone's Settings app.",
-      );
+      showAlert({
+        title: 'Manage subscription',
+        message:
+          "We couldn't open the App Store right now. Please try from your phone's Settings app.",
+      });
     }
-  }, []);
+  }, [showAlert]);
 
   const handleHelp = useCallback(() => {
     // Help screen is reachable from the locked state — crisis
