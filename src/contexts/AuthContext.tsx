@@ -5,6 +5,7 @@ import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
+import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
 
 interface UserInfo {
   id: string;
@@ -237,6 +238,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const logout = useCallback(async () => {
+    // so-1k32: capture the id before clearing state so we can drop this user's
+    // namespaced local journal draft — otherwise it would linger and be offered
+    // to the next user on a shared device (cross-user PII leak).
+    const uid = user?.id;
     try {
       // Deactivate push token before logout (best-effort, don't block logout)
       try {
@@ -247,14 +252,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       await AsyncStorage.removeItem('user_logged_in');
+      await clearLocalDraft(uid);
+      await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       await AuthService.logout();
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
       setIsAuthenticated(false);
       await AsyncStorage.removeItem('user_logged_in');
+      await clearLocalDraft(uid);
+      await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
     }
-  }, []);
+  }, [user]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -460,6 +469,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Logout all devices
   const logoutAllDevices = useCallback(async () => {
+    const uid = user?.id; // so-1k32: clear this user's local journal draft too
     try {
       setIsLoading(true);
       await AuthService.logoutAllDevices();
@@ -469,9 +479,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       await AsyncStorage.removeItem('user_logged_in');
+      await clearLocalDraft(uid);
+      await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const deleteAccount = useCallback(async () => {
     try {

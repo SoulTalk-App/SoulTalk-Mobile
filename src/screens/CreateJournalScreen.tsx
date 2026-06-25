@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
+import { useAuth } from '../contexts/AuthContext';
 import JournalService from '../services/JournalService';
 import { useAutoSave } from '../hooks/useAutoSave';
 import {
@@ -52,6 +53,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { createEntry, updateEntry, finalizeDraft, entries, persistPendingFinalize } = useJournal();
+  // so-1k32: local journal drafts are namespaced per user; thread the id into
+  // the draft hook + load/clear so User B is never offered User A's draft.
+  const { user } = useAuth();
+  const userId = user?.id;
   // so-1zn0: themed alert replaces native Alert across this surface.
   const { showAlert, showError } = useAppAlert();
 
@@ -256,7 +261,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       savedEntryIdRef.current = entryId;
       // Clear the local crash-recovery draft (so-skm) on successful submit so
       // the next New Entry session starts clean.
-      clearLocalDraft();
+      clearLocalDraft(userId);
       setAnalysisDone(false);
       setShowSaveAnimation(true);
     } catch (error: any) {
@@ -392,6 +397,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     value: displayValue,
     draftId,
     enabled: localDraftEnabled,
+    userId,
   });
 
   // Restore-on-mount prompt (so-skm). Run once for new entries only — edit
@@ -412,7 +418,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     if (isEdit) return;
     let cancelled = false;
     (async () => {
-      const local = await loadLocalDraft();
+      const local = await loadLocalDraft(userId);
       if (cancelled || !local || !local.text.trim()) return;
       const stalePointsToFinalized =
         local.draftId &&
@@ -422,7 +428,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         // Discard the local draft entirely; the user's committed work is
         // already safe on the server, and a stale text body shouldn't
         // overwrite it.
-        clearLocalDraft();
+        clearLocalDraft(userId);
         return;
       }
       showAlert({
@@ -434,7 +440,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             text: 'Discard',
             style: 'destructive',
             onPress: () => {
-              clearLocalDraft();
+              clearLocalDraft(userId);
             },
           },
           {
@@ -460,8 +466,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     return () => {
       cancelled = true;
     };
+    // so-1k32: depend on userId so the restore check runs once auth resolves
+    // (and re-keys per user). entries/showAlert intentionally omitted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   // ════════════════════════════════════════
   // DARK MODE
