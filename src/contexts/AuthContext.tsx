@@ -56,9 +56,11 @@ interface AuthContextType {
   updateProfile: (data: ProfileUpdate) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   // Social auth methods
-  loginWithGoogle: (idToken: string) => Promise<void>;
-  loginWithFacebook: (accessToken: string) => Promise<void>;
-  loginWithApple: (identityToken: string, fullName?: string | null) => Promise<void>;
+  // so-piu2: optional dateOfBirth (ISO YYYY-MM-DD) for the social age-gate
+  // resubmit after the BE returns dob_required for a new social user.
+  loginWithGoogle: (idToken: string, dateOfBirth?: string) => Promise<void>;
+  loginWithFacebook: (accessToken: string, dateOfBirth?: string) => Promise<void>;
+  loginWithApple: (identityToken: string, fullName?: string | null, dateOfBirth?: string) => Promise<void>;
   // Account linking
   linkGoogleAccount: (idToken: string) => Promise<void>;
   linkFacebookAccount: (accessToken: string) => Promise<void>;
@@ -291,10 +293,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Social auth methods
-  const loginWithGoogle = useCallback(async (idToken: string) => {
+  const loginWithGoogle = useCallback(async (idToken: string, dateOfBirth?: string) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithGoogle(idToken);
+      await AuthService.loginWithGoogle(idToken, dateOfBirth);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -313,10 +315,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null) => {
+  const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null, dateOfBirth?: string) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithApple(identityToken, fullName);
+      await AuthService.loginWithApple(identityToken, fullName, dateOfBirth);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -335,10 +337,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithFacebook = useCallback(async (accessToken: string) => {
+  const loginWithFacebook = useCallback(async (accessToken: string, dateOfBirth?: string) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithFacebook(accessToken);
+      await AuthService.loginWithFacebook(accessToken, dateOfBirth);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);

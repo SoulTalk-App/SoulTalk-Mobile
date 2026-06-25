@@ -9,11 +9,13 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { DobRequiredError } from '../services/AuthService';
 import { normalizeError } from '../utils/normalizeError';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
@@ -64,6 +66,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [dob, setDob] = useState<Date | null>(null);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
+  // so-piu2: social-signup DOB step. Shown only when the BE returns
+  // dob_required for a NEW social user; the pending OAuth token is stashed so
+  // we can resubmit the SAME token + date_of_birth. Existing users never hit
+  // this (they get an AuthResponse, no prompt).
+  const [socialDobOpen, setSocialDobOpen] = useState(false);
+  const [socialDob, setSocialDob] = useState<Date | null>(null);
+  const [socialDobError, setSocialDobError] = useState<string | null>(null);
+  const [socialSubmitting, setSocialSubmitting] = useState(false);
+  const pendingSocialRef = useRef<{
+    provider: 'Google' | 'Facebook' | 'Apple';
+    idToken?: string;
+    accessToken?: string;
+    identityToken?: string;
+    fullName?: string | null;
+  } | null>(null);
   // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
   // initialize true (the onboarding flow guarantees @terms_accepted=true
   // by the time we land here) but also hydrate from AsyncStorage on mount
@@ -398,49 +415,88 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
   }, [appleResponse]);
 
-  const handleGoogleSignUp = async (idToken: string) => {
+  // so-piu2: dispatch the right AuthContext social login for a stashed creds set,
+  // optionally with the date_of_birth resubmit.
+  type SocialCreds = NonNullable<typeof pendingSocialRef.current>;
+  const callSocialLogin = (creds: SocialCreds, dateOfBirth?: string): Promise<void> => {
+    if (creds.provider === 'Google') {
+      return loginWithGoogle(creds.idToken as string, dateOfBirth);
+    }
+    if (creds.provider === 'Facebook') {
+      return loginWithFacebook(creds.accessToken as string, dateOfBirth);
+    }
+    return loginWithApple(creds.identityToken as string, creds.fullName ?? null, dateOfBirth);
+  };
+
+  // so-piu2: unified social signup. First attempt sends the token only. If the
+  // BE replies dob_required (new social user), stash the creds + open the DOB
+  // step and resubmit the SAME token + date_of_birth. Under-18 (client OR the
+  // BE's authoritative reject) routes to the neutral block screen, same as the
+  // email path. Existing users get an AuthResponse → no prompt.
+  const runSocial = async (creds: SocialCreds, dateOfBirth?: string) => {
     try {
       setIsLoading(true);
-      // so-4maw: mirror the email path — clear the device-global setup flag
-      // so a new social user on a previously-used device sees onboarding
-      // (SoulPalName / setup screens) instead of inheriting the prior
-      // account's "complete" state and landing on Home empty.
+      // so-4maw: clear the device-global setup flag so a new social user on a
+      // previously-used device sees onboarding instead of inheriting the prior
+      // account's "complete" state.
       await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithGoogle(idToken);
-      // Navigation will be handled by the auth state change
+      await callSocialLogin(creds, dateOfBirth);
+      // Success → navigation handled by the auth state change.
     } catch (error: any) {
-      showError(error, { title: 'Google Sign-Up Failed' });
+      if (error instanceof DobRequiredError) {
+        // New social user needs a DOB — stash creds and present the step.
+        pendingSocialRef.current = creds;
+        setSocialDob(null);
+        setSocialDobError(null);
+        setSocialDobOpen(true);
+        return;
+      }
+      if (isUnder18Error(error?.message)) {
+        navigation.navigate('UnderageBlock');
+        return;
+      }
+      showError(error, { title: `${creds.provider} Sign-Up Failed` });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFacebookSignUp = async (accessToken: string) => {
+  const handleGoogleSignUp = (idToken: string) =>
+    runSocial({ provider: 'Google', idToken });
+  const handleFacebookSignUp = (accessToken: string) =>
+    runSocial({ provider: 'Facebook', accessToken });
+  const handleAppleSignUp = (identityToken: string, fullName: string | null) =>
+    runSocial({ provider: 'Apple', identityToken, fullName });
+
+  // so-piu2: DOB step submit — client 18+ check (instant block) then resubmit
+  // the stashed token with date_of_birth. The BE re-checks authoritatively.
+  const handleSocialDobContinue = async () => {
+    const creds = pendingSocialRef.current;
+    if (!creds) return;
+    const parts = socialDob ? dobPartsFromDate(socialDob) : null;
+    if (!parts || !isValidDob(parts)) {
+      setSocialDobError('Please select a valid date of birth.');
+      return;
+    }
+    if (!isAtLeast18(parts)) {
+      setSocialDobOpen(false);
+      navigation.navigate('UnderageBlock');
+      return;
+    }
+    setSocialSubmitting(true);
     try {
-      setIsLoading(true);
-      // so-4maw: see handleGoogleSignUp.
-      await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithFacebook(accessToken);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Facebook Sign-Up Failed' });
+      setSocialDobOpen(false);
+      await runSocial(creds, toIsoDate(parts));
     } finally {
-      setIsLoading(false);
+      setSocialSubmitting(false);
     }
   };
 
-  const handleAppleSignUp = async (identityToken: string, fullName: string | null) => {
-    try {
-      setIsLoading(true);
-      // so-4maw: see handleGoogleSignUp.
-      await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithApple(identityToken, fullName);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Apple Sign-Up Failed' });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSocialDobCancel = () => {
+    setSocialDobOpen(false);
+    pendingSocialRef.current = null;
+    setSocialDob(null);
+    setSocialDobError(null);
   };
 
   const validateField = (field: string, value: string) => {
@@ -926,8 +982,119 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* so-piu2: social-signup DOB step. Reuses the email-signup DateOfBirthField
+          (so-7yb8 native wheel). Only shown after the BE returns dob_required. */}
+      <Modal
+        visible={socialDobOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={handleSocialDobCancel}
+      >
+        <View style={socialDobStyles.overlay}>
+          <View
+            style={[
+              socialDobStyles.sheet,
+              { backgroundColor: colors.background, paddingBottom: insets.bottom + 20 },
+            ]}
+          >
+            <Text style={[socialDobStyles.title, { color: colors.text.primary }]}>
+              One more step
+            </Text>
+            <Text style={[socialDobStyles.subtitle, { color: colors.text.secondary }]}>
+              Please confirm your date of birth to finish creating your account.
+            </Text>
+            <DateOfBirthField
+              value={socialDob}
+              onChange={(d) => {
+                setSocialDob(d);
+                if (socialDobError) setSocialDobError(null);
+              }}
+              error={socialDobError}
+            />
+            <Pressable
+              onPress={handleSocialDobContinue}
+              disabled={socialSubmitting}
+              style={[
+                socialDobStyles.continueBtn,
+                { backgroundColor: colors.primary },
+                socialSubmitting && { opacity: 0.6 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+            >
+              {socialSubmitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={[socialDobStyles.continueText, { color: colors.white }]}>
+                  Continue
+                </Text>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={handleSocialDobCancel}
+              disabled={socialSubmitting}
+              style={socialDobStyles.cancelBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+            >
+              <Text style={[socialDobStyles.cancelText, { color: colors.text.secondary }]}>
+                Cancel
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </CosmicScreen>
   );
 };
+
+// so-piu2: standalone styles for the social DOB step sheet (theme colors are
+// applied inline at the call site).
+const socialDobStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  title: {
+    fontFamily: fonts.edensor.bold,
+    fontSize: 22,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  continueBtn: {
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  continueText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
+  },
+  cancelBtn: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  cancelText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 15,
+  },
+});
 
 export default RegisterScreen;
