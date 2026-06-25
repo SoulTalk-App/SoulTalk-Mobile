@@ -24,6 +24,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
 import { DateOfBirthField, CountryPickerField } from '../features/signup/SignupAgeFields';
+import { useSocialDobGate } from '../features/signup/useSocialDobGate';
+import { SocialDobStep } from '../features/signup/SocialDobStep';
 import {
   dobPartsFromDate,
   isValidDob,
@@ -64,6 +66,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [dob, setDob] = useState<Date | null>(null);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [dobError, setDobError] = useState<string | null>(null);
+  // so-piu2: social-signup DOB age-gate (dob_required → DOB step → resubmit →
+  // 18+ reject) extracted to a shared hook so LoginScreen reuses it verbatim.
+  const {
+    handleGoogleSignUp,
+    handleFacebookSignUp,
+    handleAppleSignUp,
+    dobStep: socialDobStep,
+  } = useSocialDobGate(navigation, { clearSetupOnFirstAttempt: true });
   // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
   // initialize true (the onboarding flow guarantees @terms_accepted=true
   // by the time we land here) but also hydrate from AsyncStorage on mount
@@ -89,7 +99,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     confirmPassword: '',
   });
 
-  const { register, loginWithGoogle, loginWithFacebook, loginWithApple } = useAuth();
+  const { register } = useAuth();
 
   // Social auth hooks
   const {
@@ -398,50 +408,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
   }, [appleResponse]);
 
-  const handleGoogleSignUp = async (idToken: string) => {
-    try {
-      setIsLoading(true);
-      // so-4maw: mirror the email path — clear the device-global setup flag
-      // so a new social user on a previously-used device sees onboarding
-      // (SoulPalName / setup screens) instead of inheriting the prior
-      // account's "complete" state and landing on Home empty.
-      await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithGoogle(idToken);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Google Sign-Up Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFacebookSignUp = async (accessToken: string) => {
-    try {
-      setIsLoading(true);
-      // so-4maw: see handleGoogleSignUp.
-      await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithFacebook(accessToken);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Facebook Sign-Up Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAppleSignUp = async (identityToken: string, fullName: string | null) => {
-    try {
-      setIsLoading(true);
-      // so-4maw: see handleGoogleSignUp.
-      await AsyncStorage.removeItem('@soultalk_setup_complete');
-      await loginWithApple(identityToken, fullName);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Apple Sign-Up Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // so-piu2: social signup handlers (handleGoogleSignUp / handleFacebookSignUp /
+  // handleAppleSignUp) + the DOB step now live in useSocialDobGate (above),
+  // shared with LoginScreen. The auth-response effects below call them directly.
 
   const validateField = (field: string, value: string) => {
     let error = '';
@@ -926,6 +895,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* so-piu2: shared social-signup DOB step (also used by LoginScreen). */}
+      <SocialDobStep {...socialDobStep} />
     </CosmicScreen>
   );
 };

@@ -24,6 +24,8 @@ import { fonts, useThemeColors } from "../theme";
 import { useTheme } from "../contexts/ThemeContext";
 import { CosmicScreen } from "../components/CosmicBackdrop";
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from "../components/touchPrimitives";
+import { useSocialDobGate } from "../features/signup/useSocialDobGate";
+import { SocialDobStep } from "../features/signup/SocialDobStep";
 
 interface LoginScreenProps {
   navigation: any;
@@ -73,7 +75,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  const { login, loginWithGoogle, loginWithFacebook, loginWithApple } = useAuth();
+  const { login } = useAuth();
+  // so-piu2: social sign-in is unified — a NEW user tapping a social button on
+  // LOGIN must get the same dob_required DOB step as RegisterScreen (else they
+  // dead-end on "dob_required"). Shared hook owns that flow.
+  const {
+    handleGoogleSignUp,
+    handleFacebookSignUp,
+    handleAppleSignUp,
+    dobStep: socialDobStep,
+  } = useSocialDobGate(navigation);
 
   // Social auth hooks
   const {
@@ -330,7 +341,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     if (googleResponse?.type === 'success') {
       const idToken = getGoogleIdToken();
       if (idToken) {
-        handleGoogleLogin(idToken);
+        handleGoogleSignUp(idToken);
       }
     } else if (googleResponse?.type === 'error') {
       // so-iiw8: route through showError so the SDK's "An error occurred"
@@ -345,7 +356,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     if (facebookResponse?.type === 'success') {
       const accessToken = getFacebookAccessToken();
       if (accessToken) {
-        handleFacebookLogin(accessToken);
+        handleFacebookSignUp(accessToken);
       }
     } else if (facebookResponse?.type === 'error') {
       // so-iiw8: same routing fix as Google — kills the raw SDK string +
@@ -359,7 +370,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     if (appleResponse?.type === 'success') {
       const identityToken = getAppleIdentityToken();
       if (identityToken) {
-        handleAppleLogin(identityToken, getAppleFullName());
+        handleAppleSignUp(identityToken, getAppleFullName());
       }
     } else if (appleResponse?.type === 'error') {
       // so-iiw8: friendly copy via showError; useAppleAuth.ts already
@@ -368,41 +379,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   }, [appleResponse]);
 
-  const handleGoogleLogin = async (idToken: string) => {
-    try {
-      setIsLoading(true);
-      await loginWithGoogle(idToken);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Google Login Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFacebookLogin = async (accessToken: string) => {
-    try {
-      setIsLoading(true);
-      await loginWithFacebook(accessToken);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Facebook Login Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAppleLogin = async (identityToken: string, fullName: string | null) => {
-    try {
-      setIsLoading(true);
-      await loginWithApple(identityToken, fullName);
-      // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      showError(error, { title: 'Apple Sign-In Failed' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // so-piu2: the social login handlers now live in useSocialDobGate (above),
+  // shared with RegisterScreen — they consume the BE's dob_required and present
+  // the DOB step instead of dead-ending a new user on the login screen.
 
   const checkBiometricStatus = async () => {
     const available = await AuthService.isBiometricAvailable();
@@ -732,6 +711,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* so-piu2: shared social-signup DOB step — a NEW user via social on the
+          login screen gets the DOB step instead of dead-ending on dob_required. */}
+      <SocialDobStep {...socialDobStep} />
     </CosmicScreen>
   );
 };

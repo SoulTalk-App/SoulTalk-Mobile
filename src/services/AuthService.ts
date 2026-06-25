@@ -92,6 +92,30 @@ interface TermsStatus {
   terms_accepted_at: string | null;
 }
 
+// so-piu2: the BE social age gate (so-4cvq) replies to a NEW social user with
+// no DOB on file with { detail: { code: 'dob_required' } }. We surface that as a
+// typed error so the social-signup flow can present the DOB step and resubmit
+// the SAME token + date_of_birth — the social pair of the email age gate.
+export class DobRequiredError extends Error {
+  constructor() {
+    super('dob_required');
+    this.name = 'DobRequiredError';
+  }
+}
+
+// Shared error mapping for the social endpoints. dob_required -> typed error;
+// otherwise preserve the raw BE detail string (so isUnder18Error still matches
+// the neutral under-18 copy, same as the email path) and fall back to
+// normalizeError for everything else.
+const mapSocialAuthError = (error: any): Error => {
+  const detail = error?.response?.data?.detail;
+  if (detail && typeof detail === 'object' && detail.code === 'dob_required') {
+    return new DobRequiredError();
+  }
+  if (typeof detail === 'string') return new Error(detail);
+  return new Error(normalizeError(error));
+};
+
 class AuthService {
   private keycloakConfig: KeycloakConfig;
   private apiConfig: ApiConfig;
@@ -284,49 +308,55 @@ class AuthService {
   }
 
   // Social Auth Methods
-  async loginWithGoogle(idToken: string): Promise<TokenResponse> {
+  async loginWithGoogle(idToken: string, dateOfBirth?: string): Promise<TokenResponse> {
     try {
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/google', {
-        id_token: idToken
-      });
+      const body: { id_token: string; date_of_birth?: string } = { id_token: idToken };
+      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/google', body);
 
       const tokenData = response.data;
       await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(normalizeError(error));
+      throw mapSocialAuthError(error);
     }
   }
 
-  async loginWithApple(identityToken: string, fullName?: string | null): Promise<TokenResponse> {
+  async loginWithApple(
+    identityToken: string,
+    fullName?: string | null,
+    dateOfBirth?: string,
+  ): Promise<TokenResponse> {
     try {
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/apple', {
+      const body: { identity_token: string; full_name: string | null; date_of_birth?: string } = {
         identity_token: identityToken,
         full_name: fullName ?? null,
-      });
+      };
+      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/apple', body);
 
       const tokenData = response.data;
       await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(normalizeError(error));
+      throw mapSocialAuthError(error);
     }
   }
 
-  async loginWithFacebook(accessToken: string): Promise<TokenResponse> {
+  async loginWithFacebook(accessToken: string, dateOfBirth?: string): Promise<TokenResponse> {
     try {
-      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', {
-        id_token: accessToken
-      });
+      const body: { id_token: string; date_of_birth?: string } = { id_token: accessToken };
+      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', body);
 
       const tokenData = response.data;
       await this.storeTokens(tokenData.access_token, tokenData.refresh_token);
 
       return tokenData;
     } catch (error: any) {
-      throw new Error(normalizeError(error));
+      throw mapSocialAuthError(error);
     }
   }
 
