@@ -670,6 +670,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   // never need to re-prompt a user who consented on a previous install.
   const [aiConsented, setAiConsented] = useState(false);
   const [aiConsentBusy, setAiConsentBusy] = useState(false);
+  const [aiConsentError, setAiConsentError] = useState(false);
 
   // so-hqu6: tabbed Privacy/Terms on slide 6 (matches the Settings-accessed
   // TermsScreen pattern). Scroll ref resets to top on tab switch so the new
@@ -1306,6 +1307,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       // so-por9: reset AI consent so every onboarding entry starts fresh.
       setAiConsented(false);
       setAiConsentBusy(false);
+      setAiConsentError(false);
     }, [])
   );
 
@@ -1443,24 +1445,23 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   // so-por9: user tapped "I understand and agree" on the AI-consent slide.
-  // Records consent server-side (best-effort — a transient error doesn't
-  // block onboarding; the server is defense-in-depth). Then advances to
-  // slide 6 (the Terms slide) automatically.
+  // Records consent server-side. Only advances to slide 6 (Terms) on
+  // SUCCESS — a failure surfaces an inline error and lets the user retry.
+  // The journal AI pipeline is gated server-side (so-mc2k); if we advance
+  // without a confirmed consent record, every entry will be 'skipped'.
   const handleAiConsent = useCallback(async () => {
     if (aiConsentBusy) return;
     setAiConsentBusy(true);
+    setAiConsentError(false);
     try {
       await authService.recordAiConsent();
+      setAiConsented(true);
+      transitionToSlide(activeIndex + 1);
     } catch {
-      // Non-fatal: advance regardless. The journal AI pipeline is gated
-      // server-side (so-mc2k); a failed consent call here is unlikely but
-      // won't leave the user stuck in onboarding.
-      console.log('[AIConsent] recordAiConsent failed — advancing anyway');
+      setAiConsentError(true);
     } finally {
       setAiConsentBusy(false);
     }
-    setAiConsented(true);
-    transitionToSlide(activeIndex + 1);
   }, [aiConsentBusy, activeIndex, transitionToSlide]);
 
   const handleDotPress = useCallback((index: number) => {
@@ -1548,6 +1549,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
       {/* Purple Bottom Navigation Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        {/* so-por9: show inline retry hint when the consent POST failed */}
+        {isAiConsentSlide && aiConsentError && (
+          <Text
+            style={{
+              textAlign: 'center',
+              fontFamily: fonts.outfit.regular,
+              fontSize: 12,
+              color: colors.error,
+              marginBottom: 6,
+            }}
+          >
+            Something went wrong. Please try again.
+          </Text>
+        )}
         <View style={styles.navigationRow}>
           <NavArrow
             direction="left"

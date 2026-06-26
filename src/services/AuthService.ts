@@ -280,11 +280,11 @@ class AuthService {
   }
 
   // so-por9: AI-data-sharing consent gate (Apple 5.1.1(i)).
-  // GET /auth/ai-consent — returns the user's current consent status.
+  // GET /auth/ai-consent-status — returns the user's current consent status.
   async getAiConsentStatus(): Promise<AiConsentStatus> {
     try {
       const response: AxiosResponse<AiConsentStatus> =
-        await this.axiosInstance.get('/auth/ai-consent');
+        await this.axiosInstance.get('/auth/ai-consent-status');
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to get AI consent status');
@@ -292,10 +292,10 @@ class AuthService {
   }
 
   // so-por9: POST /auth/ai-consent — idempotent; records consent at the
-  // current AI_CONSENT_VERSION. No request body required (server stamps version).
+  // current AI_CONSENT_VERSION. BE requires { version: 1 } in the body.
   async recordAiConsent(): Promise<void> {
     try {
-      await this.axiosInstance.post('/auth/ai-consent');
+      await this.axiosInstance.post('/auth/ai-consent', { version: 1 });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to record AI consent');
     }
