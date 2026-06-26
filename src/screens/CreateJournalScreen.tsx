@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
@@ -41,6 +42,12 @@ const MAX_ENTRY_WORDS = 1000;
 const COUNTER_VISIBLE_AT_WORDS = 850;
 const COUNTER_WARN_AT_WORDS = 950;
 const MAX_ENTRY_CHARS = 10000;
+
+// so-ztg9: the SoulPal's saved name is the "SoulPal created" signal. Mirrors
+// SoulPalContext's SOULPAL_NAME_KEY; the app addresses these onboarding flags by
+// bare AsyncStorage key (cf. @soultalk_setup_complete in App.tsx), so we read it
+// directly rather than couple this screen to the context's private constant.
+const SOULPAL_NAME_KEY = '@soultalk_soulpal_name';
 
 const countWords = (s: string): number => {
   const trimmed = s.trim();
@@ -121,6 +128,42 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // entries (no fresh analysis), gets set true immediately on submit.
   const [analysisDone, setAnalysisDone] = useState(false);
   const savedEntryIdRef = React.useRef<string | null>(null);
+
+  // so-ztg9: gate journaling on SoulPal setup being complete. A social-signup
+  // user can land on Home with @soultalk_setup_complete force-set (App.tsx
+  // checkStatus, when the social profile already carries a username) yet never
+  // have gone through SoulPalName — leaving them able to open this screen and
+  // journal before their SoulPal exists. The saved SoulPal name is the truthful
+  // "SoulPal created" signal. null = still resolving; edit mode is exempt (an
+  // entry can only exist if the user already journaled, i.e. already set up).
+  const [soulPalReady, setSoulPalReady] = useState<boolean | null>(
+    isEdit ? true : null,
+  );
+
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    AsyncStorage.getItem(SOULPAL_NAME_KEY).then((name) => {
+      if (cancelled) return;
+      const ready = !!name && name.trim().length > 0;
+      setSoulPalReady(ready);
+      if (!ready) {
+        // Both actions leave this screen, so journaling can't begin until the
+        // user finishes setting up their SoulPal.
+        showAlert({
+          title: 'Meet your SoulPal first',
+          message: 'Finish setting up your SoulPal before you start journaling.',
+          buttons: [
+            { text: 'Not now', style: 'cancel', onPress: () => navigation.goBack() },
+            { text: 'Set up SoulPal', onPress: () => navigation.navigate('SoulPalName') },
+          ],
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, navigation, showAlert]);
 
   // Auto-save hook (only for new entries, not edits of existing non-drafts).
   // so-hl09: cancel() is the imperative kill-switch we fire on finalize
@@ -219,6 +262,13 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     // Cheap no-op when the keyboard is already down.
     Keyboard.dismiss();
     if (!text.trim()) return;
+    // so-ztg9: never persist an entry before SoulPal setup is complete. The
+    // mount gate already nudges + navigates away, but guard the write too in
+    // case a save is triggered before that resolves.
+    if (soulPalReady === false) {
+      navigation.navigate('SoulPalName');
+      return;
+    }
     // so-t5vg: gate submit on word count, not char length. TextInput's
     // generous maxLength prevents most paste/voice over-runs but a user who
     // pastes a wall of text could still cross the line.
