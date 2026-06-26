@@ -52,9 +52,12 @@ const decodeJwtExp = (token: string): number | null => {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    // base64url → standard base64 → JSON
+    // base64url → standard base64: replace URL-safe chars, then pad to a
+    // multiple of 4 so atob() never throws on an unpadded segment.
+    // Formula: '==='.slice((len + 3) % 4) adds exactly (4 - len%4)%4 chars.
     const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(b64);
+    const padded = b64 + '==='.slice((b64.length + 3) % 4);
+    const json = atob(padded);
     const payload = JSON.parse(json);
     return typeof payload.exp === 'number' ? payload.exp : null;
   } catch {
@@ -67,11 +70,24 @@ const decodeJwtExp = (token: string): number | null => {
  * function here on mount so that terminal refresh failures (refresh token
  * expired / revoked → 401 from /auth/refresh) can force a re-login without
  * importing React state into this module.
+ *
+ * Re-entrancy guard (MAJOR-1 fix): isLogoutInFlight prevents the /auth/logout
+ * POST (which goes through the auth interceptor with a now-dead token, returns
+ * 401, and would re-enter this path) from triggering a second logoutCallback
+ * invocation. The flag is cleared when an authenticated session is established
+ * (registerLogoutCallback called with isAuthenticated=true), so the next
+ * session's terminal failures are guarded correctly.
  */
 let logoutCallback: (() => void) | null = null;
+let isLogoutInFlight = false;
 
-export const registerLogoutCallback = (fn: () => void): void => {
+export const registerLogoutCallback = (fn: () => void, isAuthenticated: boolean): void => {
   logoutCallback = fn;
+  // A new authenticated session clears the re-entrancy guard so that a
+  // terminal failure in this session correctly triggers a fresh logout.
+  if (isAuthenticated) {
+    isLogoutInFlight = false;
+  }
 };
 
 /**
@@ -114,7 +130,12 @@ export const refreshAccessToken = (): Promise<string | null> => {
       const refreshToken = await SecureStorage.getItem('refresh_token');
       if (!refreshToken) {
         // No stored refresh token — treat as terminal, force re-login.
-        logoutCallback?.();
+        // Guard: only fire once per logout sequence (isLogoutInFlight prevents
+        // the /auth/logout POST from re-entering this path via the interceptor).
+        if (!isLogoutInFlight) {
+          isLogoutInFlight = true;
+          logoutCallback?.();
+        }
         return null;
       }
 
@@ -132,14 +153,24 @@ export const refreshAccessToken = (): Promise<string | null> => {
     } catch (err: any) {
       if (err?.response?.status === 401) {
         // so-u0c9: refresh token itself is invalid / expired — terminal.
-        // Force re-login so the user isn't silently stuck in a broken state.
-        // eslint-disable-next-line no-console
-        console.warn('[authClient] Refresh token rejected (401) — forcing logout');
-        logoutCallback?.();
+        // Guard: only fire once per logout sequence (same isLogoutInFlight
+        // guard as the no-token path — prevents re-entry via /auth/logout 401).
+        if (!isLogoutInFlight) {
+          isLogoutInFlight = true;
+          // eslint-disable-next-line no-console
+          console.warn('[authClient] Refresh token rejected (401) — forcing logout');
+          logoutCallback?.();
+        }
       } else {
-        // Transient (network down, 5xx, etc.) — log and return null.
+        // Transient (network down, 5xx, etc.) — log status/message ONLY.
+        // SECURITY: never log err or err.config — they contain the refresh_token
+        // in the request body and must never reach logs or crash-reporters.
         // eslint-disable-next-line no-console
-        console.error('[authClient] Token refresh failed (transient):', err);
+        console.error(
+          '[authClient] Token refresh failed (transient):',
+          err?.response?.status,
+          err?.message,
+        );
       }
       return null;
     } finally {

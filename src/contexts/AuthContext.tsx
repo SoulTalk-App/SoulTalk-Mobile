@@ -187,10 +187,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // so-u0c9: register the logout function as the terminal-refresh callback so
   // authClient can force re-login when the refresh token is invalid/expired.
-  // Re-registers whenever `logout` identity changes (i.e. when `user` changes).
+  // Re-registers whenever `logout` or `isAuthenticated` changes.
+  // Passing isAuthenticated lets authClient reset its re-entrancy guard when
+  // a new authenticated session is established (MAJOR-1 fix).
   useEffect(() => {
-    registerLogoutCallback(logout);
-  }, [logout]);
+    registerLogoutCallback(logout, isAuthenticated);
+  }, [logout, isAuthenticated]);
 
   // so-u0w1: existing-logged-in users on TF≤34 may have NULL users.timezone.
   // The 6 auth-completion call sites only fire when the user signs in again,
