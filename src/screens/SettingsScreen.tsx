@@ -178,6 +178,7 @@ const SettingsScreen = ({ navigation }: any) => {
   const [restoring, setRestoring] = useState(false);
   // so-por9: AI consent status for the Settings control (null = loading).
   const [aiConsentGranted, setAiConsentGranted] = useState<boolean | null>(null);
+  const [aiConsentVersion, setAiConsentVersion] = useState<number>(1);
   const [aiConsentBusy, setAiConsentBusy] = useState(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
@@ -223,7 +224,10 @@ const SettingsScreen = ({ navigation }: any) => {
     (async () => {
       try {
         const status = await authService.getAiConsentStatus();
-        if (!cancelled) setAiConsentGranted(status.consented);
+        if (!cancelled) {
+          setAiConsentGranted(!status.consent_required);
+          setAiConsentVersion(status.current_version);
+        }
       } catch {
         // Non-fatal; leave as null (loading appearance).
       }
@@ -239,14 +243,14 @@ const SettingsScreen = ({ navigation }: any) => {
     if (aiConsentBusy || aiConsentGranted) return;
     setAiConsentBusy(true);
     try {
-      await authService.recordAiConsent();
+      await authService.recordAiConsent(aiConsentVersion);
       setAiConsentGranted(true);
     } catch (err: any) {
       showError(err?.message || 'Failed to enable AI Insights. Please try again.');
     } finally {
       setAiConsentBusy(false);
     }
-  }, [aiConsentBusy, aiConsentGranted, showError]);
+  }, [aiConsentBusy, aiConsentGranted, aiConsentVersion, showError]);
 
   const usernameIsLocked = Boolean(user?.username);
 

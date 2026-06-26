@@ -1445,16 +1445,16 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   // so-por9: user tapped "I understand and agree" on the AI-consent slide.
-  // Records consent server-side. Only advances to slide 6 (Terms) on
-  // SUCCESS — a failure surfaces an inline error and lets the user retry.
-  // The journal AI pipeline is gated server-side (so-mc2k); if we advance
-  // without a confirmed consent record, every entry will be 'skipped'.
+  // Records consent server-side. Fetches current_version first (never
+  // hardcode — a server version bump would 409). Only advances to slide 6
+  // (Terms) on SUCCESS — a failure surfaces an inline error for retry.
   const handleAiConsent = useCallback(async () => {
     if (aiConsentBusy) return;
     setAiConsentBusy(true);
     setAiConsentError(false);
     try {
-      await authService.recordAiConsent();
+      const status = await authService.getAiConsentStatus();
+      await authService.recordAiConsent(status.current_version);
       setAiConsented(true);
       transitionToSlide(activeIndex + 1);
     } catch {

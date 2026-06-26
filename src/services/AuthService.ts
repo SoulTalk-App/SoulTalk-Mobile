@@ -83,11 +83,11 @@ interface LinkedAccount {
 }
 
 // so-por9: Apple 5.1.1(i) — explicit in-app AI-data-sharing consent.
-// Contract from so-mc2k. GET /auth/ai-consent returns current consent status;
-// POST /auth/ai-consent records consent idempotently at the current server
-// AI_CONSENT_VERSION. Response matches the so-cywf TermsStatus pattern.
+// Contract from so-mc2k. GET /auth/ai-consent-status returns current status;
+// POST /auth/ai-consent records consent idempotently.
+// Mirrors the so-cywf TermsStatus shape (acceptance_required → consent_required).
 interface AiConsentStatus {
-  consented: boolean;
+  consent_required: boolean;
   current_version: number;
 }
 
@@ -291,11 +291,12 @@ class AuthService {
     }
   }
 
-  // so-por9: POST /auth/ai-consent — idempotent; records consent at the
-  // current AI_CONSENT_VERSION. BE requires { version: 1 } in the body.
-  async recordAiConsent(): Promise<void> {
+  // so-por9: POST /auth/ai-consent — idempotent; records consent at
+  // current_version echoed from getAiConsentStatus(). Always pass the
+  // server's current_version (never hardcode) — a version bump would 409.
+  async recordAiConsent(version: number): Promise<void> {
     try {
-      await this.axiosInstance.post('/auth/ai-consent', { version: 1 });
+      await this.axiosInstance.post('/auth/ai-consent', { version });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to record AI consent');
     }
