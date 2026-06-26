@@ -11,6 +11,8 @@ export interface EligibilityResponse {
   active_days: number;
   window_start: string | null;
   window_end: string | null;
+  // so-y818: relative label provided by BE when window_start/end are present.
+  window_label?: string | null;
   reason: string | null;
   points?: number;
 }
@@ -40,6 +42,8 @@ export interface SoulsightSummary {
   headline?: string | null;
   soulpal?: 1 | 2 | 3 | 4 | 5 | null;
   content_preview?: string | null;
+  // so-y818: relative label ("past week", "this month") from BE.
+  window_label?: string | null;
 }
 
 export interface SoulsightListResponse {
@@ -83,6 +87,8 @@ export interface SoulsightDetail {
   soulpal_variant?: 1 | 2 | 3 | 4 | 5 | null;
   hero_hint?: string | null;
   archived_at?: string | null;
+  // so-y818: relative label ("past week", "this month") from BE.
+  window_label?: string | null;
 }
 
 export interface StatusResponse {

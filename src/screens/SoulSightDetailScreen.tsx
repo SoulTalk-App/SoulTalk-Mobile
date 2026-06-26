@@ -22,17 +22,6 @@ import { SightsB, SightDetail, SightStatus, SoulpalVariant } from '../features/s
 // on empty pull_quote/signals_summary so the upstream LLM prompt can be
 // tuned (or the eligibility gate tightened) if it's frequent.
 
-function formatWindow(start: string, end: string): string {
-  try {
-    const s = new Date(start + 'T00:00:00');
-    const e = new Date(end + 'T00:00:00');
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', opts)}`;
-  } catch {
-    return `${start} – ${end}`;
-  }
-}
-
 function pickSoulpal(id: string): SoulpalVariant {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -71,7 +60,8 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
   const parsed = detail.content
     ? parseContent(detail.content)
     : { title: undefined, paragraphs: [] };
-  const window = formatWindow(detail.window_start, detail.window_end);
+  // so-y818: use BE-provided relative label; drop client-side tz math.
+  const window = detail.window_label ?? '';
   // so-knjv: BE-provided reading_paragraphs has truncated mid-analysis in the
   // wild (lead-confirmed 7k+ chars in detail.content vs a shorter array). The
   // raw `content` is canonical, so parse from it when present and fall back
