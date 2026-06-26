@@ -60,13 +60,6 @@ function soulpalForId(id: string): SoulpalVariant {
   return ((h % 5) + 1) as SoulpalVariant;
 }
 
-const formatRange = (start: string, end: string): string => {
-  const s = new Date(start + 'T00:00:00');
-  const e = new Date(end + 'T00:00:00');
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', opts)}`;
-};
-
 const formatCreatedDate = (iso: string | null): string => {
   if (!iso) return '';
   const d = new Date(iso);
@@ -203,7 +196,7 @@ const SoulSightScreen = ({ navigation }: any) => {
     const q = query.trim().toLowerCase();
     if (!q) return past;
     return past.filter((s) => {
-      const title = (s.title || formatRange(s.window_start, s.window_end)).toLowerCase();
+      const title = (s.title || s.window_label || '').toLowerCase();
       const headline = (s.headline || '').toLowerCase();
       const preview = (s.content_preview || '').toLowerCase();
       return title.includes(q) || headline.includes(q) || preview.includes(q);
@@ -307,7 +300,7 @@ const SoulSightScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.currentBottomRow}>
           <Text style={styles.currentMeta}>
-            {formatRange(current.window_start, current.window_end)} ·{' '}
+            {current.window_label} ·{' '}
             {current.entry_count} entries · {current.active_days} active days
           </Text>
           <View style={styles.currentOpenBtn}>
@@ -333,9 +326,9 @@ const SoulSightScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.currentTextCol}>
           <Text style={styles.currentTitle}>Your SoulSight is ready</Text>
-          {eligibility?.window_start && eligibility?.window_end ? (
+          {eligibility?.window_label ? (
             <Text style={styles.currentBlurb}>
-              {formatRange(eligibility.window_start, eligibility.window_end)} ·{' '}
+              {eligibility.window_label} ·{' '}
               {eligibility.entry_count} entries · {eligibility.active_days} active days
             </Text>
           ) : (
@@ -361,7 +354,7 @@ const SoulSightScreen = ({ navigation }: any) => {
   const renderPastCard = (item: SoulsightSummary) => {
     const tone = toneForId(item.id);
     const soulpal = item.soulpal ?? soulpalForId(item.id);
-    const title = item.title || formatRange(item.window_start, item.window_end);
+    const title = item.title || item.window_label || '';
     const blurb =
       item.content_preview ||
       `${item.entry_count} entries · ${item.active_days} active days`;
@@ -375,7 +368,7 @@ const SoulSightScreen = ({ navigation }: any) => {
         <Image source={SOULPAL_SRC[soulpal]} style={styles.pastSoulpal} resizeMode="contain" />
         <View style={styles.pastTextCol}>
           <Text style={[styles.pastEyebrow, { color: tone }]}>
-            {formatRange(item.window_start, item.window_end)}
+            {item.window_label ?? ''}
           </Text>
           <Text style={styles.pastTitle}>{title}</Text>
           <Text style={styles.pastBlurb} numberOfLines={1}>
