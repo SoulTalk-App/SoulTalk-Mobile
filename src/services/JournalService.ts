@@ -55,7 +55,10 @@ export interface JournalEntry {
   id: string;
   raw_text: string;
   mood: Mood | null;
-  ai_processing_status: 'none' | 'pending' | 'tagged' | 'complete' | 'failed';
+  // so-por9: 'skipped' is terminal — BE emits it when AI consent is absent.
+  // Treat like 'failed' for poll termination but render a calm "insights off"
+  // state rather than an error.
+  ai_processing_status: 'none' | 'pending' | 'tagged' | 'complete' | 'failed' | 'skipped';
   edit_count: number;
   is_draft: boolean;
   created_at: string;

@@ -257,7 +257,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   }, [entries]);
 
   useEffect(() => {
-    if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.is_draft) return;
+    // so-por9: 'skipped' is terminal (AI consent absent) — stop poll immediately.
+  if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.ai_processing_status === 'skipped' || entry.is_draft) return;
     if (aiRefreshError) return; // so-uba4: stop polling once we've surfaced the error; resume on retry tap.
     // so-urv4 #3: cancelled flag scoped to this poll session. clearInterval
     // stops future ticks but doesn't cancel an in-flight tick's await —
@@ -284,6 +285,14 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           // so-uba4: surface the failure — don't silently show the stale
           // ai_response below.
           setAiRefreshError(true);
+          return;
+        }
+        if (fresh.ai_processing_status === 'skipped') {
+          // so-por9: AI was skipped (consent absent). Terminal — stop polling.
+          // renderAiSection handles the calm "AI insights are off" display.
+          // Do NOT set aiRefreshError (no retry will help without consent).
+          setEntry(fresh);
+          clearInterval(interval);
           return;
         }
         if (fresh.ai_processing_status === 'complete') {
@@ -447,6 +456,34 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         <>
           <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>AI processing failed.</Text>
           {renderAiRetryRow()}
+        </>
+      );
+    }
+    if (entry!.ai_processing_status === 'skipped') {
+      // so-por9: AI was skipped because the user has not given AI consent.
+      // Calm informational state — no retry affordance (re-trying won't help
+      // without consent). Direct the user to Settings to enable AI insights.
+      return (
+        <>
+          <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>
+            AI insights are off for this entry.
+          </Text>
+          <Pressable
+            onPress={() => navigation.navigate('Settings')}
+            hitSlop={TOUCH_HITSLOP_SMALL}
+            accessibilityRole="button"
+            accessibilityLabel="Go to Settings to enable AI insights"
+            style={{ marginTop: 8 }}
+          >
+            <Text
+              style={[
+                isDarkMode ? dk.aiLoadingText : lt.aiLoadingText,
+                { color: colors.primary, textDecorationLine: 'underline' },
+              ]}
+            >
+              Enable in Settings
+            </Text>
+          </Pressable>
         </>
       );
     }

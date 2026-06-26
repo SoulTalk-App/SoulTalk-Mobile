@@ -328,9 +328,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   };
 
   // so-apy: poll the saved entry's ai_processing_status while the loader is
-  // up. Loop continues until 'complete' / 'failed' or the 30s safety bail
-  // (max 20 attempts × 1500ms). 'failed' is treated as done so the user
-  // isn't stranded — the JournalEntry screen handles the failed state.
+  // up. Loop continues until 'complete' / 'failed' / 'skipped' or the 30s
+  // safety bail (max 20 attempts × 1500ms). All three are treated as done
+  // so the user isn't stranded — JournalEntryScreen handles each state.
   useEffect(() => {
     if (!showSaveAnimation || analysisDone) return;
     const id = savedEntryIdRef.current;
@@ -366,7 +366,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
               id,
             );
           }
-          if (status === 'complete' || status === 'failed') {
+          if (status === 'skipped') {
+            // so-por9: AI was skipped (consent absent). Terminal — dismiss the
+            // loader so the user isn't stranded. JournalEntryScreen renders the
+            // calm "AI insights are off" state.
+            console.log(
+              '[CreateJournalScreen] so-por9: AI skipped (no consent) for entry',
+              id,
+            );
+          }
+          if (status === 'complete' || status === 'failed' || status === 'skipped') {
             if (!cancelled) setAnalysisDone(true);
             return;
           }
