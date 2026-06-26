@@ -19,6 +19,7 @@ import {
   FlatList,
   Platform,
   StyleSheet,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -132,6 +133,9 @@ const useFieldStyles = () => {
           color: colors.text.light,
         },
         rowSep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+        // so-yszc: FlatList must shrink within the sheet's maxHeight so it
+        // doesn't overflow below the keyboard when the search input is focused.
+        countryList: { flexShrink: 1 },
         // so-7yb8: iOS DOB spinner sheet header (Cancel / Done).
         pickerSheetHeader: {
           flexDirection: 'row',
@@ -217,37 +221,40 @@ export const DateOfBirthField: React.FC<DobProps> = ({ value, onChange, error })
         />
       ) : null}
 
-      {/* iOS: spinner inside a themed bottom sheet with Cancel/Done. */}
+      {/* iOS: spinner inside a themed bottom sheet with Cancel/Done.
+          so-yszc: KAV lifts the sheet if a keyboard ever appears (future-proof). */}
       {Platform.OS === 'ios' ? (
         <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
           <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
-            <Pressable style={styles.modalSheet} onPress={() => {}}>
-              <View style={styles.pickerSheetHeader}>
-                <Pressable onPress={() => setOpen(false)} accessibilityRole="button">
-                  <Text style={styles.pickerSheetCancel}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    onChange(tempDate);
-                    setOpen(false);
+            <KeyboardAvoidingView behavior="padding">
+              <Pressable style={styles.modalSheet} onPress={() => {}}>
+                <View style={styles.pickerSheetHeader}>
+                  <Pressable onPress={() => setOpen(false)} accessibilityRole="button">
+                    <Text style={styles.pickerSheetCancel}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      onChange(tempDate);
+                      setOpen(false);
+                    }}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.pickerSheetDone}>Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  mode="date"
+                  display="spinner"
+                  value={tempDate}
+                  maximumDate={today}
+                  minimumDate={MIN_DOB}
+                  themeVariant={isDarkMode ? 'dark' : 'light'}
+                  onChange={(_e, date) => {
+                    if (date) setTempDate(date);
                   }}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.pickerSheetDone}>Done</Text>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                mode="date"
-                display="spinner"
-                value={tempDate}
-                maximumDate={today}
-                minimumDate={MIN_DOB}
-                themeVariant={isDarkMode ? 'dark' : 'light'}
-                onChange={(_e, date) => {
-                  if (date) setTempDate(date);
-                }}
-              />
-            </Pressable>
+                />
+              </Pressable>
+            </KeyboardAvoidingView>
           </Pressable>
         </Modal>
       ) : null}
@@ -307,45 +314,50 @@ export const CountryPickerField: React.FC<CountryProps> = ({
       </Pressable>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+      {/* so-yszc: KAV lifts the bottom sheet above the keyboard so the
+          country suggestion list stays visible when the search input is focused. */}
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setOpen(false)}>
-          {/* No-op onPress absorbs taps on the sheet so they don't fall
-              through to the overlay's close handler. */}
-          <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <View style={styles.modalHandle} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search countries"
-              placeholderTextColor={colors.text.secondary}
-              style={styles.searchInput}
-              autoCorrect={false}
-              autoCapitalize="none"
-              accessibilityLabel="Search countries"
-            />
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.code}
-              keyboardShouldPersistTaps="handled"
-              ItemSeparatorComponent={() => <View style={styles.rowSep} />}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.countryRow}
-                  onPress={() => {
-                    onSelect(item.code);
-                    setQuery('');
-                    setOpen(false);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={item.name}
-                  accessibilityState={{ selected: item.code === selectedCode }}
-                >
-                  <Text style={styles.countryName}>{item.name}</Text>
-                  <Text style={styles.countryCode}>{item.code}</Text>
-                </Pressable>
-              )}
-            />
-          </Pressable>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            {/* No-op onPress absorbs taps on the sheet so they don't fall
+                through to the overlay's close handler. */}
+            <Pressable style={styles.modalSheet} onPress={() => {}}>
+              <View style={styles.modalHandle} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search countries"
+                placeholderTextColor={colors.text.secondary}
+                style={styles.searchInput}
+                autoCorrect={false}
+                autoCapitalize="none"
+                accessibilityLabel="Search countries"
+              />
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => item.code}
+                keyboardShouldPersistTaps="handled"
+                style={styles.countryList}
+                ItemSeparatorComponent={() => <View style={styles.rowSep} />}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.countryRow}
+                    onPress={() => {
+                      onSelect(item.code);
+                      setQuery('');
+                      setOpen(false);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.name}
+                    accessibilityState={{ selected: item.code === selectedCode }}
+                  >
+                    <Text style={styles.countryName}>{item.name}</Text>
+                    <Text style={styles.countryCode}>{item.code}</Text>
+                  </Pressable>
+                )}
+              />
+            </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </View>
