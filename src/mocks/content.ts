@@ -198,7 +198,8 @@ export const onboardingSlides = [
 export const welcomeContent = {
   tagline: 'Your space to slow down, reflect, and reconnect with your inner world.',
   primaryButton: 'Get Started',
-  secondaryButton: 'I Already Have An Account',
+  // so-w4ha: secondaryButton removed — 'I Already Have An Account' is gone
+  // from WelcomeScreen. Existing users reach Login via RegisterScreen's link.
 };
 
 // Button labels
