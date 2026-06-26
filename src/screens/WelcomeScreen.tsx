@@ -190,10 +190,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     navigation.navigate('Onboarding');
   };
 
-  const handleHaveAccount = () => {
-    navigation.navigate('Login');
-  };
-
   return (
     <CosmicScreen tone="night">
       <SafeAreaView style={styles.container}>
@@ -210,17 +206,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             </Animated.Text>
           </View>
 
-          {/* Buttons Section */}
+          {/* Buttons Section — so-w4ha: 'I Already Have An Account' removed.
+              New users must go through onboarding/consent. Existing users
+              reach Login via RegisterScreen's 'Sign In' link. */}
           <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
             <WelcomeButton
               title={welcomeContent.primaryButton}
               variant="primary"
               onPress={handleGetStarted}
-            />
-            <WelcomeButton
-              title={welcomeContent.secondaryButton}
-              variant="secondary"
-              onPress={handleHaveAccount}
             />
           </Animated.View>
         </View>

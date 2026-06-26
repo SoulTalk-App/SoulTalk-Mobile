@@ -58,7 +58,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // so-0wzu: DARK_MIRROR_BG is the sky/atmosphere fill behind the clouds in dark
 // mode. In the corrected layout (clouds TOP, video BOTTOM) this colour shows
 // in the top half behind the cloud overlay and as the screen's base background.
-const DARK_MIRROR_BG = '#26143E';
+const DARK_MIRROR_BG = '#441b9b';
 // so-0wzu: each half is SCREEN_HEIGHT/2. In the corrected (flipped) layout the
 // clouds + affirmation text occupy the TOP half and the mirror video the BOTTOM
 // half (MIRROR_HEIGHT is the height of each half / the video's top offset).
