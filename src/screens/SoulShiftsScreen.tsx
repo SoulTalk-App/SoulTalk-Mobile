@@ -29,7 +29,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
   // so-1zn0: themed alert replaces native Alert.
-  const { showError } = useAppAlert();
+  const { showAlert, showError } = useAppAlert();
 
   // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
   // normalized message (never raw axios/technical strings) and keep a dev
@@ -343,7 +343,38 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setSuggestOpen(false);
       setSuggestResponse(null);
     } catch (err: any) {
-      surfaceError('Accept suggestion error', err);
+      // so-vlia SH-M4: a duplicate accept returns 409 with the existing shift's
+      // id ({ message, existing_shift_id }). Offer a deep-link to it instead of
+      // a dead-end error; fall back to a friendly alert when the id is absent.
+      if (err?.response?.status === 409) {
+        const detail = err?.response?.data?.detail;
+        const detailObj =
+          detail && typeof detail === 'object' && !Array.isArray(detail)
+            ? (detail as { message?: string; existing_shift_id?: string })
+            : null;
+        const detailMsg =
+          detailObj?.message ?? (typeof detail === 'string' ? detail : undefined);
+        const existingShiftId = detailObj?.existing_shift_id;
+        showAlert({
+          title: 'Already a shift',
+          message: detailMsg ?? 'This suggestion is already an active shift.',
+          buttons: existingShiftId
+            ? [
+                { text: 'Dismiss', style: 'cancel' },
+                {
+                  text: 'View shift',
+                  onPress: () => {
+                    setSuggestOpen(false);
+                    setSuggestResponse(null);
+                    handleShiftPress(existingShiftId);
+                  },
+                },
+              ]
+            : [{ text: 'OK', style: 'cancel' }],
+        });
+      } else {
+        surfaceError('Accept suggestion error', err);
+      }
     } finally {
       setSuggestSubmitting(false);
     }

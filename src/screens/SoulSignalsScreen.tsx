@@ -381,25 +381,33 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       // Defense-in-depth: the gate on PatternModal should prevent this, but
       // races/stale state can still trigger it. Land softly.
       if (err?.response?.status === 409) {
-        // so-72fx SH-M4: the BE flattened the 409 body to a detail string
-        // (no existing_shift_id). Resolve the existing shift ourselves by
-        // re-querying active shifts and matching one whose source_signal_ids
-        // overlap this pattern's signals; only then offer the deep-link.
-        let existingShiftId: string | undefined;
-        try {
-          const shifts = await SoulShiftsService.list();
-          const patternSignalIds = new Set(turnCandidate.sourceSignalIds);
-          existingShiftId = shifts.find((s) =>
-            s.source_signal_ids?.some((id) => patternSignalIds.has(id)),
-          )?.id;
-        } catch {
-          // best-effort — fall back to a no-deep-link prompt
+        // so-vlia SH-M4: the BE now returns the 409 detail as an object that
+        // carries the existing shift's id ({ message, existing_shift_id }) —
+        // prefer it. Fall back to resolving the shift ourselves (so-72fx) when
+        // the field is absent (older BE / flat-string detail) so the deep-link
+        // keeps working across the BE rollout.
+        const detail = err?.response?.data?.detail;
+        const detailObj =
+          detail && typeof detail === 'object' && !Array.isArray(detail)
+            ? (detail as { message?: string; existing_shift_id?: string })
+            : null;
+        const detailMsg =
+          detailObj?.message ?? (typeof detail === 'string' ? detail : undefined);
+        let existingShiftId: string | undefined = detailObj?.existing_shift_id;
+        if (!existingShiftId) {
+          try {
+            const shifts = await SoulShiftsService.list();
+            const patternSignalIds = new Set(turnCandidate.sourceSignalIds);
+            existingShiftId = shifts.find((s) =>
+              s.source_signal_ids?.some((id) => patternSignalIds.has(id)),
+            )?.id;
+          } catch {
+            // best-effort — fall back to a no-deep-link prompt
+          }
         }
         showAlert({
           title: 'Already turned into a shift',
-          message:
-            err.response.data?.detail ??
-            'This pattern already has an active shift.',
+          message: detailMsg ?? 'This pattern already has an active shift.',
           buttons: existingShiftId
             ? [
                 { text: 'Dismiss', style: 'cancel' },
