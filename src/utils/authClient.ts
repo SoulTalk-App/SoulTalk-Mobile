@@ -19,6 +19,16 @@ import {
  * responses could clobber SecureStorage with a stale token, risking spurious
  * forced logout. A module-level promise (single JS VM in RN) coalesces all
  * callers onto the same network round-trip and the same SecureStorage write.
+ *
+ * so-u0c9: extended with:
+ *  - decodeJwtExp / getValidToken — WS always connects with a fresh token.
+ *  - proactiveTokenRefresh — called by AuthContext on every AppState 'active'
+ *    so the token is refreshed BEFORE HTTP/WS requests fire on foreground.
+ *  - registerLogoutCallback — terminal refresh failures (401 from /auth/refresh
+ *    or missing refresh token) call the registered logout fn to force re-login.
+ *  - _suppressToast on transient failures — the response interceptor marks
+ *    rejected errors as suppressed when the refresh was a network blip, so
+ *    AppAlertProvider never shows "session expired" for auto-recoverable failures.
  */
 
 const getApiBaseUrl = (): string =>
@@ -28,6 +38,41 @@ const getApiBaseUrl = (): string =>
 // While non-null, every caller awaits the same promise — guaranteeing one
 // network call, one SecureStorage write, and one resolved access token.
 let inflightRefresh: Promise<string | null> | null = null;
+
+// so-u0c9: number of seconds before expiry at which we proactively refresh.
+// 120 s gives a 2-minute safety window; the BE access token TTL is 15 min.
+const TOKEN_REFRESH_BUFFER_SEC = 120;
+
+/**
+ * so-u0c9: decode the `exp` Unix timestamp from a JWT without a library.
+ * JWT payload is the middle segment, base64url-encoded JSON. Returns null on
+ * any parse error (malformed token, no exp claim).
+ */
+const decodeJwtExp = (token: string): number | null => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // base64url → standard base64 → JSON
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(b64);
+    const payload = JSON.parse(json);
+    return typeof payload.exp === 'number' ? payload.exp : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * so-u0c9: module-level logout callback. AuthContext registers its `logout`
+ * function here on mount so that terminal refresh failures (refresh token
+ * expired / revoked → 401 from /auth/refresh) can force a re-login without
+ * importing React state into this module.
+ */
+let logoutCallback: (() => void) | null = null;
+
+export const registerLogoutCallback = (fn: () => void): void => {
+  logoutCallback = fn;
+};
 
 /**
  * so-fwva: post-purchase hook. The React layer registers a callback that
@@ -52,11 +97,14 @@ export const registerPostUnlockHook = (hook: PostUnlockHook | null): void => {
 /**
  * Refresh the access token, coalescing concurrent callers onto one in-flight
  * POST /auth/refresh. Returns the new access token, or null when refresh is
- * not possible (no stored refresh token, or the call failed).
+ * not possible.
  *
- * On failure, stored tokens are NOT cleared here — callers (interceptors,
- * AuthService) decide whether the failure is terminal (auth error → clear
- * and route to login) or transient (network blip → keep tokens, retry later).
+ * so-u0c9: failure handling is now split:
+ *  - TERMINAL (no refresh token stored, or 401 from /auth/refresh): the
+ *    registered logoutCallback is called to force re-login. Returns null.
+ *  - TRANSIENT (network error, 5xx): logged and returns null without touching
+ *    auth state. The caller (interceptor) marks the rejected promise with
+ *    _suppressToast so the user never sees a spurious "session expired" alert.
  */
 export const refreshAccessToken = (): Promise<string | null> => {
   if (inflightRefresh) return inflightRefresh;
@@ -64,7 +112,11 @@ export const refreshAccessToken = (): Promise<string | null> => {
   inflightRefresh = (async () => {
     try {
       const refreshToken = await SecureStorage.getItem('refresh_token');
-      if (!refreshToken) return null;
+      if (!refreshToken) {
+        // No stored refresh token — treat as terminal, force re-login.
+        logoutCallback?.();
+        return null;
+      }
 
       // Use a bare axios call (no interceptors) — this request must not
       // be subject to the 401-retry interceptor it would otherwise trigger.
@@ -77,10 +129,18 @@ export const refreshAccessToken = (): Promise<string | null> => {
       await SecureStorage.setItem('refresh_token', newRefresh);
 
       return access_token as string;
-    } catch (err) {
-      // Best-effort: log and return null. Callers decide what to do.
-      // eslint-disable-next-line no-console
-      console.error('Token refresh failed:', err);
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        // so-u0c9: refresh token itself is invalid / expired — terminal.
+        // Force re-login so the user isn't silently stuck in a broken state.
+        // eslint-disable-next-line no-console
+        console.warn('[authClient] Refresh token rejected (401) — forcing logout');
+        logoutCallback?.();
+      } else {
+        // Transient (network down, 5xx, etc.) — log and return null.
+        // eslint-disable-next-line no-console
+        console.error('[authClient] Token refresh failed (transient):', err);
+      }
       return null;
     } finally {
       // Always release the latch so the NEXT 401 can attempt a fresh refresh.
@@ -89,6 +149,52 @@ export const refreshAccessToken = (): Promise<string | null> => {
   })();
 
   return inflightRefresh;
+};
+
+/**
+ * so-u0c9: return the stored access token if it is still valid (not expired
+ * and not within TOKEN_REFRESH_BUFFER_SEC of expiry), otherwise call
+ * refreshAccessToken() first and return the new token.
+ *
+ * Used by the WS connect() path so the socket always authenticates with a
+ * fresh token — eliminating the stale-token 4001 close that previously
+ * triggered a second, uncoordinated refresh.
+ *
+ * Callers must handle null (no stored token or refresh failed).
+ */
+export const getValidToken = async (): Promise<string | null> => {
+  const token = await SecureStorage.getItem('access_token');
+  if (!token) return null;
+  const exp = decodeJwtExp(token);
+  if (exp !== null) {
+    const nowSec = Date.now() / 1000;
+    if (nowSec >= exp - TOKEN_REFRESH_BUFFER_SEC) {
+      // Expired or near-expired — refresh (coalesces if already in flight).
+      return refreshAccessToken();
+    }
+  }
+  return token;
+};
+
+/**
+ * so-u0c9: proactive foreground refresh. Call on every AppState → 'active'
+ * transition when authenticated. If the stored access token is expired or
+ * within TOKEN_REFRESH_BUFFER_SEC of expiry, trigger refreshAccessToken()
+ * now — BEFORE any HTTP requests or WS reconnects fire — so the token is
+ * warm by the time callers need it.
+ *
+ * Fire-and-forget: callers should .catch(() => {}) since a transient
+ * network failure is handled inside refreshAccessToken().
+ */
+export const proactiveTokenRefresh = async (): Promise<void> => {
+  const token = await SecureStorage.getItem('access_token');
+  if (!token) return;
+  const exp = decodeJwtExp(token);
+  if (exp === null) return;
+  const nowSec = Date.now() / 1000;
+  if (nowSec >= exp - TOKEN_REFRESH_BUFFER_SEC) {
+    await refreshAccessToken();
+  }
 };
 
 /**
@@ -128,7 +234,17 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
       ) {
         originalRequest._retry = true;
         const newToken = await refreshAccessToken();
-        if (!newToken) return Promise.reject(error);
+        if (!newToken) {
+          // so-u0c9: null means either terminal (logoutCallback already called)
+          // or transient (network blip). Either way, suppress the alert — the
+          // terminal path shows a re-login screen; the transient path is silent
+          // (draft is preserved via useLocalDraft, user can retry).
+          const transientErr = Object.assign(
+            new Error('[authClient] Token refresh failed — please try again'),
+            { _suppressToast: true },
+          );
+          return Promise.reject(transientErr);
+        }
 
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
