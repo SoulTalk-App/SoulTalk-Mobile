@@ -31,7 +31,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 import { privacyPolicy, termsOfService } from '../mocks/content';
-import authService from '../services/AuthService';
+// so-kff3: authService removed — onboarding AI-consent is now local-only
+// (AsyncStorage), no network call needed on this pre-auth screen.
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
 const FIGMA_SPRING_CONFIG = {
@@ -666,11 +667,10 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
   // so-por9: AI-data-sharing consent state for slide 5 ("A note on AI").
   // Session-local only — resets on every onboarding entry (useFocusEffect).
-  // Consent is also recorded server-side via POST /auth/ai-consent so we
-  // never need to re-prompt a user who consented on a previous install.
+  // so-kff3: consent is recorded locally only (AsyncStorage); no server call
+  // pre-auth so fresh-install (401) and post-logout (403) can't block this slide.
   const [aiConsented, setAiConsented] = useState(false);
   const [aiConsentBusy, setAiConsentBusy] = useState(false);
-  const [aiConsentError, setAiConsentError] = useState(false);
 
   // so-hqu6: tabbed Privacy/Terms on slide 6 (matches the Settings-accessed
   // TermsScreen pattern). Scroll ref resets to top on tab switch so the new
@@ -1307,7 +1307,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       // so-por9: reset AI consent so every onboarding entry starts fresh.
       setAiConsented(false);
       setAiConsentBusy(false);
-      setAiConsentError(false);
     }, [])
   );
 
@@ -1445,23 +1444,23 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   // so-por9: user tapped "I understand and agree" on the AI-consent slide.
-  // Records consent server-side. Fetches current_version first (never
-  // hardcode — a server version bump would 409). Only advances to slide 6
-  // (Terms) on SUCCESS — a failure surfaces an inline error for retry.
+  // so-kff3: local-only — no network call (pre-auth state; avoids 401 on
+  // fresh install and 403 post-logout). Persists consent in AsyncStorage so
+  // the next authenticated call can POST to the BE. The mandatory tap still
+  // gates slide progression (Apple sees an unskippable consent screen).
+  // so-k25b opt-out model: BE assumes consent granted for all users; the
+  // Settings toggle is the explicit disable path.
   const handleAiConsent = useCallback(async () => {
     if (aiConsentBusy) return;
     setAiConsentBusy(true);
-    setAiConsentError(false);
     try {
-      const status = await authService.getAiConsentStatus();
-      await authService.recordAiConsent(status.current_version);
-      setAiConsented(true);
-      transitionToSlide(activeIndex + 1);
+      await AsyncStorage.setItem('@ai_consent_granted', 'true');
     } catch {
-      setAiConsentError(true);
-    } finally {
-      setAiConsentBusy(false);
+      // AsyncStorage failure is extremely rare; never block the user here.
     }
+    setAiConsented(true);
+    transitionToSlide(activeIndex + 1);
+    setAiConsentBusy(false);
   }, [aiConsentBusy, activeIndex, transitionToSlide]);
 
   const handleDotPress = useCallback((index: number) => {
@@ -1549,20 +1548,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
       {/* Purple Bottom Navigation Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-        {/* so-por9: show inline retry hint when the consent POST failed */}
-        {isAiConsentSlide && aiConsentError && (
-          <Text
-            style={{
-              textAlign: 'center',
-              fontFamily: fonts.outfit.regular,
-              fontSize: 12,
-              color: colors.error,
-              marginBottom: 6,
-            }}
-          >
-            Something went wrong. Please try again.
-          </Text>
-        )}
+        {/* so-kff3: error hint removed — tap is now local-only (no network
+            call that could fail), so there is nothing to retry. */}
         <View style={styles.navigationRow}>
           <NavArrow
             direction="left"

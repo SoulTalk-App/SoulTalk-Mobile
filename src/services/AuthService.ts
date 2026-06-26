@@ -291,14 +291,25 @@ class AuthService {
     }
   }
 
-  // so-por9: POST /auth/ai-consent — idempotent; records consent at
-  // current_version echoed from getAiConsentStatus(). Always pass the
-  // server's current_version (never hardcode) — a version bump would 409.
+  // so-por9: POST /auth/ai-consent — re-enables AI data-sharing consent.
+  // so-k25b opt-out model: version is accepted for backward compat but no
+  // longer validated against a current version — any value clears revoked_at.
   async recordAiConsent(version: number): Promise<void> {
     try {
       await this.axiosInstance.post('/auth/ai-consent', { version });
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to record AI consent');
+    }
+  }
+
+  // so-k25b: POST /auth/ai-consent/disable — explicit opt-out from AI
+  // processing. Stamps ai_consent_revoked_at=now() on the user row;
+  // has_consent() returns false until re-enabled via recordAiConsent.
+  async revokeAiConsent(): Promise<void> {
+    try {
+      await this.axiosInstance.post('/auth/ai-consent/disable');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to disable AI Insights');
     }
   }
 
