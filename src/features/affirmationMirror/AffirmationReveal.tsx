@@ -55,6 +55,13 @@ const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// so-s69q: exact background color sampled from the dark idle video's corner
+// pixels (top-left 20×20 block = #26143E). Matching the container to this
+// eliminates the visible seam between the video and the page in dark mode.
+const DARK_MIRROR_BG = '#26143E';
+// Mirror occupies the top half of the screen; affirmation text the bottom half.
+const MIRROR_HEIGHT = SCREEN_HEIGHT / 2;
+
 const CloudsBg = require('../../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../../assets/images/home/CloudsRight.png');
@@ -388,24 +395,22 @@ export function AffirmationReveal({
   const idleVideoAnimStyle = useAnimatedStyle(() => ({ opacity: idleVideoOpacity.value }));
   const revealedVideoAnimStyle = useAnimatedStyle(() => ({ opacity: revealedVideoOpacity.value }));
 
-  const containerBg = isDarkMode ? '#33335B' : colors.accent.pink;
+  // so-s69q: DARK_MIRROR_BG (#26143E) is sampled from the dark video's own
+  // background — both the video area and the page below render at the same
+  // color so there is no visible edge between them in dark mode.
+  const containerBg = isDarkMode ? DARK_MIRROR_BG : colors.accent.pink;
 
   return (
     <View style={[styles.container, { backgroundColor: containerBg }]}>
-      {isDarkMode && (
-        <LinearGradient
-          colors={['#2B2B54', '#33335B', '#33335B']}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-
       <Animated.View style={[styles.videoWrapper, videoZoomStyle]}>
         <Animated.View style={[styles.videoContainer, idleVideoAnimStyle]}>
+          {/* so-s69q: contentFit="cover" fills the half-page container with
+              no letterbox bars; the square video is cropped ~16px each side
+              which keeps the centred character fully visible. */}
           <VideoView
             player={idlePlayer}
             style={styles.video}
-            contentFit="contain"
+            contentFit="cover"
             nativeControls={false}
             allowsPictureInPicture={false}
           />
@@ -419,16 +424,6 @@ export function AffirmationReveal({
               style={styles.video}
             />
           </Animated.View>
-        )}
-
-        {isDarkMode && (
-          <LinearGradient
-            colors={['#33335B', 'rgba(51,51,91,0)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.seamFade}
-            pointerEvents="none"
-          />
         )}
       </Animated.View>
 
@@ -483,12 +478,7 @@ export function AffirmationReveal({
       </Animated.View>
 
       {isRevealed && (
-        <View
-          style={[
-            styles.textArea,
-            { paddingTop: insets.top + 20, height: SCREEN_HEIGHT - SCREEN_WIDTH + 40 },
-          ]}
-        >
+        <View style={styles.textArea}>
           {/* so-7r4y: persistent AI-disclosure label above every
               AI-generated affirmation. tone="light" because the reveal
               view is always on the dark cosmic backdrop regardless of
@@ -555,32 +545,37 @@ export function AffirmationReveal({
 
 const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
-  videoWrapper: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+  // so-s69q: video wrapper is the TOP HALF only; overflow:hidden clips the
+  // cover-fit video so it doesn't bleed past the mirror area.
+  videoWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: MIRROR_HEIGHT,
+    zIndex: 0,
+    overflow: 'hidden',
+  },
   videoContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
-    justifyContent: 'flex-end',
   },
+  // so-s69q: video fills the top-half container; cover-fit handles aspect ratio.
   video: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
+    height: MIRROR_HEIGHT,
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
   },
-  seamFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: SCREEN_WIDTH - 56,
-    height: 56,
-  },
+  // so-s69q: clouds constrained to the mirror (top half) — same height as the
+  // video wrapper so cloud edges sit on the matched DARK_MIRROR_BG background.
   cloudsContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: SCREEN_HEIGHT,
+    height: MIRROR_HEIGHT,
     zIndex: 2,
   },
   cloudsContainerDark: {
@@ -609,11 +604,14 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // so-s69q: affirmation text occupies the bottom half of the screen,
+  // directly below the mirror video.
   textArea: {
     position: 'absolute',
-    top: 0,
+    top: MIRROR_HEIGHT,
     left: 0,
     right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
@@ -628,9 +626,11 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     color: colors.white,
     textAlign: 'center',
   },
+  // so-s69q: "Click to Reveal" sits in the centre of the bottom half
+  // (top-half ends at MIRROR_HEIGHT = 50%; button target ≈ 67% of screen).
   revealButtonContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.53,
+    top: SCREEN_HEIGHT * 0.67,
     alignSelf: 'center',
     zIndex: 10,
   },
