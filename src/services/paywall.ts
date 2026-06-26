@@ -60,6 +60,11 @@ const APPLE_SUBSCRIPTIONS_URL = 'itms-apps://apps.apple.com/account/subscription
 
 const LOG_PREFIX = '[paywall]';
 
+// so-6gwj: maximum time (ms) we wait for any paywall event before
+// force-dismissing. 45 s covers slow networks + Apple ID confirmation
+// dialogs without being long enough to feel permanently frozen.
+const PAYWALL_PRESENT_TIMEOUT_MS = 45_000;
+
 export type PaywallOutcome =
   | { kind: 'purchased' }
   | { kind: 'restored'; isPremium: boolean }
@@ -141,6 +146,28 @@ export const presentPaywall = async (
       // a fast purchase (sandbox testers tap-through quickly) can't
       // race the subscription wire-up.
       const outcome = new Promise<PaywallOutcome>((resolve) => {
+        // so-6gwj: safety-valve — if the native paywall hangs (no event
+        // fires after present(), e.g. the iOS modal was OS-dismissed before
+        // the close-button handler fired, or a rare SDK ghost-view), force-
+        // dismiss after PAYWALL_PRESENT_TIMEOUT_MS so inflightPresent always
+        // clears and the caller receives a recoverable 'error' rather than
+        // an eternal frozen lock that blocks all future paywall calls.
+        let settled = false;
+        const safeResolve = (result: PaywallOutcome) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutHandle);
+          resolve(result);
+        };
+        const timeoutHandle = setTimeout(() => {
+          if (__DEV__) console.warn(`${LOG_PREFIX} paywall timed out — force-dismissing`);
+          try { view.dismiss(); } catch (_) {}
+          safeResolve({
+            kind: 'error',
+            message: 'The subscription page took too long to respond. Please try again.',
+          });
+        }, PAYWALL_PRESENT_TIMEOUT_MS);
+
         // so-3w4h: the merged react-native-adapty 3.17.1 ViewController
         // exposes setEventHandlers (NOT the old @adapty/react-native-ui
         // registerEventHandlers — that method doesn't exist on the new
@@ -159,18 +186,18 @@ export const presentPaywall = async (
               return false;
             }
             view.dismiss();
-            resolve({ kind: 'purchased' });
+            safeResolve({ kind: 'purchased' });
           },
           onRestoreCompleted: (profile) => {
             view.dismiss();
-            resolve({
+            safeResolve({
               kind: 'restored',
               isPremium: isPremiumFromProfile(profile),
             });
           },
           onCloseButtonPress: () => {
             view.dismiss();
-            resolve({ kind: 'dismissed' });
+            safeResolve({ kind: 'dismissed' });
           },
           onPurchaseFailed: (error) => {
             // Don't dismiss on a single failed attempt — the user may
@@ -182,7 +209,7 @@ export const presentPaywall = async (
           onRenderingFailed: (error) => {
             if (__DEV__) console.warn(`${LOG_PREFIX} render failed:`, error);
             view.dismiss();
-            resolve({ kind: 'error', message: normalizeError(error) });
+            safeResolve({ kind: 'error', message: normalizeError(error) });
             return true;
           },
           onLoadingProductsFailed: (error) => {
