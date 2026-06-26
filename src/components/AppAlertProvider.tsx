@@ -104,6 +104,14 @@ export const AppAlertProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const showError = useCallback(
     (err: unknown, opts?: ShowErrorOptions) => {
+      // so-u0c9: transient auth failures (refresh network blip while
+      // foregrounding) are marked _suppressToast by the authClient interceptor.
+      // The user's in-progress work is preserved by useLocalDraft; they can
+      // retry when the network is stable. Never show "session expired" for an
+      // auto-recoverable failure. Terminal failures (refresh token invalid) call
+      // the logout callback directly, so they also reach here with _suppressToast
+      // set — the re-login screen is the UX, not an alert.
+      if ((err as any)?._suppressToast) return;
       const message = normalizeError(err);
       const title = opts?.title ?? 'Something went wrong';
       const okLabel = opts?.okLabel ?? 'OK';

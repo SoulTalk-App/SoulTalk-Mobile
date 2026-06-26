@@ -6,6 +6,7 @@ import AuthService from '../services/AuthService';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
 import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
+import { proactiveTokenRefresh, registerLogoutCallback } from '../utils/authClient';
 
 interface UserInfo {
   id: string;
@@ -184,15 +185,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthState();
   }, [checkAuthState]);
 
+  // so-u0c9: register the logout function as the terminal-refresh callback so
+  // authClient can force re-login when the refresh token is invalid/expired.
+  // Re-registers whenever `logout` or `isAuthenticated` changes.
+  // Passing isAuthenticated lets authClient reset its re-entrancy guard when
+  // a new authenticated session is established (MAJOR-1 fix).
+  useEffect(() => {
+    registerLogoutCallback(logout, isAuthenticated);
+  }, [logout, isAuthenticated]);
+
   // so-u0w1: existing-logged-in users on TF≤34 may have NULL users.timezone.
   // The 6 auth-completion call sites only fire when the user signs in again,
   // so users who just resume a stored session never get backfilled. Re-run
   // ensureTimezone on every foreground transition — idempotent (helper
   // early-returns when device TZ already matches the stored value).
+  //
+  // so-u0c9: also fire a proactive token refresh on every 'active' transition.
+  // If the access token has expired (or is within 2 min of expiry) while the
+  // app was backgrounded, we refresh it HERE — before any HTTP/WS activity
+  // fires — so callers always get a fresh token without a reactive 401 cycle.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') return;
+      // Proactive refresh — fire-and-forget; transient failures are handled
+      // inside refreshAccessToken and do not surface to the user.
+      proactiveTokenRefresh().catch(() => {});
       ensureTimezone(user);
     });
     return () => sub.remove();

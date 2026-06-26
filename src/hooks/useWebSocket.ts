@@ -2,8 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
-import SecureStorage from '../utils/SecureStorage';
-import { refreshAccessToken } from '../utils/authClient';
+import { getValidToken, refreshAccessToken } from '../utils/authClient';
 import { presentPaywall } from '../services/paywall';
 
 type MessageHandler = (data: any) => void;
@@ -58,7 +57,13 @@ export const useWebSocket = (
   const connect = useCallback(async () => {
     cleanup();
 
-    const token = await SecureStorage.getItem('access_token');
+    // so-u0c9: use getValidToken() instead of a raw SecureStorage read so
+    // the WS always authenticates with a fresh access token. getValidToken()
+    // checks the JWT exp claim and calls refreshAccessToken() (coalesced with
+    // any concurrent HTTP refresh) if the token is expired or near-expiry.
+    // This eliminates the stale-token 4001 close that used to trigger a
+    // second, uncoordinated refresh after a long background session.
+    const token = await getValidToken();
     if (!token) return;
 
     const url = getWsUrl();
