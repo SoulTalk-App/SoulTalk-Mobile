@@ -4,13 +4,14 @@
  */
 
 export const privacyPolicy = {
-  title: 'Privacy Policy',
-  effectiveDate: 'June 24, 2026',
-  content: `This Privacy Policy ("Policy") applies to SoulTalk®, an AI powered journaling and self-reflection application, as well as related content, tools, features and functionality (collectively, the "Services") provided by SoulTalk Inc. ("SoulTalk," or "SoulTalk Inc.," "we," "our," or "us"). This Policy is hereby formulated by us in accordance with applicable laws to protect the personal information of users ("you" or "your"). This Privacy Policy describes how we collect, use, disclose, store, and protect information when you access or use the SoulTalk mobile application, and related Services. Please read this Policy carefully. By accessing or using SoulTalk and/or our Service, you agree and acknowledge that you understand, agree, and consent to this Policy.
+  title: ‘Privacy Policy’,
+  // so-iyhl: canonical 2026-06-26 legal text (Overseer-approved, verbatim)
+  effectiveDate: ‘June 26, 2026’,
+  content: `This Privacy Policy ("Policy") applies to SoulTalk, an AI powered journaling and self-reflection application, as well as related content, tools, features and functionality (collectively, the "Services") provided by SoulTalk Inc. ("SoulTalk," or "SoulTalk Inc.," "we," "our," or "us"). This Policy is hereby formulated by us in accordance with applicable laws to protect the personal information of users ("you" or "your"). This Privacy Policy describes how we collect, use, disclose, store, and protect information when you access or use the SoulTalk mobile application, and related Services. Please read this Policy carefully. By accessing or using SoulTalk and/or our Service, you agree and acknowledge that you understand, agree, and consent to this Policy.
 Scope & Consent
 This Policy establishes why, how, and what personal information we collect, use, store, process, share, transfer and publicly disclose about you, the information security protection measure we take, and the rights we honor for your access, update, deletion, and control of your personal information. Please read this Policy in combination with SoulTalk Terms of Service. If you do not agree with this Policy, you shall stop using SoulTalk and our Services, because using the Services constitutes your agreement to this Policy. We reserve the right to amend this Policy at any time and will update this policy periodically with updates when changes are made. By accessing and/or using our Service, you confirm that you are an adult at 18 years of age or over.
 1. Artificial Intelligence and Automated Processing
-1.1 SoulTalk® uses artificial intelligence and automated systems to analyze user-submitted content and generate insights.
+1.1 SoulTalk uses artificial intelligence and automated systems to analyze user-submitted content and generate insights.
 1.1.1 AI outputs are probabilistic and interpretive
 1.1.2 Outputs do not constitute facts, diagnoses, or professional advice
 1.1.3 No automated processing produces legal, medical, or therapeutic decisions
@@ -25,7 +26,7 @@ This Policy establishes why, how, and what personal information we collect, use,
 2.1.6 Your content and journal data which You write in the App
 2.1.7 Consent record, meaning the date and the version of the Terms and this Policy You accepted
 2.1.8 Your username
-2.1.9 Your age. At signup We ask You to confirm You are 18 or older
+2.1.9 Confirmation You are 18 or older
 2.2 Information collected automatically. We collect limited technical information necessary to operate and secure the App, such as basic device and app information and error logs. The App does not contain third-party advertising software and does not track You across other companies’ apps or websites. We use Adapty solely to manage and analyze subscriptions; this processing is limited to subscription functionality and is not used for advertising.
 2.2.1 Device type, operating system, app version
 2.2.2 Interaction logs, timestamps, and error reports
@@ -89,19 +90,20 @@ privacy@soultalkapp.com
 };
 
 export const termsOfService = {
-  title: 'Terms of Service',
-  effectiveDate: 'June 24, 2026',
-  content: `Welcome to SoulTalk®. These Terms of Service ("Terms") govern Your use of the SoulTalk mobile application and any associated software and services We provide for individuals (together, the "Services"). These Terms are a contract between You and SoulTalk Inc. ("SoulTalk," "we," "us"). By creating an account or using the Services, You agree to these Terms and to Our Privacy Policy. If You do not agree, do not use the Services.
+  title: ‘Terms of Service’,
+  // so-iyhl: canonical 2026-06-26 legal text (Overseer-approved, verbatim)
+  effectiveDate: ‘June 26, 2026’,
+  content: `Welcome to SoulTalk. These Terms of Service ("Terms") govern Your use of the SoulTalk mobile application and any associated software and services We provide for individuals (together, the "Services"). These Terms are a contract between You and SoulTalk Inc. ("SoulTalk," "we," "us"). By creating an account or using the Services, You agree to these Terms and to Our Privacy Policy. If You do not agree, do not use the Services.
 Who we are
-SoulTalk® is an AI powered journaling and self-reflection application that uses artificial intelligence to generate written insights and reflections from what You write. SoulTalk supports personal self-reflection and wellbeing. It is not a therapy, medical, mental-health, or crisis service.
+SoulTalk is an AI powered journaling and self-reflection application that uses artificial intelligence to generate written insights and reflections from what You write. SoulTalk supports personal self-reflection and wellbeing. It is not a therapy, medical, mental-health, or crisis service.
 1. Artificial Intelligence and Automated Processing
-1.1 The SoulTalk® application uses artificial intelligence and automated systems to analyze user-submitted content and generate insights.
+1.1 The SoulTalk application uses artificial intelligence and automated systems to analyze user-submitted content and generate insights.
 1.1.1 AI outputs are probabilistic and interpretive
 1.1.2 Outputs do not constitute facts, diagnoses, or professional advice
 1.1.3 No automated processing produces legal, medical, or therapeutic decisions
 1.1.4 The SoulTalk team does not read your journal entries. Safety detection is automated, and any limited human review is restricted to system metadata and security signals, not the content of your entries. We will access or disclose the content of your entries only where we are legally required to do so, such as in response to a valid court order or legal process.
 2. Account creation and access
-2.1 Minimum age. You must be at least 18 years old to use the Services. By creating an account, You confirm that You are at least 18. We collect Your date of birth at signup only to verify this.
+2.1 Minimum age. You must be at least 18 years old to use the Services. By creating an account, You confirm that You are at least 18.
 2.2 Your account. To use the Services, You create an account using a valid email address and password. You agree to provide accurate, current, and complete information, to keep Your password secure, and not to share Your account. You are responsible for activity under Your account, and You agree to notify Us at support@soultalkapp.com if You learn of any unauthorized use.
 2.3 Acceptance record. When You create Your account, You actively accept these Terms and Our Privacy Policy, and We record which version You accepted.
 2.4 Closing your account. You may delete Your account at any time from within the App. Deletion permanently removes Your data as described in the Privacy Policy.
@@ -138,7 +140,7 @@ SoulTalk® is an AI powered journaling and self-reflection application that uses
 7.4 Refunds. Because Apple processes payment, refunds are handled by Apple under Apple’s policies. We generally cannot issue refunds directly.
 7.5 Restore Purchases. You can restore an active subscription on a new device using the Restore Purchases option in the App.
 8. Our intellectual property
-The Services, including the SoulTalk® name, logos, designs, and software, are owned by SoulTalk Inc. and are protected by intellectual-property laws. Except for the limited right to use the Services under these Terms, We grant You no rights in Our intellectual property. You may not use Our name, logos, or trademarks without Our prior written permission.
+The Services, including the SoulTalk name, logos, designs, and software, are owned by SoulTalk Inc. and are protected by intellectual-property laws. Except for the limited right to use the Services under these Terms, We grant You no rights in Our intellectual property. You may not use Our name, logos, or trademarks without Our prior written permission.
 9. Third-party services
 The Services rely on third parties, including the AI Providers and Apple. We do not control and are not responsible for third-party services, and Your use of them is subject to their own terms and policies. We are not liable for errors caused by third-party payment processors. You are encouraged to read their Privacy Policies and Terms of Service prior to agreeing to use the Services to understand all aspects of use. Subscription management is supported by Adapty, a third-party service. Your use of subscription features may involve processing by Adapty under its own terms and privacy policy.
 10. Disclaimers, limitation of liability, and indemnity
