@@ -25,7 +25,7 @@ This Policy establishes why, how, and what personal information we collect, use,
 2.1.6 Your content and journal data which You write in the App
 2.1.7 Consent record, meaning the date and the version of the Terms and this Policy You accepted
 2.1.8 Your username
-2.1.9 Your age. At signup We ask Your date of birth to confirm You are 18 or older
+2.1.9 Your age. At signup We ask You to confirm You are 18 or older
 2.2 Information collected automatically. We collect limited technical information necessary to operate and secure the App, such as basic device and app information and error logs. The App does not contain third-party advertising software and does not track You across other companies’ apps or websites. We use Adapty solely to manage and analyze subscriptions; this processing is limited to subscription functionality and is not used for advertising.
 2.2.1 Device type, operating system, app version
 2.2.2 Interaction logs, timestamps, and error reports
