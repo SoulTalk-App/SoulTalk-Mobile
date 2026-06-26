@@ -55,11 +55,13 @@ const AFFIRM_STARS = Array.from({ length: 40 }, (_, i) => ({
 const REVEALED_DATE_KEY = '@soultalk_affirmation_revealed_date';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// so-s69q: exact background color sampled from the dark idle video's corner
-// pixels (top-left 20×20 block = #26143E). Matching the container to this
-// eliminates the visible seam between the video and the page in dark mode.
+// so-0wzu: DARK_MIRROR_BG is the sky/atmosphere fill behind the clouds in dark
+// mode. In the corrected layout (clouds TOP, video BOTTOM) this colour shows
+// in the top half behind the cloud overlay and as the screen's base background.
 const DARK_MIRROR_BG = '#26143E';
-// Mirror occupies the top half of the screen; affirmation text the bottom half.
+// so-0wzu: each half is SCREEN_HEIGHT/2. In the corrected (flipped) layout the
+// clouds + affirmation text occupy the TOP half and the mirror video the BOTTOM
+// half (MIRROR_HEIGHT is the height of each half / the video's top offset).
 const MIRROR_HEIGHT = SCREEN_HEIGHT / 2;
 
 const CloudsBg = require('../../../assets/images/home/CloudsBg.png');
@@ -395,9 +397,9 @@ export function AffirmationReveal({
   const idleVideoAnimStyle = useAnimatedStyle(() => ({ opacity: idleVideoOpacity.value }));
   const revealedVideoAnimStyle = useAnimatedStyle(() => ({ opacity: revealedVideoOpacity.value }));
 
-  // so-s69q: DARK_MIRROR_BG (#26143E) is sampled from the dark video's own
-  // background — both the video area and the page below render at the same
-  // color so there is no visible edge between them in dark mode.
+  // so-0wzu: containerBg is the sky/atmosphere colour for the TOP half (clouds
+  // float over it) and the base background for the whole screen. The video
+  // occupies the BOTTOM half and covers its own area.
   const containerBg = isDarkMode ? DARK_MIRROR_BG : colors.accent.pink;
 
   return (
@@ -545,11 +547,11 @@ export function AffirmationReveal({
 
 const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.create({
   container: { flex: 1 },
-  // so-s69q: video wrapper is the TOP HALF only; overflow:hidden clips the
-  // cover-fit video so it doesn't bleed past the mirror area.
+  // so-0wzu: video wrapper is the BOTTOM HALF — clouds are TOP, animation BOTTOM.
+  // overflow:hidden clips the cover-fit video to the mirror area.
   videoWrapper: {
     position: 'absolute',
-    top: 0,
+    top: MIRROR_HEIGHT,
     left: 0,
     right: 0,
     height: MIRROR_HEIGHT,
@@ -560,7 +562,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
   },
-  // so-s69q: video fills the top-half container; cover-fit handles aspect ratio.
+  // so-0wzu: video fills the bottom-half container; cover-fit handles aspect ratio.
   video: {
     width: SCREEN_WIDTH,
     height: MIRROR_HEIGHT,
@@ -568,8 +570,8 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     top: 0,
     left: 0,
   },
-  // so-s69q: clouds constrained to the mirror (top half) — same height as the
-  // video wrapper so cloud edges sit on the matched DARK_MIRROR_BG background.
+  // so-0wzu: clouds occupy the TOP half (correct layout). Same height as the
+  // videoWrapper (bottom half), DARK_MIRROR_BG fills behind both in dark mode.
   cloudsContainer: {
     position: 'absolute',
     top: 0,
@@ -604,14 +606,14 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // so-s69q: affirmation text occupies the bottom half of the screen,
-  // directly below the mirror video.
+  // so-0wzu: affirmation text occupies the TOP half of the screen (cloud area),
+  // now that the layout is corrected — clouds top, animation bottom.
   textArea: {
     position: 'absolute',
-    top: MIRROR_HEIGHT,
+    top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    height: MIRROR_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
@@ -626,11 +628,11 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     color: colors.white,
     textAlign: 'center',
   },
-  // so-s69q: "Click to Reveal" sits in the centre of the bottom half
-  // (top-half ends at MIRROR_HEIGHT = 50%; button target ≈ 67% of screen).
+  // so-0wzu: "Click to Reveal" sits in the centre of the TOP half (cloud area).
+  // Top half ends at MIRROR_HEIGHT = 50%; button target ≈ 33% of screen.
   revealButtonContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.67,
+    top: SCREEN_HEIGHT * 0.33,
     alignSelf: 'center',
     zIndex: 10,
   },
