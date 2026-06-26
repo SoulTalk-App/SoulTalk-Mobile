@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -30,6 +31,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
 import { privacyPolicy, termsOfService } from '../mocks/content';
+import authService from '../services/AuthService';
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
 const FIGMA_SPRING_CONFIG = {
@@ -238,12 +240,10 @@ const slides: Slide[] = [
     ],
     privacyLine: 'Everything you share stays private. Always.',
   },
-  // so-7r4y: AI-transparency + emotional-support disclaimers. PLACEHOLDER
-  // copy — final legal text owned by Chey/Randy. The user advances past
-  // these by swiping like any other slide; explicit acknowledgment is
-  // collected on the Terms slide that follows, which now reads "I Accept
-  // the Terms, Privacy Policy, and Disclaimers" so a single tap covers
-  // all three (matches the so-jokw consent-gate pattern).
+  // so-por9: Apple 5.1.1(i) explicit AI-data-sharing consent. This slide
+  // requires an explicit "I understand and agree" tap (not a swipe-past) —
+  // the user cannot advance until they confirm. Consent is recorded via
+  // POST /auth/ai-consent (so-mc2k). Copy is APPROVED 2026-06-26.
   {
     id: '5',
     titleStart: 'A note on ',
@@ -251,9 +251,9 @@ const slides: Slide[] = [
     tagline: null,
     characterType: 'disclaimer',
     disclaimerParagraphs: [
-      // PLACEHOLDER. Chey/Randy: replace with finalized AI-disclosure copy.
-      'SoulTalk uses AI to generate the affirmations, reflections, and pattern insights you see in the app. Anywhere you see the small "AI-generated" label, the content was produced by a language model, not a human therapist or counselor.',
-      'AI responses are intended to support your own reflection. They can be wrong, biased, or out of step with what you actually need on a given day. Treat them as a prompt, not a prescription.',
+      'SoulTalk is powered by AI. To create your reflections, the journal entries you write are sent to our AI partners, Anthropic and Voyage AI, who turn them into your insights, SoulSignals, and affirmations.',
+      'They process your entries only to return your results. They never use them to train their models, and we never sell your data or use it for advertising.',
+      'You can read the full details anytime in our Privacy Policy.',
     ],
   },
   {
@@ -659,12 +659,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   // cleared on unmount — otherwise navigating away mid-transition fires
   // setState on an unmounted component and can leave isTransitioning stuck.
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // so-jokw: explicit consent for slide 5. Hydrated from AsyncStorage on
+  // so-jokw: explicit consent for slide 6 (terms). Hydrated from AsyncStorage on
   // mount so a returning user who already accepted on a prior session can
   // walk through onboarding without being blocked again.
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // so-hqu6: tabbed Privacy/Terms on slide 5 (matches the Settings-accessed
+  // so-por9: AI-data-sharing consent state for slide 5 ("A note on AI").
+  // Session-local only — resets on every onboarding entry (useFocusEffect).
+  // Consent is also recorded server-side via POST /auth/ai-consent so we
+  // never need to re-prompt a user who consented on a previous install.
+  const [aiConsented, setAiConsented] = useState(false);
+  const [aiConsentBusy, setAiConsentBusy] = useState(false);
+  const [aiConsentError, setAiConsentError] = useState(false);
+
+  // so-hqu6: tabbed Privacy/Terms on slide 6 (matches the Settings-accessed
   // TermsScreen pattern). Scroll ref resets to top on tab switch so the new
   // doc starts at the heading.
   const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -692,6 +700,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === slides.length - 1;
   const isTermsSlide = slides[activeIndex]?.characterType === 'terms';
+  // so-por9: slide '5' is the "A note on AI" explicit-consent slide (index 4).
+  const isAiConsentSlide = slides[activeIndex]?.id === '5';
 
   const styles = useMemo(
     () =>
@@ -1290,10 +1300,14 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;
-      // so-hqu6: reset slide-5 tab to Privacy on every onboarding entry
+      // so-hqu6: reset slide-6 tab to Privacy on every onboarding entry
       // so users always see the Privacy doc first (not whichever tab the
       // last session left active).
       setActiveLegalTab('privacy');
+      // so-por9: reset AI consent so every onboarding entry starts fresh.
+      setAiConsented(false);
+      setAiConsentBusy(false);
+      setAiConsentError(false);
     }, [])
   );
 
@@ -1401,21 +1415,26 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
   // so-jokw: from the terms slide, "Next" only proceeds if the user has
   // tapped Accept. Acceptance writes AsyncStorage and is the single signal
-  // the auth screens read on mount. The right-arrow on slide 5 is hidden
+  // the auth screens read on mount. The right-arrow on slide 6 is hidden
   // until accepted (replaced by the I Accept button rendered in the
   // navigationRow), so this guard is the safety net for swipe.
+  //
+  // so-por9: slide 5 ("A note on AI") also requires an explicit tap — the
+  // right-arrow is replaced by "I understand and agree" until consented.
   const handleNext = useCallback(async () => {
     if (isTransitioning.current) return;
+    // so-por9: block forward swipe from AI consent slide until tapped.
+    if (isAiConsentSlide && !aiConsented) return;
 
     if (isLastSlide) {
       if (termsAccepted) {
         navigation.navigate('Register');
       }
-      // No-op when not accepted — the slide-5 UI shows an Accept button.
+      // No-op when not accepted — the slide-6 UI shows an Accept button.
     } else {
       transitionToSlide(activeIndex + 1);
     }
-  }, [activeIndex, isLastSlide, navigation, termsAccepted, transitionToSlide]);
+  }, [activeIndex, aiConsented, isAiConsentSlide, isLastSlide, navigation, termsAccepted, transitionToSlide]);
 
   const handleAcceptTerms = useCallback(async () => {
     try {
@@ -1424,6 +1443,26 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     setTermsAccepted(true);
     navigation.navigate('Register');
   }, [navigation]);
+
+  // so-por9: user tapped "I understand and agree" on the AI-consent slide.
+  // Records consent server-side. Fetches current_version first (never
+  // hardcode — a server version bump would 409). Only advances to slide 6
+  // (Terms) on SUCCESS — a failure surfaces an inline error for retry.
+  const handleAiConsent = useCallback(async () => {
+    if (aiConsentBusy) return;
+    setAiConsentBusy(true);
+    setAiConsentError(false);
+    try {
+      const status = await authService.getAiConsentStatus();
+      await authService.recordAiConsent(status.current_version);
+      setAiConsented(true);
+      transitionToSlide(activeIndex + 1);
+    } catch {
+      setAiConsentError(true);
+    } finally {
+      setAiConsentBusy(false);
+    }
+  }, [aiConsentBusy, activeIndex, transitionToSlide]);
 
   const handleDotPress = useCallback((index: number) => {
     if (index !== activeIndex && !isTransitioning.current) {
@@ -1510,6 +1549,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
 
       {/* Purple Bottom Navigation Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        {/* so-por9: show inline retry hint when the consent POST failed */}
+        {isAiConsentSlide && aiConsentError && (
+          <Text
+            style={{
+              textAlign: 'center',
+              fontFamily: fonts.outfit.regular,
+              fontSize: 12,
+              color: colors.error,
+              marginBottom: 6,
+            }}
+          >
+            Something went wrong. Please try again.
+          </Text>
+        )}
         <View style={styles.navigationRow}>
           <NavArrow
             direction="left"
@@ -1534,7 +1587,24 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
             ))}
           </View>
 
-          {isTermsSlide && !termsAccepted ? (
+          {isAiConsentSlide && !aiConsented ? (
+            // so-por9: explicit AI-data-sharing consent CTA. Must be tapped
+            // before the user can swipe to slide 6 (Terms).
+            <Pressable
+              onPress={handleAiConsent}
+              disabled={aiConsentBusy}
+              style={[styles.acceptCta, aiConsentBusy && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel="I understand and agree to AI data processing"
+              accessibilityState={{ disabled: aiConsentBusy, busy: aiConsentBusy }}
+            >
+              {aiConsentBusy ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.acceptCtaText}>I understand and agree</Text>
+              )}
+            </Pressable>
+          ) : isTermsSlide && !termsAccepted ? (
             <Pressable
               onPress={handleAcceptTerms}
               style={styles.acceptCta}

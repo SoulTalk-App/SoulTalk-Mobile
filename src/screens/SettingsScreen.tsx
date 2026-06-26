@@ -176,6 +176,10 @@ const SettingsScreen = ({ navigation }: any) => {
   // so-fwva: in-flight guard for restore-purchases (sandbox can take a
   // few seconds to round-trip Adapty → App Store).
   const [restoring, setRestoring] = useState(false);
+  // so-por9: AI consent status for the Settings control (null = loading).
+  const [aiConsentGranted, setAiConsentGranted] = useState<boolean | null>(null);
+  const [aiConsentVersion, setAiConsentVersion] = useState<number>(1);
+  const [aiConsentBusy, setAiConsentBusy] = useState(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
   // restored draft) has run, so we don't autosave an empty form or clobber
@@ -211,6 +215,42 @@ const SettingsScreen = ({ navigation }: any) => {
     };
   }, []);
 
+
+  // so-por9: load AI consent status on mount so the Settings toggle reflects
+  // reality. Silently ignores errors — the row stays in its loading state
+  // rather than crashing the screen.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await authService.getAiConsentStatus();
+        if (!cancelled) {
+          setAiConsentGranted(!status.consent_required);
+          setAiConsentVersion(status.current_version);
+        }
+      } catch {
+        // Non-fatal; leave as null (loading appearance).
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // so-por9: record AI consent from Settings (for users who skipped onboarding
+  // consent or whose entries are 'skipped'). Idempotent on the BE.
+  const handleGrantAiConsent = useCallback(async () => {
+    if (aiConsentBusy || aiConsentGranted) return;
+    setAiConsentBusy(true);
+    try {
+      await authService.recordAiConsent(aiConsentVersion);
+      setAiConsentGranted(true);
+    } catch (err: any) {
+      showError(err?.message || 'Failed to enable AI Insights. Please try again.');
+    } finally {
+      setAiConsentBusy(false);
+    }
+  }, [aiConsentBusy, aiConsentGranted, aiConsentVersion, showError]);
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -617,6 +657,37 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Push Notification</Text>
           <Text style={styles.comingSoonTag}>Coming Soon</Text>
+        </View>
+
+        {/* so-por9: AI Insights consent control. Lets users who skipped the
+            onboarding consent (or whose journal entries are 'skipped') enable
+            AI processing without reinstalling. Tapping "Enable" calls the
+            same idempotent BE endpoint as the onboarding slide. */}
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>AI Insights</Text>
+          {aiConsentGranted === null ? (
+            <Text style={styles.comingSoonTag}>…</Text>
+          ) : aiConsentGranted ? (
+            <Text style={styles.comingSoonTag}>Enabled</Text>
+          ) : (
+            <Pressable
+              onPress={handleGrantAiConsent}
+              disabled={aiConsentBusy}
+              accessibilityRole="button"
+              accessibilityLabel="Enable AI Insights"
+              accessibilityState={{ disabled: aiConsentBusy, busy: aiConsentBusy }}
+            >
+              <Text
+                style={[
+                  styles.comingSoonTag,
+                  { color: colors.primary, borderColor: colors.primary },
+                  aiConsentBusy && { opacity: 0.6 },
+                ]}
+              >
+                {aiConsentBusy ? '…' : 'Enable'}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Appearance — Light / Dark */}
