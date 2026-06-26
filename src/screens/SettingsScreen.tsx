@@ -237,8 +237,8 @@ const SettingsScreen = ({ navigation }: any) => {
     };
   }, []);
 
-  // so-por9: record AI consent from Settings (for users who skipped onboarding
-  // consent or whose entries are 'skipped'). Idempotent on the BE.
+  // so-por9 / so-kff3: enable AI consent from Settings. Idempotent on the BE.
+  // so-k25b: version is accepted for API compat but not validated on the server.
   const handleGrantAiConsent = useCallback(async () => {
     if (aiConsentBusy || aiConsentGranted) return;
     setAiConsentBusy(true);
@@ -251,6 +251,22 @@ const SettingsScreen = ({ navigation }: any) => {
       setAiConsentBusy(false);
     }
   }, [aiConsentBusy, aiConsentGranted, aiConsentVersion, showError]);
+
+  // so-kff3: explicit AI consent opt-out via Settings toggle.
+  // Calls POST /auth/ai-consent/disable (so-k25b) which stamps
+  // ai_consent_revoked_at — has_consent() then returns false until re-enabled.
+  const handleRevokeAiConsent = useCallback(async () => {
+    if (aiConsentBusy || !aiConsentGranted) return;
+    setAiConsentBusy(true);
+    try {
+      await authService.revokeAiConsent();
+      setAiConsentGranted(false);
+    } catch (err: any) {
+      showError(err?.message || 'Failed to disable AI Insights. Please try again.');
+    } finally {
+      setAiConsentBusy(false);
+    }
+  }, [aiConsentBusy, aiConsentGranted, showError]);
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -659,32 +675,33 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.comingSoonTag}>Coming Soon</Text>
         </View>
 
-        {/* so-por9: AI Insights consent control. Lets users who skipped the
-            onboarding consent (or whose journal entries are 'skipped') enable
-            AI processing without reinstalling. Tapping "Enable" calls the
-            same idempotent BE endpoint as the onboarding slide. */}
+        {/* so-kff3: AI Insights ON/OFF toggle. ON (default) = consent granted;
+            OFF = user explicitly opted out via POST /auth/ai-consent/disable.
+            so-k25b opt-out model: status_for() returns consent_required=false
+            for everyone by default — new users start with toggle ON. */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>AI Insights</Text>
           {aiConsentGranted === null ? (
             <Text style={styles.comingSoonTag}>…</Text>
-          ) : aiConsentGranted ? (
-            <Text style={styles.comingSoonTag}>Enabled</Text>
           ) : (
             <Pressable
-              onPress={handleGrantAiConsent}
+              onPress={aiConsentGranted ? handleRevokeAiConsent : handleGrantAiConsent}
               disabled={aiConsentBusy}
-              accessibilityRole="button"
-              accessibilityLabel="Enable AI Insights"
-              accessibilityState={{ disabled: aiConsentBusy, busy: aiConsentBusy }}
+              accessibilityRole="switch"
+              accessibilityLabel="AI Insights"
+              accessibilityState={{ checked: aiConsentGranted, disabled: aiConsentBusy, busy: aiConsentBusy }}
             >
               <Text
                 style={[
                   styles.comingSoonTag,
-                  { color: colors.primary, borderColor: colors.primary },
+                  {
+                    color: aiConsentGranted ? colors.text.secondary : colors.primary,
+                    borderColor: aiConsentGranted ? colors.text.secondary : colors.primary,
+                  },
                   aiConsentBusy && { opacity: 0.6 },
                 ]}
               >
-                {aiConsentBusy ? '…' : 'Enable'}
+                {aiConsentBusy ? '…' : aiConsentGranted ? 'On' : 'Off'}
               </Text>
             </Pressable>
           )}
