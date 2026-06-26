@@ -1,23 +1,20 @@
 // so-piu2: shared social-signup age-gate. Social sign-in is unified (a NEW
 // user tapping "Sign in with Google/Apple/FB" creates an account), so the BE's
-// dob_required → DOB step → same-token resubmit-with-date_of_birth → 18+ reject
+// dob_required → age-confirmation step → same-token resubmit-with-is_18_plus
 // flow must live on BOTH RegisterScreen and LoginScreen. This hook owns that
-// logic once; screens render the DOB step via <SocialDobStep {...dobStep} />.
+// logic once; screens render the step via <SocialDobStep {...dobStep} />.
 //
-// Existing users never see the step (they get an AuthResponse, no
-// DobRequiredError). The 402/paywall path is unaffected.
+// so-8nem: replaced DOB date-picker with a simple 18+ affirmation step.
+// BE now accepts is_18_plus:bool (PREFERRED) instead of date_of_birth.
+// is18PlusConfirmedRef lets RegisterScreen pass the checkbox state so the
+// FIRST social call already carries is_18_plus:true (no round-trip needed).
+// LoginScreen leaves is18PlusConfirmed undefined; new users hit DobRequiredError
+// and see the modal, existing users get an AuthResponse and skip it entirely.
 import { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppAlert } from '../../components/AppAlertProvider';
 import { DobRequiredError } from '../../services/AuthService';
-import {
-  dobPartsFromDate,
-  isValidDob,
-  isAtLeast18,
-  toIsoDate,
-  isUnder18Error,
-} from '../../utils/ageGate';
 
 export type SocialProvider = 'Google' | 'Facebook' | 'Apple';
 
@@ -32,10 +29,7 @@ interface SocialCreds {
 /** Props bundle for the shared <SocialDobStep> presentational component. */
 export interface SocialDobStepProps {
   visible: boolean;
-  value: Date | null;
-  error: string | null;
   submitting: boolean;
-  onChange: (d: Date) => void;
   onContinue: () => void;
   onCancel: () => void;
 }
@@ -51,57 +45,56 @@ export interface SocialDobGate {
 
 export function useSocialDobGate(
   navigation: any,
-  opts?: { clearSetupOnFirstAttempt?: boolean },
+  opts?: { clearSetupOnFirstAttempt?: boolean; is18PlusConfirmed?: boolean },
 ): SocialDobGate {
   // so-piu2: Register treats every social tap as a signup, so it clears the
   // device-global setup flag on the first attempt (so-4maw). Login passes
   // false so an EXISTING returning user isn't re-routed through onboarding; the
-  // DOB resubmit (a confirmed-new user) always clears it regardless.
+  // 18+ resubmit (a confirmed-new user) always clears it regardless.
   const clearSetupOnFirstAttempt = opts?.clearSetupOnFirstAttempt ?? false;
+
+  // so-8nem: track the latest is18Plus state from RegisterScreen's checkbox
+  // so the FIRST social attempt carries is_18_plus:true upfront.
+  const is18PlusConfirmedRef = useRef(opts?.is18PlusConfirmed ?? false);
+  is18PlusConfirmedRef.current = opts?.is18PlusConfirmed ?? false;
+
   const { loginWithGoogle, loginWithFacebook, loginWithApple } = useAuth();
   const { showError } = useAppAlert();
 
   const [socialBusy, setSocialBusy] = useState(false);
   const [socialDobOpen, setSocialDobOpen] = useState(false);
-  const [socialDob, setSocialDob] = useState<Date | null>(null);
-  const [socialDobError, setSocialDobError] = useState<string | null>(null);
   const [socialSubmitting, setSocialSubmitting] = useState(false);
   const pendingSocialRef = useRef<SocialCreds | null>(null);
 
-  const callSocialLogin = (creds: SocialCreds, dateOfBirth?: string): Promise<void> => {
+  const callSocialLogin = (creds: SocialCreds, is18Plus?: boolean): Promise<void> => {
     if (creds.provider === 'Google') {
-      return loginWithGoogle(creds.idToken as string, dateOfBirth);
+      return loginWithGoogle(creds.idToken as string, is18Plus);
     }
     if (creds.provider === 'Facebook') {
-      return loginWithFacebook(creds.accessToken as string, dateOfBirth);
+      return loginWithFacebook(creds.accessToken as string, is18Plus);
     }
-    return loginWithApple(creds.identityToken as string, creds.fullName ?? null, dateOfBirth);
+    return loginWithApple(creds.identityToken as string, creds.fullName ?? null, is18Plus);
   };
 
-  const runSocial = async (creds: SocialCreds, dateOfBirth?: string) => {
+  const runSocial = async (creds: SocialCreds, is18Plus?: boolean) => {
     try {
       setSocialBusy(true);
       // so-4maw / so-piu2: clear the device-global setup flag for confirmed-new
-      // users (DOB resubmit) and, on Register, for every first attempt — so a
+      // users (18+ resubmit) and, on Register, for every first attempt — so a
       // new social user on a previously-used device sees onboarding instead of
       // inheriting the prior account's "complete" state. Login's first attempt
       // does NOT clear it (an existing user must keep their completed state).
-      if (dateOfBirth || clearSetupOnFirstAttempt) {
+      if (is18Plus || clearSetupOnFirstAttempt) {
         await AsyncStorage.removeItem('@soultalk_setup_complete');
       }
-      await callSocialLogin(creds, dateOfBirth);
+      await callSocialLogin(creds, is18Plus);
       // Success → navigation handled by the auth state change.
     } catch (error: any) {
       if (error instanceof DobRequiredError) {
-        // New social user needs a DOB — stash creds and present the step.
+        // New social user on LoginScreen needs to confirm age — stash creds
+        // and show the affirmation modal.
         pendingSocialRef.current = creds;
-        setSocialDob(null);
-        setSocialDobError(null);
         setSocialDobOpen(true);
-        return;
-      }
-      if (isUnder18Error(error?.message)) {
-        navigation.navigate('UnderageBlock');
         return;
       }
       showError(error, { title: `Couldn't continue with ${creds.provider}` });
@@ -111,29 +104,29 @@ export function useSocialDobGate(
   };
 
   const handleGoogleSignUp = (idToken: string) =>
-    runSocial({ provider: 'Google', idToken });
+    runSocial(
+      { provider: 'Google', idToken },
+      is18PlusConfirmedRef.current ? true : undefined,
+    );
   const handleFacebookSignUp = (accessToken: string) =>
-    runSocial({ provider: 'Facebook', accessToken });
+    runSocial(
+      { provider: 'Facebook', accessToken },
+      is18PlusConfirmedRef.current ? true : undefined,
+    );
   const handleAppleSignUp = (identityToken: string, fullName: string | null) =>
-    runSocial({ provider: 'Apple', identityToken, fullName });
+    runSocial(
+      { provider: 'Apple', identityToken, fullName },
+      is18PlusConfirmedRef.current ? true : undefined,
+    );
 
   const handleSocialDobContinue = async () => {
     const creds = pendingSocialRef.current;
     if (!creds) return;
-    const parts = socialDob ? dobPartsFromDate(socialDob) : null;
-    if (!parts || !isValidDob(parts)) {
-      setSocialDobError('Please select a valid date of birth.');
-      return;
-    }
-    if (!isAtLeast18(parts)) {
-      setSocialDobOpen(false);
-      navigation.navigate('UnderageBlock');
-      return;
-    }
     setSocialSubmitting(true);
     try {
       setSocialDobOpen(false);
-      await runSocial(creds, toIsoDate(parts));
+      // User confirmed 18+ in the modal — resubmit with is_18_plus:true.
+      await runSocial(creds, true);
     } finally {
       setSocialSubmitting(false);
     }
@@ -142,8 +135,6 @@ export function useSocialDobGate(
   const handleSocialDobCancel = () => {
     setSocialDobOpen(false);
     pendingSocialRef.current = null;
-    setSocialDob(null);
-    setSocialDobError(null);
   };
 
   return {
@@ -153,13 +144,7 @@ export function useSocialDobGate(
     socialBusy,
     dobStep: {
       visible: socialDobOpen,
-      value: socialDob,
-      error: socialDobError,
       submitting: socialSubmitting,
-      onChange: (d: Date) => {
-        setSocialDob(d);
-        if (socialDobError) setSocialDobError(null);
-      },
       onContinue: handleSocialDobContinue,
       onCancel: handleSocialDobCancel,
     },

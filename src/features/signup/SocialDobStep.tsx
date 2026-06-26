@@ -1,7 +1,10 @@
-// so-piu2: presentational DOB step for the social-signup age gate. Shown only
-// after the BE returns dob_required for a NEW social user. Props-driven by
-// useSocialDobGate; reuses the email-signup DateOfBirthField (so-7yb8 native
-// wheel). Used by both RegisterScreen and LoginScreen.
+// so-piu2: presentational age-confirmation step for the social-signup gate.
+// Shown only after the BE returns dob_required for a NEW social user on
+// LoginScreen. Props-driven by useSocialDobGate; used by RegisterScreen and
+// LoginScreen.
+//
+// so-8nem: replaced DOB date-picker with a simple "I am 18 or older" copy +
+// a single Continue button — no date input. Apple 5.1.1(v) rejection fix.
 import React from 'react';
 import {
   ActivityIndicator,
@@ -13,15 +16,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../../theme';
-import { DateOfBirthField } from './SignupAgeFields';
 import type { SocialDobStepProps } from './useSocialDobGate';
 
 export const SocialDobStep: React.FC<SocialDobStepProps> = ({
   visible,
-  value,
-  error,
   submitting,
-  onChange,
   onContinue,
   onCancel,
 }) => {
@@ -37,11 +36,10 @@ export const SocialDobStep: React.FC<SocialDobStepProps> = ({
             { backgroundColor: colors.background, paddingBottom: insets.bottom + 20 },
           ]}
         >
-          <Text style={[styles.title, { color: colors.text.primary }]}>One more step</Text>
+          <Text style={[styles.title, { color: colors.text.primary }]}>Confirm your age</Text>
           <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
-            Please confirm your date of birth to finish creating your account.
+            You must be 18 or older to use SoulTalk.
           </Text>
-          <DateOfBirthField value={value} onChange={onChange} error={error} />
           <Pressable
             onPress={onContinue}
             disabled={submitting}
@@ -51,12 +49,12 @@ export const SocialDobStep: React.FC<SocialDobStepProps> = ({
               submitting && { opacity: 0.6 },
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Continue"
+            accessibilityLabel="I am 18 or older — continue"
           >
             {submitting ? (
               <ActivityIndicator color={colors.white} />
             ) : (
-              <Text style={[styles.continueText, { color: colors.white }]}>Continue</Text>
+              <Text style={[styles.continueText, { color: colors.white }]}>I am 18 or older</Text>
             )}
           </Pressable>
           <Pressable

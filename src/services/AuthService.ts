@@ -34,10 +34,10 @@ interface UserRegistration {
   // so-byw: IANA timezone (e.g. "Asia/Kolkata"). Optional on the wire;
   // we always send it so the user row has it from row-zero.
   timezone?: string;
-  // so-cbhq / so-8544: required at signup. date_of_birth is an ISO YYYY-MM-DD
-  // string; the backend computes is_18_plus then DISCARDS it (never persisted).
-  // country_code is ISO 3166-1 alpha-2.
-  date_of_birth: string;
+  // so-8nem: Apple 5.1.1(v) — replaced required date_of_birth with an 18+
+  // affirmation checkbox. BE accepts is_18_plus (boolean); false blocks with
+  // the neutral under-18 message. country_code is ISO 3166-1 alpha-2.
+  is_18_plus: boolean;
   country_code: string;
 }
 
@@ -93,9 +93,9 @@ interface TermsStatus {
 }
 
 // so-piu2: the BE social age gate (so-4cvq) replies to a NEW social user with
-// no DOB on file with { detail: { code: 'dob_required' } }. We surface that as a
-// typed error so the social-signup flow can present the DOB step and resubmit
-// the SAME token + date_of_birth — the social pair of the email age gate.
+// no age confirmation with { detail: { code: 'dob_required' } }. After so-e0aw
+// the BE prefers is_18_plus; DobRequiredError is kept as a transition-period
+// fallback for LoginScreen's new-social-user path.
 export class DobRequiredError extends Error {
   constructor() {
     super('dob_required');
@@ -308,10 +308,10 @@ class AuthService {
   }
 
   // Social Auth Methods
-  async loginWithGoogle(idToken: string, dateOfBirth?: string): Promise<TokenResponse> {
+  async loginWithGoogle(idToken: string, is18Plus?: boolean): Promise<TokenResponse> {
     try {
-      const body: { id_token: string; date_of_birth?: string } = { id_token: idToken };
-      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      const body: { id_token: string; is_18_plus?: boolean } = { id_token: idToken };
+      if (is18Plus) body.is_18_plus = is18Plus; // so-8nem: send age affirmation
       const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/google', body);
 
       const tokenData = response.data;
@@ -326,14 +326,14 @@ class AuthService {
   async loginWithApple(
     identityToken: string,
     fullName?: string | null,
-    dateOfBirth?: string,
+    is18Plus?: boolean,
   ): Promise<TokenResponse> {
     try {
-      const body: { identity_token: string; full_name: string | null; date_of_birth?: string } = {
+      const body: { identity_token: string; full_name: string | null; is_18_plus?: boolean } = {
         identity_token: identityToken,
         full_name: fullName ?? null,
       };
-      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      if (is18Plus) body.is_18_plus = is18Plus; // so-8nem: send age affirmation
       const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/apple', body);
 
       const tokenData = response.data;
@@ -345,10 +345,10 @@ class AuthService {
     }
   }
 
-  async loginWithFacebook(accessToken: string, dateOfBirth?: string): Promise<TokenResponse> {
+  async loginWithFacebook(accessToken: string, is18Plus?: boolean): Promise<TokenResponse> {
     try {
-      const body: { id_token: string; date_of_birth?: string } = { id_token: accessToken };
-      if (dateOfBirth) body.date_of_birth = dateOfBirth; // so-piu2: resubmit with DOB
+      const body: { id_token: string; is_18_plus?: boolean } = { id_token: accessToken };
+      if (is18Plus) body.is_18_plus = is18Plus; // so-8nem: send age affirmation
       const response: AxiosResponse<TokenResponse> = await this.axiosInstance.post('/auth/facebook', body);
 
       const tokenData = response.data;

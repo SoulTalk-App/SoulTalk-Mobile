@@ -51,17 +51,20 @@ interface AuthContextType {
     password: string;
     first_name: string;
     last_name: string;
+    // so-8nem: is_18_plus replaces date_of_birth (Apple 5.1.1(v) rejection).
+    is_18_plus: boolean;
+    country_code: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (data: ProfileUpdate) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   // Social auth methods
-  // so-piu2: optional dateOfBirth (ISO YYYY-MM-DD) for the social age-gate
-  // resubmit after the BE returns dob_required for a new social user.
-  loginWithGoogle: (idToken: string, dateOfBirth?: string) => Promise<void>;
-  loginWithFacebook: (accessToken: string, dateOfBirth?: string) => Promise<void>;
-  loginWithApple: (identityToken: string, fullName?: string | null, dateOfBirth?: string) => Promise<void>;
+  // so-8nem: optional is18Plus replaces dateOfBirth — sent on new-social-user
+  // confirmation (DobRequiredError resubmit) and on RegisterScreen (checkbox confirmed).
+  loginWithGoogle: (idToken: string, is18Plus?: boolean) => Promise<void>;
+  loginWithFacebook: (accessToken: string, is18Plus?: boolean) => Promise<void>;
+  loginWithApple: (identityToken: string, fullName?: string | null, is18Plus?: boolean) => Promise<void>;
   // Account linking
   linkGoogleAccount: (idToken: string) => Promise<void>;
   linkFacebookAccount: (accessToken: string) => Promise<void>;
@@ -221,8 +224,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string;
     first_name: string;
     last_name: string;
-    // so-cbhq / so-8544: required at signup (DOB ISO string + ISO alpha-2).
-    date_of_birth: string;
+    // so-8nem: is_18_plus replaces date_of_birth (Apple 5.1.1(v) rejection).
+    // BE accepts boolean; false / absent → 422 age_confirmation_required.
+    is_18_plus: boolean;
     country_code: string;
   }) => {
     try {
@@ -302,10 +306,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Social auth methods
-  const loginWithGoogle = useCallback(async (idToken: string, dateOfBirth?: string) => {
+  const loginWithGoogle = useCallback(async (idToken: string, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithGoogle(idToken, dateOfBirth);
+      await AuthService.loginWithGoogle(idToken, is18Plus);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -324,10 +328,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null, dateOfBirth?: string) => {
+  const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithApple(identityToken, fullName, dateOfBirth);
+      await AuthService.loginWithApple(identityToken, fullName, is18Plus);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -346,10 +350,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const loginWithFacebook = useCallback(async (accessToken: string, dateOfBirth?: string) => {
+  const loginWithFacebook = useCallback(async (accessToken: string, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithFacebook(accessToken, dateOfBirth);
+      await AuthService.loginWithFacebook(accessToken, is18Plus);
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
