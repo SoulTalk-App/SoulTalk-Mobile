@@ -23,17 +23,9 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
-import { DateOfBirthField, CountryPickerField } from '../features/signup/SignupAgeFields';
+import { CountryPickerField } from '../features/signup/SignupAgeFields';
 import { useSocialDobGate } from '../features/signup/useSocialDobGate';
 import { SocialDobStep } from '../features/signup/SocialDobStep';
-import {
-  dobPartsFromDate,
-  isValidDob,
-  isAtLeast18,
-  toIsoDate,
-  isUnder18Error,
-} from '../utils/ageGate';
-import { getDeclaredAgeIs18Plus } from '../utils/declaredAgeRange';
 
 
 
@@ -59,21 +51,19 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  // so-cbhq: age-gate + jurisdiction capture. countryCode is ISO 3166-1 alpha-2.
-  // dobError surfaces an invalid date inline; the under-18 decision routes to
-  // the neutral block screen.
-  // so-7yb8: dob is now a Date from the native wheel picker (was a masked string).
-  const [dob, setDob] = useState<Date | null>(null);
+  // so-8nem: is_18_plus affirmation checkbox replaces DOB date-picker
+  // (Apple 5.1.1(v) rejection). countryCode is ISO 3166-1 alpha-2.
+  const [is18Plus, setIs18Plus] = useState(false);
   const [countryCode, setCountryCode] = useState<string | null>(null);
-  const [dobError, setDobError] = useState<string | null>(null);
-  // so-piu2: social-signup DOB age-gate (dob_required → DOB step → resubmit →
-  // 18+ reject) extracted to a shared hook so LoginScreen reuses it verbatim.
+  // so-piu2: social-signup age-gate extracted to a shared hook so LoginScreen
+  // reuses it verbatim. is18PlusConfirmed lets the hook carry is_18_plus:true
+  // on the FIRST social attempt when the checkbox is already ticked.
   const {
     handleGoogleSignUp,
     handleFacebookSignUp,
     handleAppleSignUp,
     dobStep: socialDobStep,
-  } = useSocialDobGate(navigation, { clearSetupOnFirstAttempt: true });
+  } = useSocialDobGate(navigation, { clearSetupOnFirstAttempt: true, is18PlusConfirmed: is18Plus });
   // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
   // initialize true (the onboarding flow guarantees @terms_accepted=true
   // by the time we land here) but also hydrate from AsyncStorage on mount
@@ -490,47 +480,27 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       /(?=.*\d)/.test(password) &&
       /(?=.*[^a-zA-Z0-9])/.test(password);
 
-    // so-cbhq: DOB must be a real, in-range date and a country must be chosen.
-    // The 18+ decision is NOT gated here — an under-18 user with a VALID date
-    // can still tap Register so handleRegister can route them to the neutral
-    // block screen (rather than silently disabling the button).
-    const dobValid = dob != null && isValidDob(dobPartsFromDate(dob));
-
+    // so-8nem: is18Plus checkbox + countryCode replace the old DOB validity
+    // check. Button stays disabled until the user explicitly confirms age.
     return (
       firstName.trim() !== '' &&
       lastName.trim() !== '' &&
       emailRegex.test(email) &&
       passwordValid &&
       password === confirmPassword &&
-      dobValid &&
+      is18Plus &&
       countryCode != null &&
       agreedToTerms
     );
-  }, [formData, agreedToTerms, dob, countryCode]);
+  }, [formData, agreedToTerms, is18Plus, countryCode]);
 
   const handleRegister = async () => {
-    // so-cbhq: validate + age-gate before any network call.
-    const dobParts = dob ? dobPartsFromDate(dob) : null;
-    if (!dobParts || !isValidDob(dobParts)) {
-      setDobError('Please select a valid date of birth.');
-      return;
-    }
-    setDobError(null);
-    if (!countryCode) return;
+    // so-8nem: is18Plus checkbox is already required for isFormValid, so we
+    // can assert true here. Defensive guard covers any future code path.
+    if (!is18Plus || !countryCode) return;
 
     try {
       setIsLoading(true);
-
-      // Apple's Declared Age Range is the preferred 18+ signal where the
-      // native module is available (iOS 17+); otherwise fall back to the DOB
-      // the user entered. The backend (so-8544) re-checks DOB authoritatively.
-      const declared = await getDeclaredAgeIs18Plus();
-      const is18Plus = declared.available ? declared.isAtLeast18 : isAtLeast18(dobParts);
-      if (!is18Plus) {
-        navigation.navigate('UnderageBlock');
-        return;
-      }
-
       // Clear setup flag so the new account sees the welcome flow.
       await AsyncStorage.removeItem('@soultalk_setup_complete');
       await register({
@@ -538,20 +508,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         password: formData.password,
         first_name: formData.firstName,
         last_name: formData.lastName,
-        // so-8544: ISO date; backend computes is_18_plus then discards it.
-        date_of_birth: toIsoDate(dobParts),
+        // so-8nem: send is_18_plus:true (checkbox confirmed); BE returns 422
+        // age_confirmation_required if absent/false.
+        is_18_plus: true,
         country_code: countryCode,
       });
-
-      // Navigate to verification sent screen with email
+      // Navigate to verification screen with email.
       navigation.navigate('OTPVerification', { email: formData.email });
     } catch (error: any) {
-      // so-cbhq: backend hard-rejects under-18 (so-8544) with a neutral 400 —
-      // route to the same block screen rather than an error alert.
-      if (isUnder18Error(error?.message)) {
-        navigation.navigate('UnderageBlock');
-        return;
-      }
       showError(error, { title: 'Registration Failed' });
     } finally {
       setIsLoading(false);
@@ -585,9 +549,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   }, [agreedToTerms]);
 
   const handleSocialLogin = async (provider: string) => {
-    // Buttons are hidden when !agreedToTerms (so-jokw); guard kept as
+    // Buttons are hidden when !agreedToTerms || !is18Plus; guard kept as
     // a defensive no-op for safety.
-    if (!agreedToTerms) return;
+    if (!agreedToTerms || !is18Plus) return;
     if (provider === 'Google') {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
@@ -779,23 +743,33 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
             </View>
 
-            {/* so-cbhq: age-gate (DOB) + jurisdiction (country) capture.
-                so-7jzs: no wrapper gap/margin — each field carries the same
-                marginBottom:16 as the sibling inputs, so the rhythm matches. */}
-            <View>
-              <DateOfBirthField
-                value={dob}
-                onChange={(d) => {
-                  setDob(d);
-                  if (dobError) setDobError(null);
-                }}
-                error={dobError}
-              />
-              <CountryPickerField
-                selectedCode={countryCode}
-                onSelect={setCountryCode}
-              />
-            </View>
+            {/* so-8nem: country capture — ISO 3166-1 alpha-2.
+                so-7jzs: field carries marginBottom:16 to match sibling inputs. */}
+            <CountryPickerField
+              selectedCode={countryCode}
+              onSelect={setCountryCode}
+            />
+
+            {/* so-8nem: 18+ affirmation checkbox. Apple 5.1.1(v) replacement
+                for the required DOB date-picker. Mirrors the terms checkbox
+                row in style. Social buttons are also gated on this. */}
+            <Pressable
+              style={({ pressed }) => [styles.termsContainer, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+              onPress={() => setIs18Plus((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: is18Plus }}
+              accessibilityLabel="I am 18 or older"
+            >
+              <View style={[styles.checkbox, is18Plus && styles.checkboxChecked]}>
+                {is18Plus && <Ionicons name="checkmark" size={16} color={colors.white} />}
+              </View>
+              <Text style={styles.termsText}>
+                I am 18 or older{'\n'}
+                <Text style={{ fontSize: 12, color: colors.text.secondary }}>
+                  You must be 18 or older to use SoulTalk.
+                </Text>
+              </Text>
+            </Pressable>
 
             {/* so-jokw: Terms checkbox. Tap toggles in-place — no
                 navigation. Acceptance is normally pre-set by onboarding
@@ -835,10 +809,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               )}
             </Pressable>
 
-            {/* Social Login Section. so-jokw: entire block hidden when
-                terms unchecked — overseer wants the buttons to disappear,
-                not show as disabled. */}
-            {agreedToTerms && (
+            {/* Social Login Section. so-jokw: entire block hidden when terms
+                unchecked. so-8nem: also hidden until 18+ confirmed — the
+                social call must carry is_18_plus:true on first attempt. */}
+            {agreedToTerms && is18Plus && (
               <>
                 <View style={styles.dividerContainer}>
                   <View style={styles.divider} />
