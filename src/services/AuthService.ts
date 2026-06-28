@@ -61,6 +61,13 @@ interface UserInfo {
   timezone?: string | null;
   email_verified: boolean;
   providers: string[];  // ['google', 'facebook', 'email']
+  // so-etv4: server-side paywall entitlement fields from /auth/me. Declared
+  // here so a future DTO mapper or serializer change can't silently drop
+  // access_granted from the type. Read via EntitlementContext's tolerant
+  // readBool/readString/readInt helpers, never directly.
+  access_granted?: boolean | null;
+  trial_ends_at?: string | null;
+  days_left?: number | null;
 }
 
 interface ProfileUpdate {

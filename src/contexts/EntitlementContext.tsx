@@ -82,6 +82,16 @@ export interface EntitlementState {
   daysLeft: number | null;
   /** Re-pull the Adapty profile (server-validated). */
   refresh: () => Promise<void>;
+  /**
+   * so-etv4: true once the initial Adapty profile pull has completed
+   * for the current authenticated session. False before authentication
+   * settles or while the first pull is still in flight. The paywall
+   * gate in App.tsx uses this to distinguish "still loading — keep
+   * gate open" (accessGranted=null, sdkSettled=false) from "loaded but
+   * field absent — fail closed" (accessGranted=null, sdkSettled=true).
+   * Reset to false on logout.
+   */
+  sdkSettled: boolean;
 }
 
 const DEFAULT_STATE: EntitlementState = {
@@ -90,6 +100,7 @@ const DEFAULT_STATE: EntitlementState = {
   trialEndsAt: null,
   daysLeft: null,
   refresh: async () => {},
+  sdkSettled: false,
 };
 
 const EntitlementContext = createContext<EntitlementState>(DEFAULT_STATE);
@@ -135,6 +146,11 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
 }) => {
   const { user, isAuthenticated, refreshUser } = useAuth();
   const [profile, setProfile] = useState<AdaptyProfile | null>(null);
+  // so-etv4: flips to true once the first pullProfile() call for the current
+  // authenticated session has resolved. Reset to false on logout so the next
+  // session starts unsettled. The paywall gate reads this to distinguish
+  // "still loading" (open) from "loaded but access_granted absent" (closed).
+  const [sdkSettled, setSdkSettled] = useState(false);
 
   // Track the last user id we identified so we don't fire
   // adapty.identify() on every render where the user object identity
@@ -181,9 +197,15 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
 
   // Initial profile pull when authentication settles, even if the
   // user id hasn't changed (e.g. cold start with a stored session).
+  // so-etv4: setSdkSettled(true) once the pull resolves so App.tsx knows
+  // the loading window has passed and can fail-close on a null accessGranted.
+  // On logout, reset sdkSettled so the next session starts unsettled.
   useEffect(() => {
-    if (!isAuthenticated) return;
-    pullProfile();
+    if (!isAuthenticated) {
+      setSdkSettled(false);
+      return;
+    }
+    pullProfile().then(() => setSdkSettled(true));
   }, [isAuthenticated, pullProfile]);
 
   // Live SDK refresh listener. The SDK pushes a fresh profile on
@@ -233,6 +255,21 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
     [user],
   );
 
+  // so-etv4: alarm when access_granted is absent/non-boolean from /auth/me
+  // after the SDK has settled. This indicates a BE serializer regression or
+  // partial rollout that dropped the field. The gate in App.tsx will fail
+  // closed on this condition; this log is the observability hook for it.
+  // (Placed after accessGranted declaration to avoid temporal dead zone.)
+  useEffect(() => {
+    if (!sdkSettled || !isAuthenticated || !user) return;
+    if (accessGranted === null) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[entitlement] so-etv4: access_granted absent/non-boolean from /auth/me — paywall gate will fail closed',
+      );
+    }
+  }, [sdkSettled, isAuthenticated, user, accessGranted]);
+
   const value = useMemo<EntitlementState>(
     () => ({
       isPro,
@@ -240,8 +277,9 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
       trialEndsAt,
       daysLeft,
       refresh: pullProfile,
+      sdkSettled,
     }),
-    [isPro, accessGranted, trialEndsAt, daysLeft, pullProfile],
+    [isPro, accessGranted, trialEndsAt, daysLeft, pullProfile, sdkSettled],
   );
 
   return (

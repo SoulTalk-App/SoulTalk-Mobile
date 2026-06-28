@@ -22,6 +22,12 @@ interface UserInfo {
   timezone?: string | null;
   email_verified: boolean;
   providers: string[];
+  // so-etv4: server-side paywall entitlement fields from /auth/me. Mirrored
+  // from AuthService.UserInfo so the context type carries them; read via
+  // EntitlementContext's tolerant helpers, never directly here.
+  access_granted?: boolean | null;
+  trial_ends_at?: string | null;
+  days_left?: number | null;
 }
 
 interface ProfileUpdate {

@@ -25,7 +25,7 @@ import {
 
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { EntitlementProvider, useEntitlement } from "./src/contexts/EntitlementContext";
-import { activateAdapty } from "./src/services/adapty";
+import { activateAdapty, isAdaptyActive, getAdaptyActivationError } from "./src/services/adapty";
 import PaywallGateScreen from "./src/screens/PaywallGateScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
@@ -329,14 +329,29 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  // so-fwva: server-side access gate. accessGranted is the trial-
-  // clock + Pro authority (null while /auth/me hasn't landed; false
-  // when the trial is over and the user isn't Pro). isPro is the
-  // Adapty side; either trues out the gate. Default-open while
-  // accessGranted is null so we don't flash a paywall on cold-boot
-  // before /auth/me resolves.
-  const { isPro, accessGranted } = useEntitlement();
-  const accessLocked = accessGranted === false && !isPro;
+  // so-fwva: server-side access gate. accessGranted is the trial-clock
+  // + Pro authority (null while /auth/me hasn't landed; false when the
+  // trial is over and the user isn't Pro). isPro is the Adapty side;
+  // either trues out the gate.
+  //
+  // so-etv4: fail-closed fix. The original `=== false` guard left the
+  // gate open for null/undefined/non-boolean access_granted (e.g. a BE
+  // serializer regression drops the field entirely → everyone gets in).
+  // Once authenticated AND the Adapty SDK has settled (sdkSettled=true,
+  // meaning pullProfile() has completed and the loading window is over),
+  // treat null access_granted as false so the gate fails closed.
+  //
+  // FE-H2 SDK-inactive escape: Adapty is iOS-only this round. On Android
+  // (activationFailedReason='android-not-yet-supported') and on iOS with
+  // a missing/errored key, getAdaptyActivationError() is non-null. In
+  // those states isPro is always false, so failing closed on
+  // access_granted=null would present an undismissable gate. Keep the
+  // null-open behaviour when the SDK is not truly active.
+  const { isPro, accessGranted, sdkSettled } = useEntitlement();
+  const sdkActive = isAdaptyActive() && !getAdaptyActivationError();
+  const effectiveAccessGranted =
+    accessGranted === null && sdkSettled && sdkActive ? false : accessGranted;
+  const accessLocked = effectiveAccessGranted === false && !isPro;
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
