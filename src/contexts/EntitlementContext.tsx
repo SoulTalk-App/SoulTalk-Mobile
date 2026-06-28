@@ -109,12 +109,13 @@ export const useEntitlement = (): EntitlementState =>
   useContext(EntitlementContext);
 
 // Tolerant readers for the trial-window fields on the user object.
-// The current UserInfo type doesn't declare these because the
-// server-side contract (so-be trial endpoints) is paired work; we
-// read them defensively so the client compiles today and lights up
-// when the BE ships. snake_case mirrors the FastAPI convention used
-// across /auth/me; we also try a couple of camelCase fallbacks so a
-// future serialiser change doesn't silently break us.
+// so-etv4: access_granted is now a REQUIRED boolean on /auth/me (the BE
+// shipped it), so in normal operation readBool returns its value. The null
+// fallback is therefore an ABNORMAL signal — a missing/non-boolean field
+// means a contract regression or a stale cached user — which the gate treats
+// as fail-closed (see isAccessLocked), not as a routine "not yet shipped"
+// state. snake_case mirrors the FastAPI convention on /auth/me; the camelCase
+// fallback guards against a future serialiser change silently breaking us.
 const readBool = (u: any, ...keys: string[]): boolean | null => {
   for (const k of keys) {
     const v = u?.[k];
@@ -205,7 +206,17 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
       setSdkSettled(false);
       return;
     }
-    pullProfile().then(() => setSdkSettled(true));
+    // so-etv4 review (MAJOR-1): settle on BOTH success and failure. The prior
+    // `.then(() => setSdkSettled(true))` left sdkSettled=false for the whole
+    // session if the initial getAdaptyProfile() rejected (transient Adapty /
+    // network) — a fail-OPEN hole (the fail-closed gate never engages) plus an
+    // unhandled rejection. `.finally` makes "settled" mean "the initial attempt
+    // completed" (success or failure); the trailing `.catch` swallows the
+    // rejection so it is not unhandled. Settling-on-error is safe: the sdkActive
+    // guard in isAccessLocked keeps an inactive/errored SDK OPEN.
+    pullProfile()
+      .finally(() => setSdkSettled(true))
+      .catch(() => {});
   }, [isAuthenticated, pullProfile]);
 
   // Live SDK refresh listener. The SDK pushes a fresh profile on

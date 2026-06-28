@@ -26,6 +26,7 @@ import {
 import { AuthProvider, useAuth } from "./src/contexts/AuthContext";
 import { EntitlementProvider, useEntitlement } from "./src/contexts/EntitlementContext";
 import { activateAdapty, isAdaptyActive, getAdaptyActivationError } from "./src/services/adapty";
+import { isAccessLocked } from "./src/utils/accessGate";
 import PaywallGateScreen from "./src/screens/PaywallGateScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
@@ -347,11 +348,11 @@ const Navigation = () => {
   // those states isPro is always false, so failing closed on
   // access_granted=null would present an undismissable gate. Keep the
   // null-open behaviour when the SDK is not truly active.
+  // so-etv4: the gate truth table now lives in the pure isAccessLocked() helper
+  // (src/utils/accessGate.ts) so it's unit-testable in isolation.
   const { isPro, accessGranted, sdkSettled } = useEntitlement();
   const sdkActive = isAdaptyActive() && !getAdaptyActivationError();
-  const effectiveAccessGranted =
-    accessGranted === null && sdkSettled && sdkActive ? false : accessGranted;
-  const accessLocked = effectiveAccessGranted === false && !isPro;
+  const accessLocked = isAccessLocked({ accessGranted, sdkSettled, sdkActive, isPro });
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(
     null
   );
