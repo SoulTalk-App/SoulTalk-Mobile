@@ -451,8 +451,10 @@ export function AffirmationReveal({
               <RadialGradient id="mirror-top-glow" cx="50%" cy="100%" r="100%">
                 {/* centre of seam row (measured from dark idle video frame row 0) */}
                 <Stop offset="0%" stopColor="#3C1E61" stopOpacity={1} />
-                {/* horizontal-edge colour at seam row (50 vb units from centre) */}
-                <Stop offset="45%" stopColor="#2C1647" stopOpacity={1} />
+                {/* horizontal-edge colour at seam row: left/right screen edge is
+                    exactly 50 vb-units from centre (cx=50) with r=100, so 50% is
+                    the mathematically correct offset for #2C1647 at x=0 and x=100 */}
+                <Stop offset="50%" stopColor="#2C1647" stopOpacity={1} />
                 {/* sky / DARK_MIRROR_BG at outer reach */}
                 <Stop offset="100%" stopColor="#321A52" stopOpacity={1} />
               </RadialGradient>
@@ -619,13 +621,14 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     opacity: 0.50,
   },
   // so-0e5y: top-half radial-glow overlay (dark mode only).
+  // zIndex: 0 so stars (doc order above) and clouds (zIndex 2) render on top.
   topGlow: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: SCREEN_WIDTH,
     height: MIRROR_HEIGHT,
-    zIndex: 1,
+    zIndex: 0,
   },
   cloudsLayer: {
     ...StyleSheet.absoluteFillObject,
