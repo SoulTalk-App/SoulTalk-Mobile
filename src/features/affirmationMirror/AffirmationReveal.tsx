@@ -20,6 +20,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useThemeColors, fonts } from '../../theme';
 import AIGeneratedLabel from '../../components/AIGeneratedLabel';
 
@@ -432,6 +433,35 @@ export function AffirmationReveal({
         )}
       </Animated.View>
 
+      {/* so-0e5y: dark-mode radial glow to match the video's non-flat top edge.
+          The dark video has a radial glow from the mascot: center #3C1E61 (bright),
+          horizontal edges #2C1647 (dark). A flat sky colour can't match this; the
+          SVG RadialGradient centred at the BOTTOM-CENTRE of the top half (cx=50%
+          cy=100% = the seam line) reproduces the same radial luminance so the seam
+          disappears.  Rendered below stars + clouds; pointerEvents=none. */}
+      {isDarkMode && (
+        <View pointerEvents="none" style={styles.topGlow}>
+          <Svg
+            width={SCREEN_WIDTH}
+            height={MIRROR_HEIGHT}
+            preserveAspectRatio="none"
+            viewBox="0 0 100 100"
+          >
+            <Defs>
+              <RadialGradient id="mirror-top-glow" cx="50%" cy="100%" r="100%">
+                {/* centre of seam row (measured from dark idle video frame row 0) */}
+                <Stop offset="0%" stopColor="#3C1E61" stopOpacity={1} />
+                {/* horizontal-edge colour at seam row (50 vb units from centre) */}
+                <Stop offset="45%" stopColor="#2C1647" stopOpacity={1} />
+                {/* sky / DARK_MIRROR_BG at outer reach */}
+                <Stop offset="100%" stopColor="#321A52" stopOpacity={1} />
+              </RadialGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow)" />
+          </Svg>
+        </View>
+      )}
+
       {isDarkMode && (
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           {AFFIRM_STARS.map((s, i) => (
@@ -584,7 +614,18 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     zIndex: 2,
   },
   cloudsContainerDark: {
-    opacity: 0.35,
+    // so-0e5y: raised from 0.35 → 0.50 so the cloud layer helps blend the
+    // top half the same way it does in light mode.
+    opacity: 0.50,
+  },
+  // so-0e5y: top-half radial-glow overlay (dark mode only).
+  topGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: MIRROR_HEIGHT,
+    zIndex: 1,
   },
   cloudsLayer: {
     ...StyleSheet.absoluteFillObject,
