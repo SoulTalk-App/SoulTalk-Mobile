@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -45,14 +45,53 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   // so-1zn0: themed alert replaces native Alert.
   const { showAlert } = useAppAlert();
 
+  // so-ckkw: remote question-map from BE SSOT (so-rpof). On fetch success,
+  // `remoteCategoryMap` overlays local categories and `remoteVersion` drives
+  // the submission payload so the client is always in sync with the BE scorer.
+  // Both fall back to local hard-coded values if the fetch fails or is still
+  // in flight at submit time (v1 matches on both sides; graceful degradation).
+  const [remoteVersion, setRemoteVersion] = useState<string | null>(null);
+  const [remoteCategoryMap, setRemoteCategoryMap] = useState<Record<string, string> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    PersonalityService.getQuestionMap(testType)
+      .then((data) => {
+        if (!active) return;
+        setRemoteVersion(data.current_version);
+        setRemoteCategoryMap(data.question_map);
+      })
+      .catch(() => {
+        // Network/unavailable — silently fall back to local data.
+        if (__DEV__) {
+          // eslint-disable-next-line no-console
+          console.warn('[PersonalityQuestionScreen] question-map fetch failed; using local data');
+        }
+      });
+    return () => { active = false; };
+  }, [testType]);
+
+  // Merge remote categories (SSOT) into local question texts. Questions are
+  // ordered by local def; remote map overlays the category for each qid.
+  const questions = useMemo(() => {
+    if (!remoteCategoryMap) return def.questions;
+    return def.questions.map((q) => ({
+      ...q,
+      category: remoteCategoryMap[q.id] ?? q.category,
+    }));
+  }, [def.questions, remoteCategoryMap]);
+
+  // Version for submission: prefer remote SSOT, fall back to local.
+  const localVersion = def.version;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LikertValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const question = def.questions[currentIndex];
+  const question = questions[currentIndex];
   const selectedValue = answers[question.id];
-  const isLastQuestion = currentIndex === def.questions.length - 1;
-  const progress = (currentIndex + 1) / def.questions.length;
+  const isLastQuestion = currentIndex === questions.length - 1;
+  const progress = (currentIndex + 1) / questions.length;
 
   // Fade/slide animation when transitioning between questions
   const translateX = useSharedValue(0);
@@ -86,9 +125,12 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
     async (finalAnswers: Record<string, LikertValue>) => {
       setIsSubmitting(true);
       try {
+        // so-ckkw: use remote version if the question-map fetch already
+        // settled, otherwise fall back to the local hard-coded version.
+        const version = remoteVersion ?? localVersion;
         const result = await PersonalityService.submit({
           test_type: testType,
-          version: def.version,
+          version,
           answers: finalAnswers,
         });
         setResult(result);
@@ -103,7 +145,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
         });
       }
     },
-    [testType, def.version, navigation, setResult],
+    [testType, localVersion, remoteVersion, navigation, setResult],
   );
 
   const handleSelect = (value: LikertValue) => {
@@ -159,7 +201,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
               <Feather name="chevron-left" size={28} color="#FFFFFF" />
             </Pressable>
             <Text style={dk.progressText}>
-              {currentIndex + 1} of {def.questions.length}
+              {currentIndex + 1} of {questions.length}
             </Text>
             <Pressable onPress={handleExit} hitSlop={12}>
               <Text style={dk.exitText}>Exit</Text>
@@ -260,7 +302,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
             <Feather name="chevron-left" size={28} color="#3A0E66" />
           </Pressable>
           <Text style={lt.progressText}>
-            {currentIndex + 1} of {def.questions.length}
+            {currentIndex + 1} of {questions.length}
           </Text>
           <Pressable onPress={handleExit} hitSlop={12}>
             <Text style={lt.exitText}>Exit</Text>
