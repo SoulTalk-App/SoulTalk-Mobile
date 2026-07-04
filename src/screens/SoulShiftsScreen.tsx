@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import {
@@ -90,12 +91,37 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   // so the marker fires once per id even if the modal re-opens.
   const shownSuggestionIdsRef = React.useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    SoulShiftsService.list()
-      .then(setShifts)
-      .catch((err) => surfaceError('List fetch error', err))
-      .finally(() => setIsLoading(false));
-  }, []);
+  // so-sh1y SH-m4: was a mount-only useEffect([]) — the so-72fx fix applied
+  // to SoulSignalsScreen was not applied here. Converting a pattern via
+  // Signals->Shifts and navigating to an already-mounted Shifts tab left the
+  // new shift absent until remount. useFocusEffect refetches on every focus;
+  // hasLoadedRef keeps the full-screen loader to the FIRST load only so
+  // subsequent silent refreshes avoid a loader flash. The `active` flag drops
+  // any in-flight result if the screen blurs first.
+  const hasLoadedRef = React.useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      SoulShiftsService.list()
+        .then((data) => {
+          if (!active) return;
+          setShifts(data);
+        })
+        .catch((err) => {
+          if (!active) return;
+          surfaceError('List fetch error', err);
+        })
+        .finally(() => {
+          if (active && !hasLoadedRef.current) {
+            hasLoadedRef.current = true;
+            setIsLoading(false);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const handleShiftPress = (id: string) => {
     setSelectedId(id);
