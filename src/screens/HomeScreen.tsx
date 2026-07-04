@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Rect, Line } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -169,6 +170,18 @@ const HomeScreen = ({ navigation }: any) => {
           ...cosmicTextShadow,
         },
         settingsBtn: {
+          flexShrink: 0,
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: 'rgba(255, 255, 255, 0.10)',
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.18)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        // so-nv2g CR-m3: Help one tap from Home (dark mode variant)
+        helpBtn: {
           flexShrink: 0,
           width: 38,
           height: 38,
@@ -566,6 +579,18 @@ const HomeScreen = ({ navigation }: any) => {
           letterSpacing: -0.2,
         },
         settingsBtn: {
+          flexShrink: 0,
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          borderWidth: 1,
+          borderColor: 'rgba(79, 23, 134, 0.10)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        // so-nv2g CR-m3: Help one tap from Home (light mode variant)
+        helpBtn: {
           flexShrink: 0,
           width: 38,
           height: 38,
@@ -1096,6 +1121,15 @@ const HomeScreen = ({ navigation }: any) => {
                     /auth/me yet). Tappable — opens the paywall. */}
                 <TrialBanner style={{ marginTop: 6 }} />
               </View>
+              {/* so-nv2g CR-m3: Help one tap from Home — dark mode */}
+              <Pressable
+                style={dk.helpBtn}
+                onPress={() => navigation.navigate('Help')}
+                accessibilityLabel="Help and crisis resources"
+                accessibilityRole="button"
+              >
+                <Ionicons name="heart-outline" size={20} color="#fff" />
+              </Pressable>
               <Pressable
                 style={dk.settingsBtn}
                 onPress={() => navigation.navigate('Settings')}
@@ -1375,6 +1409,15 @@ const HomeScreen = ({ navigation }: any) => {
                   Adapty via useEntitlement. */}
               <TrialBanner style={{ marginTop: 6 }} />
             </View>
+            {/* so-nv2g CR-m3: Help one tap from Home — light mode */}
+            <Pressable
+              style={lt.helpBtn}
+              onPress={() => navigation.navigate('Help')}
+              accessibilityLabel="Help and crisis resources"
+              accessibilityRole="button"
+            >
+              <Ionicons name="heart-outline" size={20} color="#4F1786" />
+            </Pressable>
             <Pressable
               style={lt.settingsBtn}
               onPress={() => navigation.navigate('Settings')}
