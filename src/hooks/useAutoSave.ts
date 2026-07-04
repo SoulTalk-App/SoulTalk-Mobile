@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { Mood } from '../services/JournalService';
-import { useJournal } from '../contexts/JournalContext';
+import { useJournalActions } from '../contexts/JournalContext';
 
 interface UseAutoSaveOptions {
   text: string;
@@ -19,10 +19,10 @@ export const useAutoSave = ({
   intervalMs = 30000,
   enabled = true,
 }: UseAutoSaveOptions) => {
-  // so-l304 F3: route saveDraft through useJournalActions so mood-only
-  // edits don't trigger a re-render of the composing screen via the full
-  // journal state context.
-  const { saveDraft } = useJournal();
+  // so-l304 F3 / so-l2ij: route saveDraft through useJournalActions so
+  // mood-only edits don't trigger a re-render of the composing screen via
+  // the full journal state context.
+  const { saveDraft } = useJournalActions();
   const lastSavedTextRef = useRef<string>('');
   // so-l304 F3: track last-persisted mood alongside text. Without this,
   // a mood-only edit (text unchanged) fails the dirty check and is never
