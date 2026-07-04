@@ -35,6 +35,76 @@ const CONTACT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   web: 'globe-outline',
 };
 
+// so-nv2g: hardcoded international fallback list — SAFETY-CRITICAL.
+// HelpScreen MUST always render real tappable hotline numbers even when
+// fully offline, the API is down, or the user is unverified (401/403).
+// This list is the floor; the server list only ENRICHES it (replaces
+// this fallback when the fetch succeeds with ≥1 resource).
+// Sources: IASP (https://www.iasp.info/resources/Crisis_Centres/),
+// SAMHSA (988lifeline.org), Crisis Text Line, Samaritans, CAMH, Lifeline AU.
+const FALLBACK_CRISIS_RESOURCES: CrisisResource[] = [
+  {
+    id: 'fallback-us-988',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'US 988 Suicide & Crisis Lifeline',
+    contact_type: 'call_text',
+    contact_value: '988',
+    description: 'Call or text 988 — free, 24/7 (United States)',
+    display_order: 1,
+  },
+  {
+    id: 'fallback-us-ctl',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Crisis Text Line',
+    contact_type: 'text',
+    contact_value: '741741',
+    description: 'Text HOME to 741741 — free, 24/7 (United States)',
+    display_order: 2,
+  },
+  {
+    id: 'fallback-uk-samaritans',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Samaritans',
+    contact_type: 'call',
+    contact_value: '116123',
+    description: 'Call 116 123 — free, 24/7 (UK & Ireland)',
+    display_order: 3,
+  },
+  {
+    id: 'fallback-ca-988',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Canada Suicide Crisis Helpline',
+    contact_type: 'call_text',
+    contact_value: '988',
+    description: 'Call or text 988 — free, 24/7 (Canada)',
+    display_order: 4,
+  },
+  {
+    id: 'fallback-au-lifeline',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Lifeline Australia',
+    contact_type: 'call',
+    contact_value: '131114',
+    description: 'Call 13 11 14 — free, 24/7 (Australia)',
+    display_order: 5,
+  },
+  {
+    id: 'fallback-iasp',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Find a Helpline (IASP)',
+    contact_type: 'web',
+    contact_value: 'https://findahelpline.com/i/iasp',
+    description: 'International directory of crisis centres',
+    display_order: 6,
+  },
+];
+
 const HelpScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
@@ -43,11 +113,16 @@ const HelpScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // so-nv2g: server list only ENRICHES — fallback is the floor.
+    // On any error (offline, 401, 5xx) OR an empty server response,
+    // render the hardcoded international list so a person in crisis
+    // always sees real tappable numbers, not a blank screen.
     JournalService.getCrisisResources()
       .then((data) => {
-        setResources(data.resources || []);
+        const serverList = data.resources || [];
+        setResources(serverList.length > 0 ? serverList : FALLBACK_CRISIS_RESOURCES);
       })
-      .catch(() => setResources([]))
+      .catch(() => setResources(FALLBACK_CRISIS_RESOURCES))
       .finally(() => setLoading(false));
   }, []);
 
@@ -274,11 +349,17 @@ const HelpScreen = ({ navigation }: any) => {
               </View>
             )}
 
-            {/* No resources fallback */}
+            {/* No resources fallback — should not be reached since
+                the fetch always falls back to FALLBACK_CRISIS_RESOURCES,
+                but kept as a last safety net. */}
             {resources.length === 0 && (
               <View style={styles.section}>
                 <Text style={styles.fallbackText}>
-                  If you are in immediate danger, please call your local emergency services.
+                  If you are in immediate danger, call your local emergency services.{'\n\n'}
+                  US/Canada: call or text 988{'\n'}
+                  UK: call 116 123 (Samaritans){'\n'}
+                  Australia: call 13 11 14 (Lifeline){'\n'}
+                  International: findahelpline.com
                 </Text>
               </View>
             )}
