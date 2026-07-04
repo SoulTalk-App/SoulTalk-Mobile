@@ -27,7 +27,9 @@ interface PendingFinalize {
   attempts: number;
 }
 
-interface JournalContextType {
+// so-l304 F2: split volatile state from stable action API so components
+// that only call actions never re-render on entry/gamification changes.
+interface JournalStateType {
   entries: JournalEntry[];
   isLoading: boolean;
   currentEntry: JournalEntry | null;
@@ -35,6 +37,9 @@ interface JournalContextType {
   streak: StreakResponse | null;
   soulBar: SoulBarResponse | null;
   hasEntryToday: boolean;
+}
+
+interface JournalActionsType {
   fetchEntries: (params?: ListEntriesParams) => Promise<void>;
   createEntry: (rawText: string, mood?: Mood, isDraft?: boolean) => Promise<JournalEntry>;
   updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
@@ -43,6 +48,10 @@ interface JournalContextType {
   refreshEntries: () => Promise<void>;
   fetchStreak: () => Promise<void>;
   fetchSoulBar: () => Promise<void>;
+  // so-l304 F1: debounced wrapper — coalesces rapid paired calls into one
+  // parallel fetch pair. Multiple call sites firing within 50ms share a
+  // single streak+soulBar round-trip instead of issuing N separate pairs.
+  fetchGamification: () => void;
   saveDraft: (text: string, mood?: Mood, draftId?: string) => Promise<JournalEntry>;
   finalizeDraft: (draftId: string, text: string, mood?: Mood) => Promise<JournalEntry>;
   // so-hl09: persist a failed finalize so the next launch can retry it.
@@ -50,15 +59,40 @@ interface JournalContextType {
   persistPendingFinalize: (draftId: string, text: string, mood?: Mood) => Promise<void>;
 }
 
-const JournalContext = createContext<JournalContextType | undefined>(undefined);
+// Backward-compat combined type — useJournal() still satisfies this.
+type JournalContextType = JournalStateType & JournalActionsType;
 
-export const useJournal = () => {
-  const context = useContext(JournalContext);
-  if (context === undefined) {
-    throw new Error('useJournal must be used within a JournalProvider');
+// so-l304 F2: two contexts — actions context is stable (never re-creates
+// at list scale), state context re-creates whenever entries/streak change.
+const JournalStateContext = createContext<JournalStateType | undefined>(undefined);
+const JournalActionsContext = createContext<JournalActionsType | undefined>(undefined);
+
+// useJournalState — subscribe to volatile state only (entries, streak, …).
+export const useJournalState = () => {
+  const ctx = useContext(JournalStateContext);
+  if (ctx === undefined) {
+    throw new Error('useJournalState must be used within a JournalProvider');
   }
-  return context;
+  return ctx;
 };
+
+// useJournalActions — subscribe to stable action API only. Components that
+// only call actions (saveDraft, createEntry, …) will not re-render when
+// entries or gamification state changes.
+export const useJournalActions = () => {
+  const ctx = useContext(JournalActionsContext);
+  if (ctx === undefined) {
+    throw new Error('useJournalActions must be used within a JournalProvider');
+  }
+  return ctx;
+};
+
+// useJournal — backward-compat combined hook. Existing consumers keep
+// working unchanged; they still re-render on any state change.
+export const useJournal = (): JournalContextType => ({
+  ...useJournalState(),
+  ...useJournalActions(),
+});
 
 interface JournalProviderProps {
   children: ReactNode;
@@ -166,11 +200,26 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     }
   }, []);
 
+  // so-l304 F1: debounced gamification refresh — coalesces rapid paired
+  // fetchStreak+fetchSoulBar calls from multiple mutation sites within a
+  // 50ms window into a single parallel request pair. Replaces the
+  // `fetchStreak(); fetchSoulBar();` pattern at every internal call site.
+  // External callers that need only one (e.g. HomeScreen→fetchSoulBar)
+  // continue to call the individual functions directly.
+  const gamificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchGamification = useCallback(() => {
+    if (gamificationTimerRef.current) clearTimeout(gamificationTimerRef.current);
+    gamificationTimerRef.current = setTimeout(() => {
+      gamificationTimerRef.current = null;
+      fetchStreak();
+      fetchSoulBar();
+    }, 50);
+  }, [fetchStreak, fetchSoulBar]);
+
   // Fetch streak and soulBar on mount
   useEffect(() => {
-    fetchStreak();
-    fetchSoulBar();
-  }, [fetchStreak, fetchSoulBar]);
+    fetchGamification();
+  }, [fetchGamification]);
 
   // so-hl09: persist + retry finalize intent. If finalizeDraft fails
   // mid-PUT (network drop, app backgrounded), the draftId/text/mood
@@ -227,8 +276,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
           await AsyncStorage.removeItem(key);
           // Re-fetch streak + soulBar in case the BE awarded points on
           // the retried finalize.
-          fetchStreak();
-          fetchSoulBar();
+          fetchGamification();
         } catch (err: any) {
           const status = err?.response?.status;
           if (status === 409) {
@@ -251,7 +299,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     return () => {
       cancelled = true;
     };
-  }, [user?.id, fetchStreak, fetchSoulBar]);
+  }, [user?.id, fetchGamification]);
 
   const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false) => {
     const entry = await JournalService.createEntry(rawText, mood, isDraft);
@@ -260,11 +308,10 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       setEntries((prev) => [entry, ...prev]);
       setTotal((prev) => prev + 1);
       // Re-fetch streak and soulBar after non-draft creation
-      fetchStreak();
-      fetchSoulBar();
+      fetchGamification();
     }
     return entry;
-  }, [fetchStreak, fetchSoulBar]);
+  }, [fetchGamification]);
 
   const updateEntry = useCallback(async (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => {
     const updated = await JournalService.updateEntry(id, data);
@@ -285,14 +332,13 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       if (!exists) {
         setTotal((prev) => prev + 1);
       }
-      fetchStreak();
-      fetchSoulBar();
+      fetchGamification();
     } else {
       setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
     }
     if (currentEntry?.id === id) setCurrentEntry(updated);
     return updated;
-  }, [currentEntry, fetchStreak, fetchSoulBar]);
+  }, [currentEntry, fetchGamification]);
 
   const deleteEntry = useCallback(async (id: string) => {
     await JournalService.deleteEntry(id);
@@ -304,9 +350,8 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     // the request-id guard above keeps a concurrent older fetch from
     // overwriting the new value. Pre-fix the bar stayed stale (visibly
     // too high) until the next Home focus.
-    fetchStreak();
-    fetchSoulBar();
-  }, [currentEntry, fetchStreak, fetchSoulBar]);
+    fetchGamification();
+  }, [currentEntry, fetchGamification]);
 
   const saveDraft = useCallback(async (text: string, mood?: Mood, draftId?: string) => {
     if (draftId) {
@@ -350,10 +395,9 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     if (!exists) {
       setTotal((prev) => prev + 1);
     }
-    fetchStreak();
-    fetchSoulBar();
+    fetchGamification();
     return updated;
-  }, [fetchStreak, fetchSoulBar]);
+  }, [fetchGamification]);
 
   // so-j2h9: compare against the user's local IANA day, not UTC. The BE
   // (so-byw) computes has_entry_today against users.timezone; an FE that
@@ -375,8 +419,10 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     );
   }, [entries, user?.timezone]);
 
-  // so-2lcs: memoize — see AuthContext value memo for rationale.
-  const value: JournalContextType = useMemo(
+  // so-l304 F2: volatile state memo — re-creates whenever entries, streak,
+  // or other display state changes. Components subscribed via useJournalState
+  // re-render on this; those using useJournalActions do not.
+  const stateValue: JournalStateType = useMemo(
     () => ({
       entries,
       isLoading,
@@ -385,6 +431,15 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       streak,
       soulBar,
       hasEntryToday,
+    }),
+    [entries, isLoading, currentEntry, total, streak, soulBar, hasEntryToday],
+  );
+
+  // so-l304 F2: stable actions memo — only re-creates if a callback
+  // changes identity. All callbacks are useCallback with stable deps,
+  // so in practice this memo value is stable across entry mutations.
+  const actionsValue: JournalActionsType = useMemo(
+    () => ({
       fetchEntries,
       createEntry,
       updateEntry,
@@ -393,18 +448,12 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       refreshEntries,
       fetchStreak,
       fetchSoulBar,
+      fetchGamification,
       saveDraft,
       finalizeDraft,
       persistPendingFinalize,
     }),
     [
-      entries,
-      isLoading,
-      currentEntry,
-      total,
-      streak,
-      soulBar,
-      hasEntryToday,
       fetchEntries,
       createEntry,
       updateEntry,
@@ -412,11 +461,18 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       refreshEntries,
       fetchStreak,
       fetchSoulBar,
+      fetchGamification,
       saveDraft,
       finalizeDraft,
       persistPendingFinalize,
     ],
   );
 
-  return <JournalContext.Provider value={value}>{children}</JournalContext.Provider>;
+  return (
+    <JournalActionsContext.Provider value={actionsValue}>
+      <JournalStateContext.Provider value={stateValue}>
+        {children}
+      </JournalStateContext.Provider>
+    </JournalActionsContext.Provider>
+  );
 };

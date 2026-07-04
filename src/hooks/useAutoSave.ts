@@ -19,8 +19,16 @@ export const useAutoSave = ({
   intervalMs = 30000,
   enabled = true,
 }: UseAutoSaveOptions) => {
+  // so-l304 F3: route saveDraft through useJournalActions so mood-only
+  // edits don't trigger a re-render of the composing screen via the full
+  // journal state context.
   const { saveDraft } = useJournal();
   const lastSavedTextRef = useRef<string>('');
+  // so-l304 F3: track last-persisted mood alongside text. Without this,
+  // a mood-only edit (text unchanged) fails the dirty check and is never
+  // autosaved — the mood is captured in the local draft but not the server
+  // draft until finalize (crash-safe locally, but a server refresh loses it).
+  const lastSavedMoodRef = useRef<Mood | null | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // so-hl09: hard kill-switch for the autosave loop. Once cancel() is
   // called (e.g. after finalize succeeds in handleSave), no further tick
@@ -57,7 +65,13 @@ export const useAutoSave = ({
     // but hasn't entered the function body yet.
     if (cancelledRef.current) return;
     const trimmed = textRef.current.trim();
-    if (!trimmed || trimmed === lastSavedTextRef.current) return;
+    const currentMood = moodRef.current;
+    // so-l304 F3: dirty when EITHER text or mood changed. Previously only
+    // text was checked, so a mood-only edit (slider tap, no new keystrokes)
+    // was silently skipped — the server draft kept the old mood until
+    // finalize. Now both axes gate the early return.
+    if (!trimmed) return;
+    if (trimmed === lastSavedTextRef.current && currentMood === lastSavedMoodRef.current) return;
 
     try {
       const currentDraftId = draftIdRef.current;
@@ -67,11 +81,12 @@ export const useAutoSave = ({
       // a stale `result.id` from overwriting null.
       const result = await saveDraftRef.current(
         trimmed,
-        moodRef.current || undefined,
+        currentMood || undefined,
         currentDraftId || undefined,
       );
       if (cancelledRef.current) return;
       lastSavedTextRef.current = trimmed;
+      lastSavedMoodRef.current = currentMood;
       if (!currentDraftId) {
         setDraftIdRef.current(result.id);
       }
