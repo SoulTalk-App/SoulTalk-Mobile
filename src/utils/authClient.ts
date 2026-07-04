@@ -294,8 +294,15 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
       // data.code as a fallback in case the shape is ever flattened.
       const subscriptionCode =
         error?.response?.data?.detail?.code ?? error?.response?.data?.code;
+      // so-sh1y S-m5/AM-m4: HTTP 403 with code='subscription_required' is the
+      // same premium gate as 402 but returned from already-open screens when
+      // the trial expires mid-session (the nav-layer accessLocked gate only
+      // updates on /auth/me refresh, so a 403 can land before the gate
+      // re-evaluates). Treat it identically: present the Adapty paywall, retry
+      // once on unlock. Falls through to the generic reject if the code doesn't
+      // match (i.e. a real auth 403), keeping non-paywall 403 behaviour intact.
       if (
-        error?.response?.status === 402 &&
+        (error?.response?.status === 402 || error?.response?.status === 403) &&
         subscriptionCode === 'subscription_required' &&
         originalRequest &&
         !originalRequest._paywallRetry
