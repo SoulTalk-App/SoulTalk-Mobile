@@ -231,10 +231,12 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
           fetchSoulBar();
         } catch (err: any) {
           const status = err?.response?.status;
-          if (status === 409) {
+          if (status === 409 || status === 404) {
             // so-z961: BE rejects published->draft AND treats a finalize
             // on an already-finalized entry as a 409. Either way, the
             // intent is satisfied — drop it.
+            // so-j6ea: 404 means the entry no longer exists on the BE
+            // (deleted or never persisted) — retrying is pointless; drop.
             await AsyncStorage.removeItem(key);
             return;
           }

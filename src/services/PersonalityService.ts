@@ -21,6 +21,14 @@ export interface SubmitPayload {
   answers: Record<string, number>;
 }
 
+// so-ckkw: shape returned by GET /personality/question-map (so-rpof BE SSOT).
+export interface QuestionMapResponse {
+  test_type: string;
+  version: string;
+  current_version: string;
+  question_map: Record<string, string>; // qid → category
+}
+
 class PersonalityService {
   private axiosInstance;
 
@@ -61,6 +69,15 @@ class PersonalityService {
   async getById(resultId: string): Promise<PersonalityTestResult> {
     const response = await this.axiosInstance.get(`/personality/result/${resultId}`);
     return response.data;
+  }
+
+  // so-ckkw: fetch canonical qid→category map + current version from the BE
+  // SSOT (so-rpof). Callers fall back to local data on rejection.
+  async getQuestionMap(testType: TestType): Promise<QuestionMapResponse> {
+    const response = await this.axiosInstance.get('/personality/question-map', {
+      params: { test_type: testType },
+    });
+    return response.data as QuestionMapResponse;
   }
 }
 
