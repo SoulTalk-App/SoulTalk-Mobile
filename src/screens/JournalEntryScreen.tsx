@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { fonts, useThemeColors } from '../theme';
 import { useJournal } from '../contexts/JournalContext';
+import { useWS } from '../contexts/WebSocketContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPalName } from '../contexts/SoulPalContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
@@ -195,6 +196,65 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   // (same crash class as so-3i78). Uses the so-pw5d useMountedRef primitive.
   const mountedRef = useMountedRef();
 
+  const { subscribe } = useWS();
+
+  // so-43yw: incremental streaming render. streamingText is null when no
+  // stream is active for this entry; an empty string while waiting for the
+  // first token; a growing string as response_token events arrive.
+  // Rendered once length > 0 so the transition from the inline loader is
+  // seamless (no flash of empty content between stream_start and token 1).
+  const [streamingText, setStreamingText] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubStart = subscribe('response_stream_start', (data: any) => {
+      if (data.entry_id !== entryId) return;
+      setStreamingText('');
+    });
+    const unsubToken = subscribe('response_token', (data: any) => {
+      if (data.entry_id !== entryId) return;
+      const delta: string = data.delta ?? '';
+      if (!delta) return; // dispatch: empty delta → ignore
+      setStreamingText((prev) => (prev !== null ? prev + delta : delta));
+    });
+    const unsubEnd = subscribe('response_stream_end', (data: any) => {
+      if (data.entry_id !== entryId) return;
+      const { response_text, mode, tags_summary } = data;
+      setStreamingText(null);
+      // Reconcile local entry to the authoritative full text immediately —
+      // no need to wait for journal_ai_complete or the 5s poll tick.
+      if (mountedRef.current) {
+        setEntry((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ai_processing_status: 'complete',
+            ai_response: response_text
+              ? { text: response_text, mode: mode ?? null }
+              : prev.ai_response,
+            tags: tags_summary ? {
+              ...prev.tags,
+              emotion_primary: tags_summary.emotion_primary ?? null,
+              nervous_system_state: tags_summary.nervous_system_state ?? null,
+              crisis_flag: tags_summary.crisis_flag ?? false,
+            } as any : prev.tags,
+          };
+        });
+      }
+    });
+    const unsubError = subscribe('response_stream_error', (data: any) => {
+      if (data.entry_id !== entryId) return;
+      // Exit streaming mode; existing 5s poll takes over and surfaces the
+      // failure state via ai_processing_status once the BE settles.
+      setStreamingText(null);
+    });
+    return () => {
+      unsubStart();
+      unsubToken();
+      unsubEnd();
+      unsubError();
+    };
+  }, [entryId, subscribe, mountedRef]);
+
   // so-uba4: track AI-refresh surfacing — set when the detail poll runs
   // into a failed status OR times out (MAX_POLL_ATTEMPTS). Render a
   // non-blocking inline "Couldn't refresh insight — tap to retry" so the
@@ -371,6 +431,27 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
 
   // ── Shared content helpers ──
   const renderAiSection = () => {
+    // so-43yw: streaming branch — show incremental text once the first
+    // token has arrived (length > 0). While streamingText === '' (stream
+    // started but no tokens yet) we fall through to the existing loader so
+    // there's no flash of empty content. On response_stream_end,
+    // streamingText is set back to null and the entry is reconciled to
+    // 'complete', so the normal complete branch renders from then on.
+    if (streamingText !== null && streamingText.length > 0) {
+      return (
+        <>
+          <View style={isDarkMode ? dk.aiLabelRow : lt.aiLabelRow}>
+            {isDarkMode && <SoulPalAnimated size={32} animate={true} />}
+            <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
+            <AIGeneratedLabel size="compact" tone="auto" style={{ marginLeft: 8 }} />
+          </View>
+          <Text style={isDarkMode ? dk.aiText : lt.aiText}>
+            {streamingText.replace(/\*+/g, '')}
+          </Text>
+        </>
+      );
+    }
+
     // so-uba4: error surfacing takes precedence over the optimistic
     // 'complete' branch — otherwise a stale ai_response from before an
     // edit would render as the current report even though we know the
