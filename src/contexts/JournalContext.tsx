@@ -122,27 +122,62 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
 
   // Subscribe to AI processing completion events
   useEffect(() => {
-    const unsubscribe = subscribe('journal_ai_complete', (data: any) => {
-      const { entry_id, ai_processing_status, response_text, mode, tags_summary } = data;
-      const update = (entry: JournalEntry): JournalEntry => {
-        if (entry.id !== entry_id) return entry;
-        return {
-          ...entry,
-          ai_processing_status: ai_processing_status ?? entry.ai_processing_status,
-          ai_response: response_text ? { text: response_text, mode: mode ?? null } : entry.ai_response,
-          tags: tags_summary ? {
-            ...entry.tags,
-            emotion_primary: tags_summary.emotion_primary ?? null,
-            nervous_system_state: tags_summary.nervous_system_state ?? null,
-            crisis_flag: tags_summary.crisis_flag ?? false,
-          } as any : entry.tags,
-        };
+    // Shared updater: apply response_text / mode / tags_summary to a single entry.
+    // `forceComplete` is true for response_stream_end (which carries no
+    // ai_processing_status field); false for journal_ai_complete (which does).
+    const applyAiUpdate = (
+      entry: JournalEntry,
+      entry_id: string,
+      ai_processing_status: string | undefined,
+      response_text: string | undefined,
+      mode: string | undefined,
+      tags_summary: any,
+      forceComplete: boolean,
+    ): JournalEntry => {
+      if (entry.id !== entry_id) return entry;
+      return {
+        ...entry,
+        ai_processing_status: forceComplete
+          ? 'complete'
+          : (ai_processing_status ?? entry.ai_processing_status),
+        ai_response: response_text
+          ? { text: response_text, mode: mode ?? null }
+          : entry.ai_response,
+        tags: tags_summary ? {
+          ...entry.tags,
+          emotion_primary: tags_summary.emotion_primary ?? null,
+          nervous_system_state: tags_summary.nervous_system_state ?? null,
+          crisis_flag: tags_summary.crisis_flag ?? false,
+        } as any : entry.tags,
       };
+    };
 
+    const unsubComplete = subscribe('journal_ai_complete', (data: any) => {
+      const { entry_id, ai_processing_status, response_text, mode, tags_summary } = data;
+      const update = (e: JournalEntry) =>
+        applyAiUpdate(e, entry_id, ai_processing_status, response_text, mode, tags_summary, false);
       setEntries((prev) => prev.map(update));
       setCurrentEntry((prev) => (prev && prev.id === entry_id ? update(prev) : prev));
     });
-    return unsubscribe;
+
+    // so-43yw: reconcile entries to the authoritative full text on
+    // response_stream_end — this lands before journal_ai_complete (which
+    // waits for the DB write) so the list and detail screens settle early.
+    // JournalEntryScreen also reconciles its local entry copy directly, but
+    // this ensures the context-wide entries list is consistent for any other
+    // consumer (HomeScreen has-entry-today check, JournalScreen list, etc.).
+    const unsubStreamEnd = subscribe('response_stream_end', (data: any) => {
+      const { entry_id, response_text, mode, tags_summary } = data;
+      const update = (e: JournalEntry) =>
+        applyAiUpdate(e, entry_id, undefined, response_text, mode, tags_summary, true);
+      setEntries((prev) => prev.map(update));
+      setCurrentEntry((prev) => (prev && prev.id === entry_id ? update(prev) : prev));
+    });
+
+    return () => {
+      unsubComplete();
+      unsubStreamEnd();
+    };
   }, [subscribe]);
 
   const fetchEntries = useCallback(async (params?: ListEntriesParams) => {
