@@ -31,6 +31,9 @@ type Props = {
   onBack?: () => void;
   isArchived?: boolean;
   isArchiving?: boolean;
+  // so-nmqq: lazy-load state for deferred signal/shift extraction.
+  signalsLoading?: boolean;
+  signalsFailed?: boolean;
 };
 
 export function SightsB({
@@ -45,6 +48,8 @@ export function SightsB({
   onBack,
   isArchived,
   isArchiving,
+  signalsLoading,
+  signalsFailed,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -139,6 +144,8 @@ export function SightsB({
               onShare={onShare}
               isArchived={isArchived}
               isArchiving={isArchiving}
+              signalsLoading={signalsLoading}
+              signalsFailed={signalsFailed}
             />
           </>
         )}

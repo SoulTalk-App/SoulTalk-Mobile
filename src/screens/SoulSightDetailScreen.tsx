@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Share,
@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useWS } from '../contexts/WebSocketContext';
 import { useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, { SoulsightDetail } from '../services/SoulSightService';
@@ -112,6 +113,14 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
   const [isLoading, setIsLoading] = useState(true);
   const [archivedAt, setArchivedAt] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
+  // so-nmqq: null = waiting for soulsight_signals_ready event (extraction in
+  // progress); non-null = extraction done, flags tell us which parts succeeded.
+  const [signalsReady, setSignalsReady] = useState<{ signals_ok: boolean; shifts_ok: boolean } | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!soulsightId) {
@@ -127,6 +136,28 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
       .finally(() => setIsLoading(false));
   }, [soulsightId]);
 
+  // so-nmqq: listen for deferred signal/shift extraction completion. When the
+  // BE finishes asyncio.gather(_extract_shifts, _extract_signals) it publishes
+  // soulsight_signals_ready with {soulsight_id, signals_ok, shifts_ok}. If
+  // signals_ok, re-fetch the detail so signals_summary is populated. The
+  // integration is dark until so-h3ez (be_api relay) deploys — no-op until
+  // then, but the subscription is in place and costs nothing.
+  const { subscribe } = useWS();
+  useEffect(() => {
+    if (!soulsightId) return;
+    const unsub = subscribe('soulsight_signals_ready', (data: any) => {
+      if (data.soulsight_id !== soulsightId) return;
+      const { signals_ok, shifts_ok } = data;
+      setSignalsReady({ signals_ok, shifts_ok });
+      if (signals_ok) {
+        SoulSightService.getById(soulsightId)
+          .then((d) => { if (mountedRef.current) setDetail(d); })
+          .catch(() => {});
+      }
+    });
+    return unsub;
+  }, [soulsightId, subscribe]);
+
   const status = useMemo(
     () => deriveStatus(detail, displayStatusOverride),
     [detail, displayStatusOverride],
@@ -135,6 +166,13 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
     () => (detail ? buildSightDetail(detail) : undefined),
     [detail],
   );
+
+  // so-nmqq: skeleton is shown when the report is done but signals_summary is
+  // still empty (extraction in flight) and the event hasn't arrived yet.
+  // Past SoulSights always have signals_summary populated — they never see this
+  // state. The failed case shows a non-alarming empty-state note instead.
+  const signalsLoading = status === 'done' && signalsReady === null && !(detail?.signals_summary?.length);
+  const signalsFailed = signalsReady !== null && !signalsReady.signals_ok;
 
   const handleShare = async () => {
     if (!sight) return;
@@ -198,6 +236,8 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           onBack={() => navigation.goBack()}
           isArchived={!!archivedAt}
           isArchiving={isArchiving}
+          signalsLoading={signalsLoading}
+          signalsFailed={signalsFailed}
         />
       )}
     </CosmicScreen>

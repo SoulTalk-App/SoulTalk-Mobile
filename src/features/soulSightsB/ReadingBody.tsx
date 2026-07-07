@@ -24,6 +24,9 @@ type Props = {
   onShare?: () => void;
   isArchived?: boolean;
   isArchiving?: boolean;
+  // so-nmqq: lazy-load state for deferred signal extraction.
+  signalsLoading?: boolean;
+  signalsFailed?: boolean;
 };
 
 export function ReadingBody({
@@ -35,6 +38,8 @@ export function ReadingBody({
   onShare,
   isArchived = false,
   isArchiving = false,
+  signalsLoading = false,
+  signalsFailed = false,
 }: Props) {
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
@@ -110,36 +115,90 @@ export function ReadingBody({
         </View>
       ) : null}
 
-      {includeSignals && sight.signals_summary.length > 0 ? (
+      {includeSignals && (signalsLoading || signalsFailed || sight.signals_summary.length > 0) ? (
         <View style={styles.signalsBlock}>
           <Text style={[styles.sectionLabel, { color: accent, marginBottom: 10 }]}>
             Signals {soulPalName} noticed
           </Text>
-          <View style={styles.signalsList}>
-            {sight.signals_summary.map((s, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.signalRow,
-                  {
-                    backgroundColor: surfaceBg(theme),
-                    borderColor: surfaceBorder(theme),
-                  },
-                ]}
-              >
+          {signalsLoading ? (
+            // so-nmqq: skeleton rows while deferred signal extraction is in
+            // progress. Three bars at staggered widths give a natural reading
+            // rhythm so the section doesn't feel frozen or empty.
+            <View style={styles.signalsList}>
+              {[76, 88, 62].map((pct, i) => (
                 <View
+                  key={i}
                   style={[
-                    styles.signalDot,
+                    styles.signalRow,
                     {
-                      backgroundColor: accent,
-                      shadowColor: accent,
+                      backgroundColor: surfaceBg(theme),
+                      borderColor: surfaceBorder(theme),
                     },
                   ]}
-                />
-                <Text style={[styles.signalText, { color: ink(theme) }]}>{s}</Text>
-              </View>
-            ))}
-          </View>
+                >
+                  <View
+                    style={[
+                      styles.signalDot,
+                      { backgroundColor: accent, shadowColor: accent },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.skeletonBar,
+                      {
+                        width: `${pct}%`,
+                        backgroundColor: isDark
+                          ? 'rgba(255,255,255,0.10)'
+                          : 'rgba(58,14,102,0.08)',
+                      },
+                    ]}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : signalsFailed ? (
+            // so-nmqq: extraction-failure empty-state. Non-alarming: the report
+            // content is valid; only the signal tagging step had an issue.
+            <View
+              style={[
+                styles.signalRow,
+                {
+                  backgroundColor: surfaceBg(theme),
+                  borderColor: surfaceBorder(theme),
+                },
+              ]}
+            >
+              <Text style={[styles.signalText, { color: inkSub(theme) }]}>
+                Signals couldn't be extracted this time.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.signalsList}>
+              {sight.signals_summary.map((s, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.signalRow,
+                    {
+                      backgroundColor: surfaceBg(theme),
+                      borderColor: surfaceBorder(theme),
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.signalDot,
+                      {
+                        backgroundColor: accent,
+                        shadowColor: accent,
+                      },
+                    ]}
+                  />
+                  <Text style={[styles.signalText, { color: ink(theme) }]}>{s}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       ) : null}
 
@@ -259,6 +318,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.light,
     fontSize: 13,
     lineHeight: 13 * 1.4,
+  },
+  // so-nmqq: skeleton bar placeholder for a signal row while extraction runs.
+  skeletonBar: {
+    height: 12,
+    borderRadius: 6,
+    flex: 1,
   },
   actions: {
     marginTop: 26,
