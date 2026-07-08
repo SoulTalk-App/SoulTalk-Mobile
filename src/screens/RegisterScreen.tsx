@@ -65,15 +65,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     handleAppleSignUp,
     dobStep: socialDobStep,
   } = useSocialDobGate(navigation, { clearSetupOnFirstAttempt: true, is18PlusConfirmed: is18Plus });
-  // so-jokw: TOS is now an explicit slide-5 acceptance in onboarding. We
-  // initialize true (the onboarding flow guarantees @terms_accepted=true
-  // by the time we land here) but also hydrate from AsyncStorage on mount
-  // for safety — covers users who reach Register via deep-link or fall
-  // through some path that skipped onboarding.
-  // so-xllj #10: default to false and hydrate from AsyncStorage on mount.
-  // Defaulting true exposed a sub-frame window where the consent-gated
-  // buttons read as accepted before hydration landed.
+  // so-kefw: terms checkbox default=false. Tapping navigates to the full
+  // TermsScreen (Terms & Privacy). When the user taps Accept there, it
+  // sets @terms_accepted='true' and calls goBack(). A focus listener below
+  // re-hydrates this state on return so the checkbox reflects acceptance.
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  // so-kefw: password hint (i) toggle — hidden by default.
+  const [showPasswordHints, setShowPasswordHints] = useState(false);
+  // so-kefw: newsletter opt-in — NOT required, GDPR explicit-consent.
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   // Ref to track latest password for cross-field validation during rapid autofill
   const passwordRef = useRef('');
@@ -114,10 +114,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     isLoading: isAppleLoading,
   } = useAppleAuth();
 
-  // so-9o1o: checkbox MUST start unchecked (no hydration from prior session).
-  // Checking it writes @terms_accepted='true' so PostSignupConsentScreen can
-  // detect signup-path users and skip the TOC step (formal recording via
-  // acceptTerms() happens there, silently, before the 2-step wizard).
+  // so-kefw: re-hydrate agreedToTerms when we return from TermsScreen (which
+  // sets @terms_accepted='true' on Accept then calls goBack()). Using the
+  // navigation focus listener so it fires on every return, not just mount.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      try {
+        const stored = await AsyncStorage.getItem('@terms_accepted');
+        setAgreedToTerms(stored === 'true');
+      } catch {}
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const styles = useMemo(
     () =>
@@ -138,12 +146,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           justifyContent: 'center',
           alignItems: 'center',
         },
-        headerTitle: {
-          fontFamily: fonts.edensor.bold,
-          fontSize: 26,
-          // Light path: page-bg ink for AA on the so-u1k lavender wash.
-          color: isDarkMode ? colors.white : colors.text.primary,
-        },
+        // so-kefw: headerTitle removed (SoulTalk band removed, back chevron kept).
         contentContainer: {
           flex: 1,
           backgroundColor: colors.background,
@@ -225,24 +228,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           right: 12,
           padding: 4,
         },
-        passwordRequirements: {
-          marginBottom: 16,
-          padding: 16,
-          backgroundColor: colors.overlay,
-          borderRadius: 12,
-        },
-        requirementsTitle: {
-          fontFamily: fonts.outfit.semiBold,
-          fontSize: 16,
-          color: colors.primary,
-          marginBottom: 8,
-        },
-        requirement: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 14,
-          color: colors.text.secondary,
-          marginBottom: 4,
-        },
+        // so-kefw: passwordRequirements/requirementsTitle/requirement styles
+        // replaced by hintsBlock/hintsTitle/hintsItem (collapsible toggle).
         termsContainer: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -272,6 +259,38 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           fontFamily: fonts.outfit.semiBold,
           color: '#2196F3',
           textDecorationLine: 'underline',
+        },
+        // so-kefw: password (i) hint toggle
+        hintsToggleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+          marginTop: -4,
+        },
+        hintsToggleText: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          color: colors.text.secondary,
+          marginLeft: 6,
+        },
+        hintsBlock: {
+          marginBottom: 16,
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+          backgroundColor: colors.overlay,
+          borderRadius: 10,
+        },
+        hintsTitle: {
+          fontFamily: fonts.outfit.semiBold,
+          fontSize: 13,
+          color: colors.primary,
+          marginBottom: 6,
+        },
+        hintsItem: {
+          fontFamily: fonts.outfit.regular,
+          fontSize: 13,
+          color: colors.text.secondary,
+          marginBottom: 3,
         },
         registerButton: {
           backgroundColor: colors.primary,
@@ -509,6 +528,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         // so-8nem: send is_18_plus:true (checkbox confirmed); BE returns 422
         // age_confirmation_required if absent/false.
         is_18_plus: true,
+        // so-kefw: explicit opt-in; GDPR/CAN-SPAM compliant (default=false).
+        newsletter_opt_in: newsletterOptIn,
         ...(detectedRegion ? { country_code: detectedRegion } : {}),
       });
       // Navigate to verification screen with email.
@@ -530,22 +551,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Welcome');
   };
 
-  // so-9o1o: handleTermsRowPress writes @terms_accepted to AsyncStorage so
-  // PostSignupConsentScreen knows this user pre-accepted terms via the sign-up
-  // flow. On that detection it silently calls acceptTerms() and shows only the
-  // AI consent + note steps (skipping TOC). OAuth users signing in via
-  // LoginScreen have no checkbox and therefore no flag, so they see full TOC.
+  // so-kefw: tapping the terms row when unchecked opens the full TermsScreen
+  // (Terms & Privacy tabbed viewer). TermsScreen.handleAccept sets
+  // @terms_accepted='true' + goBack(); the focus listener above picks that up.
+  // Tapping when already checked unchecks locally (user changed their mind).
   const handleTermsRowPress = useCallback(async () => {
-    const next = !agreedToTerms;
-    setAgreedToTerms(next);
-    try {
-      if (next) {
-        await AsyncStorage.setItem('@terms_accepted', 'true');
-      } else {
-        await AsyncStorage.removeItem('@terms_accepted');
-      }
-    } catch {}
-  }, [agreedToTerms]);
+    if (!agreedToTerms) {
+      navigation.navigate('Terms');
+    } else {
+      setAgreedToTerms(false);
+      try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
+    }
+  }, [agreedToTerms, navigation]);
 
   const handleSocialLogin = async (provider: string) => {
     // Buttons are hidden when !agreedToTerms || !is18Plus; guard kept as
@@ -562,7 +579,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   return (
     <CosmicScreen tone="night">
-      {/* Purple Header */}
+      {/* so-kefw: header band removed; back chevron kept. */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable
           style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
@@ -573,8 +590,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         >
           <Feather name="chevron-left" size={28} color={colors.white} />
         </Pressable>
-        <Text style={styles.headerTitle}>SoulTalk</Text>
-        <View style={styles.backButton} />
       </View>
 
       {/* Content Area */}
@@ -732,15 +747,32 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             </View>
             {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
 
-            {/* Password Requirements */}
-            <View style={styles.passwordRequirements}>
-              <Text style={styles.requirementsTitle}>Password must contain:</Text>
-              <Text style={styles.requirement}>• At least 8 characters</Text>
-              <Text style={styles.requirement}>• One uppercase letter</Text>
-              <Text style={styles.requirement}>• One lowercase letter</Text>
-              <Text style={styles.requirement}>• One number</Text>
-              <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
-            </View>
+            {/* so-kefw: Password requirements collapsed behind an (i) toggle */}
+            <Pressable
+              style={({ pressed }) => [styles.hintsToggleRow, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+              onPress={() => setShowPasswordHints((v) => !v)}
+              hitSlop={TOUCH_HITSLOP_SMALL}
+              accessibilityRole="button"
+              accessibilityLabel="Show password requirements"
+              accessibilityState={{ expanded: showPasswordHints }}
+            >
+              <Ionicons
+                name={showPasswordHints ? 'information-circle' : 'information-circle-outline'}
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.hintsToggleText}>Password requirements</Text>
+            </Pressable>
+            {showPasswordHints && (
+              <View style={styles.hintsBlock}>
+                <Text style={styles.hintsTitle}>Password must contain:</Text>
+                <Text style={styles.hintsItem}>• At least 8 characters</Text>
+                <Text style={styles.hintsItem}>• One uppercase letter</Text>
+                <Text style={styles.hintsItem}>• One lowercase letter</Text>
+                <Text style={styles.hintsItem}>• One number</Text>
+                <Text style={styles.hintsItem}>• One special character (e.g. !@#$%^&*)</Text>
+              </View>
+            )}
 
             {/* so-8nem: 18+ affirmation checkbox.
                 so-rl2u: CountryPickerField removed — country_code now
@@ -765,23 +797,38 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               </Text>
             </Pressable>
 
-            {/* so-jokw: Terms checkbox. Tap toggles in-place — no
-                navigation. Acceptance is normally pre-set by onboarding
-                slide 5; users who unchecked can re-check here without
-                leaving the screen. Sign Up + social buttons gate on
-                this state. */}
+            {/* so-kefw: Terms row. Tapping when unchecked opens the full Terms &
+                Privacy screen (TermsScreen). Tapping when checked unchecks.
+                The focus listener re-hydrates agreedToTerms when returning. */}
             <Pressable
               style={({ pressed }) => [styles.termsContainer, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
               onPress={handleTermsRowPress}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: agreedToTerms }}
-              accessibilityLabel="I agree to the Terms and Privacy"
+              accessibilityLabel={agreedToTerms ? 'Agreed to Terms and Privacy — tap to uncheck' : 'Read and agree to Terms and Privacy'}
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
                 {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
               </View>
               <Text style={styles.termsText}>
-                I agree to the Terms and Privacy
+                I agree to the{' '}
+                <Text style={styles.termsLink}>Terms & Privacy</Text>
+              </Text>
+            </Pressable>
+
+            {/* so-kefw: Newsletter opt-in — explicit, GDPR/CAN-SPAM. */}
+            <Pressable
+              style={({ pressed }) => [styles.termsContainer, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+              onPress={() => setNewsletterOptIn((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: newsletterOptIn }}
+              accessibilityLabel="Subscribe to newsletter"
+            >
+              <View style={[styles.checkbox, newsletterOptIn && styles.checkboxChecked]}>
+                {newsletterOptIn && <Ionicons name="checkmark" size={16} color={colors.white} />}
+              </View>
+              <Text style={styles.termsText}>
+                Send me tips and updates (optional)
               </Text>
             </Pressable>
 
