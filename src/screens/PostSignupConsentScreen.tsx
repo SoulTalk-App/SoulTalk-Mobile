@@ -98,7 +98,11 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
         }
         setTermsVersion(status.current_version);
         if (localFlag === 'true') {
-          // Signup-path user: silently record acceptance, show 2-step wizard.
+          // so-r2ts: consume the flag immediately — a stale flag from an
+          // abandoned RegisterScreen session must not let a later OAuth-signin
+          // user on the same device bypass the TOC (cross-session bypass).
+          AsyncStorage.removeItem('@terms_accepted').catch(() => {});
+          // Silently record acceptance to the backend, then show 2-step wizard.
           AuthService.acceptTerms(status.current_version, new Date().toISOString()).catch(() => {});
           setShowTOC(false);
         } else {

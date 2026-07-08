@@ -279,7 +279,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       setUser(null);
       setIsAuthenticated(false);
-      await AsyncStorage.removeItem('user_logged_in');
+      // so-r2ts: clear @terms_accepted alongside user_logged_in so a signup
+      // checkbox flag can never survive into a new auth session and let a
+      // subsequent OAuth-signin user bypass the TOC.
+      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       await AuthService.logout();
@@ -287,7 +290,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
       setUser(null);
       setIsAuthenticated(false);
-      await AsyncStorage.removeItem('user_logged_in');
+      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
     }
@@ -506,7 +509,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
-      await AsyncStorage.removeItem('user_logged_in');
+      // so-r2ts: mirror logout()'s @terms_accepted clear.
+      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       setIsLoading(false);
