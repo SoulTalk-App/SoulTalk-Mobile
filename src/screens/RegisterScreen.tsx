@@ -22,8 +22,8 @@ import { useAppleAuth } from '../hooks/useAppleAuth';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { getLocales } from 'expo-localization';
 import { TOUCH_HITSLOP_SMALL, TOUCH_HITSLOP_MED, TOUCH_PRESS_OPACITY } from '../components/touchPrimitives';
-import { CountryPickerField } from '../features/signup/SignupAgeFields';
 import { useSocialDobGate } from '../features/signup/useSocialDobGate';
 import { SocialDobStep } from '../features/signup/SocialDobStep';
 
@@ -52,9 +52,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // so-8nem: is_18_plus affirmation checkbox replaces DOB date-picker
-  // (Apple 5.1.1(v) rejection). countryCode is ISO 3166-1 alpha-2.
+  // (Apple 5.1.1(v) rejection).
+  // so-rl2u: countryCode manual picker removed — auto-detected at submit time
+  // via expo-localization getLocales()[0].regionCode.
   const [is18Plus, setIs18Plus] = useState(false);
-  const [countryCode, setCountryCode] = useState<string | null>(null);
   // so-piu2: social-signup age-gate extracted to a shared hook so LoginScreen
   // reuses it verbatim. is18PlusConfirmed lets the hook carry is_18_plus:true
   // on the FIRST social attempt when the checkbox is already ticked.
@@ -476,8 +477,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       /(?=.*\d)/.test(password) &&
       /(?=.*[^a-zA-Z0-9])/.test(password);
 
-    // so-8nem: is18Plus checkbox + countryCode replace the old DOB validity
-    // check. Button stays disabled until the user explicitly confirms age.
+    // so-8nem: is18Plus checkbox required. so-rl2u: countryCode removed from
+    // validity gate — country auto-detected at submit, optional per so-ddxf.
     return (
       firstName.trim() !== '' &&
       lastName.trim() !== '' &&
@@ -485,15 +486,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       passwordValid &&
       password === confirmPassword &&
       is18Plus &&
-      countryCode != null &&
       agreedToTerms
     );
-  }, [formData, agreedToTerms, is18Plus, countryCode]);
+  }, [formData, agreedToTerms, is18Plus]);
 
   const handleRegister = async () => {
-    // so-8nem: is18Plus checkbox is already required for isFormValid, so we
-    // can assert true here. Defensive guard covers any future code path.
-    if (!is18Plus || !countryCode) return;
+    // so-8nem: is18Plus required for isFormValid — defensive guard.
+    if (!is18Plus) return;
+    // so-rl2u: auto-detect country from device locale at submit time.
+    // Omit if unavailable — backend (so-ddxf) accepts country_code as optional.
+    const detectedRegion = getLocales()?.[0]?.regionCode ?? undefined;
 
     try {
       setIsLoading(true);
@@ -507,7 +509,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         // so-8nem: send is_18_plus:true (checkbox confirmed); BE returns 422
         // age_confirmation_required if absent/false.
         is_18_plus: true,
-        country_code: countryCode,
+        ...(detectedRegion ? { country_code: detectedRegion } : {}),
       });
       // Navigate to verification screen with email.
       navigation.navigate('OTPVerification', { email: formData.email });
@@ -730,14 +732,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               <Text style={styles.requirement}>• One special character (e.g. !@#$%^&*)</Text>
             </View>
 
-            {/* so-8nem: country capture — ISO 3166-1 alpha-2.
-                so-7jzs: field carries marginBottom:16 to match sibling inputs. */}
-            <CountryPickerField
-              selectedCode={countryCode}
-              onSelect={setCountryCode}
-            />
-
-            {/* so-8nem: 18+ affirmation checkbox. Apple 5.1.1(v) replacement
+            {/* so-8nem: 18+ affirmation checkbox.
+                so-rl2u: CountryPickerField removed — country_code now
+                auto-detected from device locale at submit time. Apple 5.1.1(v) replacement
                 for the required DOB date-picker. Mirrors the terms checkbox
                 row in style. Social buttons are also gated on this. */}
             <Pressable
