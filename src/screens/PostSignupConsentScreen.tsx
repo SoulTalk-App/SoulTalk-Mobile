@@ -16,20 +16,30 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import AuthService from '../services/AuthService';
 import { privacyPolicy, termsOfService } from '../mocks/content';
 
-// so-ei55: Post-signup consent wizard. Replaces onboarding slides 5/6/7
-// (AI consent, note-from-AI, TOC) which are now shown after authentication
-// so acceptance can be persisted to the backend immediately (compliance).
+// so-9o1o: Post-signup consent wizard (updated for three-rule compliance model).
 //
-// Steps:
-//   0 — AI consent ("A note on AI")
-//   1 — Note from AI ("Not a substitute for care")
-//   2 — Terms & Privacy (tabbed Privacy Policy / Terms of Service)
+// THREE RULES:
+//   1. RegisterScreen keeps the Terms checkbox (unchecked, gates submit) and
+//      writes @terms_accepted='true' to AsyncStorage on check.
+//   2. THIS SCREEN is a universal post-auth gate (server-driven via
+//      getTermsStatus). It also reads @terms_accepted to detect signup-path
+//      users who already accepted.
+//   3. LoginScreen has NO Terms checkbox — OAuth users signing in are caught
+//      by this screen's universal gate.
 //
-// On mount: getTermsStatus(). If !acceptance_required (existing accepted
-// user who somehow landed here), skip straight to WelcomeSplash.
-// On "I Accept" (step 2): acceptTerms(current_version, isoNow) persists
-// to /auth/terms-accept, then AsyncStorage.setItem('@terms_accepted'),
-// then navigate('WelcomeSplash').
+// Steps (provider-aware):
+//   Email / OAuth-via-signup (local @terms_accepted flag present):
+//     → silently call acceptTerms() fire-and-forget, then 2 steps:
+//     0 — AI consent ("A note on AI")
+//     1 — Note from AI ("Not a substitute for care") → WelcomeSplash
+//
+//   OAuth-via-signin (no local flag, acceptance_required=true on server):
+//     → 3 steps:
+//     0 — AI consent
+//     1 — Note from AI
+//     2 — Terms & Privacy (tabbed; I Accept → acceptTerms() → WelcomeSplash)
+//
+//   Returning user (acceptance_required=false): skip entire wizard → WelcomeSplash.
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -64,23 +74,46 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   const [tocBusy, setTocBusy] = useState(false);
   const [tocError, setTocError] = useState<string | null>(null);
 
-  // Mount: check if acceptance is still required. If the user already
-  // accepted (e.g. social login on a device that completed onboarding),
-  // skip the wizard entirely.
+  // null = still loading; false = signup path (2 steps, no TOC); true = signin OAuth (3 steps with TOC)
+  const [showTOC, setShowTOC] = useState<boolean | null>(null);
+
+  // Mount: check server status + local pre-acceptance flag in parallel.
+  //   - acceptance_required=false → already accepted, skip wizard.
+  //   - acceptance_required=true + @terms_accepted flag → user checked the box
+  //     on RegisterScreen (email or OAuth-signup); silently record acceptance
+  //     and show 2-step wizard (AI consent + note only, no TOC re-prompt).
+  //   - acceptance_required=true + no flag → OAuth-from-signin; show full 3-step
+  //     wizard so they see and accept the Terms & Privacy.
   useEffect(() => {
     let cancelled = false;
-    AuthService.getTermsStatus()
-      .then((status) => {
+    Promise.all([
+      AuthService.getTermsStatus(),
+      AsyncStorage.getItem('@terms_accepted'),
+    ])
+      .then(([status, localFlag]) => {
         if (cancelled) return;
         if (!status.acceptance_required) {
-          // Already accepted — go straight to name screens.
           navigation.replace('WelcomeSplash');
+          return;
+        }
+        setTermsVersion(status.current_version);
+        if (localFlag === 'true') {
+          // so-r2ts: consume the flag immediately — a stale flag from an
+          // abandoned RegisterScreen session must not let a later OAuth-signin
+          // user on the same device bypass the TOC (cross-session bypass).
+          AsyncStorage.removeItem('@terms_accepted').catch(() => {});
+          // Silently record acceptance to the backend, then show 2-step wizard.
+          AuthService.acceptTerms(status.current_version, new Date().toISOString()).catch(() => {});
+          setShowTOC(false);
         } else {
-          setTermsVersion(status.current_version);
+          // OAuth-from-signin: must read and accept Terms in this wizard.
+          setShowTOC(true);
         }
       })
       .catch(() => {
-        // Network error: let the user proceed; the TOC step will re-check.
+        if (cancelled) return;
+        // Network error: fall through to full 3-step (conservative).
+        setShowTOC(true);
       });
     return () => { cancelled = true; };
   }, []);
@@ -98,8 +131,12 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const handleNoteAck = useCallback(() => {
-    setStep(2);
-  }, []);
+    if (showTOC) {
+      setStep(2);
+    } else {
+      navigation.replace('WelcomeSplash');
+    }
+  }, [showTOC, navigation]);
 
   const handleAcceptTOC = useCallback(async () => {
     if (tocBusy) return;
@@ -294,11 +331,22 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const renderStep = () => {
+    // Loading: waiting for getTermsStatus() + AsyncStorage to resolve.
+    if (showTOC === null) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#C47ADB" />
+        </View>
+      );
+    }
+
+    const totalSteps = showTOC ? 3 : 2;
+
     // ── Step 0: AI consent ──
     if (step === 0) {
       return (
         <>
-          <Text style={styles.stepLabel}>Step 1 of 3</Text>
+          <Text style={styles.stepLabel}>Step 1 of {totalSteps}</Text>
           <View style={styles.titleRow}>
             <Text style={styles.titleStart}>A note on </Text>
             <Text style={styles.titleHighlight}>AI</Text>
@@ -324,7 +372,7 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
     if (step === 1) {
       return (
         <>
-          <Text style={styles.stepLabel}>Step 2 of 3</Text>
+          <Text style={styles.stepLabel}>Step 2 of {totalSteps}</Text>
           <View style={styles.titleRow}>
             <Text style={styles.titleStart}>Not a substitute for </Text>
             <Text style={styles.titleHighlight}>care</Text>
@@ -396,6 +444,9 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderCTA = () => {
+    // No CTA while loading (spinner fills the content area).
+    if (showTOC === null) return null;
+
     if (step === 0) {
       return (
         <Pressable
@@ -415,7 +466,7 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.ctaButton, styles.ctaButtonPrimary]}
           onPress={handleNoteAck}
           accessibilityRole="button"
-          accessibilityLabel="Continue to Terms and Privacy"
+          accessibilityLabel={showTOC ? 'Continue to Terms and Privacy' : 'Get started'}
         >
           <Text style={[styles.ctaText, styles.ctaTextPrimary]}>Continue</Text>
         </Pressable>
