@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons, FontAwesome5 } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../contexts/AuthContext";
 import AuthService from "../services/AuthService";
 import { normalizeError } from "../utils/normalizeError";
@@ -45,27 +44,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  // so-jokw: TOS checkbox parity with RegisterScreen. Default FALSE — a
-  // user landing on Login directly (reinstall, deep link, never finished
-  // onboarding) must explicitly check the box. Acceptance writes the
-  // same @terms_accepted AsyncStorage key onboarding uses.
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem('@terms_accepted')
-      .then((value) => setAgreedToTerms(value === 'true'))
-      .catch(() => {});
-  }, []);
-
-  const handleTermsRowPress = useCallback(async () => {
-    if (agreedToTerms) {
-      setAgreedToTerms(false);
-      try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
-    } else {
-      setAgreedToTerms(true);
-      try { await AsyncStorage.setItem('@terms_accepted', 'true'); } catch {}
-    }
-  }, [agreedToTerms]);
 
   // Focus states
   const [emailFocused, setEmailFocused] = useState(false);
@@ -207,32 +185,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           alignSelf: "flex-end",
           marginBottom: 24,
         },
-        // so-jokw: TOS checkbox row, mirrors RegisterScreen pattern.
-        termsContainer: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginBottom: 24,
-          marginTop: 2,
-        },
-        checkbox: {
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          borderWidth: 2,
-          borderColor: colors.primary,
-          marginRight: 12,
-          justifyContent: 'center',
-          alignItems: 'center',
-        },
-        checkboxChecked: {
-          backgroundColor: colors.primary,
-        },
-        termsText: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 14,
-          color: colors.text.secondary,
-          flex: 1,
-        },
+
         forgotPasswordText: {
           fontFamily: fonts.outfit.medium,
           fontSize: 14,
@@ -495,9 +448,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleSocialLogin = async (provider: string) => {
-    // so-jokw: defensive guard — buttons are hidden when !agreedToTerms,
-    // so this should never fire unchecked.
-    if (!agreedToTerms) return;
     if (provider === 'Google') {
       await promptGoogleAsync();
     } else if (provider === 'Facebook') {
@@ -604,34 +554,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </Pressable>
 
-            {/* so-jokw: TOS checkbox + gating, parity with RegisterScreen.
-                Hydrated true on mount when @terms_accepted is set; default
-                FALSE for fresh installs landing here directly. */}
-            <Pressable
-              style={({ pressed }) => [styles.termsContainer, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
-              onPress={handleTermsRowPress}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: agreedToTerms }}
-              accessibilityLabel="I agree to the Terms and Privacy"
-            >
-              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
-              </View>
-              <Text style={styles.termsText}>
-                I agree to the Terms and Privacy
-              </Text>
-            </Pressable>
-
             <Pressable
               style={({ pressed }) => [
                 styles.loginButton,
-                (isLoading || !agreedToTerms) && styles.loginButtonDisabled,
-                pressed && !isLoading && agreedToTerms && { opacity: TOUCH_PRESS_OPACITY },
+                isLoading && styles.loginButtonDisabled,
+                pressed && !isLoading && { opacity: TOUCH_PRESS_OPACITY },
               ]}
               onPress={handleLogin}
-              disabled={isLoading || !agreedToTerms}
+              disabled={isLoading}
               accessibilityRole="button"
-              accessibilityState={{ disabled: isLoading || !agreedToTerms, busy: isLoading }}
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
             >
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
@@ -654,51 +586,47 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               </Pressable>
             )}
 
-            {/* Social Login Section. so-jokw: entire block hidden when
-                terms unchecked — overseer wants buttons to disappear, not
-                show as disabled. */}
-            {agreedToTerms && (
-              <>
-                <View style={styles.dividerContainer}>
-                  <View style={styles.divider} />
-                  <Text style={styles.dividerText}>or continue with</Text>
-                  <View style={styles.divider} />
-                </View>
+            {/* so-9o1o: social buttons always visible on sign-in — terms gate
+                removed. New OAuth users who never saw Terms are caught by
+                PostSignupConsentScreen's universal server-driven gate. */}
+            <View style={styles.dividerContainer}>
+              <View style={styles.divider} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.divider} />
+            </View>
 
-                <View style={styles.socialContainer}>
-                  <Pressable
-                    style={({ pressed }) => [styles.socialButton, styles.googleButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
-                    onPress={() => handleSocialLogin("Google")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign in with Google"
-                  >
-                    <FontAwesome5 name="google" size={22} color="#FFFFFF" />
-                  </Pressable>
+            <View style={styles.socialContainer}>
+              <Pressable
+                style={({ pressed }) => [styles.socialButton, styles.googleButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+                onPress={() => handleSocialLogin("Google")}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Google"
+              >
+                <FontAwesome5 name="google" size={22} color="#FFFFFF" />
+              </Pressable>
 
-                  <Pressable
-                    style={({ pressed }) => [styles.socialButton, styles.facebookButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
-                    onPress={() => handleSocialLogin("Facebook")}
-                    accessibilityRole="button"
-                    accessibilityLabel="Sign in with Facebook"
-                  >
-                    <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
-                  </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.socialButton, styles.facebookButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
+                onPress={() => handleSocialLogin("Facebook")}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Facebook"
+              >
+                <FontAwesome5 name="facebook-f" size={22} color="#FFFFFF" />
+              </Pressable>
 
-                  {isAppleAvailable && (
-                    <Pressable
-                      style={({ pressed }) => [styles.socialButton, styles.appleButton, pressed && !isAppleLoading && { opacity: TOUCH_PRESS_OPACITY }]}
-                      onPress={() => handleSocialLogin("Apple")}
-                      accessibilityRole="button"
-                      accessibilityLabel="Sign in with Apple"
-                      accessibilityState={{ disabled: isAppleLoading, busy: isAppleLoading }}
-                      disabled={isAppleLoading}
-                    >
-                      <FontAwesome5 name="apple" size={24} color={isDarkMode ? "#000000" : "#FFFFFF"} />
-                    </Pressable>
-                  )}
-                </View>
-              </>
-            )}
+              {isAppleAvailable && (
+                <Pressable
+                  style={({ pressed }) => [styles.socialButton, styles.appleButton, pressed && !isAppleLoading && { opacity: TOUCH_PRESS_OPACITY }]}
+                  onPress={() => handleSocialLogin("Apple")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign in with Apple"
+                  accessibilityState={{ disabled: isAppleLoading, busy: isAppleLoading }}
+                  disabled={isAppleLoading}
+                >
+                  <FontAwesome5 name="apple" size={24} color={isDarkMode ? "#000000" : "#FFFFFF"} />
+                </Pressable>
+              )}
+            </View>
           </View>
 
           <View style={styles.footer}>

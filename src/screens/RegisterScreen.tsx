@@ -114,10 +114,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     isLoading: isAppleLoading,
   } = useAppleAuth();
 
-  // so-ei55: @terms_accepted hydration removed. TOC is now accepted in the
-  // post-signup PostSignupConsentScreen AFTER auth. The checkbox on this
-  // screen is informational only and MUST start unchecked — do not
-  // auto-hydrate from a prior session value.
+  // so-9o1o: checkbox MUST start unchecked (no hydration from prior session).
+  // Checking it writes @terms_accepted='true' so PostSignupConsentScreen can
+  // detect signup-path users and skip the TOC step (formal recording via
+  // acceptTerms() happens there, silently, before the 2-step wizard).
 
   const styles = useMemo(
     () =>
@@ -530,12 +530,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Welcome');
   };
 
-  // so-ei55: handleTermsRowPress simplified. Formal TOC recording now happens
-  // in PostSignupConsentScreen (POST /auth/terms-accept). Here we only track
-  // local checkbox state for the sign-up gate — no AsyncStorage writes.
-  const handleTermsRowPress = useCallback(() => {
-    setAgreedToTerms((v) => !v);
-  }, []);
+  // so-9o1o: handleTermsRowPress writes @terms_accepted to AsyncStorage so
+  // PostSignupConsentScreen knows this user pre-accepted terms via the sign-up
+  // flow. On that detection it silently calls acceptTerms() and shows only the
+  // AI consent + note steps (skipping TOC). OAuth users signing in via
+  // LoginScreen have no checkbox and therefore no flag, so they see full TOC.
+  const handleTermsRowPress = useCallback(async () => {
+    const next = !agreedToTerms;
+    setAgreedToTerms(next);
+    try {
+      if (next) {
+        await AsyncStorage.setItem('@terms_accepted', 'true');
+      } else {
+        await AsyncStorage.removeItem('@terms_accepted');
+      }
+    } catch {}
+  }, [agreedToTerms]);
 
   const handleSocialLogin = async (provider: string) => {
     // Buttons are hidden when !agreedToTerms || !is18Plus; guard kept as
