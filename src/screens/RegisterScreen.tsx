@@ -113,14 +113,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     isLoading: isAppleLoading,
   } = useAppleAuth();
 
-  // so-jokw: hydrate consent from AsyncStorage on mount only. The user no
-  // longer navigates to a separate Terms screen and back, so per-focus
-  // re-reads are unnecessary (and were the source of so-37a races).
-  useEffect(() => {
-    AsyncStorage.getItem('@terms_accepted')
-      .then((value) => setAgreedToTerms(value === 'true'))
-      .catch(() => {});
-  }, []);
+  // so-ei55: @terms_accepted hydration removed. TOC is now accepted in the
+  // post-signup PostSignupConsentScreen AFTER auth. The checkbox on this
+  // screen is informational only and MUST start unchecked — do not
+  // auto-hydrate from a prior session value.
 
   const styles = useMemo(
     () =>
@@ -523,10 +519,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const handleSignIn = () => {
-    // so-ebsm: gate the Sign In footer link on terms acceptance, matching
-    // the Sign Up button + social buttons. Prevents users from sneaking
-    // around the consent gate by tapping through to Login.
-    if (!agreedToTerms) return;
+    // so-ei55: terms gate removed — Login is now directly reachable from
+    // WelcomeScreen, so the RegisterScreen Sign In link needs no consent check.
     navigation.navigate('Login');
   };
 
@@ -534,19 +528,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     navigation.navigate('Welcome');
   };
 
-  // so-jokw: tap toggles consent in-place. Terms content is no longer
-  // reachable from this screen (it lives on onboarding slide 5 and in
-  // Settings); unchecking here removes the AsyncStorage flag, re-checking
-  // restores it. Sign Up + social buttons gate on this state.
-  const handleTermsRowPress = useCallback(async () => {
-    if (agreedToTerms) {
-      setAgreedToTerms(false);
-      try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
-    } else {
-      setAgreedToTerms(true);
-      try { await AsyncStorage.setItem('@terms_accepted', 'true'); } catch {}
-    }
-  }, [agreedToTerms]);
+  // so-ei55: handleTermsRowPress simplified. Formal TOC recording now happens
+  // in PostSignupConsentScreen (POST /auth/terms-accept). Here we only track
+  // local checkbox state for the sign-up gate — no AsyncStorage writes.
+  const handleTermsRowPress = useCallback(() => {
+    setAgreedToTerms((v) => !v);
+  }, []);
 
   const handleSocialLogin = async (provider: string) => {
     // Buttons are hidden when !agreedToTerms || !is18Plus; guard kept as
@@ -860,7 +847,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             <Text style={styles.signinText}>
               Already have an account?{' '}
               <Text
-                style={[styles.signinLink, !agreedToTerms && styles.signinLinkDisabled]}
+                style={styles.signinLink}
                 onPress={handleSignIn}
               >
                 Sign In
