@@ -206,14 +206,19 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
             </Animated.Text>
           </View>
 
-          {/* Buttons Section — so-w4ha: 'I Already Have An Account' removed.
-              New users must go through onboarding/consent. Existing users
-              reach Login via RegisterScreen's 'Sign In' link. */}
+          {/* Buttons Section — so-ei55: 'I Already Have An Account' restored.
+              The compliance refactor moves consent to post-signup, so Login
+              is again reachable directly from WelcomeScreen. */}
           <Animated.View style={[styles.buttonsSection, buttonsStyle]}>
             <WelcomeButton
               title={welcomeContent.primaryButton}
               variant="primary"
               onPress={handleGetStarted}
+            />
+            <WelcomeButton
+              title="I already have an account"
+              variant="secondary"
+              onPress={() => navigation.navigate('Login')}
             />
           </Animated.View>
         </View>

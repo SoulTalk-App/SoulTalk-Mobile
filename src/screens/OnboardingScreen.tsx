@@ -6,8 +6,6 @@ import {
   Dimensions,
   Image,
   Pressable,
-  ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -25,14 +23,12 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SpringConfigs, AnimationValues } from '../animations/constants';
-import { privacyPolicy, termsOfService } from '../mocks/content';
-// so-kff3: authService removed — onboarding AI-consent is now local-only
-// (AsyncStorage), no network call needed on this pre-auth screen.
+// so-ei55: privacyPolicy/termsOfService and AsyncStorage removed from
+// this screen — consent is now handled post-auth in PostSignupConsentScreen.
 
 // Figma prototype spring config for character transitions (SMART_ANIMATE)
 const FIGMA_SPRING_CONFIG = {
@@ -189,7 +185,7 @@ interface Slide {
   titleStart: string;
   titleHighlight: string;
   tagline: string | null;
-  characterType: 'welcome' | 'soulpal' | 'discover' | 'features' | 'disclaimer' | 'terms';
+  characterType: 'welcome' | 'soulpal' | 'discover' | 'features';
   features?: SlideFeature[];
   privacyLine?: string;
   // so-7r4y: disclaimer slides carry one or more body paragraphs (legal
@@ -241,50 +237,10 @@ const slides: Slide[] = [
     ],
     privacyLine: 'Everything you share stays private. Always.',
   },
-  // so-por9: Apple 5.1.1(i) explicit AI-data-sharing consent. This slide
-  // requires an explicit "I understand and agree" tap (not a swipe-past) —
-  // the user cannot advance until they confirm. Consent is recorded via
-  // POST /auth/ai-consent (so-mc2k). Copy is APPROVED 2026-06-26.
-  {
-    id: '5',
-    titleStart: 'A note on ',
-    titleHighlight: 'AI',
-    tagline: null,
-    characterType: 'disclaimer',
-    disclaimerParagraphs: [
-      'SoulTalk is powered by AI. To create your reflections, the journal entries you write are sent to our AI partners, Anthropic and Voyage AI, who turn them into your insights, SoulSignals, and affirmations.',
-      'They process your entries only to return your results. They never use them to train their models, and we never sell your data or use it for advertising.',
-      'You can read the full details anytime in our Privacy Policy.',
-    ],
-  },
-  {
-    id: '6',
-    titleStart: 'Not a substitute for ',
-    titleHighlight: 'care',
-    tagline: null,
-    characterType: 'disclaimer',
-    disclaimerParagraphs: [
-      // PLACEHOLDER. Chey/Randy: replace with finalized clinical disclaimer.
-      'SoulTalk is a self-reflection tool. It is not therapy, medical advice, or a crisis service. If you are in crisis or considering harm to yourself or others, please contact your local emergency services or a crisis line right away.',
-      'If you are working with a therapist or clinician, SoulTalk is designed to complement that work, not to replace it. Please share anything you learn here with them when it helps.',
-    ],
-  },
-  // so-jokw: required terms slide. The user MUST tap "I Accept" before they
-  // can advance to Register — this replaces the prior so-37a checkbox-on-
-  // RegisterScreen consent gate which had bounce-and-erase regressions.
-  //
-  // so-7r4y: the same tap now also acknowledges the AI + clinical
-  // disclaimers shown on the two preceding slides. Persisted under the
-  // existing @terms_accepted key — a single flag covers all three
-  // documents in this launch window.
-  {
-    id: '7',
-    titleStart: 'Terms & ',
-    titleHighlight: 'Privacy',
-    tagline: null,
-    characterType: 'terms',
-  },
 ];
+// so-ei55: slides 5/6/7 (AI consent, not-a-substitute, Terms & Privacy)
+// removed from pre-auth onboarding. They now live in PostSignupConsentScreen
+// (post-auth, so acceptance can be persisted to /auth/terms-accept).
 
 interface OnboardingScreenProps {
   navigation: any;
@@ -306,9 +262,6 @@ interface SlideContentProps {
   styles: any;
   colors: ReturnType<typeof useThemeColors>;
   isDarkMode: boolean;
-  activeLegalTab: 'privacy' | 'terms';
-  handleLegalTabSwitch: (tab: 'privacy' | 'terms') => void;
-  legalScrollRef: React.RefObject<ScrollView>;
 }
 
 // ============================================
@@ -335,9 +288,6 @@ const SlideContent: React.FC<SlideContentProps> = ({
   styles,
   colors,
   isDarkMode,
-  activeLegalTab,
-  handleLegalTabSwitch,
-  legalScrollRef,
 }) => {
   // Main content opacity (text, main character)
   const containerStyle = useAnimatedStyle(() => ({
@@ -425,115 +375,9 @@ const SlideContent: React.FC<SlideContentProps> = ({
     }
   };
 
-  if (slide.characterType === 'terms') {
-    // so-jokw + so-hqu6: terms slide with tabbed Privacy/Terms UX matching
-    // the Settings-accessed TermsScreen. Single ScrollView shows only the
-    // active doc; tab switch resets scroll to top. The "I Accept" CTA
-    // lives in the navigationRow at the bottom (rendered by the parent),
-    // and acceptance covers both docs ("by tapping Accept, you agree to
-    // our Terms and Privacy Policy"). Tab is reset to 'privacy' on
-    // every onboarding entry via the useFocusEffect above.
-    const currentDoc = activeLegalTab === 'privacy' ? privacyPolicy : termsOfService;
-    return (
-      <Animated.View style={[styles.slideContent, styles.termsSlideContent, containerStyle]}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleStart}>{slide.titleStart}</Text>
-          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-        </View>
-        <View style={styles.termsTabRow}>
-          <Pressable
-            style={[
-              styles.termsTab,
-              activeLegalTab === 'privacy' && styles.termsTabActive,
-            ]}
-            onPress={() => handleLegalTabSwitch('privacy')}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeLegalTab === 'privacy' }}
-          >
-            <Text
-              style={[
-                styles.termsTabText,
-                activeLegalTab === 'privacy' && styles.termsTabTextActive,
-              ]}
-            >
-              Privacy Policy
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.termsTab,
-              activeLegalTab === 'terms' && styles.termsTabActive,
-            ]}
-            onPress={() => handleLegalTabSwitch('terms')}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeLegalTab === 'terms' }}
-          >
-            <Text
-              style={[
-                styles.termsTabText,
-                activeLegalTab === 'terms' && styles.termsTabTextActive,
-              ]}
-            >
-              Terms of Service
-            </Text>
-          </Pressable>
-        </View>
-        <View style={styles.termsScrollFrame}>
-          <ScrollView
-            ref={legalScrollRef}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.termsScrollContent}
-            nestedScrollEnabled
-          >
-            <Text style={styles.termsEffective}>
-              Effective: {currentDoc.effectiveDate}
-            </Text>
-            <Text style={styles.termsBody}>{currentDoc.content}</Text>
-          </ScrollView>
-        </View>
-      </Animated.View>
-    );
-  }
-
-  if (slide.characterType === 'disclaimer') {
-    // so-gbem: the disclaimer slides previously reused the TERMS shell
-    // (termsSlideContent flex-start + termsScrollFrame flex:1). flex:1 is
-    // right for the long scrolling Terms doc, but with only two short
-    // paragraphs it stretched the bordered card to full height and left a
-    // big empty void below. Give the disclaimers their OWN shell instead:
-    // the title+card block is vertically CENTERED (disclaimerSlideContent),
-    // and the card HUGS its content (disclaimerCard has no flex) so the
-    // border sits snug around the copy. A maxHeight cap keeps longer final
-    // copy in-bounds and lets it scroll only when it actually overflows.
-    // The Terms slide (slide 6) is untouched.
-    // PLACEHOLDER paragraphs (see slide definitions above) — final copy
-    // owned by Chey/Randy.
-    return (
-      <Animated.View
-        style={[styles.slideContent, styles.disclaimerSlideContent, containerStyle]}
-      >
-        <View style={styles.titleContainer}>
-          <Text style={styles.titleStart}>{slide.titleStart}</Text>
-          <Text style={styles.titleHighlight}>{slide.titleHighlight}</Text>
-        </View>
-        <ScrollView
-          style={styles.disclaimerCard}
-          contentContainerStyle={styles.termsScrollContent}
-          showsVerticalScrollIndicator
-          nestedScrollEnabled
-        >
-          {(slide.disclaimerParagraphs ?? []).map((para, i) => (
-            <Text
-              key={i}
-              style={[styles.termsBody, i > 0 && { marginTop: 14 }]}
-            >
-              {para}
-            </Text>
-          ))}
-        </ScrollView>
-      </Animated.View>
-    );
-  }
+  // so-ei55: 'terms' and 'disclaimer' slide types removed — those screens
+  // now live in PostSignupConsentScreen (post-auth). Only the four pre-auth
+  // slide types remain: welcome, soulpal, discover, features.
 
   if (slide.characterType === 'features') {
     // so-c6h + so-6rj: Slide 4 ('What's Inside'). Title + feature list +
@@ -660,29 +504,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   // cleared on unmount — otherwise navigating away mid-transition fires
   // setState on an unmounted component and can leave isTransitioning stuck.
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // so-jokw: explicit consent for slide 6 (terms). Hydrated from AsyncStorage on
-  // mount so a returning user who already accepted on a prior session can
-  // walk through onboarding without being blocked again.
-  const [termsAccepted, setTermsAccepted] = useState(false);
-
-  // so-por9: AI-data-sharing consent state for slide 5 ("A note on AI").
-  // Session-local only — resets on every onboarding entry (useFocusEffect).
-  // so-kff3: consent is recorded locally only (AsyncStorage); no server call
-  // pre-auth so fresh-install (401) and post-logout (403) can't block this slide.
-  const [aiConsented, setAiConsented] = useState(false);
-  const [aiConsentBusy, setAiConsentBusy] = useState(false);
-
-  // so-hqu6: tabbed Privacy/Terms on slide 6 (matches the Settings-accessed
-  // TermsScreen pattern). Scroll ref resets to top on tab switch so the new
-  // doc starts at the heading.
-  const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('privacy');
-  const legalScrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    AsyncStorage.getItem('@terms_accepted')
-      .then((v) => setTermsAccepted(v === 'true'))
-      .catch(() => {});
-  }, []);
+  // so-ei55: termsAccepted, aiConsented, aiConsentBusy, activeLegalTab,
+  // legalScrollRef removed — those now live in PostSignupConsentScreen.
 
   // so-xllj #5: clear any pending transition cleanup timer on unmount.
   useEffect(
@@ -692,16 +515,8 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     [],
   );
 
-  const handleLegalTabSwitch = useCallback((tab: 'privacy' | 'terms') => {
-    setActiveLegalTab(tab);
-    legalScrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, []);
-
   const isFirstSlide = activeIndex === 0;
   const isLastSlide = activeIndex === slides.length - 1;
-  const isTermsSlide = slides[activeIndex]?.characterType === 'terms';
-  // so-por9: slide '5' is the "A note on AI" explicit-consent slide (index 4).
-  const isAiConsentSlide = slides[activeIndex]?.id === '5';
 
   const styles = useMemo(
     () =>
@@ -1135,27 +950,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const slideOpacity1 = useSharedValue(0);
   const slideOpacity2 = useSharedValue(0);
   const slideOpacity3 = useSharedValue(0);  // so-uy3: 'What's Inside' slide
-  // so-7r4y: TWO new disclaimer slides inserted between 'features' (3) and
-  // 'terms'. Pre-fix all three (disclaimer-1, disclaimer-2, terms) collapsed
-  // onto slideOpacity4 and the latter two rendered blank in place because the
-  // single shared opacity value can only animate one slide at a time
-  // (so-oj9j repro: extends the so-ebsm symptom). Each slide now has its own
-  // shared value so the crossfade animates each pair (n → n+1) cleanly.
-  const slideOpacity4 = useSharedValue(0);  // so-7r4y: disclaimer 1 ('A note on AI')
-  const slideOpacity5 = useSharedValue(0);  // so-7r4y: disclaimer 2 ('Not a substitute for care')
-  const slideOpacity6 = useSharedValue(0);  // so-ebsm: terms slide (now index 6 after the two disclaimer inserts)
+  // so-ei55: slideOpacity4/5/6 removed — slides 5/6/7 now in PostSignupConsentScreen.
 
   // Scale values for morph effect
   // Slides 0 & 2 (Welcome & Discover) are smaller, Slide 1 (SoulPal) is larger
   const slideScale0 = useSharedValue(0.9);  // Welcome - smaller
   const slideScale1 = useSharedValue(1.5);  // SoulPal - large (grouped characters)
   const slideScale2 = useSharedValue(0.9);  // Discover - smaller
-  const slideScale3 = useSharedValue(0.9);  // so-uy3: features list — default size, no character to morph
-  // so-7r4y: matching scale values for the two new disclaimer slides + the
-  // displaced terms slide (see opacity block above).
-  const slideScale4 = useSharedValue(0.9);  // so-7r4y: disclaimer 1
-  const slideScale5 = useSharedValue(0.9);  // so-7r4y: disclaimer 2
-  const slideScale6 = useSharedValue(0.9);  // so-ebsm: terms slide
+  const slideScale3 = useSharedValue(0.9);  // so-uy3: features list — default size
+  // so-ei55: slideScale4/5/6 removed.
 
   // Shared floating animation values (all slides share these)
   const floatY = useSharedValue(0);
@@ -1174,27 +977,21 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
   const gestureTranslateX = useSharedValue(0);
   const activeIndexShared = useSharedValue(0);
 
-  // Get opacity shared value for a slide index
+  // Get opacity shared value for a slide index (so-ei55: 4 slides only)
   const getOpacityForSlide = useCallback((index: number) => {
     if (index === 0) return slideOpacity0;
     if (index === 1) return slideOpacity1;
     if (index === 2) return slideOpacity2;
-    if (index === 3) return slideOpacity3;
-    if (index === 4) return slideOpacity4;
-    if (index === 5) return slideOpacity5;
-    return slideOpacity6;
-  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3, slideOpacity4, slideOpacity5, slideOpacity6]);
+    return slideOpacity3;
+  }, [slideOpacity0, slideOpacity1, slideOpacity2, slideOpacity3]);
 
-  // Get scale shared value for a slide index
+  // Get scale shared value for a slide index (so-ei55: 4 slides only)
   const getScaleForSlide = useCallback((index: number) => {
     if (index === 0) return slideScale0;
     if (index === 1) return slideScale1;
     if (index === 2) return slideScale2;
-    if (index === 3) return slideScale3;
-    if (index === 4) return slideScale4;
-    if (index === 5) return slideScale5;
-    return slideScale6;
-  }, [slideScale0, slideScale1, slideScale2, slideScale3, slideScale4, slideScale5, slideScale6]);
+    return slideScale3;
+  }, [slideScale0, slideScale1, slideScale2, slideScale3]);
 
   // Initialize floating animations
   useEffect(() => {
@@ -1287,26 +1084,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
       slideOpacity1.value = 0;
       slideOpacity2.value = 0;
       slideOpacity3.value = 0;
-      slideOpacity4.value = 0;
-      slideOpacity5.value = 0;
-      slideOpacity6.value = 0;
       slideScale0.value = 0.9;
       slideScale1.value = 1.5;
       slideScale2.value = 0.9;
       slideScale3.value = 0.9;
-      slideScale4.value = 0.9;
-      slideScale5.value = 0.9;
-      slideScale6.value = 0.9;
       sideCharactersScale.value = 1;
       sideCharactersOpacity.value = 1;
       activeIndexShared.value = 0;
-      // so-hqu6: reset slide-6 tab to Privacy on every onboarding entry
-      // so users always see the Privacy doc first (not whichever tab the
-      // last session left active).
-      setActiveLegalTab('privacy');
-      // so-por9: reset AI consent so every onboarding entry starts fresh.
-      setAiConsented(false);
-      setAiConsentBusy(false);
+      // so-ei55: activeLegalTab, aiConsented, aiConsentBusy resets removed —
+      // those state vars no longer exist after the post-signup consent refactor.
     }, [])
   );
 
@@ -1412,56 +1198,18 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     }
   }, [activeIndex, isFirstSlide, transitionToSlide]);
 
-  // so-jokw: from the terms slide, "Next" only proceeds if the user has
-  // tapped Accept. Acceptance writes AsyncStorage and is the single signal
-  // the auth screens read on mount. The right-arrow on slide 6 is hidden
-  // until accepted (replaced by the I Accept button rendered in the
-  // navigationRow), so this guard is the safety net for swipe.
-  //
-  // so-por9: slide 5 ("A note on AI") also requires an explicit tap — the
-  // right-arrow is replaced by "I understand and agree" until consented.
+  // so-ei55: handleNext simplified — last slide (index 3, 'What's Inside')
+  // goes directly to Register. The consent gates (AI + TOC) now live in
+  // PostSignupConsentScreen after auth. handleAcceptTerms and handleAiConsent
+  // removed.
   const handleNext = useCallback(async () => {
     if (isTransitioning.current) return;
-    // so-por9: block forward swipe from AI consent slide until tapped.
-    if (isAiConsentSlide && !aiConsented) return;
-
     if (isLastSlide) {
-      if (termsAccepted) {
-        navigation.navigate('Register');
-      }
-      // No-op when not accepted — the slide-6 UI shows an Accept button.
+      navigation.navigate('Register');
     } else {
       transitionToSlide(activeIndex + 1);
     }
-  }, [activeIndex, aiConsented, isAiConsentSlide, isLastSlide, navigation, termsAccepted, transitionToSlide]);
-
-  const handleAcceptTerms = useCallback(async () => {
-    try {
-      await AsyncStorage.setItem('@terms_accepted', 'true');
-    } catch {}
-    setTermsAccepted(true);
-    navigation.navigate('Register');
-  }, [navigation]);
-
-  // so-por9: user tapped "I understand and agree" on the AI-consent slide.
-  // so-kff3: local-only — no network call (pre-auth state; avoids 401 on
-  // fresh install and 403 post-logout). Persists consent in AsyncStorage so
-  // the next authenticated call can POST to the BE. The mandatory tap still
-  // gates slide progression (Apple sees an unskippable consent screen).
-  // so-k25b opt-out model: BE assumes consent granted for all users; the
-  // Settings toggle is the explicit disable path.
-  const handleAiConsent = useCallback(async () => {
-    if (aiConsentBusy) return;
-    setAiConsentBusy(true);
-    try {
-      await AsyncStorage.setItem('@ai_consent_granted', 'true');
-    } catch {
-      // AsyncStorage failure is extremely rare; never block the user here.
-    }
-    setAiConsented(true);
-    transitionToSlide(activeIndex + 1);
-    setAiConsentBusy(false);
-  }, [aiConsentBusy, activeIndex, transitionToSlide]);
+  }, [activeIndex, isLastSlide, navigation, transitionToSlide]);
 
   const handleDotPress = useCallback((index: number) => {
     if (index !== activeIndex && !isTransitioning.current) {
@@ -1537,9 +1285,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
                 styles={styles}
                 colors={colors}
                 isDarkMode={isDarkMode}
-                activeLegalTab={activeLegalTab}
-                handleLegalTabSwitch={handleLegalTabSwitch}
-                legalScrollRef={legalScrollRef}
               />
             ))}
           </Animated.View>
@@ -1574,47 +1319,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
             ))}
           </View>
 
-          {isAiConsentSlide && !aiConsented ? (
-            // so-por9: explicit AI-data-sharing consent CTA. Must be tapped
-            // before the user can swipe to slide 6 (Terms).
-            <Pressable
-              onPress={handleAiConsent}
-              disabled={aiConsentBusy}
-              style={[styles.acceptCta, aiConsentBusy && { opacity: 0.7 }]}
-              accessibilityRole="button"
-              accessibilityLabel="I understand and agree to AI data processing"
-              accessibilityState={{ disabled: aiConsentBusy, busy: aiConsentBusy }}
-            >
-              {aiConsentBusy ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Text style={styles.acceptCtaText}>I understand and agree</Text>
-              )}
-            </Pressable>
-          ) : isTermsSlide && !termsAccepted ? (
-            <Pressable
-              onPress={handleAcceptTerms}
-              style={styles.acceptCta}
-              accessibilityRole="button"
-              // so-7r4y: a11y label updated to acknowledge the disclaimer
-              // slides too. Visual button copy stays "I Accept" to keep the
-              // CTA short; the wording above the button (terms-slide title +
-              // body) carries the full "Terms, Privacy Policy & Disclaimers"
-              // framing.
-              accessibilityLabel="Accept Terms, Privacy Policy, and Disclaimers"
-            >
-              <Text style={styles.acceptCtaText}>I Accept</Text>
-            </Pressable>
-          ) : (
-            <NavArrow
-              direction="right"
-              onPress={handleNext}
-              nextButtonStyle={styles.nextButton}
-              prevButtonStyle={styles.prevButton}
-              rightIconColor={isDarkMode ? colors.white : colors.primary}
-              leftIconColor={colors.white}
-            />
-          )}
+          {/* so-ei55: accept CTAs removed — consent gates now in PostSignupConsentScreen. */}
+          <NavArrow
+            direction="right"
+            onPress={handleNext}
+            nextButtonStyle={styles.nextButton}
+            prevButtonStyle={styles.prevButton}
+            rightIconColor={isDarkMode ? colors.white : colors.primary}
+            leftIconColor={colors.white}
+          />
         </View>
       </View>
     </CosmicScreen>

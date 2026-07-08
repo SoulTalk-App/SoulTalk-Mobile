@@ -38,6 +38,7 @@ import SoulPalNameScreen from "./src/screens/SoulPalNameScreen";
 import SetupCompleteScreen from "./src/screens/SetupCompleteScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import PostSignupConsentScreen from "./src/screens/PostSignupConsentScreen";
 import UnderageBlockScreen from "./src/screens/UnderageBlockScreen";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import HomeScreen from "./src/screens/HomeScreen";
@@ -178,6 +179,15 @@ const OnboardingStack = () => (
         }),
       }}
     />
+    {/* so-ei55: PostSignupConsent registered here so the navigator
+        recognises the screen name if navigation state somehow lands
+        in OnboardingStack after auth (edge-case guard). The primary
+        post-signup path routes via AppStack below. */}
+    <Stack.Screen
+      name="PostSignupConsent"
+      component={PostSignupConsentScreen}
+      options={{ gestureEnabled: false }}
+    />
   </Stack.Navigator>
 );
 
@@ -246,6 +256,13 @@ const AuthStack = () => (
     />
     <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
     <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
+    {/* so-ei55: PostSignupConsent in AuthStack covers the returning-user
+        edge case (re-auth after logout where consent bump is required). */}
+    <Stack.Screen
+      name="PostSignupConsent"
+      component={PostSignupConsentScreen}
+      options={{ gestureEnabled: false }}
+    />
   </Stack.Navigator>
 );
 
@@ -299,8 +316,17 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
       <PersonalityProvider>
         <Stack.Navigator
           screenOptions={{ headerShown: false }}
-          initialRouteName={setupComplete ? "Home" : "WelcomeSplash"}
+          initialRouteName={setupComplete ? "Home" : "PostSignupConsent"}
         >
+          {/* so-ei55: PostSignupConsent is the initial route for new users
+              (setupComplete=false). It checks acceptance_required on mount
+              and skips to WelcomeSplash if the user already accepted.
+              Covers both email signup (OTP → auth) and social OAuth paths. */}
+          <Stack.Screen
+            name="PostSignupConsent"
+            component={PostSignupConsentScreen}
+            options={{ gestureEnabled: false }}
+          />
           <Stack.Screen name="WelcomeSplash" component={WelcomeSplashScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="SoulPalName" component={SoulPalNameScreen} />
           <Stack.Screen name="SetupComplete" component={SetupCompleteScreen} />
