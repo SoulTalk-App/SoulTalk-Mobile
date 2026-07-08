@@ -138,7 +138,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 16,
-          paddingBottom: 20,
+          // so-ehxw: was 20 — balanced the old SoulTalk title; now just the
+          // 40px chevron so 8pt gives a tight deliberate gap before the card.
+          paddingBottom: 8,
         },
         backButton: {
           width: 40,
