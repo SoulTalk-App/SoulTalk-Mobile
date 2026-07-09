@@ -65,6 +65,10 @@ interface UserInfo {
   timezone?: string | null;
   email_verified: boolean;
   providers: string[];  // ['google', 'facebook', 'email']
+  // so-qg4o M-1: BE sets null for new OAuth users (no affirmation yet);
+  // true once confirmed via checkbox (RegisterScreen) or POST /auth/confirm-age.
+  // Never false — the BE hard-rejects false at registration time.
+  is_18_plus?: boolean | null;
   // so-etv4: server-side paywall entitlement fields from /auth/me. Declared
   // here so a future DTO mapper or serializer change can't silently drop
   // access_granted from the type. Read via EntitlementContext's tolerant
@@ -287,6 +291,21 @@ class AuthService {
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to record terms acceptance');
+    }
+  }
+
+  // so-qg4o M-1: one-shot 18+ affirmation for social users whose is_18_plus
+  // is null post-auth (BE sets NULL for Login-origin OAuth new-users because
+  // the age gate was never presented). Immutable once true — the BE rejects
+  // a second call if already confirmed. Returns the updated /auth/me payload
+  // so the caller can immediately refresh auth state without a second GET.
+  async confirmAge(): Promise<UserInfo> {
+    try {
+      const response: AxiosResponse<UserInfo> =
+        await this.axiosInstance.post('/auth/confirm-age', { is_18_plus: true });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(normalizeError(error));
     }
   }
 
