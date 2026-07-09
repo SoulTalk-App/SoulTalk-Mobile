@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   View,
   Text,
   StyleSheet,
@@ -195,6 +196,27 @@ export function AffirmationReveal({
   useEffect(() => {
     buttonOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
   }, []);
+
+  // so-jwsg: expo-video pauses players when the app backgrounds and does NOT
+  // auto-resume on foreground. The existing useFocusEffect in
+  // AffirmationMirrorScreen is navigation focus only — backgrounding a mounted
+  // screen never triggers it. Subscribe to AppState here so the correct player
+  // resumes every time the user returns to the app.
+  //
+  // isRevealedRef (sync, set at the TOP of handleReveal before animations) is
+  // used instead of the isRevealed state to avoid a stale closure; both refs
+  // (revealedPlayerRef, mountedRef) are stable across renders so deps = [idlePlayer].
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' || !mountedRef.current) return;
+      if (isRevealedRef.current) {
+        revealedPlayerRef.current?.play();
+      } else {
+        idlePlayer.play();
+      }
+    });
+    return () => sub.remove();
+  }, [idlePlayer]);
 
   useEffect(() => {
     // so-dtuh: only meaningful on the replay-from-ready path where an
