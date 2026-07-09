@@ -138,9 +138,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 16,
-          // so-ehxw: was 20 — balanced the old SoulTalk title; now just the
-          // 40px chevron so 8pt gives a tight deliberate gap before the card.
-          paddingBottom: 8,
+          // so-xdpq: paddingBottom 8→4; zIndex so the chevron stays tappable
+          // when the card's negative marginTop slides it up behind the header.
+          paddingBottom: 4,
+          zIndex: 10,
         },
         backButton: {
           width: 40,
@@ -154,6 +155,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           backgroundColor: colors.background,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
+          // so-xdpq: pull card up so it sits close under the chevron; header
+          // zIndex:10 keeps the chevron tappable above the overlapping card.
+          marginTop: -32,
         },
         scrollContent: {
           flexGrow: 1,
@@ -582,7 +586,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   return (
     <CosmicScreen tone="night">
       {/* so-kefw: header band removed; back chevron kept. */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable
           style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
           onPress={handleBackToHome}

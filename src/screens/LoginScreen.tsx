@@ -99,7 +99,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           alignItems: "center",
           justifyContent: "space-between",
           paddingHorizontal: 16,
-          paddingBottom: 20,
+          // so-xdpq: 20→4; zIndex so chevron stays tappable above the card.
+          paddingBottom: 4,
+          zIndex: 10,
         },
         backButton: {
           width: 40,
@@ -118,6 +120,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           backgroundColor: colors.background,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
+          // so-xdpq: pull card up close under the chevron; header zIndex:10
+          // keeps the chevron tappable above the overlapping card.
+          marginTop: -32,
         },
         scrollContent: {
           flexGrow: 1,
@@ -460,7 +465,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   return (
     <CosmicScreen tone="night">
       {/* Purple Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable
           style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
           onPress={handleBackToHome}
