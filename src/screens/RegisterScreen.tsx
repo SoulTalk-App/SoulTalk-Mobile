@@ -133,15 +133,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         container: {
           flex: 1,
         },
-        // so-bz3j: header row removed; chevron is now an absolute overlay.
-        backButtonOverlay: {
-          position: 'absolute',
-          left: 16,
+        // so-wzq9: chevron + title share one horizontal row inside the scroll
+        // content. marginLeft:-8 pulls the chevron to ~16px from screen edge
+        // (scrollContent padding=24, -8 → 16px), matching the original hitbox.
+        titleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginLeft: -8,
+          marginBottom: 4,
+        },
+        titleRowChevron: {
           width: 40,
           height: 40,
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 20,
         },
         // so-bz3j: full-bleed card — no top radius (nothing sits above it),
         // no marginTop (card starts at y=0 behind the status bar).
@@ -157,9 +162,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           fontFamily: fonts.edensor.bold,
           fontSize: 28,
           color: colors.primary,
-          textAlign: 'left',
-          marginTop: 20,
-          marginBottom: 4,
+          // so-wzq9: flex:1 + marginLeft fill the row alongside the chevron;
+          // marginTop/textAlign not needed in a flex row.
+          flex: 1,
+          marginLeft: 8,
         },
         subtitle: {
           fontFamily: fonts.outfit.regular,
@@ -583,12 +589,25 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            // paddingTop clears the floating chevron + safe area.
-            { paddingTop: insets.top + 52 },
+            // so-wzq9: paddingTop just clears safe area; the titleRow provides
+            // its own visual spacing (no more 52px blank gap for the old overlay).
+            { paddingTop: insets.top + 16 },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Sign Up</Text>
+          {/* so-wzq9: chevron + title on one row — reclaim the empty top band. */}
+          <View style={styles.titleRow}>
+            <Pressable
+              style={styles.titleRowChevron}
+              onPress={handleBackToHome}
+              hitSlop={TOUCH_HITSLOP_SMALL}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
+            </Pressable>
+            <Text style={styles.title}>Sign Up</Text>
+          </View>
           <Text style={styles.subtitle}>Join SoulTalk today</Text>
 
           <View style={styles.form}>
@@ -901,16 +920,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       {/* so-piu2: shared social-signup DOB step (also used by LoginScreen). */}
       <SocialDobStep {...socialDobStep} />
 
-      {/* so-bz3j: chevron floats over the full-bleed card. */}
-      <Pressable
-        style={[styles.backButtonOverlay, { top: insets.top + 8 }]}
-        onPress={handleBackToHome}
-        hitSlop={TOUCH_HITSLOP_SMALL}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
-      </Pressable>
     </CosmicScreen>
   );
 };
