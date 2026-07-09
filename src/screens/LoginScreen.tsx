@@ -94,15 +94,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         container: {
           flex: 1,
         },
-        // so-bz3j: header row + SoulTalk title removed; chevron is absolute.
-        backButtonOverlay: {
-          position: 'absolute',
-          left: 16,
+        // so-wzq9: chevron + title share one horizontal row inside the scroll
+        // content. marginLeft:-8 pulls the chevron to ~16px from screen edge
+        // (scrollContent padding=24, -8 → 16px), matching the original hitbox.
+        titleRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          marginLeft: -8,
+          marginBottom: 4,
+        },
+        titleRowChevron: {
           width: 40,
           height: 40,
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 20,
+          justifyContent: "center",
+          alignItems: "center",
         },
         // so-bz3j: full-bleed card — no top radius, no marginTop.
         contentContainer: {
@@ -117,9 +122,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           fontFamily: fonts.edensor.bold,
           fontSize: 28,
           color: colors.primary,
-          textAlign: "left",
-          marginTop: 20,
-          marginBottom: 4,
+          // so-wzq9: flex:1 + marginLeft fill the row alongside the chevron;
+          // marginTop/textAlign not needed in a flex row.
+          flex: 1,
+          marginLeft: 8,
         },
         subtitle: {
           fontFamily: fonts.outfit.regular,
@@ -458,11 +464,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top + 52 },
+            // so-wzq9: paddingTop just clears safe area; the titleRow provides
+            // its own visual spacing (no more 52px blank gap for the old overlay).
+            { paddingTop: insets.top + 16 },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Sign In</Text>
+          {/* so-wzq9: chevron + title on one row — reclaim the empty top band. */}
+          <View style={styles.titleRow}>
+            <Pressable
+              style={styles.titleRowChevron}
+              onPress={handleBackToHome}
+              hitSlop={TOUCH_HITSLOP_SMALL}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
+            </Pressable>
+            <Text style={styles.title}>Sign In</Text>
+          </View>
           <Text style={styles.subtitle}>Sign in to your SoulTalk account</Text>
 
           <View style={styles.form}>
@@ -622,16 +642,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           login screen gets the DOB step instead of dead-ending on dob_required. */}
       <SocialDobStep {...socialDobStep} />
 
-      {/* so-bz3j: chevron floats over the full-bleed card. */}
-      <Pressable
-        style={[styles.backButtonOverlay, { top: insets.top + 8 }]}
-        onPress={handleBackToHome}
-        hitSlop={TOUCH_HITSLOP_SMALL}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-      >
-        <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
-      </Pressable>
     </CosmicScreen>
   );
 };
