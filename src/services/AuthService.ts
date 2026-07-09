@@ -76,6 +76,14 @@ interface UserInfo {
   access_granted?: boolean | null;
   trial_ends_at?: string | null;
   days_left?: number | null;
+  // so-1uki: server Pro flag — true for comped / lifetime / Adapty-derived Pro.
+  // access.py._is_pro_active is comped-aware; never derive this from Adapty
+  // alone (comped users have no Adapty paid sub). Read via readBool in
+  // EntitlementContext to OR with Adapty's isPremiumFromProfile.
+  is_pro?: boolean | null;
+  // ISO timestamp when the Pro subscription expires; null for comped /
+  // lifetime (no expiry). Displayed in SettingsTrialCard as "Active until".
+  pro_expires_at?: string | null;
 }
 
 interface ProfileUpdate {

@@ -248,7 +248,25 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
     return () => registerPostUnlockHook(null);
   }, [refreshUser, pullProfile]);
 
-  const isPro = useMemo(() => isPremiumFromProfile(profile), [profile]);
+  const adaptyPro = useMemo(() => isPremiumFromProfile(profile), [profile]);
+
+  // so-1uki: also honour server-side is_pro so comped / lifetime /
+  // Adapty-lag users see Pro status immediately.
+  // The server is already the trial-clock authority (per this file's own
+  // docstring); access.py is equally authoritative for Pro — it is
+  // comped-aware and self-heals expired-but-not-revoked subs to false.
+  // Combining keeps the fast local unlock path (Adapty flips true
+  // immediately post-purchase without a /auth/me round-trip) while
+  // covering comped / offline / Adapty-lag cases.
+  // Fail-closed: both false → not Pro (unchanged behaviour).
+  const serverIsPro = useMemo(
+    () => readBool(user, 'is_pro', 'isPro'),
+    [user],
+  );
+  const isPro = useMemo(
+    () => adaptyPro || serverIsPro === true,
+    [adaptyPro, serverIsPro],
+  );
 
   // Trial-window fields come straight from /auth/me via the user
   // object. Server is the trial-clock authority; we never compute
