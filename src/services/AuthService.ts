@@ -305,6 +305,12 @@ class AuthService {
         await this.axiosInstance.post('/auth/confirm-age', { is_18_plus: true });
       return response.data;
     } catch (error: any) {
+      // so-qg4o fix: 409 = is_18_plus already confirmed server-side (immutable-
+      // once semantics). Treat as success — fetch current user so the caller
+      // gets the is_18_plus=true value and proceeds without a retry loop.
+      if (error?.response?.status === 409) {
+        return this.getCurrentUser();
+      }
       throw new Error(normalizeError(error));
     }
   }

@@ -103,7 +103,15 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       .then(([status, localFlag]) => {
         if (cancelled) return;
         if (!status.acceptance_required) {
-          navigation.replace('WelcomeSplash');
+          // so-qg4o fix: gate on is_18_plus even here — an interrupted user
+          // (Terms accepted, app killed before the age-gate step) leaves
+          // is_18_plus=null; next cold start sees acceptance_required=false
+          // and would skip the age gate entirely (Apple 5.1.1 bypass).
+          if (user?.is_18_plus == null) {
+            setShowAgeGate(true);
+          } else {
+            navigation.replace('WelcomeSplash');
+          }
           return;
         }
         setTermsVersion(status.current_version);
