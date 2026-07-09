@@ -94,35 +94,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         container: {
           flex: 1,
         },
-        header: {
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 16,
-          // so-xdpq: 20→4; zIndex so chevron stays tappable above the card.
-          paddingBottom: 4,
-          zIndex: 10,
-        },
-        backButton: {
+        // so-bz3j: header row + SoulTalk title removed; chevron is absolute.
+        backButtonOverlay: {
+          position: 'absolute',
+          left: 16,
           width: 40,
           height: 40,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 20,
         },
-        headerTitle: {
-          fontFamily: fonts.edensor.bold,
-          fontSize: 26,
-          // Light path: page-bg ink for AA on the so-u1k lavender wash.
-          color: isDarkMode ? colors.white : colors.text.primary,
-        },
+        // so-bz3j: full-bleed card — no top radius, no marginTop.
         contentContainer: {
           flex: 1,
           backgroundColor: colors.background,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
-          // so-xdpq: pull card up close under the chevron; header zIndex:10
-          // keeps the chevron tappable above the overlapping card.
-          marginTop: -32,
         },
         scrollContent: {
           flexGrow: 1,
@@ -464,28 +449,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   return (
     <CosmicScreen tone="night">
-      {/* Purple Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
-          onPress={handleBackToHome}
-          hitSlop={TOUCH_HITSLOP_SMALL}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="chevron-left" size={28} color={colors.white} />
-        </Pressable>
-        <Text style={styles.headerTitle}>SoulTalk</Text>
-        <View style={styles.backButton} />
-      </View>
-
-      {/* Content Area */}
+      {/* so-bz3j: full-bleed card — no in-flow header, no starry strip,
+          SoulTalk title removed for parity with RegisterScreen. */}
       <KeyboardAvoidingView
         style={styles.contentContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + 52 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Sign In</Text>
@@ -647,6 +621,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       {/* so-piu2: shared social-signup DOB step — a NEW user via social on the
           login screen gets the DOB step instead of dead-ending on dob_required. */}
       <SocialDobStep {...socialDobStep} />
+
+      {/* so-bz3j: chevron floats over the full-bleed card. */}
+      <Pressable
+        style={[styles.backButtonOverlay, { top: insets.top + 8 }]}
+        onPress={handleBackToHome}
+        hitSlop={TOUCH_HITSLOP_SMALL}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
+      </Pressable>
     </CosmicScreen>
   );
 };
