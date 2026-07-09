@@ -152,7 +152,9 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       }
       const now = new Date().toISOString();
       await AuthService.acceptTerms(version, now);
-      await AsyncStorage.setItem('@terms_accepted', 'true');
+      // so-ap3b M-2: removed @terms_accepted re-write here — server is
+      // authoritative after this call; the flag has no remaining purpose and
+      // re-writing it creates a cross-user silent-accept gap.
       navigation.replace('WelcomeSplash');
     } catch (err: any) {
       setTocError('Could not record your acceptance. Please try again.');

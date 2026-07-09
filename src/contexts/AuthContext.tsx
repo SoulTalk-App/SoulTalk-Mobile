@@ -92,6 +92,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// so-ap3b M-2: single source of truth for session-scoped AsyncStorage keys.
+// Every session-teardown path (logout, logoutAllDevices, deleteAccount,
+// checkAuthState-fail, refreshUser-fail) calls this so no path leaves a stale
+// @terms_accepted flag that could let a subsequent user bypass the TOC gate.
+// Module-level: no closure deps, safe to call from any callback.
+const clearAuthLocalFlags = () =>
+  AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -170,7 +178,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // so-hq98: mirror logout()'s cleanup — without this the offline
           // "logged_in" flag set during sign-in lingers, and offline gating
           // can route a signed-out user as if they were still authenticated.
-          await AsyncStorage.removeItem('user_logged_in');
+          // so-ap3b M-2: use shared helper so @terms_accepted is also cleared.
+          await clearAuthLocalFlags();
           await AuthService.logout();
         }
       } else {
@@ -190,15 +199,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     checkAuthState();
   }, [checkAuthState]);
-
-  // so-u0c9: register the logout function as the terminal-refresh callback so
-  // authClient can force re-login when the refresh token is invalid/expired.
-  // Re-registers whenever `logout` or `isAuthenticated` changes.
-  // Passing isAuthenticated lets authClient reset its re-entrancy guard when
-  // a new authenticated session is established (MAJOR-1 fix).
-  useEffect(() => {
-    registerLogoutCallback(logout, isAuthenticated);
-  }, [logout, isAuthenticated]);
 
   // so-u0w1: existing-logged-in users on TF≤34 may have NULL users.timezone.
   // The 6 auth-completion call sites only fire when the user signs in again,
@@ -279,10 +279,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       setUser(null);
       setIsAuthenticated(false);
-      // so-r2ts: clear @terms_accepted alongside user_logged_in so a signup
-      // checkbox flag can never survive into a new auth session and let a
-      // subsequent OAuth-signin user bypass the TOC.
-      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
+      // so-ap3b M-2: shared helper clears user_logged_in + @terms_accepted (and
+      // any future auth-local keys) so no teardown path leaves a stale flag.
+      await clearAuthLocalFlags();
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       await AuthService.logout();
@@ -290,11 +289,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
       setUser(null);
       setIsAuthenticated(false);
-      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
+      await clearAuthLocalFlags();
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
     }
   }, [user]);
+
+  // so-u0c9: register the logout function as the terminal-refresh callback so
+  // authClient can force re-login when the refresh token is invalid/expired.
+  // Re-registers whenever `logout` or `isAuthenticated` changes.
+  // Passing isAuthenticated lets authClient reset its re-entrancy guard when
+  // a new authenticated session is established (MAJOR-1 fix).
+  // so-ap3b MI-1: moved below the `logout` declaration to eliminate the
+  // TDZ-unsafe use-before-declaration (deps array referenced `logout` 67 lines
+  // before it was declared; safe under Hermes but a ReferenceError on any
+  // TDZ-enforcing engine).
+  useEffect(() => {
+    registerLogoutCallback(logout, isAuthenticated);
+  }, [logout, isAuthenticated]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -308,7 +320,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       // so-hq98: mirror logout()'s cleanup — see checkAuthState branch above.
-      await AsyncStorage.removeItem('user_logged_in');
+      // so-ap3b M-2: use shared helper so @terms_accepted is also cleared.
+      await clearAuthLocalFlags();
       await AuthService.logout();
     }
   }, [isAuthenticated]);
@@ -336,7 +349,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithGoogle = useCallback(async (idToken: string, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithGoogle(idToken, is18Plus);
+      const tokenData = await AuthService.loginWithGoogle(idToken, is18Plus);
+
+      // so-ap3b C-1: clear device setup/onboarding flags before setting auth
+      // state so a new social user on a used device (prior account's flags
+      // persisted 'true') always routes through PostSignupConsent instead of
+      // landing on Home without seeing Terms. Also clear stale username to
+      // prevent the previous user's greeting from flashing on Home.
+      if (tokenData.is_new_user) {
+        await AsyncStorage.multiRemove([
+          '@soultalk_setup_complete',
+          '@soultalk_onboarding_complete',
+          '@soultalk_username',
+        ]);
+      }
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -358,7 +384,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithApple = useCallback(async (identityToken: string, fullName?: string | null, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithApple(identityToken, fullName, is18Plus);
+      const tokenData = await AuthService.loginWithApple(identityToken, fullName, is18Plus);
+
+      // so-ap3b C-1: see loginWithGoogle for rationale.
+      if (tokenData.is_new_user) {
+        await AsyncStorage.multiRemove([
+          '@soultalk_setup_complete',
+          '@soultalk_onboarding_complete',
+          '@soultalk_username',
+        ]);
+      }
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -380,7 +415,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithFacebook = useCallback(async (accessToken: string, is18Plus?: boolean) => {
     try {
       setIsLoading(true);
-      await AuthService.loginWithFacebook(accessToken, is18Plus);
+      const tokenData = await AuthService.loginWithFacebook(accessToken, is18Plus);
+
+      // so-ap3b C-1: see loginWithGoogle for rationale.
+      if (tokenData.is_new_user) {
+        await AsyncStorage.multiRemove([
+          '@soultalk_setup_complete',
+          '@soultalk_onboarding_complete',
+          '@soultalk_username',
+        ]);
+      }
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
@@ -509,8 +553,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setUser(null);
       setIsAuthenticated(false);
-      // so-r2ts: mirror logout()'s @terms_accepted clear.
-      await AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
+      // so-ap3b M-2: shared helper (replaces so-r2ts inline multiRemove).
+      await clearAuthLocalFlags();
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       setIsLoading(false);
@@ -527,7 +571,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.deleteAccount();
       setUser(null);
       setIsAuthenticated(false);
-      await AsyncStorage.removeItem('user_logged_in');
+      // so-ap3b M-2: use shared helper so @terms_accepted is cleared (previously
+      // deleteAccount only cleared user_logged_in, leaving @terms_accepted to
+      // persist and silently grant acceptance to the next user on the device).
+      await clearAuthLocalFlags();
     } catch (error) {
       console.error('Account deletion failed:', error);
       throw error;

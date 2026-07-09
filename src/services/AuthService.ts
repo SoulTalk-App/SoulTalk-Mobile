@@ -24,6 +24,10 @@ interface TokenResponse {
   refresh_token: string;
   token_type: string;
   expires_in: number;
+  // so-ap3b C-1: BE social-auth response carries is_new_user so the FE can
+  // clear device setup/onboarding flags and always route new users through
+  // PostSignupConsent. Previously ignored; FE now reads it in AuthContext.
+  is_new_user?: boolean;
 }
 
 interface UserRegistration {
