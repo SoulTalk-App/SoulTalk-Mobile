@@ -45,32 +45,34 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
         },
         header: {
           paddingHorizontal: 24,
-          paddingTop: 12,
+          // so-ngf5: 12→8; container already applies insets.top; trim further
+          // to reclaim top space like the auth screens after so-wzq9.
+          paddingTop: 8,
           paddingBottom: 16,
         },
-        backButton: {
-          marginLeft: -4,
-          marginBottom: 12,
-          alignSelf: "flex-start",
+        // so-ngf5: chevron + title share one horizontal row (matches so-wzq9).
+        // marginLeft:-8 compensates paddingHorizontal:24 so the chevron sits
+        // ~16px from screen edge (24-8=16).
+        titleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginLeft: -8,
+          marginBottom: 4,
         },
-        backButtonCircle: {
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: colors.white,
+        titleRowChevron: {
+          width: 40,
+          height: 40,
           justifyContent: 'center',
           alignItems: 'center',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.1,
-          shadowRadius: 2,
-          elevation: 2,
         },
         title: {
           fontFamily: fonts.edensor.bold,
           fontSize: 32,
           color: colors.text.dark,
-          marginBottom: 4,
+          // so-ngf5: flex:1 fills the row alongside the chevron; marginBottom
+          // moved to titleRow.
+          flex: 1,
+          marginLeft: 8,
         },
         lastUpdated: {
           fontFamily: fonts.outfit.regular,
@@ -249,20 +251,22 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
     <CosmicScreen tone="void">
       <View style={[styles.container, { paddingTop: insets.top }]}>
       <Animated.View style={[styles.header, headerStyle]}>
-        <AnimatedPressable
-          style={[styles.backButton, backButtonStyle]}
-          onPress={handleBack}
-          onPressIn={handleBackPressIn}
-          onPressOut={handleBackPressOut}
-          hitSlop={TOUCH_HITSLOP_SMALL}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <View style={styles.backButtonCircle}>
-            <Feather name="chevron-left" size={22} color={colors.primary} />
-          </View>
-        </AnimatedPressable>
-        <Text style={styles.title}>Terms and Privacy</Text>
+        {/* so-ngf5: chevron inline with title; no white circle bubble. Void
+            backdrop is always dark so the chevron is colors.white throughout. */}
+        <View style={styles.titleRow}>
+          <AnimatedPressable
+            style={[styles.titleRowChevron, backButtonStyle]}
+            onPress={handleBack}
+            onPressIn={handleBackPressIn}
+            onPressOut={handleBackPressOut}
+            hitSlop={TOUCH_HITSLOP_SMALL}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Feather name="chevron-left" size={28} color={colors.white} />
+          </AnimatedPressable>
+          <Text style={styles.title}>Terms and Privacy</Text>
+        </View>
         <Text style={styles.lastUpdated}>
           Effective: {currentDoc.effectiveDate}
         </Text>
