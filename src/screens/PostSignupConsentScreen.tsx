@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { SocialDobStep } from '../features/signup/SocialDobStep';
+import { useAuth } from '../contexts/AuthContext';
 import AuthService from '../services/AuthService';
 import { privacyPolicy, termsOfService } from '../mocks/content';
 
@@ -64,6 +66,9 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   const colors = useThemeColors();
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  // so-qg4o M-1: read user.is_18_plus to decide if the age gate is needed,
+  // and use confirmAge() to record the affirmation server-side.
+  const { user, confirmAge } = useAuth();
 
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('privacy');
@@ -76,6 +81,11 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
 
   // null = still loading; false = signup path (2 steps, no TOC); true = signin OAuth (3 steps with TOC)
   const [showTOC, setShowTOC] = useState<boolean | null>(null);
+
+  // so-qg4o M-1: age gate shown after all consent steps when user.is_18_plus
+  // is null (Login-origin social new-user who never confirmed age).
+  const [showAgeGate, setShowAgeGate] = useState(false);
+  const [ageGateBusy, setAgeGateBusy] = useState(false);
 
   // Mount: check server status + local pre-acceptance flag in parallel.
   //   - acceptance_required=false → already accepted, skip wizard.
@@ -93,7 +103,15 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       .then(([status, localFlag]) => {
         if (cancelled) return;
         if (!status.acceptance_required) {
-          navigation.replace('WelcomeSplash');
+          // so-qg4o fix: gate on is_18_plus even here — an interrupted user
+          // (Terms accepted, app killed before the age-gate step) leaves
+          // is_18_plus=null; next cold start sees acceptance_required=false
+          // and would skip the age gate entirely (Apple 5.1.1 bypass).
+          if (user?.is_18_plus == null) {
+            setShowAgeGate(true);
+          } else {
+            navigation.replace('WelcomeSplash');
+          }
           return;
         }
         setTermsVersion(status.current_version);
@@ -123,6 +141,38 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
     legalScrollRef.current?.scrollTo({ y: 0, animated: false });
   }, []);
 
+  // so-qg4o M-1: final step before WelcomeSplash — gate on is_18_plus.
+  // Called by both the 2-step path (handleNoteAck) and the 3-step path
+  // (handleAcceptTOC) instead of navigating directly to WelcomeSplash.
+  // Returning users (acceptance_required=false early exit) bypass this —
+  // they already have is_18_plus set.
+  const completeWizard = useCallback(() => {
+    if (user?.is_18_plus == null) {
+      // New OAuth user from Login screen — must confirm age before Home.
+      setShowAgeGate(true);
+    } else {
+      navigation.replace('WelcomeSplash');
+    }
+  }, [user, navigation]);
+
+  const handleAgeConfirm = useCallback(async () => {
+    if (ageGateBusy) return;
+    setAgeGateBusy(true);
+    try {
+      await confirmAge();
+      navigation.replace('WelcomeSplash');
+    } catch (_e) {
+      // confirmAge failed — allow retry (busy resets, modal stays open).
+      setAgeGateBusy(false);
+    }
+  }, [ageGateBusy, confirmAge, navigation]);
+
+  const handleAgeDecline = useCallback(() => {
+    // User declined 18+ affirmation — block with the neutral under-age screen.
+    // UnderageBlockScreen pops back to Welcome so they can't re-enter the app.
+    navigation.navigate('UnderageBlock');
+  }, [navigation]);
+
   const handleAiConsent = useCallback(async () => {
     try {
       await AsyncStorage.setItem('@ai_consent_granted', 'true');
@@ -134,9 +184,10 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
     if (showTOC) {
       setStep(2);
     } else {
-      navigation.replace('WelcomeSplash');
+      // so-qg4o M-1: gate through age affirmation before WelcomeSplash.
+      completeWizard();
     }
-  }, [showTOC, navigation]);
+  }, [showTOC, completeWizard]);
 
   const handleAcceptTOC = useCallback(async () => {
     if (tocBusy) return;
@@ -155,13 +206,14 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       // so-ap3b M-2: removed @terms_accepted re-write here — server is
       // authoritative after this call; the flag has no remaining purpose and
       // re-writing it creates a cross-user silent-accept gap.
-      navigation.replace('WelcomeSplash');
+      // so-qg4o M-1: gate through age affirmation before WelcomeSplash.
+      completeWizard();
     } catch (err: any) {
       setTocError('Could not record your acceptance. Please try again.');
     } finally {
       setTocBusy(false);
     }
-  }, [tocBusy, termsVersion, navigation]);
+  }, [tocBusy, termsVersion, completeWizard]);
 
   const styles = useMemo(
     () =>
@@ -504,6 +556,16 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         {renderCTA()}
       </View>
+
+      {/* so-qg4o M-1: blocking 18+ affirmation overlay. Shown after all
+          consent steps complete for users whose is_18_plus is null (Login-
+          origin social new-users). Reuses the existing SocialDobStep sheet. */}
+      <SocialDobStep
+        visible={showAgeGate}
+        submitting={ageGateBusy}
+        onContinue={handleAgeConfirm}
+        onCancel={handleAgeDecline}
+      />
     </CosmicScreen>
   );
 };

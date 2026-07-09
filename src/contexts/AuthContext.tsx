@@ -22,6 +22,9 @@ interface UserInfo {
   timezone?: string | null;
   email_verified: boolean;
   providers: string[];
+  // so-qg4o M-1: null = new OAuth user (never confirmed); true = confirmed.
+  // Mirrored from AuthService.UserInfo; updated live by confirmAge().
+  is_18_plus?: boolean | null;
   // so-etv4: server-side paywall entitlement fields from /auth/me. Mirrored
   // from AuthService.UserInfo so the context type carries them; read via
   // EntitlementContext's tolerant helpers, never directly here.
@@ -88,6 +91,9 @@ interface AuthContextType {
   logoutAllDevices: () => Promise<void>;
   // Account deletion
   deleteAccount: () => Promise<void>;
+  // so-qg4o M-1: one-shot 18+ affirmation for social users with is_18_plus=null.
+  // Calls POST /auth/confirm-age and updates user in context.
+  confirmAge: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -581,6 +587,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // so-qg4o M-1: one-shot 18+ age affirmation for Login-origin social new-users
+  // (is_18_plus=null). Calls POST /auth/confirm-age and refreshes the auth
+  // context user so is_18_plus=true is immediately visible to consumers.
+  const confirmAge = useCallback(async () => {
+    const updated = await AuthService.confirmAge();
+    setUser(updated);
+  }, []);
+
   // so-2lcs: memoize so consumer subtrees don't re-render on every parent
   // render. All callbacks are already stable (useCallback); only user,
   // isLoading, and isAuthenticated change observably. AuthProvider is the
@@ -610,6 +624,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setPassword,
       logoutAllDevices,
       deleteAccount,
+      confirmAge,
     }),
     [
       user,
@@ -635,6 +650,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setPassword,
       logoutAllDevices,
       deleteAccount,
+      confirmAge,
     ],
   );
 
