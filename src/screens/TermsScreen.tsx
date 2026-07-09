@@ -27,11 +27,21 @@ type LegalTab = 'privacy' | 'terms';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+// so-eer8: route param that controls whether the Accept footer is shown.
+//   mode='accept' — RegisterScreen signup path: Accept sets @terms_accepted and
+//                   goBack() so the checkbox registers. LOAD-BEARING, keep it.
+//   mode='view' or absent — all other callers (Settings, PaywallGate,
+//                   TermsReacceptanceModal 'View Terms' link): read-only viewer,
+//                   no Accept footer. Default-view is the SAFE default so a bare
+//                   navigate('Terms') never shows a stray Accept button.
 interface TermsScreenProps {
   navigation: any;
+  route: { params?: { mode?: 'accept' | 'view' } };
 }
 
-const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
+const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
+  // so-eer8: show the Accept footer ONLY on the signup-accept path.
+  const isAcceptMode = route.params?.mode === 'accept';
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<LegalTab>('privacy');
@@ -301,21 +311,26 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation }) => {
         </ScrollView>
       </Animated.View>
 
-      <Animated.View style={[styles.bottomContainer, buttonContainerStyle]}>
-        <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
-          <Text style={styles.agreementText}>
-            By tapping Accept, you agree to our Terms and Privacy Policy
-          </Text>
-          <AnimatedPressable
-            style={[styles.acceptButton, buttonStyle]}
-            onPress={handleAccept}
-            onPressIn={handleButtonPressIn}
-            onPressOut={handleButtonPressOut}
-          >
-            <Text style={styles.acceptButtonText}>Accept</Text>
-          </AnimatedPressable>
-        </View>
-      </Animated.View>
+      {/* so-eer8: Accept footer is ONLY shown in the signup-accept context
+          (mode='accept' from RegisterScreen). All other callers open Terms
+          as a read-only viewer — no Accept button, no agreement text. */}
+      {isAcceptMode && (
+        <Animated.View style={[styles.bottomContainer, buttonContainerStyle]}>
+          <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
+            <Text style={styles.agreementText}>
+              By tapping Accept, you agree to our Terms and Privacy Policy
+            </Text>
+            <AnimatedPressable
+              style={[styles.acceptButton, buttonStyle]}
+              onPress={handleAccept}
+              onPressIn={handleButtonPressIn}
+              onPressOut={handleButtonPressOut}
+            >
+              <Text style={styles.acceptButtonText}>Accept</Text>
+            </AnimatedPressable>
+          </View>
+        </Animated.View>
+      )}
       </View>
     </CosmicScreen>
   );

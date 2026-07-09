@@ -557,9 +557,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   // (Terms & Privacy tabbed viewer). TermsScreen.handleAccept sets
   // @terms_accepted='true' + goBack(); the focus listener above picks that up.
   // Tapping when already checked unchecks locally (user changed their mind).
+  // so-eer8: mode:'accept' enables the Accept footer (this is the ONE signup
+  // path that needs it). All other navigate('Terms') callers omit the param
+  // and land in read-only view mode.
   const handleTermsRowPress = useCallback(async () => {
     if (!agreedToTerms) {
-      navigation.navigate('Terms');
+      navigation.navigate('Terms', { mode: 'accept' });
     } else {
       setAgreedToTerms(false);
       try { await AsyncStorage.removeItem('@terms_accepted'); } catch {}
