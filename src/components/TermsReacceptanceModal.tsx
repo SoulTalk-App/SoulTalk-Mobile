@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -38,6 +39,9 @@ export function TermsReacceptanceModal({
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
+  // so-ap3b MI-2: self-navigating so the component is self-contained and
+  // HomeScreen doesn't need to thread navigation as a prop.
+  const navigation = useNavigation<any>();
 
   // so-bl51: bail before building the modal subtree when not visible so the
   // ModalHostView doesn't sit in memory.
@@ -77,6 +81,20 @@ export function TermsReacceptanceModal({
           <Text style={[styles.version, { color: colors.text.secondary }]}>
             Version {currentVersion}
           </Text>
+
+          {/* so-ap3b MI-2: let the user read the Terms before accepting.
+              Navigates to the Terms stack screen; the blocking modal remains
+              visible on return so the user still must explicitly accept. */}
+          <Pressable
+            onPress={() => navigation.navigate('Terms')}
+            accessibilityRole="link"
+            accessibilityLabel="View Terms and Privacy Policy"
+            style={styles.viewTermsLink}
+          >
+            <Text style={[styles.viewTermsText, { color: colors.primary }]}>
+              View Terms & Privacy
+            </Text>
+          </Pressable>
 
           <Pressable
             onPress={onAccept}
@@ -149,6 +167,16 @@ const styles = StyleSheet.create({
   acceptText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 16,
+  },
+  viewTermsLink: {
+    alignSelf: 'center',
+    paddingVertical: 6,
+    marginTop: 10,
+  },
+  viewTermsText: {
+    fontFamily: fonts.outfit.medium,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });
 
