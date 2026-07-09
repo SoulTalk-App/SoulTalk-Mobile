@@ -25,6 +25,7 @@ import {
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { SettingsTrialCard } from '../components/SettingsTrialCard';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { normalizeError } from '../utils/normalizeError';
 
@@ -739,6 +740,10 @@ const SettingsScreen = ({ navigation }: any) => {
             find when the user lands on Settings from the paywall
             gate's "Settings" carve-out. */}
         <View style={styles.separator} />
+        {/* so-kgs7: trial-status card — visible only during active trial.
+            Self-contained: reads isPro/daysLeft from useEntitlement,
+            presents paywall on tap, refreshes on unlock. */}
+        <SettingsTrialCard />
         <Pressable
           onPress={handleRestorePurchases}
           disabled={restoring}
