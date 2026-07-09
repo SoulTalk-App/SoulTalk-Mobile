@@ -133,31 +133,21 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         container: {
           flex: 1,
         },
-        header: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 16,
-          // so-xdpq: paddingBottom 8→4; zIndex so the chevron stays tappable
-          // when the card's negative marginTop slides it up behind the header.
-          paddingBottom: 4,
-          zIndex: 10,
-        },
-        backButton: {
+        // so-bz3j: header row removed; chevron is now an absolute overlay.
+        backButtonOverlay: {
+          position: 'absolute',
+          left: 16,
           width: 40,
           height: 40,
           justifyContent: 'center',
           alignItems: 'center',
+          zIndex: 20,
         },
-        // so-kefw: headerTitle removed (SoulTalk band removed, back chevron kept).
+        // so-bz3j: full-bleed card — no top radius (nothing sits above it),
+        // no marginTop (card starts at y=0 behind the status bar).
         contentContainer: {
           flex: 1,
           backgroundColor: colors.background,
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
-          // so-xdpq: pull card up so it sits close under the chevron; header
-          // zIndex:10 keeps the chevron tappable above the overlapping card.
-          marginTop: -32,
         },
         scrollContent: {
           flexGrow: 1,
@@ -585,26 +575,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   return (
     <CosmicScreen tone="night">
-      {/* so-kefw: header band removed; back chevron kept. */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: TOUCH_PRESS_OPACITY }]}
-          onPress={handleBackToHome}
-          hitSlop={TOUCH_HITSLOP_SMALL}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Feather name="chevron-left" size={28} color={colors.white} />
-        </Pressable>
-      </View>
-
-      {/* Content Area */}
+      {/* so-bz3j: full-bleed card — no in-flow header row, no starry strip. */}
       <KeyboardAvoidingView
         style={styles.contentContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // paddingTop clears the floating chevron + safe area.
+            { paddingTop: insets.top + 52 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Sign Up</Text>
@@ -919,6 +900,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
       {/* so-piu2: shared social-signup DOB step (also used by LoginScreen). */}
       <SocialDobStep {...socialDobStep} />
+
+      {/* so-bz3j: chevron floats over the full-bleed card. */}
+      <Pressable
+        style={[styles.backButtonOverlay, { top: insets.top + 8 }]}
+        onPress={handleBackToHome}
+        hitSlop={TOUCH_HITSLOP_SMALL}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <Feather name="chevron-left" size={28} color={isDarkMode ? colors.white : colors.primary} />
+      </Pressable>
     </CosmicScreen>
   );
 };
