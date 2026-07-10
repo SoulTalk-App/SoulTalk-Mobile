@@ -92,6 +92,14 @@ const HomeScreen = ({ navigation }: any) => {
   // (the Pressable's onPress + a fast double-tap can both queue otherwise).
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  // so-suot M-1 / MI-3: focus guard + in-session GET cache for mood widget.
+  //   moodFocusRef — true while the TextInput has keyboard focus; prevents a
+  //     slow focus-GET from clobbering text the user is actively typing.
+  //   lastMoodCacheRef — stores the last mood_word returned by a successful
+  //     GET so the widget can restore it on GET failure (offline/network error)
+  //     rather than showing a blank when today's mood exists server-side.
+  const moodFocusRef = useRef(false);
+  const lastMoodCacheRef = useRef('');
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
@@ -919,12 +927,39 @@ const HomeScreen = ({ navigation }: any) => {
       Promise.all([
         fetchSoulBar(),
         fetchEntries(),
-        JournalService.getTodayMood().then((data) => {
-          if (data.mood_word) {
-            setMoodWord(data.mood_word);
+        JournalService.getTodayMood()
+          .then((data) => {
+            // so-suot M-1: skip applying the GET result when a submit is in
+            // flight (submittingRef) or the input has focus (moodFocusRef).
+            // Without this guard a slow focus-GET can overwrite text the user
+            // is actively editing, and the midnight-rollover case would show
+            // yesterday's word even after the day has turned.
+            if (submittingRef.current || moodFocusRef.current) return;
+            if (data.mood_word) {
+              lastMoodCacheRef.current = data.mood_word;
+              setMoodWord(data.mood_word);
+              setMoodSaved(true);
+            } else {
+              // so-suot M-1 null branch: today has no saved mood (fresh day
+              // or midnight rollover) — clear any stale word from a previous
+              // session so the widget shows the blank "ready to fill" state.
+              lastMoodCacheRef.current = '';
+              setMoodWord('');
+              setMoodSaved(false);
+            }
+          })
+          .catch(() => {
+            // so-suot MI-3: GET failed (network/offline). Keep whatever is
+            // currently displayed. If the widget is empty but we have an
+            // in-session cache from a prior successful GET, restore it so
+            // the user is not shown a blank when they have an existing saved
+            // mood. Functional updater avoids the stale-closure issue.
+            if (moodFocusRef.current || submittingRef.current) return;
+            const cached = lastMoodCacheRef.current;
+            if (!cached) return;
+            setMoodWord((prev) => prev || cached);
             setMoodSaved(true);
-          }
-        }),
+          }),
       ]).catch(() => {});
     }, [fetchSoulBar, fetchEntries])
   );
@@ -1172,6 +1207,12 @@ const HomeScreen = ({ navigation }: any) => {
                   // the BE normalize-to-lowercase contract (see paired ASK
                   // to be_core for confirmation).
                   autoCapitalize="none"
+                  // so-suot M-1: track focus so the re-focus GET cannot
+                  // clobber text the user is actively editing.
+                  onFocus={() => { moodFocusRef.current = true; }}
+                  onBlur={() => { moodFocusRef.current = false; }}
+                  // so-suot MI-4: screen-reader label for the mood input.
+                  accessibilityLabel="Enter today's mood word"
                 />
                 <Pressable
                   style={[dk.saveBtn, !canSubmitMood && { opacity: 0.45 }]}
@@ -1449,6 +1490,11 @@ const HomeScreen = ({ navigation }: any) => {
                 autoCorrect={false}
                 // so-suwq: see dark-mode TextInput above.
                 autoCapitalize="none"
+                // so-suot M-1: see dark-mode TextInput above.
+                onFocus={() => { moodFocusRef.current = true; }}
+                onBlur={() => { moodFocusRef.current = false; }}
+                // so-suot MI-4: see dark-mode TextInput above.
+                accessibilityLabel="Enter today's mood word"
               />
               <Pressable
                 style={[lt.saveBtn, !canSubmitMood && { opacity: 0.45 }]}

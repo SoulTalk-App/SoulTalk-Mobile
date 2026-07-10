@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -53,6 +53,12 @@ export function MoodToast({ kind, isDarkMode, onDismiss }: Props) {
 
   useEffect(() => {
     if (!kind) return;
+
+    // so-suot MI-4: announce toast content to screen readers on every new
+    // show. announceForAccessibility works on both iOS VoiceOver and Android
+    // TalkBack (accessibilityLiveRegion is Android-only in RN).
+    const c = COPY[kind];
+    AccessibilityInfo.announceForAccessibility(`${c.headline}. ${c.subline}`);
 
     opacity.value = withTiming(1, { duration: FADE_MS, easing: Easing.out(Easing.cubic) });
     translateY.value = withTiming(0, { duration: FADE_MS, easing: Easing.out(Easing.cubic) });

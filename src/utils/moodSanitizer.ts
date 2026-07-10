@@ -30,5 +30,8 @@
 const MOOD_ALLOWED = /[^\p{L}\p{Extended_Pictographic}\p{Emoji_Modifier}\u200D\uFE0F]/gu;
 
 export function sanitizeMoodWord(text: string): string {
-  return text.replace(MOOD_ALLOWED, '');
+  // so-suot MI-2: lowercase after stripping so the displayed word matches
+  // what the BE stores (BE normalizes to lowercase on write). Keeps the
+  // case round-trip consistent — typed "HAPPY" → shown "happy" → server "happy".
+  return text.replace(MOOD_ALLOWED, '').toLowerCase();
 }
