@@ -7,5 +7,6 @@ export { ReleaseModal } from './ReleaseModal';
 export { SnoozeModal } from './SnoozeModal';
 export { IntegratedModal } from './IntegratedModal';
 export { SuggestModal } from './SuggestModal';
-export { MOCK_SHIFTS } from './mockData';
+// so-zlvm MI-6: MOCK_SHIFTS removed from prod bundle — dev tooling only.
+// Import directly from './mockData' if needed for local dev/Storybook.
 export type { Shift, ShiftDetail, ShiftStatus, SoulpalVariant } from './types';

@@ -1,14 +1,14 @@
 export type SoulpalVariant = 1 | 2 | 3 | 4 | 5;
 
+// so-zlvm MI-6: 'locked' and 'processing' removed — accepted by the BE enum
+// but no writer produces them. Removing keeps the FE type honest and prunes
+// dead STATUS_LABEL entries + the dead processing pill in ShiftsA.
 export type ShiftStatus =
-  | 'locked'
-  | 'processing'
   | 'active'
   | 'integrated'
   /**
    * User-archived. Shift moves to a Released list and SoulPal stops nudging
-   * about it. [ASK] be_core: confirm 'released' is the canonical enum value
-   * and whether the verb is PATCH status or a dedicated archive endpoint.
+   * about it.
    */
   | 'released';
 
@@ -56,8 +56,6 @@ export type ShiftDetail = Shift & {
 };
 
 export const STATUS_LABEL: Record<ShiftStatus, string> = {
-  locked: 'Locked',
-  processing: 'Processing',
   active: 'Active',
   integrated: 'Integrated',
   released: 'Released',

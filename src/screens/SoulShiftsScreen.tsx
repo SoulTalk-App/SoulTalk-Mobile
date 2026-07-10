@@ -23,6 +23,7 @@ import {
   ShiftSuggestionResponse,
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
+import authService from '../services/AuthService';
 import { useAppAlert } from '../components/AppAlertProvider';
 
 const SoulShiftsScreen = ({ navigation, route }: any) => {
@@ -35,11 +36,12 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
   // normalized message (never raw axios/technical strings) and keep a dev
   // breadcrumb. Loading/submitting state is reset by each handler's finally.
-  // so-iiw8: was a generic "Something went wrong" title — swap for a
-  // specific scope ("Couldn't load shifts") so users know what failed.
+  // so-zlvm MI-4: use `scope` as the alert title (was hardcoded "Couldn't load
+  // shifts"). Each call site now passes a user-facing string so the alert is
+  // specific to what actually failed.
   const surfaceError = (scope: string, err: unknown) => {
     if (__DEV__) console.warn(`[SoulShifts] ${scope}:`, err);
-    showError(err, { title: "Couldn't load shifts" });
+    showError(err, { title: scope });
   };
 
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -62,9 +64,8 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   const [tendSubmitting, setTendSubmitting] = useState(false);
   const [toastShift, setToastShift] = useState<Shift | null>(null);
   const [toastTendCount, setToastTendCount] = useState<number | null>(null);
-  // Captured for the Undo affordance once the DELETE tend endpoint ships
-  // (separate be_core bead). Today the toast's onUndo prop stays unwired.
-  const [_toastTendId, setToastTendId] = useState<string | null>(null);
+  // so-zlvm MI-1: tend id captured for undo; DELETE endpoint now shipped.
+  const [toastTendId, setToastTendId] = useState<string | null>(null);
   const [advance, setAdvance] = useState<{
     detail: ShiftDetail;
     prevStage: number;
@@ -90,6 +91,9 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   // Track which suggestion ids we've already POST'd /show for this session
   // so the marker fires once per id even if the modal re-opens.
   const shownSuggestionIdsRef = React.useRef<Set<string>>(new Set());
+  // so-zlvm MI-3: AI consent state for the consent-off branch in SuggestModal.
+  // null = not yet fetched; false = consent off; true = consent on.
+  const [aiConsentGranted, setAiConsentGranted] = useState<boolean | null>(null);
 
   // so-sh1y SH-m4: was a mount-only useEffect([]) — the so-72fx fix applied
   // to SoulSignalsScreen was not applied here. Converting a pattern via
@@ -109,7 +113,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         })
         .catch((err) => {
           if (!active) return;
-          surfaceError('List fetch error', err);
+          surfaceError("Couldn't load shifts", err);
         })
         .finally(() => {
           if (active && !hasLoadedRef.current) {
@@ -128,7 +132,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setDetailLoading(true);
     SoulShiftsService.getDetail(id)
       .then(setDetail)
-      .catch((err) => surfaceError('Detail fetch error', err))
+      .catch((err) => surfaceError("Couldn't load shift detail", err))
       .finally(() => setDetailLoading(false));
   };
 
@@ -157,7 +161,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       .catch((err) => {
         // Allow a later retry since this fetch has no loading state of its own.
         setReleasedFetched(false);
-        surfaceError('Released list error', err);
+        surfaceError("Couldn't load released shifts", err);
       });
   };
 
@@ -170,7 +174,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setShifts((prev) => [restored, ...prev]);
       handleClose();
     } catch (err: any) {
-      surfaceError('Restore error', err);
+      surfaceError("Couldn't restore this shift", err);
     }
   };
 
@@ -230,7 +234,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         });
       }
     } catch (err: any) {
-      surfaceError('Tend error', err);
+      surfaceError("Couldn't tend this shift", err);
     } finally {
       setTendSubmitting(false);
     }
@@ -241,6 +245,25 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setToastTendCount(null);
     setToastTendId(null);
   };
+
+  // so-zlvm MI-1: undo the most recent tend. Reverts local shift state from
+  // the DELETE response; hides the toast immediately (the undo is the user's
+  // explicit action, so we don't need a fade-out — just clear the state).
+  const handleUndoTend = useCallback(async () => {
+    const shiftId = toastShift?.id;
+    const tendId = toastTendId;
+    if (!shiftId || !tendId) return;
+    // Clear the toast immediately so the user sees feedback right away.
+    handleToastDismiss();
+    try {
+      const reverted = await SoulShiftsService.undoTend(shiftId, tendId);
+      setShifts((prev) =>
+        prev.map((s) => (s.id === reverted.id ? reverted : s)),
+      );
+    } catch (err) {
+      surfaceError("Couldn't undo tend", err);
+    }
+  }, [toastShift, toastTendId]);
 
   const handleOpenRelease = () => {
     if (!detail) return;
@@ -263,7 +286,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setSnoozeOpen(false);
       handleClose();
     } catch (err: any) {
-      surfaceError('Snooze error', err);
+      surfaceError("Couldn't snooze this shift", err);
     } finally {
       setSnoozeSubmitting(false);
     }
@@ -298,7 +321,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         setAdvance({ detail: updatedDetail, prevStage, nextStage: 3 });
       }
     } catch (err: any) {
-      surfaceError('Integrate error', err);
+      surfaceError("Couldn't integrate this shift", err);
     } finally {
       setIntegratedSubmitting(false);
     }
@@ -315,7 +338,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setReleaseOpen(false);
       handleClose();
     } catch (err: any) {
-      surfaceError('Release error', err);
+      surfaceError("Couldn't release this shift", err);
     } finally {
       setReleaseSubmitting(false);
     }
@@ -325,8 +348,17 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setSuggestOpen(true);
     setSuggestLoading(true);
     try {
-      const result = await SoulShiftsService.getSuggestions();
+      // so-zlvm MI-3: fetch consent status concurrently with suggestions so the
+      // modal can branch on consent-off without a serial round-trip. Both calls
+      // are lightweight; the slower one determines when loading clears.
+      const [result, consentStatus] = await Promise.all([
+        SoulShiftsService.getSuggestions(),
+        authService.getAiConsentStatus().catch(() => null),
+      ]);
       setSuggestResponse(result);
+      if (consentStatus != null) {
+        setAiConsentGranted(!consentStatus.consent_required);
+      }
       // Fire /show once per suggestion id per session. Idempotent on BE so
       // a repeat fire is harmless, but caching avoids redundant requests.
       if (result.id && result.candidates.length > 0) {
@@ -340,7 +372,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         }
       }
     } catch (err: any) {
-      surfaceError('Suggestions fetch error', err);
+      surfaceError("Couldn't load suggestions", err);
       setSuggestResponse({
         id: null,
         candidates: [],
@@ -399,7 +431,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
             : [{ text: 'OK', style: 'cancel' }],
         });
       } else {
-        surfaceError('Accept suggestion error', err);
+        surfaceError("Couldn't accept suggestion", err);
       }
     } finally {
       setSuggestSubmitting(false);
@@ -510,6 +542,12 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         }}
         onAccept={handleAcceptSuggestion}
         submitting={suggestSubmitting}
+        consentGranted={aiConsentGranted}
+        onGoToSettings={() => {
+          setSuggestOpen(false);
+          setSuggestResponse(null);
+          navigation.navigate('Settings');
+        }}
       />
 
       <TendModal
@@ -525,6 +563,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         shift={toastShift}
         theme={theme}
         onDismiss={handleToastDismiss}
+        onUndo={toastTendId ? handleUndoTend : undefined}
         tendCountLabel={
           toastTendCount != null ? `${ordinal(toastTendCount)} time` : undefined
         }
