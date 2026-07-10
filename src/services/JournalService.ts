@@ -65,6 +65,11 @@ export interface JournalEntry {
   updated_at: string;
   tags: TagsSummary | null;
   ai_response: AIResponseSummary | null;
+  // so-h8eo: synchronously attached by the BE (so-qyky CR-2) when crisis
+  // keywords fire on the POST /journal/ 201. Present ONLY on the create
+  // response; absent (undefined/null) for non-crisis entries and all
+  // other responses (list, GET, PUT). FE must surface this IMMEDIATELY.
+  crisis_resources?: string | null;
 }
 
 export interface JournalListResponse {
