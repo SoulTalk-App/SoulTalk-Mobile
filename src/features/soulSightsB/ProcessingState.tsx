@@ -53,7 +53,10 @@ function BlinkDot({
   return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
 }
 
-export function ProcessingState({ theme, meta = { entries: 9, signals: 3 } }: Props) {
+// so-9t3d MI-5: removed fabricated default meta {entries:9,signals:3}. Showing
+// fake counts as if they were the user's data is a trust issue. When meta is
+// absent the entry count row is simply hidden.
+export function ProcessingState({ theme, meta }: Props) {
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
   const spin = useSharedValue(0);
@@ -135,9 +138,12 @@ export function ProcessingState({ theme, meta = { entries: 9, signals: 3 } }: Pr
         <BlinkDot color={TEAL} delayMs={0} />
         <BlinkDot color={PINK} delayMs={200} />
         <BlinkDot color={YELLOW} delayMs={400} />
-        <Text style={[styles.dotsLabel, { color: inkSub(theme) }]}>
-          Reading {meta.entries} entries · {meta.signals} signals
-        </Text>
+        {/* so-9t3d MI-5: only show when real meta is available. */}
+        {meta ? (
+          <Text style={[styles.dotsLabel, { color: inkSub(theme) }]}>
+            Reading {meta.entries} entries · {meta.signals} signals
+          </Text>
+        ) : null}
       </View>
     </View>
   );

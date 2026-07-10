@@ -1,6 +1,8 @@
 export type SoulpalVariant = 1 | 2 | 3 | 4 | 5;
 
-export type SightStatus = 'locked' | 'processing' | 'done';
+// so-9t3d M-3: 'error' added for offline/fetch-failure path — deriveStatus returns
+// this when the detail fetch failed so we show retry instead of an eternal spinner.
+export type SightStatus = 'locked' | 'processing' | 'done' | 'error';
 
 export type SightDetail = {
   id: string;

@@ -5,8 +5,14 @@ import { installAuthInterceptors } from '../utils/authClient';
 
 export interface EligibilityResponse {
   eligible: boolean;
+  // so-9t3d MI-3: present when the user has enough entries but AI consent is
+  // disabled (eligible:false, consent_required:true). The FE should offer a
+  // "Enable AI Insights in Settings" CTA instead of a generic locked state.
+  consent_required?: boolean;
   total_filled: number;
-  soulsights_used: number;
+  // so-9t3d MI-5: soulsights_used is dead on the FE; kept in type for BE
+  // compatibility but should not be rendered or relied upon.
+  soulsights_used?: number;
   entry_count: number;
   active_days: number;
   window_start: string | null;
@@ -95,6 +101,10 @@ export interface StatusResponse {
   id: string;
   status: string;
   error_message: string | null;
+  // so-9t3d M-2b: present when arq retry is in progress. Only show terminal
+  // "Generation Failed" UI when final===true; keep polling while final===false.
+  final?: boolean;
+  retries_remaining?: number | null;
 }
 
 class SoulSightService {

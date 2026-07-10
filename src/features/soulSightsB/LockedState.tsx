@@ -21,15 +21,22 @@ type Props = {
   onOpenJournal?: () => void;
 };
 
+// so-9t3d MI-5: removed hardcoded default eligibility {current:5,needed:7}.
+// Showing fabricated progress numbers is a trust issue. When eligibility is
+// absent (Detail screen doesn't fetch it) the progress bar is simply hidden.
 export function LockedState({
   theme,
-  eligibility = { current: 5, needed: 7 },
+  eligibility,
   onOpenJournal,
 }: Props) {
   const colors = useThemeColors();
   const isDark = theme === 'dark';
-  const pct = Math.max(0, Math.min(1, eligibility.current / eligibility.needed));
-  const remaining = Math.max(0, eligibility.needed - eligibility.current);
+  const pct = eligibility
+    ? Math.max(0, Math.min(1, eligibility.current / eligibility.needed))
+    : 0;
+  const remaining = eligibility
+    ? Math.max(0, eligibility.needed - eligibility.current)
+    : 0;
 
   return (
     <View
@@ -74,33 +81,36 @@ export function LockedState({
         unlocks soon.
       </Text>
 
-      <View style={styles.progressWrap}>
-        <View style={styles.progressLabels}>
-          <Text style={[styles.progressLabelStrong, { color: ink(theme) }]}>
-            {eligibility.current} of {eligibility.needed} entries
-          </Text>
-          <Text style={[styles.progressLabelMuted, { color: inkSub(theme) }]}>
-            {remaining} more
-          </Text>
+      {/* so-9t3d MI-5: only show progress bar when real eligibility data is present. */}
+      {eligibility ? (
+        <View style={styles.progressWrap}>
+          <View style={styles.progressLabels}>
+            <Text style={[styles.progressLabelStrong, { color: ink(theme) }]}>
+              {eligibility.current} of {eligibility.needed} entries
+            </Text>
+            <Text style={[styles.progressLabelMuted, { color: inkSub(theme) }]}>
+              {remaining} more
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.progressTrack,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(255,255,255,0.1)'
+                  : 'rgba(79,23,134,0.1)',
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[TEAL, PINK]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.progressFill, { width: `${pct * 100}%` }]}
+            />
+          </View>
         </View>
-        <View
-          style={[
-            styles.progressTrack,
-            {
-              backgroundColor: isDark
-                ? 'rgba(255,255,255,0.1)'
-                : 'rgba(79,23,134,0.1)',
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[TEAL, PINK]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={[styles.progressFill, { width: `${pct * 100}%` }]}
-          />
-        </View>
-      </View>
+      ) : null}
 
       <Pressable style={styles.cta} onPress={onOpenJournal}>
         <Text style={[styles.ctaText, { color: colors.white }]}>Open Journal</Text>

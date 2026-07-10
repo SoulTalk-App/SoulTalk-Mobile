@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Share,
@@ -12,6 +12,7 @@ import { useThemeColors } from '../theme';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import SoulSightService, { SoulsightDetail } from '../services/SoulSightService';
 import { SightsB, SightDetail, SightStatus, SoulpalVariant } from '../features/soulSightsB';
+import { useSoulsightStatus } from '../hooks/useSoulsightStatus';
 
 // so-dwqk: FALLBACK_PULL_QUOTE + FALLBACK_SIGNALS removed. When BE returned
 // null/empty for these (common on fresh users with sparse data), the FE was
@@ -34,6 +35,10 @@ function stripMarkdown(text: string): string {
     .replace(/^---+$/gm, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*(.+?)\*/g, '$1')
+    // so-9t3d MI-5: strip LLM section-prefix labels that leak through from the
+    // prompt structure (e.g. "Big picture snapshot:\n", "Soul signal pattern:\n").
+    // Pattern: Title-case word(s) followed by colon at the start of a line.
+    .replace(/^[A-Z][^:\n]{2,50}:\s*\n/gm, '')
     .trim();
 }
 
@@ -48,9 +53,17 @@ function parseContent(content: string): { title?: string; paragraphs: string[] }
   return { title, paragraphs };
 }
 
-function deriveStatus(detail: SoulsightDetail | null, override?: SightStatus): SightStatus {
+// so-9t3d M-3: `fetchFailed` distinguishes "still loading" (null detail,
+// fetchFailed=false → show ProcessingState) from "fetch error" (null detail,
+// fetchFailed=true → show error + retry). Previously deriveStatus(null) always
+// returned 'processing', causing an eternal spinner on offline/failed fetches.
+function deriveStatus(
+  detail: SoulsightDetail | null,
+  fetchFailed: boolean,
+  override?: SightStatus,
+): SightStatus {
   if (override) return override;
-  if (!detail) return 'processing';
+  if (!detail) return fetchFailed ? 'error' : 'processing';
   const s = (detail.status || '').toLowerCase();
   if (s === 'processing' || s === 'pending' || s === 'generating') return 'processing';
   if (!detail.content || detail.content.trim().length === 0) return 'processing';
@@ -66,20 +79,25 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
   // so-knjv: BE-provided reading_paragraphs has truncated mid-analysis in the
   // wild (lead-confirmed 7k+ chars in detail.content vs a shorter array). The
   // raw `content` is canonical, so parse from it when present and fall back
-  // to the BE split only if content is absent. Dedupe paragraphs that equal
-  // the pull-quote text so the body doesn't render the quoted sentence twice.
+  // to the BE split only if content is absent.
+  // so-9t3d MI-5: dedupe uses `includes` (not ===) — the pull-quote sentence
+  // typically appears verbatim inside a longer body paragraph, so an exact
+  // match fails and the body renders the same sentence twice.
   const pullQuoteText = (detail.pull_quote?.text ?? '').trim();
   let paragraphs: string[];
   if (parsed.paragraphs.length > 0) {
     paragraphs = pullQuoteText
-      ? parsed.paragraphs.filter((p) => p.trim() !== pullQuoteText)
+      ? parsed.paragraphs.filter((p) => !p.includes(pullQuoteText))
       : parsed.paragraphs;
   } else {
     paragraphs = detail.reading_paragraphs ?? [];
   }
+  // so-9t3d MI-4: safety_redirect content gets a neutral default title so the
+  // header doesn't read "Your weekly Sight" for crisis resource content.
+  const isSafetyRedirect = detail.status === 'safety_redirect';
   return {
     id: detail.id,
-    title: detail.title ?? parsed.title ?? 'Your weekly Sight',
+    title: detail.title ?? parsed.title ?? (isSafetyRedirect ? 'Support Resources' : 'Your weekly Sight'),
     window,
     entries: detail.entry_count,
     signals: detail.active_days,
@@ -111,6 +129,11 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
 
   const [detail, setDetail] = useState<SoulsightDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // so-9t3d M-3: distinguishes a failed fetch from "still loading" so we can
+  // show error + retry instead of an eternal ProcessingState spinner.
+  const [detailFetchFailed, setDetailFetchFailed] = useState(false);
+  // Incrementing this triggers a fresh getById fetch (retry affordance).
+  const [retryKey, setRetryKey] = useState(0);
   const [archivedAt, setArchivedAt] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
   // so-nmqq: null = waiting for soulsight_signals_ready event (extraction in
@@ -119,6 +142,7 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 
@@ -127,21 +151,33 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
       setIsLoading(false);
       return;
     }
+    // Reset on every fetch (including retries from the error UI).
+    setDetailFetchFailed(false);
+    setDetail(null);
+    setIsLoading(true);
     SoulSightService.getById(soulsightId)
       .then((d) => {
+        if (!mountedRef.current) return;
         setDetail(d);
         setArchivedAt(d.archived_at ?? null);
       })
-      .catch((err) => console.log('[SoulSight] Detail fetch error:', err.message))
-      .finally(() => setIsLoading(false));
-  }, [soulsightId]);
+      .catch((err) => {
+        if (!mountedRef.current) return;
+        // so-9t3d M-3: record fetch failure so deriveStatus can return 'error'
+        // instead of 'processing', surfacing retry instead of an eternal spinner.
+        setDetailFetchFailed(true);
+        console.log('[SoulSight] Detail fetch error:', err.message);
+      })
+      .finally(() => {
+        if (mountedRef.current) setIsLoading(false);
+      });
+  }, [soulsightId, retryKey]);
 
   // so-nmqq: listen for deferred signal/shift extraction completion. When the
   // BE finishes asyncio.gather(_extract_shifts, _extract_signals) it publishes
-  // soulsight_signals_ready with {soulsight_id, signals_ok, shifts_ok}. If
-  // signals_ok, re-fetch the detail so signals_summary is populated. The
-  // integration is dark until so-h3ez (be_api relay) deploys — no-op until
-  // then, but the subscription is in place and costs nothing.
+  // soulsight_signals_ready with {soulsight_id, signals_ok, shifts_ok}.
+  // so-9t3d M-1: refetch regardless of signals_ok — a shifts-only extraction
+  // failure still updates content; always get the latest detail on this event.
   const { subscribe } = useWS();
   useEffect(() => {
     if (!soulsightId) return;
@@ -149,19 +185,42 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
       if (data.soulsight_id !== soulsightId) return;
       const { signals_ok, shifts_ok } = data;
       setSignalsReady({ signals_ok, shifts_ok });
-      if (signals_ok) {
-        SoulSightService.getById(soulsightId)
-          .then((d) => { if (mountedRef.current) setDetail(d); })
-          .catch(() => {});
-      }
+      // so-9t3d M-1: unconditional refetch (removed the `if (signals_ok)` gate
+      // that caused shifts-only failures to never update the displayed detail).
+      SoulSightService.getById(soulsightId)
+        .then((d) => { if (mountedRef.current) setDetail(d); })
+        .catch(() => {});
     });
     return unsub;
   }, [soulsightId, subscribe]);
 
   const status = useMemo(
-    () => deriveStatus(detail, displayStatusOverride),
-    [detail, displayStatusOverride],
+    () => deriveStatus(detail, detailFetchFailed, displayStatusOverride),
+    [detail, detailFetchFailed, displayStatusOverride],
   );
+
+  // so-9t3d M-1 / M-3 systemic: poll /status while the sight is generating so
+  // Detail has liveness — signals resolve within ~10s even if the WS event
+  // doesn't arrive. When polledStatus flips to complete/safety_redirect we
+  // refetch the full detail to surface content + signals.
+  const { status: polledStatus } = useSoulsightStatus(
+    status === 'processing' ? soulsightId : null,
+    { intervalMs: 10000 },
+  );
+
+  const refetchDetail = useCallback(() => {
+    if (!soulsightId || !mountedRef.current) return;
+    SoulSightService.getById(soulsightId)
+      .then((d) => { if (mountedRef.current) setDetail(d); })
+      .catch(() => {});
+  }, [soulsightId]);
+
+  useEffect(() => {
+    if (status !== 'processing') return;
+    if (polledStatus === 'complete' || polledStatus === 'safety_redirect') {
+      refetchDetail();
+    }
+  }, [polledStatus, status, refetchDetail]);
   const sight = useMemo(
     () => (detail ? buildSightDetail(detail) : undefined),
     [detail],
@@ -225,19 +284,25 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           theme={theme}
           status={status}
           sight={sight}
-          eligibility={{ current: 5, needed: 7 }}
-          processingMeta={{
-            entries: detail?.entry_count ?? 0,
-            signals: detail?.active_days ?? 0,
-          }}
+          // so-9t3d MI-5: Detail screen doesn't fetch eligibility — LockedState
+          // omits the progress bar when eligibility is absent. The hardcoded
+          // {current:5,needed:7} was a landmine that showed fake numbers.
+          processingMeta={detail ? {
+            entries: detail.entry_count,
+            signals: detail.active_days,
+          } : undefined}
           onOpenJournal={handleOpenJournal}
           onSave={handleSave}
           onShare={handleShare}
           onBack={() => navigation.goBack()}
+          // so-9t3d M-3: onRetry increments retryKey which re-triggers getById.
+          onRetry={detailFetchFailed ? () => setRetryKey((k) => k + 1) : undefined}
           isArchived={!!archivedAt}
           isArchiving={isArchiving}
           signalsLoading={signalsLoading}
           signalsFailed={signalsFailed}
+          // so-9t3d MI-4: suppress Share + enable crisis link tappability.
+          isSafetyRedirect={detail?.status === 'safety_redirect'}
         />
       )}
     </CosmicScreen>

@@ -24,6 +24,7 @@ import SoulSightService, {
   EligibilityResponse,
   SoulsightSummary,
 } from '../services/SoulSightService';
+import { useSoulsightStatus } from '../hooks/useSoulsightStatus';
 
 type SoulpalVariant = 1 | 2 | 3 | 4 | 5;
 
@@ -99,9 +100,14 @@ const SoulSightScreen = ({ navigation }: any) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // so-9t3d MI-1: pagination state.
+  const [listTotal, setListTotal] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // so-9t3d MI-2: surface fetch failures instead of silently swallowing them.
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    setFetchError(null);
     try {
       const [elig, list] = await Promise.all([
         SoulSightService.checkEligibility(),
@@ -109,8 +115,11 @@ const SoulSightScreen = ({ navigation }: any) => {
       ]);
       setEligibility(elig);
       setSoulsights(list.soulsights);
+      setListTotal(list.total);
     } catch (err: any) {
-      console.log('[SoulSight] Fetch error:', err.message);
+      // so-9t3d MI-2: surface error so the user can see a retry affordance
+      // instead of the "Your first SoulSight is forming" empty card (false).
+      setFetchError(err?.message || 'Could not load SoulSights.');
     } finally {
       setIsLoading(false);
     }
@@ -123,57 +132,70 @@ const SoulSightScreen = ({ navigation }: any) => {
     }, [fetchData]),
   );
 
-  const stopPolling = () => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  };
+  // so-9t3d systemic fix: replaced manual setInterval with shared useSoulsightStatus
+  // hook. This makes generation progress resumable — if the user nav-away and
+  // returns while a forming card is visible, the hook polls current?.id and
+  // navigates when complete (M-3). Active sessions still poll at 3s; resumed
+  // sessions poll at 10s (same pattern as Detail).
+  const { current, past } = useMemo(() => bucketSights(soulsights), [soulsights]);
+
+  // Poll whichever ID is active: the just-generated one (fast) OR any forming
+  // card visible on return from nav-away (slow). generatingId takes precedence.
+  const activePollId = useMemo(
+    () => generatingId ?? current?.id ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [generatingId, current?.id],
+  );
+  const { status: polledGenStatus, isFinal: polledIsFinal, errorMessage: polledErrorMsg } =
+    useSoulsightStatus(activePollId, { intervalMs: generatingId ? 3000 : 10000 });
 
   useEffect(() => {
-    if (!generatingId) return;
-    pollingRef.current = setInterval(async () => {
-      try {
-        const status = await SoulSightService.getStatus(generatingId);
-        if (status.status === 'complete') {
-          stopPolling();
-          setIsGenerating(false);
-          setGeneratingId(null);
-          // so-rhap: BE rolls the SoulBar forward when a SoulSight is
-          // produced; pull the new value so the Home cap doesn't display
-          // the pre-reset reading on next focus.
-          fetchSoulBar();
-          navigation.navigate('SoulSightDetail', { soulsightId: generatingId });
-        } else if (status.status === 'failed') {
-          stopPolling();
-          setIsGenerating(false);
-          setGeneratingId(null);
-          showAlert({
-            title: 'Generation Failed',
-            message:
-              status.error_message || 'Something went wrong. Please try again.',
-          });
-          fetchData();
-          // so-rhap: on a failed generate the BE may still have rolled
-          // intermediate state; refetch defensively so the Home bar
-          // stays in sync.
-          fetchSoulBar();
-        } else if (status.status === 'safety_redirect') {
-          stopPolling();
-          setIsGenerating(false);
-          setGeneratingId(null);
-          // so-rhap: safety_redirect counts as a generated SoulSight on
-          // the BE (it advances the boundary that resets the bar);
-          // refetch.
-          fetchSoulBar();
-          navigation.navigate('SoulSightDetail', { soulsightId: generatingId });
-        }
-      } catch {
-        // ignore polling errors, will retry
-      }
-    }, 3000);
-    return () => stopPolling();
-  }, [generatingId, fetchData, fetchSoulBar, navigation]);
+    if (!activePollId) return;
+    if (polledGenStatus === 'complete') {
+      setIsGenerating(false);
+      setGeneratingId(null);
+      // so-rhap: BE rolls the SoulBar forward on completion; pull the new value.
+      fetchSoulBar();
+      navigation.navigate('SoulSightDetail', { soulsightId: activePollId });
+    } else if (polledGenStatus === 'failed' && polledIsFinal) {
+      // so-9t3d M-2b: only show the terminal error when final===true. While
+      // retries_remaining > 0 the arq worker will retry; keep the drafting
+      // state and keep polling so users don't see spurious "Generation Failed"
+      // alerts that resolve on their own.
+      setIsGenerating(false);
+      setGeneratingId(null);
+      showAlert({
+        title: 'Generation Failed',
+        message: polledErrorMsg || 'Something went wrong. Please try again.',
+      });
+      fetchData();
+      // so-rhap: on a failed generate the BE may still have rolled intermediate
+      // state; refetch defensively so the Home bar stays in sync.
+      fetchSoulBar();
+    } else if (polledGenStatus === 'safety_redirect') {
+      setIsGenerating(false);
+      setGeneratingId(null);
+      // so-rhap: safety_redirect counts as a generated SoulSight and advances
+      // the bar-reset boundary.
+      fetchSoulBar();
+      navigation.navigate('SoulSightDetail', { soulsightId: activePollId });
+    }
+  }, [polledGenStatus, polledIsFinal, activePollId]);
+
+  // so-9t3d MI-1: load the next page of past sights (offset = current list length).
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || soulsights.length >= listTotal) return;
+    setIsLoadingMore(true);
+    try {
+      const more = await SoulSightService.list(10, soulsights.length);
+      setSoulsights((prev) => [...prev, ...more.soulsights]);
+      setListTotal(more.total);
+    } catch (err: any) {
+      showError(err, { title: 'SoulSight' });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, soulsights.length, listTotal, showError]);
 
   const handleGenerate = async () => {
     try {
@@ -190,23 +212,31 @@ const SoulSightScreen = ({ navigation }: any) => {
     }
   };
 
-  const { current, past } = useMemo(() => bucketSights(soulsights), [soulsights]);
-
+  // so-9t3d MI-1: only filter on fields the BE actually returns in the list
+  // response. headline + content_preview are not sent by the list endpoint —
+  // filtering on them always returns false and makes the search box appear
+  // broken. Filter on window_label (always present) + title (optional).
   const filteredPast = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return past;
     return past.filter((s) => {
-      const title = (s.title || s.window_label || '').toLowerCase();
-      const headline = (s.headline || '').toLowerCase();
-      const preview = (s.content_preview || '').toLowerCase();
-      return title.includes(q) || headline.includes(q) || preview.includes(q);
+      const label = (s.window_label || '').toLowerCase();
+      const title = (s.title || '').toLowerCase();
+      return label.includes(q) || title.includes(q);
     });
   }, [past, query]);
 
   const showCurrent = current != null || isGenerating;
+  // so-9t3d MI-3: consent_required branch — user has enough entries but AI
+  // consent is off; show a targeted CTA instead of the generate button.
+  const showConsentRequired =
+    !showCurrent && !isLoading && eligibility !== null &&
+    !eligibility.eligible && !!eligibility.consent_required;
   const showGenerateCta =
-    !showCurrent && !isLoading && eligibility?.eligible === true;
-  const isEmpty = !isLoading && !showCurrent && !showGenerateCta && past.length === 0;
+    !showCurrent && !isLoading && !showConsentRequired && eligibility?.eligible === true;
+  const isEmpty =
+    !isLoading && !showCurrent && !showGenerateCta && !showConsentRequired &&
+    past.length === 0 && !fetchError;
 
   // ─── Style trees ─────────────────────────────────
   const styles = useMemo(() => buildStyles(colors, isDark), [colors, isDark]);
@@ -318,6 +348,41 @@ const SoulSightScreen = ({ navigation }: any) => {
     );
   };
 
+  // so-9t3d MI-3: consent_required → "Enable AI Insights in Settings" CTA.
+  // The eligibility endpoint returns {eligible:false, consent_required:true}
+  // when the user has enough entries but AI consent is disabled. Previously
+  // there was no branch for this — the feature went silently inert.
+  const renderConsentRequired = () => (
+    <View style={styles.currentCard}>
+      <View style={styles.currentTopRow}>
+        <View style={styles.currentSoulpalWrap}>
+          <Image source={SOULPAL_SRC[5]} style={styles.currentSoulpal} resizeMode="contain" />
+        </View>
+        <View style={styles.currentTextCol}>
+          <Text style={styles.currentTitle}>AI Insights Required</Text>
+          <Text style={styles.currentBlurb}>
+            Enable AI Insights in Settings to generate your SoulSight.
+          </Text>
+        </View>
+      </View>
+      <Pressable
+        onPress={() => navigation.navigate('Settings')}
+        style={styles.currentOpenBtn}
+        accessibilityRole="button"
+        accessibilityLabel="Enable AI Insights in Settings"
+      >
+        <LinearGradient
+          colors={[TEAL, PURPLE]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.generateBtnGradient}
+        >
+          <Text style={styles.currentOpenBtnText}>Enable in Settings</Text>
+        </LinearGradient>
+      </Pressable>
+    </View>
+  );
+
   const renderGenerateCta = () => (
     <View style={styles.currentCard}>
       <View style={styles.currentTopRow}>
@@ -363,6 +428,9 @@ const SoulSightScreen = ({ navigation }: any) => {
         key={item.id}
         onPress={() => navigation.navigate('SoulSightDetail', { soulsightId: item.id })}
         style={styles.pastCard}
+        accessibilityRole="button"
+        accessibilityLabel={`SoulSight: ${title || item.window_label || 'Untitled'}`}
+        accessibilityHint="Opens this SoulSight reading"
       >
         <View style={[styles.pastAccentBar, { backgroundColor: tone }]} />
         <Image source={SOULPAL_SRC[soulpal]} style={styles.pastSoulpal} resizeMode="contain" />
@@ -455,6 +523,25 @@ const SoulSightScreen = ({ navigation }: any) => {
             <>
               {showCurrent && renderCurrentCard()}
               {showGenerateCta && renderGenerateCta()}
+              {/* so-9t3d MI-3: consent gate — enough entries but AI consent off. */}
+              {showConsentRequired && renderConsentRequired()}
+
+              {/* so-9t3d MI-2: surface fetch failures so the user can retry.
+                  Shown below the current/generate/consent section so a transient
+                  error doesn't wipe visible forming-card state. */}
+              {fetchError && !isLoading ? (
+                <View style={styles.errorCard}>
+                  <Text style={styles.errorText}>Couldn't load SoulSights.</Text>
+                  <Pressable
+                    onPress={() => { setIsLoading(true); fetchData(); }}
+                    style={styles.retryButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading SoulSights"
+                  >
+                    <Text style={styles.retryText}>Retry</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               {/* Search bar */}
               {past.length > 0 ? (
@@ -502,6 +589,24 @@ const SoulSightScreen = ({ navigation }: any) => {
                   <View style={styles.pastList}>
                     {filteredPast.map(renderPastCard)}
                   </View>
+                  {/* so-9t3d MI-1: load-more when there are more past sights
+                      on the server than are currently displayed. Hidden while
+                      a search query is active (offset paging and filtered
+                      results don't compose cleanly). */}
+                  {soulsights.length < listTotal && past.length > 0 && !query.trim() ? (
+                    <Pressable
+                      onPress={handleLoadMore}
+                      disabled={isLoadingMore}
+                      style={styles.loadMoreBtn}
+                      accessibilityRole="button"
+                      accessibilityState={{ busy: isLoadingMore }}
+                      accessibilityLabel="Load more SoulSights"
+                    >
+                      {isLoadingMore
+                        ? <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : PURPLE} />
+                        : <Text style={styles.loadMoreText}>Load more</Text>}
+                    </Pressable>
+                  ) : null}
                 </>
               ) : isEmpty ? (
                 renderEmptyState()
@@ -774,6 +879,48 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(58,14,102,0.55)',
     },
     pastChevron: { alignSelf: 'center', flexShrink: 0, opacity: 0.5 },
+
+    // so-9t3d MI-2: fetch-error card
+    errorCard: {
+      paddingVertical: 32,
+      paddingHorizontal: 18,
+      borderRadius: 18,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.92)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(58,14,102,0.14)',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    errorText: {
+      fontFamily: fonts.edensor.regular,
+      fontSize: 18,
+      color: isDark ? '#FFFFFF' : '#3A0E66',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    retryButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      borderRadius: 999,
+      backgroundColor: PURPLE,
+    },
+    retryText: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 13,
+      color: '#FFFFFF',
+    },
+
+    // so-9t3d MI-1: load-more button
+    loadMoreBtn: {
+      marginTop: 14,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    loadMoreText: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 14,
+      color: isDark ? TEAL : PURPLE,
+    },
 
     // Empty state
     emptyCard: {
