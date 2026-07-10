@@ -86,12 +86,16 @@ export interface ListEntriesParams {
 
 export interface StreakResponse {
   current_streak: number;
+  /** Received from BE but not currently rendered on the FE (so-a1lb MI-3). */
   longest_streak: number;
+  /** Received from BE but not currently rendered on the FE (so-a1lb MI-3). */
   last_journal_date: string | null;
 }
 
 export interface SoulBarResponse {
   points: number;
+  /** Received from BE but not currently rendered on the FE (so-a1lb MI-3).
+   *  HomeScreen derives fullness from points >= SOUL_BAR_SEGMENTS instead. */
   total_filled: number;
   is_full: boolean;
 }

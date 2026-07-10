@@ -20,6 +20,15 @@ const pendingFinalizeKey = (userId: string) =>
   `${PENDING_FINALIZE_KEY_PREFIX}:${userId}`;
 const MAX_FINALIZE_RETRY_ATTEMPTS = 5;
 
+// so-a1lb MI-1: per-user AsyncStorage keys for last-known-good gamification
+// values. Written after every successful fetch; read on mount to restore a
+// real value before the live fetch completes (prevents the false "0/6" on
+// cold start and shows cached data to offline users).
+const SOULBAR_CACHE_KEY_PREFIX = '@soultalk_soulbar';
+const STREAK_CACHE_KEY_PREFIX = '@soultalk_streak';
+const soulBarCacheKey = (userId: string) => `${SOULBAR_CACHE_KEY_PREFIX}:${userId}`;
+const streakCacheKey = (userId: string) => `${STREAK_CACHE_KEY_PREFIX}:${userId}`;
+
 interface PendingFinalize {
   draftId: string;
   text: string;
@@ -37,6 +46,11 @@ interface JournalStateType {
   streak: StreakResponse | null;
   soulBar: SoulBarResponse | null;
   hasEntryToday: boolean;
+  // so-a1lb MI-1: true while the initial fetch is in flight AND no cached
+  // value has been restored yet. HomeScreen uses this to show a loading
+  // placeholder ("–") rather than a false "0/6" count.
+  soulBarLoading: boolean;
+  streakLoading: boolean;
 }
 
 interface JournalActionsType {
@@ -117,8 +131,47 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const [lastParams, setLastParams] = useState<ListEntriesParams | undefined>();
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [soulBar, setSoulBar] = useState<SoulBarResponse | null>(null);
+  // so-a1lb MI-1: starts true; flips false on first fetch attempt (success
+  // OR error) or as soon as a cached value is restored from AsyncStorage.
+  const [soulBarLoading, setSoulBarLoading] = useState(true);
+  const [streakLoading, setStreakLoading] = useState(true);
   const { subscribe } = useWS();
   const { user } = useAuth();
+  // Stable ref so fetchSoulBar/fetchStreak (useCallback with empty deps)
+  // can write to the per-user cache without capturing user in their deps.
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  // so-a1lb MI-1: restore last-known gamification values from AsyncStorage
+  // on user change (cold start or re-auth). Populates soulBar/streak before
+  // the live fetch lands so Home/Journal never show a false "0" count while
+  // offline or while the first GET is in flight. Functional updater guards
+  // against overwriting a live value that arrived first.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    AsyncStorage.getItem(soulBarCacheKey(user.id))
+      .then((raw) => {
+        if (cancelled || !raw) return;
+        try {
+          const cached = JSON.parse(raw) as SoulBarResponse;
+          setSoulBar((prev) => prev ?? cached);
+          setSoulBarLoading(false);
+        } catch {}
+      })
+      .catch(() => {});
+    AsyncStorage.getItem(streakCacheKey(user.id))
+      .then((raw) => {
+        if (cancelled || !raw) return;
+        try {
+          const cached = JSON.parse(raw) as StreakResponse;
+          setStreak((prev) => prev ?? cached);
+          setStreakLoading(false);
+        } catch {}
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Subscribe to AI processing completion events
   useEffect(() => {
@@ -216,8 +269,16 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       // so-rhap: drop stale resolves.
       if (requestId !== streakRequestIdRef.current) return;
       setStreak(data);
+      setStreakLoading(false);
+      // so-a1lb MI-1: update per-user cache so the next cold start can show
+      // a real value rather than the false "0".
+      const uid = userRef.current?.id;
+      if (uid) {
+        AsyncStorage.setItem(streakCacheKey(uid), JSON.stringify(data)).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to fetch streak:', error);
+      setStreakLoading(false);
     }
   }, []);
 
@@ -230,8 +291,16 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       // value — the "backward charge" repro.
       if (requestId !== soulBarRequestIdRef.current) return;
       setSoulBar(data);
+      setSoulBarLoading(false);
+      // so-a1lb MI-1: update per-user cache so the next cold start can show
+      // a real value rather than the false "0/6".
+      const uid = userRef.current?.id;
+      if (uid) {
+        AsyncStorage.setItem(soulBarCacheKey(uid), JSON.stringify(data)).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to fetch soul bar:', error);
+      setSoulBarLoading(false);
     }
   }, []);
 
@@ -468,8 +537,10 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       streak,
       soulBar,
       hasEntryToday,
+      soulBarLoading,
+      streakLoading,
     }),
-    [entries, isLoading, currentEntry, total, streak, soulBar, hasEntryToday],
+    [entries, isLoading, currentEntry, total, streak, soulBar, hasEntryToday, soulBarLoading, streakLoading],
   );
 
   // so-l304 F2: stable actions memo — only re-creates if a callback
