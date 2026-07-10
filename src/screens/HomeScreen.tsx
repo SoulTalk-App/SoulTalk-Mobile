@@ -103,11 +103,16 @@ const HomeScreen = ({ navigation }: any) => {
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
-  const { soulBar, fetchSoulBar, hasEntryToday, fetchEntries } = useJournal();
+  const { soulBar, fetchSoulBar, hasEntryToday, fetchEntries, soulBarLoading } = useJournal();
 
   // SoulBar wiring (canonical GreetingHero).
-  const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, soulBar?.points ?? 0);
+  // so-a1lb MI-4: Math.floor guards against a hypothetical BE fractional
+  // points value showing "3.5/6" next to a 4-segment fill.
+  const soulBarFilled = Math.min(SOUL_BAR_SEGMENTS, Math.floor(soulBar?.points ?? 0));
   const soulBarRemaining = Math.max(0, SOUL_BAR_SEGMENTS - soulBarFilled);
+  // so-a1lb MI-1: true only when no value (live or cached) has landed yet.
+  // Drives the loading placeholder in the counter/footer.
+  const soulBarIsLoading = soulBarLoading && soulBar === null;
 
   const dk = useMemo(
     () =>
@@ -1325,11 +1330,18 @@ const HomeScreen = ({ navigation }: any) => {
                   </Pressable>
                 </View>
                 <Text style={dk.soulBarCounter}>
-                  {soulBarFilled}
+                  {/* so-a1lb MI-1: show dash until first real value lands */}
+                  {soulBarIsLoading ? '–' : soulBarFilled}
                   <Text style={dk.soulBarCounterTotal}>/{SOUL_BAR_SEGMENTS}</Text>
                 </Text>
               </View>
-              <View style={dk.soulBarSegments}>
+              {/* so-a1lb MI-2: progressbar semantics for screen readers */}
+              <View
+                style={dk.soulBarSegments}
+                accessibilityRole="progressbar"
+                accessibilityValue={{ min: 0, max: SOUL_BAR_SEGMENTS, now: soulBarFilled }}
+                accessibilityLabel="Soul bar progress"
+              >
                 {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) =>
                   i < soulBarFilled ? (
                     <LinearGradient
@@ -1368,7 +1380,8 @@ const HomeScreen = ({ navigation }: any) => {
                   </Pressable>
                 ) : (
                   <Text style={dk.soulBarFooterRight}>
-                    {`${soulBarRemaining} more to charge`}
+                    {/* so-a1lb MI-1: suppress the "N more to charge" until value is known */}
+                    {soulBarIsLoading ? '…' : `${soulBarRemaining} more to charge`}
                   </Text>
                 )}
               </View>
@@ -1607,11 +1620,18 @@ const HomeScreen = ({ navigation }: any) => {
                 </Pressable>
               </View>
               <Text style={lt.soulBarCounter}>
-                {soulBarFilled}
+                {/* so-a1lb MI-1: see dark variant */}
+                {soulBarIsLoading ? '–' : soulBarFilled}
                 <Text style={lt.soulBarCounterTotal}>/{SOUL_BAR_SEGMENTS}</Text>
               </Text>
             </View>
-            <View style={lt.soulBarSegments}>
+            {/* so-a1lb MI-2: see dark variant */}
+            <View
+              style={lt.soulBarSegments}
+              accessibilityRole="progressbar"
+              accessibilityValue={{ min: 0, max: SOUL_BAR_SEGMENTS, now: soulBarFilled }}
+              accessibilityLabel="Soul bar progress"
+            >
               {Array.from({ length: SOUL_BAR_SEGMENTS }).map((_, i) =>
                 i < soulBarFilled ? (
                   <LinearGradient
@@ -1650,7 +1670,8 @@ const HomeScreen = ({ navigation }: any) => {
                 </Pressable>
               ) : (
                 <Text style={lt.soulBarFooterRight}>
-                  {`${soulBarRemaining} more to charge`}
+                  {/* so-a1lb MI-1: see dark variant */}
+                  {soulBarIsLoading ? '…' : `${soulBarRemaining} more to charge`}
                 </Text>
               )}
             </View>
