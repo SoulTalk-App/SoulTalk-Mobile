@@ -25,6 +25,30 @@ const PersonalityIntroScreen = ({ navigation, route }: any) => {
   const testType: TestType = route.params?.testType;
   const def = getTest(testType);
 
+  // so-8hun MI-2: crash guard — unknown testType (deep link, state restoration,
+  // future test not yet in the FE registry) would crash on def.questions/def.about
+  // with no guard. All hooks are above; the early return here is safe.
+  if (!def) {
+    return (
+      <CosmicScreen tone="dusk">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            hitSlop={12}
+            style={{ position: 'absolute', top: insets.top + 8, left: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
+          </Pressable>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, textAlign: 'center', lineHeight: 24 }}>
+            This test isn't available yet.{'\n'}Please go back and try again.
+          </Text>
+        </View>
+      </CosmicScreen>
+    );
+  }
+
   // ==============================
   // DARK MODE
   // ==============================

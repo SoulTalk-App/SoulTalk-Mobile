@@ -92,6 +92,13 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
     if (error || !result) return renderDarkShell(error || 'Result not found.');
 
     const def = getTest(result.test_type);
+    // so-8hun MI-2: guard — unknown test_type from a future BE test type or
+    // stale state before the FE registry ships. Crash on def.results otherwise.
+    if (!def) {
+      return renderDarkShell(
+        `The "${result.test_type}" test isn't available in this version of the app.`,
+      );
+    }
     const primaryType = result.dominant_type.split('+')[0];
     const profile: ResultProfile | undefined = def.results[primaryType];
 
@@ -130,12 +137,13 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             </GlassCard>
 
             <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader}>Who you are</Text>
+              {/* so-8hun MI-5: accessibilityRole="header" so screen readers announce section boundaries */}
+              <Text style={dk.sectionHeader} accessibilityRole="header">Who you are</Text>
               <Text style={dk.bodyText}>{profile.summary}</Text>
             </GlassCard>
 
             <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader}>Your scores</Text>
+              <Text style={dk.sectionHeader} accessibilityRole="header">Your scores</Text>
               {def.categories.map((cat) => {
                 const score = result.scores[cat] ?? 0;
                 const total = Object.values(result.scores).reduce((a, b) => a + b, 0);
@@ -173,17 +181,17 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             </GlassCard>
 
             <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader}>Work & Career</Text>
+              <Text style={dk.sectionHeader} accessibilityRole="header">Work & Career</Text>
               <Text style={dk.bodyText}>{profile.work}</Text>
             </GlassCard>
 
             <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader}>Relationships</Text>
+              <Text style={dk.sectionHeader} accessibilityRole="header">Relationships</Text>
               <Text style={dk.bodyText}>{profile.relationships}</Text>
             </GlassCard>
 
             <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader}>Growth strategies</Text>
+              <Text style={dk.sectionHeader} accessibilityRole="header">Growth strategies</Text>
               {profile.growth.map((tip, idx) => (
                 <View key={idx} style={dk.tipRow}>
                   <View style={dk.tipDot} />
@@ -239,6 +247,13 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
   if (error || !result) return renderLightShell(error || 'Result not found.');
 
   const def = getTest(result.test_type);
+  // so-8hun MI-2: guard — unknown test_type from a future BE test type or
+  // stale state before the FE registry ships. Crash on def.results otherwise.
+  if (!def) {
+    return renderLightShell(
+      `The "${result.test_type}" test isn't available in this version of the app.`,
+    );
+  }
   const primaryType = result.dominant_type.split('+')[0];
   const profile: ResultProfile | undefined = def.results[primaryType];
 
@@ -273,7 +288,8 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>At your best</Text>
+              {/* so-8hun MI-5: accessibilityRole="header" for screen reader section nav */}
+              <Text style={lt.sectionHeader} accessibilityRole="header">At your best</Text>
             </View>
             <View style={lt.sectionBody}>
               <Text style={lt.atBestText}>{profile.atYourBest}</Text>
@@ -282,7 +298,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>Who you are</Text>
+              <Text style={lt.sectionHeader} accessibilityRole="header">Who you are</Text>
             </View>
             <View style={lt.sectionBody}>
               <Text style={lt.bodyText}>{profile.summary}</Text>
@@ -291,7 +307,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>Your scores</Text>
+              <Text style={lt.sectionHeader} accessibilityRole="header">Your scores</Text>
             </View>
             <View style={lt.sectionBody}>
               {def.categories.map((cat) => {
@@ -333,7 +349,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>Work & Career</Text>
+              <Text style={lt.sectionHeader} accessibilityRole="header">Work & Career</Text>
             </View>
             <View style={lt.sectionBody}>
               <Text style={lt.bodyText}>{profile.work}</Text>
@@ -342,7 +358,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>Relationships</Text>
+              <Text style={lt.sectionHeader} accessibilityRole="header">Relationships</Text>
             </View>
             <View style={lt.sectionBody}>
               <Text style={lt.bodyText}>{profile.relationships}</Text>
@@ -351,7 +367,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
 
           <View style={lt.sectionCard}>
             <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader}>Growth strategies</Text>
+              <Text style={lt.sectionHeader} accessibilityRole="header">Growth strategies</Text>
             </View>
             <View style={lt.sectionBody}>
               {profile.growth.map((tip, idx) => (

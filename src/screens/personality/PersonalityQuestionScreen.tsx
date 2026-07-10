@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   View,
   Text,
   StyleSheet,
@@ -45,6 +46,11 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   // so-1zn0: themed alert replaces native Alert.
   const { showAlert } = useAppAlert();
 
+  // so-8hun M-1: gate used by the beforeRemove interceptor so the Exit
+  // button's own confirm dialog doesn't trigger a second dialog when the
+  // user confirms "Leave" (canLeaveRef → true → beforeRemove skips).
+  const canLeaveRef = useRef(false);
+
   // so-ckkw: remote question-map from BE SSOT (so-rpof). On fetch success,
   // `remoteCategoryMap` overlays local categories and `remoteVersion` drives
   // the submission payload so the client is always in sync with the BE scorer.
@@ -54,6 +60,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   const [remoteCategoryMap, setRemoteCategoryMap] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
+    // so-8hun MI-2: def may be null when testType is unknown; skip fetch.
+    if (!def) return;
     let active = true;
     PersonalityService.getQuestionMap(testType)
       .then((data) => {
@@ -62,36 +70,38 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
         setRemoteCategoryMap(data.question_map);
       })
       .catch(() => {
-        // Network/unavailable — silently fall back to local data.
-        if (__DEV__) {
-          // eslint-disable-next-line no-console
-          console.warn('[PersonalityQuestionScreen] question-map fetch failed; using local data');
-        }
+        // so-8hun MI-5: promote out of __DEV__-only so SSOT drift is
+        // diagnosable in production crash reports / logging.
+        console.warn('[PersonalityQuestionScreen] question-map fetch failed; using local data');
       });
     return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testType]);
 
   // Merge remote categories (SSOT) into local question texts. Questions are
   // ordered by local def; remote map overlays the category for each qid.
+  // so-8hun MI-2: guard def; return empty array when testType is unknown so
+  // the early return below can handle the error shell safely.
   const questions = useMemo(() => {
+    if (!def) return [];
     if (!remoteCategoryMap) return def.questions;
     return def.questions.map((q) => ({
       ...q,
       category: remoteCategoryMap[q.id] ?? q.category,
     }));
-  }, [def.questions, remoteCategoryMap]);
+  }, [def, remoteCategoryMap]);
 
   // Version for submission: prefer remote SSOT, fall back to local.
-  const localVersion = def.version;
+  const localVersion = def?.version ?? '';
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LikertValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const question = questions[currentIndex];
-  const selectedValue = answers[question.id];
-  const isLastQuestion = currentIndex === questions.length - 1;
-  const progress = (currentIndex + 1) / questions.length;
+  const question = questions[currentIndex] ?? null;
+  const selectedValue = question ? answers[question.id] : undefined;
+  const isLastQuestion = questions.length > 0 && currentIndex === questions.length - 1;
+  const progress = questions.length > 0 ? (currentIndex + 1) / questions.length : 0;
 
   // Fade/slide animation when transitioning between questions
   const translateX = useSharedValue(0);
@@ -121,6 +131,46 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
     );
   }, [opacity, translateX]);
 
+  // so-8hun MI-5: announce question transitions so screen readers don't
+  // stay on the previous question's text while the new card slides in.
+  useEffect(() => {
+    if (!question?.text) return;
+    AccessibilityInfo.announceForAccessibility(
+      `Question ${currentIndex + 1} of ${questions.length}: ${question.text}`,
+    );
+  // Intentionally only track currentIndex — question.text is derived from it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex]);
+
+  // so-8hun M-1: intercept ALL navigation-away events (Android hardware back,
+  // gesture swipe, programmatic goBack) and route them through the "Leave
+  // test?" confirm dialog. iOS gesture-back is already disabled via
+  // gestureEnabled:false on the route; this covers Android hardware back.
+  // Without this listener, the user can discard up to 25 answers with no
+  // warning by pressing the hardware back button.
+  useEffect(() => {
+    const sub = navigation.addListener('beforeRemove', (e: any) => {
+      if (canLeaveRef.current) return; // already confirmed via Exit button
+      e.preventDefault();
+      showAlert({
+        title: 'Leave test?',
+        message: 'Your progress will be lost.',
+        buttons: [
+          { text: 'Keep going', style: 'cancel' },
+          {
+            text: 'Leave',
+            style: 'destructive',
+            onPress: () => {
+              canLeaveRef.current = true;
+              navigation.dispatch(e.data.action);
+            },
+          },
+        ],
+      });
+    });
+    return sub;
+  }, [navigation, showAlert]);
+
   const submit = useCallback(
     async (finalAnswers: Record<string, LikertValue>) => {
       setIsSubmitting(true);
@@ -133,6 +183,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
           version,
           answers: finalAnswers,
         });
+        // Allow navigation.replace to proceed without the beforeRemove guard.
+        canLeaveRef.current = true;
         setResult(result);
         navigation.replace('PersonalityResult', { resultId: result.id });
       } catch (err: any) {
@@ -149,7 +201,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   );
 
   const handleSelect = (value: LikertValue) => {
-    if (isSubmitting) return;
+    if (!question || isSubmitting) return;
     const nextAnswers = { ...answers, [question.id]: value };
     setAnswers(nextAnswers);
 
@@ -166,6 +218,7 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
 
   const handleBack = () => {
     if (currentIndex === 0) {
+      // Let navigation.goBack() trigger the beforeRemove guard above.
       navigation.goBack();
       return;
     }
@@ -177,16 +230,51 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
     submit(answers);
   };
 
+  // so-8hun M-1: Exit button sets canLeaveRef before calling goBack so the
+  // beforeRemove listener sees the confirmation has already happened and
+  // doesn't show a second dialog.
   const handleExit = () => {
     showAlert({
       title: 'Leave test?',
       message: 'Your progress will be lost.',
       buttons: [
         { text: 'Keep going', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: () => navigation.goBack() },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: () => {
+            canLeaveRef.current = true;
+            navigation.goBack();
+          },
+        },
       ],
     });
   };
+
+  // so-8hun MI-2: guard for unknown/stale testType (deep link, state
+  // restoration, future test type shipped by BE before FE) — crash guard so
+  // the screen shows an error shell instead of crashing on def.questions.
+  // ALL hooks are declared above; the early return is safe here.
+  if (!def || !question) {
+    return (
+      <CosmicScreen tone="dusk">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+          <Pressable
+            onPress={() => { canLeaveRef.current = true; navigation.goBack(); }}
+            hitSlop={12}
+            style={{ position: 'absolute', top: insets.top + 8, left: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Feather name="chevron-left" size={28} color="#FFFFFF" />
+          </Pressable>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, textAlign: 'center', lineHeight: 24 }}>
+            This test isn't available yet.{'\n'}Please go back and try again.
+          </Text>
+        </View>
+      </CosmicScreen>
+    );
+  }
 
   // ==============================
   // DARK MODE
@@ -208,8 +296,13 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
             </Pressable>
           </View>
 
-          {/* Progress bar */}
-          <View style={dk.progressTrack}>
+          {/* so-8hun MI-5: progress bar with accessibilityRole + value */}
+          <View
+            style={dk.progressTrack}
+            accessibilityRole="progressbar"
+            accessibilityValue={{ min: 0, max: questions.length, now: currentIndex + 1 }}
+            accessibilityLabel={`Question ${currentIndex + 1} of ${questions.length}`}
+          >
             <View style={[dk.progressFill, { width: `${progress * 100}%` }]} />
           </View>
 
@@ -309,8 +402,13 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
           </Pressable>
         </View>
 
-        {/* Progress bar */}
-        <View style={lt.progressTrack}>
+        {/* so-8hun MI-5: progress bar with accessibilityRole + value */}
+        <View
+          style={lt.progressTrack}
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 0, max: questions.length, now: currentIndex + 1 }}
+          accessibilityLabel={`Question ${currentIndex + 1} of ${questions.length}`}
+        >
           <View style={[lt.progressFill, { width: `${progress * 100}%` }]} />
         </View>
 
