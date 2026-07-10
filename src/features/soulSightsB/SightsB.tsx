@@ -13,9 +13,12 @@ import { StarsBg } from './StarsBg';
 import { cosmicTextShadow } from '../../components/CosmicText';
 import {
   PINK,
+  PURPLE,
   Theme,
   ink,
   inkSub,
+  surfaceBg,
+  surfaceBorder,
 } from './tokens';
 import { Eligibility, SightDetail, SightStatus } from './types';
 
@@ -29,11 +32,15 @@ type Props = {
   onSave?: () => void;
   onShare?: () => void;
   onBack?: () => void;
+  onRetry?: () => void;
   isArchived?: boolean;
   isArchiving?: boolean;
   // so-nmqq: lazy-load state for deferred signal/shift extraction.
   signalsLoading?: boolean;
   signalsFailed?: boolean;
+  // so-9t3d MI-4: suppresses Share + enables crisis-link tappability for
+  // safety_redirect content.
+  isSafetyRedirect?: boolean;
 };
 
 export function SightsB({
@@ -46,10 +53,12 @@ export function SightsB({
   onSave,
   onShare,
   onBack,
+  onRetry,
   isArchived,
   isArchiving,
   signalsLoading,
   signalsFailed,
+  isSafetyRedirect,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -85,11 +94,32 @@ export function SightsB({
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 14 }]}
         showsVerticalScrollIndicator={false}
       >
-        {status === 'locked' || status === 'processing' || !sight ? (
+        {status === 'locked' || status === 'processing' || status === 'error' || !sight ? (
           <View style={styles.stateWrap}>
             <StarsBg theme={theme} />
             {status === 'processing' ? (
               <ProcessingState theme={theme} meta={processingMeta} />
+            ) : status === 'error' ? (
+              // so-9t3d M-3: offline / fetch-failure state — error + retry instead
+              // of the eternal spinner that deriveStatus(null) used to produce.
+              <View style={[styles.errorCard, { backgroundColor: surfaceBg(theme), borderColor: surfaceBorder(theme) }]}>
+                <Text style={[styles.errorTitle, { color: ink(theme) }]}>
+                  Couldn't load this SoulSight
+                </Text>
+                <Text style={[styles.errorCopy, { color: inkSub(theme) }]}>
+                  Check your connection and try again.
+                </Text>
+                {onRetry ? (
+                  <Pressable
+                    style={styles.errorBtn}
+                    onPress={onRetry}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry loading SoulSight"
+                  >
+                    <Text style={styles.errorBtnText}>Retry</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : (
               <LockedState
                 theme={theme}
@@ -146,6 +176,7 @@ export function SightsB({
               isArchiving={isArchiving}
               signalsLoading={signalsLoading}
               signalsFailed={signalsFailed}
+              isSafetyRedirect={isSafetyRedirect}
             />
           </>
         )}
@@ -201,6 +232,41 @@ const styles = StyleSheet.create({
   stateWrap: {
     minHeight: 600,
     position: 'relative',
+  },
+  // so-9t3d M-3: error card mirrors ProcessingState / LockedState layout.
+  errorCard: {
+    marginTop: 60,
+    marginHorizontal: 20,
+    padding: 28,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontFamily: fonts.edensor.regular,
+    fontSize: 24,
+    lineHeight: 24 * 1.1,
+    textAlign: 'center',
+  },
+  errorCopy: {
+    fontFamily: fonts.edensor.lightItalic,
+    fontSize: 14,
+    lineHeight: 14 * 1.4,
+    textAlign: 'center',
+    maxWidth: 280,
+    marginTop: 10,
+  },
+  errorBtn: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 999,
+    backgroundColor: PURPLE,
+  },
+  errorBtnText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 13,
+    color: '#fff',
   },
   titleBlock: {
     paddingTop: 24,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
 import { cosmicTextShadow } from '../../components/CosmicText';
@@ -27,7 +27,59 @@ type Props = {
   // so-nmqq: lazy-load state for deferred signal extraction.
   signalsLoading?: boolean;
   signalsFailed?: boolean;
+  // so-9t3d MI-4: safety_redirect content targets at-risk users — crisis
+  // hotline numbers/URLs must be tappable, and Share is suppressed so the
+  // user can't share another person's crisis resource screen as if it were
+  // their SoulSight reading.
+  isSafetyRedirect?: boolean;
 };
+
+/**
+ * so-9t3d MI-4: split a paragraph string into plain-text and tappable URL
+ * parts so crisis hotline numbers and links in safety_redirect content are
+ * pressable. Only used when isSafetyRedirect is true.
+ */
+function splitLinks(text: string): Array<{ text: string; url?: string }> {
+  const urlPattern = /((?:https?:\/\/|tel:)[^\s,)[\]]+)/g;
+  const parts: Array<{ text: string; url?: string }> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = urlPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ text: match[1], url: match[1] });
+    lastIndex = match.index + match[1].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex) });
+  }
+  return parts;
+}
+
+/** Renders a paragraph with tappable tel:/https: links for crisis content. */
+function CrisisParagraph({ text, textStyle }: { text: string; textStyle: any }) {
+  const parts = splitLinks(text);
+  return (
+    <Text style={textStyle}>
+      {parts.map((part, i) =>
+        part.url ? (
+          <Text
+            key={i}
+            style={styles.crisisLink}
+            onPress={() => Linking.openURL(part.url!)}
+            accessibilityRole="link"
+            accessibilityLabel={part.text}
+          >
+            {part.text}
+          </Text>
+        ) : (
+          <Text key={i}>{part.text}</Text>
+        ),
+      )}
+    </Text>
+  );
+}
 
 export function ReadingBody({
   theme,
@@ -40,6 +92,7 @@ export function ReadingBody({
   isArchiving = false,
   signalsLoading = false,
   signalsFailed = false,
+  isSafetyRedirect = false,
 }: Props) {
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
@@ -58,34 +111,51 @@ export function ReadingBody({
         tone={isDark ? 'light' : 'dark'}
         style={{ marginBottom: 10 }}
       />
-      {/* so-jkgo: opening + body paragraphs sit directly over StarsBg in
-          dark theme. Apply cosmic shadow halo for dyslexic-readability. */}
+      {/* so-jkgo: opening + body paragraphs sit directly over StarsBg in dark
+          theme. Apply cosmic shadow halo for dyslexic-readability.
+          so-9t3d MI-4: safety_redirect paragraphs use CrisisParagraph so
+          hotline numbers and URLs are tappable. */}
       {opening ? (
-        <Text
-          style={[
-            styles.opening,
-            { color: ink(theme) },
-            isDark && cosmicTextShadow,
-          ]}
-        >
-          {opening}
-        </Text>
+        isSafetyRedirect ? (
+          <CrisisParagraph
+            text={opening}
+            textStyle={[styles.opening, { color: ink(theme) }, isDark && cosmicTextShadow]}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.opening,
+              { color: ink(theme) },
+              isDark && cosmicTextShadow,
+            ]}
+          >
+            {opening}
+          </Text>
+        )
       ) : null}
 
       {rest.length > 0 ? (
         <View style={styles.bodyParagraphs}>
-          {rest.map((p, i) => (
-            <Text
-              key={i}
-              style={[
-                styles.paragraph,
-                { color: ink(theme) },
-                isDark && cosmicTextShadow,
-              ]}
-            >
-              {p}
-            </Text>
-          ))}
+          {rest.map((p, i) =>
+            isSafetyRedirect ? (
+              <CrisisParagraph
+                key={i}
+                text={p}
+                textStyle={[styles.paragraph, { color: ink(theme) }, isDark && cosmicTextShadow]}
+              />
+            ) : (
+              <Text
+                key={i}
+                style={[
+                  styles.paragraph,
+                  { color: ink(theme) },
+                  isDark && cosmicTextShadow,
+                ]}
+              >
+                {p}
+              </Text>
+            ),
+          )}
         </View>
       ) : null}
 
@@ -219,21 +289,25 @@ export function ReadingBody({
                 : 'Save to your archive'}
           </Text>
         </Pressable>
-        <Pressable
-          style={[
-            styles.secondaryBtn,
-            {
-              borderColor: isDark
-                ? 'rgba(255,255,255,0.2)'
-                : 'rgba(79,23,134,0.2)',
-            },
-          ]}
-          onPress={onShare}
-        >
-          <Text style={[styles.secondaryBtnText, { color: ink(theme) }]}>
-            Share with a friend
-          </Text>
-        </Pressable>
+        {/* so-9t3d MI-4: suppress Share for safety_redirect — crisis content
+            is for the user, not for sharing. */}
+        {!isSafetyRedirect ? (
+          <Pressable
+            style={[
+              styles.secondaryBtn,
+              {
+                borderColor: isDark
+                  ? 'rgba(255,255,255,0.2)'
+                  : 'rgba(79,23,134,0.2)',
+              },
+            ]}
+            onPress={onShare}
+          >
+            <Text style={[styles.secondaryBtnText, { color: ink(theme) }]}>
+              Share with a friend
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -353,5 +427,10 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontFamily: fonts.outfit.medium,
     fontSize: 13,
+  },
+  // so-9t3d MI-4: tappable link style for crisis hotlines/URLs.
+  crisisLink: {
+    color: '#70CACF',
+    textDecorationLine: 'underline',
   },
 });
