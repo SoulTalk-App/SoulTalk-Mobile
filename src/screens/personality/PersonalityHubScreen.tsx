@@ -25,7 +25,10 @@ import { TestType } from '../../data/personalityTests/types';
 
 type SoulpalVariant = 1 | 2 | 3 | 4 | 5;
 type GlyphLabel = 'eye' | 'spiral' | 'wave' | 'compass';
-type CardStatus = 'taken' | 'available' | 'soon';
+// so-8hun MI-1: 'error' distinguishes a fetch failure from 'available'
+// (not taken) so we don't show a false "Take test" CTA to a user who has
+// already completed the test but had a network error on this load.
+type CardStatus = 'taken' | 'available' | 'soon' | 'error';
 
 const TEAL = '#70CACF';
 const PINK = '#E93678';
@@ -143,11 +146,24 @@ const glyphStyles = StyleSheet.create({
   },
 });
 
+/**
+ * so-8hun MI-3: format a potentially multi-type dominant_type string.
+ * BE returns "A+B+C" for all-four ties; render "A +2 more" so the
+ * result row doesn't blow out at fixed font size.
+ */
+function formatDominantType(dominantType: string): string {
+  const parts = dominantType.split('+');
+  if (parts.length <= 1) return dominantType;
+  return `${parts[0]} +${parts.length - 1} more`;
+}
+
 const PersonalityHubScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { latestByType, isLoading, hasLoadedOnce, refresh } = usePersonality();
+  // so-8hun MI-1: consume fetchErrorByType to distinguish fetch failure from
+  // "never taken" so we can show an error affordance instead of "Take test".
+  const { latestByType, fetchErrorByType, isLoading, hasLoadedOnce, refresh } = usePersonality();
   const isDark = isDarkMode;
   const styles = useMemo(() => buildStyles(colors, isDark), [colors, isDark]);
 
@@ -158,12 +174,17 @@ const PersonalityHubScreen = ({ navigation }: any) => {
   );
 
   const tests = PERSONALITY_TEST_ORDER;
-  const taken = tests.filter((t) => latestByType[t]).length;
+  // so-8hun MI-1: only count confirmed results; don't count errored tests
+  // as taken (they might be taken, but we can't confirm it right now).
+  const taken = tests.filter((t) => latestByType[t] != null).length;
 
   const statusFor = (t: TestType): CardStatus => {
     const def = PERSONALITY_TESTS[t];
     if (def.locked) return 'soon';
     if (latestByType[t]) return 'taken';
+    // so-8hun MI-1: no cached result + fetch error → 'error' so the card
+    // shows "Couldn't load" instead of "Take test →".
+    if (fetchErrorByType[t]) return 'error';
     return 'available';
   };
 
@@ -173,6 +194,11 @@ const PersonalityHubScreen = ({ navigation }: any) => {
     const latest = latestByType[t];
     if (latest) {
       navigation.navigate('PersonalityResult', { resultId: latest.id });
+    } else if (fetchErrorByType[t]) {
+      // so-8hun MI-1: error state — retry the fetch instead of navigating
+      // to the intro (which would let the user start a test they may have
+      // already completed but which failed to load).
+      refresh();
     } else {
       navigation.navigate('PersonalityIntro', { testType: t });
     }
@@ -280,9 +306,17 @@ const PersonalityHubScreen = ({ navigation }: any) => {
         ? 'Taken'
         : status === 'soon'
           ? '🔒 Coming soon'
-          : 'Take it →';
+          : status === 'error'
+            ? 'Couldn\'t load'
+            : 'Take it →';
     const badgeTone =
-      status === 'taken' ? TEAL : status === 'soon' ? LILAC : PINK;
+      status === 'taken'
+        ? TEAL
+        : status === 'soon'
+          ? LILAC
+          : status === 'error'
+            ? YELLOW
+            : PINK;
 
     const footerLeft =
       status === 'soon'
@@ -294,6 +328,16 @@ const PersonalityHubScreen = ({ navigation }: any) => {
         key={t}
         onPress={() => handleCardPress(t)}
         disabled={def.locked}
+        accessibilityRole="button"
+        accessibilityLabel={
+          status === 'error'
+            ? `${def.title} — couldn't load, tap to retry`
+            : status === 'taken'
+              ? `${def.title} — taken, tap to view result`
+              : status === 'soon'
+                ? `${def.title} — coming soon`
+                : `${def.title} — tap to take test`
+        }
         style={[
           styles.testCard,
           {
@@ -356,10 +400,31 @@ const PersonalityHubScreen = ({ navigation }: any) => {
           >
             <View>
               <Text style={styles.resultLabel}>You are</Text>
-              <Text style={styles.resultValue}>{latest.dominant_type}</Text>
+              {/* so-8hun MI-3: format multi-tie "A+B+C" as "A +2 more" */}
+              <Text style={styles.resultValue}>
+                {formatDominantType(latest.dominant_type)}
+              </Text>
             </View>
             <Text style={[styles.resultRetake, { color: tone }]}>
               Re-take →
+            </Text>
+          </View>
+        ) : null}
+        {/* so-8hun MI-1: error row when fetch failed and no cached result */}
+        {status === 'error' ? (
+          <View
+            style={[
+              styles.resultRow,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,240,200,0.5)',
+                borderColor: isDark
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(255,200,92,0.4)',
+              },
+            ]}
+          >
+            <Text style={[styles.resultLabel, { flex: 1 }]}>
+              Couldn't load your result. Tap to retry.
             </Text>
           </View>
         ) : null}
@@ -381,6 +446,8 @@ const PersonalityHubScreen = ({ navigation }: any) => {
               style={[
                 styles.badgePill,
                 {
+                  // so-8hun MI-1: error badge uses yellow-tinted background
+                  // to signal a transient state (not "locked", not "taken").
                   backgroundColor: status === 'soon'
                     ? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(58,14,102,0.06)')
                     : badgeTone + '1F',
