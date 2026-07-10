@@ -154,7 +154,15 @@ export function StageAdvance({
               resizeMode="contain"
             />
           </View>
-          <Text style={[styles.eyebrow, { color: tone }]}>Shift advanced</Text>
+          {/* so-zlvm MI-6: live region announces the celebration to screen
+              readers when the modal mounts — VoiceOver/TalkBack reads the
+              eyebrow + headline as a paired announcement. */}
+          <Text
+            style={[styles.eyebrow, { color: tone }]}
+            accessibilityLiveRegion="assertive"
+          >
+            Shift advanced
+          </Text>
           <Text style={styles.headline}>{headline}</Text>
           <Text
             style={[

@@ -93,6 +93,9 @@ export function TendToast({
               : 'rgba(58,14,102,0.08)',
           },
         ]}
+        accessibilityLiveRegion="polite"
+        accessibilityRole="status"
+        accessibilityLabel={`Tended${tendCountLabel ? ` — ${tendCountLabel}` : ''}: "${shift?.title ?? ''}"`}
       >
         <LinearGradient
           colors={[shift.mood, PINK]}

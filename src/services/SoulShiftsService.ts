@@ -306,6 +306,18 @@ class SoulShiftsService {
   }
 
   /**
+   * Undo a single tend on the given shift (so-zlvm MI-1). Symmetric DELETE for
+   * the POST /soul-shifts/{id}/tend response. The BE stage-reverts pct/status
+   * from the delete response, which the FE uses to roll back the local snapshot.
+   */
+  async undoTend(id: string, tendId: string): Promise<Shift> {
+    const response = await this.axiosInstance.delete(
+      `/soul-shifts/${id}/tends/${tendId}`,
+    );
+    return normalizeShift(response.data as ShiftWire);
+  }
+
+  /**
    * Mark a suggestion as shown (idempotent server-side). Fired once per
    * suggestion id when the SuggestModal mounts with non-empty candidates.
    */

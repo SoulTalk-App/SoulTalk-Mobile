@@ -1,7 +1,6 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fonts } from '../../theme';
-import { useSoulPalName } from '../../contexts/SoulPalContext';
 import { Shift, SoulpalVariant, STAGES, STATUS_LABEL } from './types';
 import { PURPLE_INK, Theme, ink, inkSub, surfaceBg, surfaceBorder } from './tokens';
 
@@ -13,10 +12,11 @@ const SOULPAL_SRC: Record<SoulpalVariant, any> = {
   5: require('../../../assets/images/home-v2/soulpal-5.png'),
 };
 
+// so-zlvm MI-6: locked/processing removed from ShiftStatus — no writer
+// produces them. stageIndex falls back to 0 for any unknown status (stale rows).
 function stageIndex(s: Shift): number {
   if (s.status === 'integrated') return 4;
   if (s.status === 'active') return Math.max(1, Math.round(s.pct * 4));
-  if (s.status === 'processing') return 1;
   return 0;
 }
 
@@ -33,9 +33,6 @@ type Props = {
 
 export function ShiftCard({ shift, theme, focused = false, dim = false, onPress }: Props) {
   const isDark = theme === 'dark';
-  const soulPalName = useSoulPalName();
-  const locked = shift.status === 'locked';
-  const processing = shift.status === 'processing';
   const idx = stageIndex(shift);
 
   const moodSoft = shift.mood + '33'; // ~20% alpha (hex rrggbb + aa)
@@ -52,7 +49,7 @@ export function ShiftCard({ shift, theme, focused = false, dim = false, onPress 
       backgroundColor: surfaceBg(theme),
       borderColor: focused ? shift.mood : surfaceBorder(theme),
       borderWidth: focused ? 2 : 1,
-      opacity: dim ? 0.45 : locked ? 0.65 : 1,
+      opacity: dim ? 0.45 : 1,
     },
     focused && {
       shadowColor: shift.mood,
@@ -90,30 +87,20 @@ export function ShiftCard({ shift, theme, focused = false, dim = false, onPress 
         <View
           style={[
             styles.statusPill,
-            locked
-              ? {
-                  backgroundColor: isDark
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'rgba(58,14,102,0.08)',
-                }
-              : {
-                  backgroundColor: moodPill,
-                  borderWidth: 1,
-                  borderColor: moodPillBorder,
-                },
+            {
+              backgroundColor: moodPill,
+              borderWidth: 1,
+              borderColor: moodPillBorder,
+            },
           ]}
         >
           <Text
             style={[
               styles.statusText,
-              { color: locked ? inkSub(theme) : isDark ? '#fff' : PURPLE_INK },
+              { color: isDark ? '#fff' : PURPLE_INK },
             ]}
           >
-            {locked
-              ? '🔒 Locked'
-              : processing
-                ? 'Processing…'
-                : STATUS_LABEL[shift.status]}
+            {STATUS_LABEL[shift.status] ?? shift.status}
           </Text>
         </View>
       </View>
@@ -200,15 +187,10 @@ export function ShiftCard({ shift, theme, focused = false, dim = false, onPress 
         </View>
       </View>
 
-      {processing ? (
-        <Text style={[styles.processingNote, { color: inkSub(theme) }]}>
-          {soulPalName} is sensing this pattern in your recent entries…
-        </Text>
-      ) : null}
     </>
   );
 
-  if (onPress && !locked) {
+  if (onPress) {
     return (
       <Pressable style={cardStyle} onPress={onPress}>
         {Content}
@@ -297,11 +279,6 @@ const styles = StyleSheet.create({
   stageLabel: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 12,
-  },
-  processingNote: {
-    marginTop: 10,
-    fontFamily: fonts.edensor.lightItalic,
     fontSize: 12,
   },
 });
