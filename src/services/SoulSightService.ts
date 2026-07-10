@@ -21,6 +21,11 @@ export interface EligibilityResponse {
   window_label?: string | null;
   reason: string | null;
   points?: number;
+  // so-9kg3 MI-2: BE threshold for Soul Signals eligibility (how many
+  // journal entries are needed). FE uses this instead of the hardcoded
+  // ENTRIES_NEEDED=6 so design can be tuned server-side without a release.
+  // Falls back to the FE constant when the field is absent (older BE builds).
+  threshold?: number;
 }
 
 export interface GenerateResponse {

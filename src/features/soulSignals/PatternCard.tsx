@@ -104,9 +104,22 @@ export function PatternCard({
     },
   ];
 
+  // so-9kg3 MI-5: a11y — give screen readers a meaningful label and role on
+  // the tappable card. Label combines tag + truncated headline so VoiceOver /
+  // TalkBack reads "Pacing pattern: You keep coming back to pacing. Tap for
+  // detail." without reading the full card layout into the user's ear.
+  const a11yLabel = onPress
+    ? `${pattern.tag ? `${pattern.tag} pattern: ` : 'Pattern: '}${displayHeadline}. Tap for detail.`
+    : undefined;
+
   const Wrapper: React.ElementType = onPress ? Pressable : View;
   const wrapperProps = onPress
-    ? { onPress: () => onPress(pattern.id), style: cardStyle }
+    ? {
+        onPress: () => onPress(pattern.id),
+        style: cardStyle,
+        accessibilityRole: 'button' as const,
+        accessibilityLabel: a11yLabel,
+      }
     : { style: cardStyle };
 
   return (
