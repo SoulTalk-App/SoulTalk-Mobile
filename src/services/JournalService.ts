@@ -305,7 +305,14 @@ class JournalService {
   }
 
   async getTodayAffirmation(): Promise<{ affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }> {
-    const response = await this.axiosInstance.get('/affirmation-mirror/today');
+    // so-lt40 M-1: override the shared 10s client timeout for this call only.
+    // The BE was explicitly tuned for patience (so-liyt AM-m3: loser-poll raised
+    // 15s→45s because Sonnet p99 exceeds 15s); a 10s client timeout makes the
+    // p99 first-reveal always error-toast while the winner finishes. 60s gives
+    // the LLM comfortable headroom without impacting any other endpoint.
+    const response = await this.axiosInstance.get('/affirmation-mirror/today', {
+      timeout: 60000,
+    });
     return response.data;
   }
 

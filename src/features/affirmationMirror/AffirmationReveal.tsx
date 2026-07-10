@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   AppState,
   View,
@@ -29,11 +30,17 @@ type RevealedPlayerHandle = { play: () => void };
 const RevealedVideoPlayer = forwardRef<RevealedPlayerHandle, {
   source: any;
   style: any;
-}>(({ source, style }, ref) => {
+  onError?: () => void;
+}>(({ source, style, onError }, ref) => {
   const player = useVideoPlayer(source, (p) => {
     p.loop = true;
     p.muted = true;
     p.audioMixingMode = 'mixWithOthers';
+    // so-lt40 MI-5(a): notify parent so it can show a gradient fallback
+    // instead of a black half-screen on decode/load failure.
+    p.addListener('statusChange', ({ status }: any) => {
+      if (status === 'error' && onError) onError();
+    });
   });
   useImperativeHandle(ref, () => ({ play: () => player.play() }));
   return (
@@ -102,6 +109,9 @@ type Props = {
   // the click-race where a tap during the glitch fired a redundant generate.
   // Defaults true so the replay path and any other caller are unaffected.
   ctaReady?: boolean;
+  // so-lt40 MI-5(c): scope the AsyncStorage revealed-date key per user so a
+  // same-day account switch doesn't inherit the previous user's revealed state.
+  userId?: string;
 };
 
 export function AffirmationReveal({
@@ -113,6 +123,7 @@ export function AffirmationReveal({
   date_key: initialDateKey,
   onClose,
   ctaReady = true,
+  userId,
 }: Props) {
   const insets = useSafeAreaInsets();
   // so-i7xd: full migration to useThemeColors. `colors` is the per-active-
@@ -129,6 +140,12 @@ export function AffirmationReveal({
   const [text, setText] = useState<string>(initialText ?? '');
   const [dateKey, setDateKey] = useState<string>(initialDateKey ?? '');
   const [isGenerating, setIsGenerating] = useState(false);
+  // so-lt40 M-1: show a "still weaving" hint after 8s of LLM wait.
+  const [showWeavingHint, setShowWeavingHint] = useState(false);
+  // so-lt40 MI-4: respect the OS reduce-motion preference.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  // so-lt40 MI-5(a): video decode failure — triggers gradient fallback.
+  const [videoError, setVideoError] = useState(false);
   const isLockedEntry = !initialText && !hasEntryToday;
   const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
   const playRevealedOnMountRef = useRef(false);
@@ -148,6 +165,20 @@ export function AffirmationReveal({
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+
+  // so-lt40 MI-5(c): per-user revealed-date key.  Falls back to the legacy
+  // global key so existing revealed state isn't lost on first upgrade.
+  const revealedDateStorageKey = userId
+    ? `@soultalk_affirmation_revealed_date:${userId}`
+    : REVEALED_DATE_KEY;
+
+  // so-lt40 MI-4: query the OS preference once on mount; stable for the
+  // lifetime of this screen (settings change requires app relaunch on iOS).
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => { if (mountedRef.current) setReduceMotion(enabled); })
+      .catch(() => {});
   }, []);
 
   const idleSource = isDarkMode ? IdleVideoDark : IdleVideo;
@@ -224,7 +255,7 @@ export function AffirmationReveal({
     if (!initialDateKey) return;
     const checkRevealed = async () => {
       try {
-        const revealedDate = await AsyncStorage.getItem(REVEALED_DATE_KEY);
+        const revealedDate = await AsyncStorage.getItem(revealedDateStorageKey);
         // so-3i78: bail if the user backed out during the AsyncStorage await.
         if (!mountedRef.current) return;
         if (revealedDate === initialDateKey) {
@@ -292,13 +323,13 @@ export function AffirmationReveal({
     const writableKey = typeof revealDateKey === 'string' ? revealDateKey.trim() : '';
     if (writableKey) {
       try {
-        await AsyncStorage.setItem(REVEALED_DATE_KEY, writableKey);
+        await AsyncStorage.setItem(revealedDateStorageKey, writableKey);
       } catch (err) {
         // so-zmjn: previously swallowed silently. If this write fails
         // the user can replay the same affirmation tomorrow's mount —
         // i.e. reveal-once silently breaks. Surface to logs so the
         // failure isn't invisible.
-        console.warn('[AffirmationReveal] so-zmjn: REVEALED_DATE_KEY write failed:', err);
+        console.warn('[AffirmationReveal] so-zmjn: revealed-date key write failed:', err);
       }
     } else {
       // so-zmjn: defensive log so a BE that ships a blank date_key
@@ -306,8 +337,33 @@ export function AffirmationReveal({
       // current session because isRevealedRef is set above; only the
       // cross-session memory is missed.
       console.warn(
-        '[AffirmationReveal] so-zmjn: skipped REVEALED_DATE_KEY write — blank/missing date_key',
+        '[AffirmationReveal] so-zmjn: skipped revealed-date key write — blank/missing date_key',
       );
+    }
+
+    // so-lt40 MI-4: when the OS prefers reduced motion, skip Reanimated
+    // animations and snap directly to the final revealed state.
+    if (reduceMotion) {
+      textOpacity.value = 1;
+      textScale.value = 1;
+      buttonOpacity.value = 0;
+      buttonScale.value = 0.9;
+      cloudsBgOpacity.value = 0;
+      cloudsLeftX.value = -SCREEN_WIDTH;
+      cloudsLeftOpacity.value = 0;
+      cloudsRightX.value = SCREEN_WIDTH;
+      cloudsRightOpacity.value = 0;
+      videoZoom.value = 1.15;
+      idleVideoOpacity.value = 0;
+      revealedVideoOpacity.value = 1;
+      backButtonOpacity.value = 1;
+      setIsRevealedMounted(true);
+      playRevealedOnMountRef.current = true;
+      revealedPlayerRef.current?.play();
+      idlePlayer.pause();
+      // Announce immediately — no fade delay with reduce motion.
+      AccessibilityInfo.announceForAccessibility(revealText);
+      return;
     }
 
     buttonOpacity.value = withTiming(0, { duration: 250 });
@@ -362,6 +418,13 @@ export function AffirmationReveal({
       if (!mountedRef.current) return;
       idlePlayer.pause();
     }, 1200);
+
+    // so-lt40 MI-4: announce the revealed text for screen readers after the
+    // text fade-in completes (~1300ms from reveal trigger).
+    setTimeout(() => {
+      if (!mountedRef.current) return;
+      AccessibilityInfo.announceForAccessibility(revealText);
+    }, 1400);
   };
 
   // so-dtuh: cold-entry generate flow — fetch today's affirmation, then
@@ -370,18 +433,28 @@ export function AffirmationReveal({
   const handleGeneratePress = async () => {
     if (!onGenerate || isGenerating) return;
     setIsGenerating(true);
+    setShowWeavingHint(false);
+    // so-lt40 M-1: after 8s surface a reassurance hint so users know the
+    // LLM is still working (Sonnet p99 can reach ~45s per so-liyt AM-m3).
+    const weavingTimer = setTimeout(() => {
+      if (mountedRef.current) setShowWeavingHint(true);
+    }, 8000);
     try {
       const result = await onGenerate();
+      clearTimeout(weavingTimer);
       // so-3i78: this is the primary crash path Chelsea hit on TF49 —
       // exiting before the generate resolves leaves the post-await
       // continuation writing to a disposed tree (setState + Reanimated
       // worklets + expo-video calls). Bail cleanly if we've unmounted.
       if (!mountedRef.current) return;
       setIsGenerating(false);
+      setShowWeavingHint(false);
       handleReveal(result.affirmation_text, result.date_key);
     } catch {
+      clearTimeout(weavingTimer);
       if (!mountedRef.current) return;
       setIsGenerating(false);
+      setShowWeavingHint(false);
     }
   };
 
@@ -450,7 +523,20 @@ export function AffirmationReveal({
               ref={revealedPlayerRef}
               source={revealedSource}
               style={styles.video}
+              // so-lt40 MI-5(a): notify so gradient fallback replaces black screen.
+              onError={() => { if (mountedRef.current) setVideoError(true); }}
             />
+            {/* so-lt40 MI-5(a): gradient fallback when video fails to decode/load. */}
+            {videoError && (
+              <LinearGradient
+                colors={isDarkMode
+                  ? ['#390C84', '#321A52']
+                  : ['#7B2FBE', '#3A0E66']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            )}
           </Animated.View>
         )}
       </Animated.View>
@@ -552,7 +638,14 @@ export function AffirmationReveal({
               themes (tone stays "light"). */}
           <Animated.View style={[styles.textBlock, textAnimStyle]}>
             <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
-            <Text style={[styles.affirmationText, { fontSize, lineHeight }]}>
+            {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale guard
+                long affirmations from overflowing the top-half text area. */}
+            <Text
+              style={[styles.affirmationText, { fontSize, lineHeight }]}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
+              numberOfLines={8}
+            >
               {text}
             </Text>
           </Animated.View>
@@ -580,7 +673,13 @@ export function AffirmationReveal({
               style={styles.revealButtonGradient}
             />
             {isGenerating ? (
-              <ActivityIndicator color={isDarkMode ? colors.primary : colors.white} />
+              <View style={styles.generatingState}>
+                <ActivityIndicator color={isDarkMode ? colors.primary : colors.white} />
+                {/* so-lt40 M-1: reassurance hint after 8s of LLM wait. */}
+                {showWeavingHint && (
+                  <Text style={styles.weavingHint}>Still weaving your mirror…</Text>
+                )}
+              </View>
             ) : (
               <Text
                 style={[
@@ -736,5 +835,17 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
   },
   revealButtonTextDark: {
     color: colors.primary,
+  },
+  // so-lt40 M-1: stacked layout for the spinner + weaving hint text.
+  generatingState: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  weavingHint: {
+    fontFamily: fonts.edensor.lightItalic,
+    fontSize: 14,
+    color: colors.white,
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });

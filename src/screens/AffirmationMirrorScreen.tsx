@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -27,10 +27,12 @@ import { ink } from '../features/soulSignals/tokens';
 // yet — AffirmationReveal renders idle + a context-aware central button) and
 // the replay-from-ready path (with affirmation_text supplied — AffirmationReveal
 // auto-jumps via its existing AsyncStorage REVEALED_DATE_KEY check).
+// so-lt40 MI-2: history now carries historyTotal so ReadyState can show a
+// load-more button when more pages exist.
 type ScreenState =
   | { kind: 'loading' }
   | { kind: 'reveal'; affirmation_text?: string; date_key?: string }
-  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[] };
+  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[]; historyTotal: number };
 
 const AffirmationMirrorScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -43,7 +45,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   // to device tz, then UTC, mirroring JournalContext.hasEntryToday.
   const { user } = useAuth();
   // so-1zn0: themed alert replaces native Alert.
-  const { showError } = useAppAlert();
+  const { showError, showAlert } = useAppAlert();
 
   // so-urv4 #2: optimistic-reveal on mount. Previously the screen blocked
   // first paint on listAffirmations(30,0); users saw a spinner while the
@@ -61,6 +63,8 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   // the reveal page flash + can tap Reveal during that window (racing /today).
   // Reset to false on every mount (re-entry remounts), so the gate re-arms.
   const [settled, setSettled] = useState(false);
+  // so-lt40 MI-2: tracks whether a load-more page request is in flight.
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const fetchData = useCallback(async (isCancelled?: () => boolean) => {
     // so-vjzo / so-dtuh: no early-return on !hasEntryToday — AffirmationReveal
@@ -91,7 +95,8 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
       // detect it by date_key matching today's local date.
       const today = list.items.find((it) => it.date_key === todayIso) ?? null;
       if (today) {
-        setState({ kind: 'ready', today, history: list.items });
+        // so-lt40 MI-2: carry historyTotal so ReadyState can show load-more.
+        setState({ kind: 'ready', today, history: list.items, historyTotal: list.total });
       } else {
         setState({ kind: 'reveal' });
       }
@@ -111,7 +116,7 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         setState({ kind: 'reveal' });
       }
     }
-  }, [user?.timezone, showError]);
+  }, [user?.timezone, showError, showAlert]);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,13 +167,46 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         date_key: data.date_key,
       };
     } catch (err: any) {
+      // so-lt40 MI-1: consent-revoked (403 ai_consent_required) dead-ends in
+      // a toast loop today — every tap re-toasts without offering an exit.
+      // Detect the specific code and offer navigation to Settings instead.
+      if (
+        err?.response?.status === 403 &&
+        err?.response?.data?.detail?.code === 'ai_consent_required'
+      ) {
+        showAlert({
+          title: 'AI Insights Required',
+          message:
+            err?.response?.data?.detail?.message ||
+            'Enable AI Insights in Settings to generate your affirmation.',
+          buttons: [
+            { text: 'Not Now', style: 'cancel' },
+            {
+              text: 'Enable in Settings',
+              onPress: () => navigation.navigate('Settings'),
+            },
+          ],
+        });
+        throw err;
+      }
+      // so-lt40 MI-5(d): BE returns 503 when the user hasn't met the journal
+      // ritual criteria. Its generic message ("write a journal entry first")
+      // describes a different rule than the FE gate (hasEntryToday). Replace
+      // with copy that matches the FE's canonical "today" requirement.
+      if (err?.response?.status === 503) {
+        showError(
+          new Error("Write today's journal entry to unlock your affirmation."),
+          { title: 'Affirmation Mirror' },
+        );
+        throw err;
+      }
       // so-fntk: friendly text via normalizeError. The thrown Error
       // messages above (trimmed-text / missing date_key) pass through
       // because they're already user-grade.
       showError(err, { title: 'Affirmation Mirror' });
       throw err;
     }
-  }, [showError]);
+  }, [showError, showAlert, navigation]);
 
   const handleReplay = useCallback(() => {
     if (state.kind !== 'ready') return;
@@ -192,6 +230,37 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     setState({ kind: 'loading' });
     fetchData();
   }, [state, fetchData, navigation]);
+
+  // so-lt40 MI-2: load the next page of history (offset = current list length).
+  // State is updated by appending to the existing history array so the list
+  // never flickers back to the top. Uses the cancelled flag pattern from
+  // so-3i78 — if the user leaves mid-fetch, the result is discarded.
+  const loadMoreCancelledRef = useRef(false);
+  const handleLoadMore = useCallback(async () => {
+    if (state.kind !== 'ready' || isLoadingMore) return;
+    const currentLen = state.history.length;
+    if (currentLen >= state.historyTotal) return;
+    loadMoreCancelledRef.current = false;
+    setIsLoadingMore(true);
+    try {
+      const more = await JournalService.listAffirmations(30, currentLen);
+      if (loadMoreCancelledRef.current) return;
+      setState((prev) => {
+        if (prev.kind !== 'ready') return prev;
+        return {
+          ...prev,
+          history: [...prev.history, ...more.items],
+          historyTotal: more.total,
+        };
+      });
+    } catch (err) {
+      if (!loadMoreCancelledRef.current) {
+        showError(err, { title: 'Affirmation Mirror' });
+      }
+    } finally {
+      if (!loadMoreCancelledRef.current) setIsLoadingMore(false);
+    }
+  }, [state, isLoadingMore, showError]);
 
   const handleOpenJournal = useCallback(() => {
     // so-jqk1: replace (not navigate/push) so we don't leave AffirmationMirror
@@ -219,6 +288,9 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         // state, so settled is already true there — the gate only bites on
         // the cold optimistic-reveal window.
         ctaReady={settled}
+        // so-lt40 MI-5(c): per-user AsyncStorage key so same-day account
+        // switch doesn't inherit the previous user's revealed state.
+        userId={user?.id}
       />
     );
   }
@@ -256,7 +328,10 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
             theme={theme}
             today={state.today}
             history={state.history}
+            historyTotal={state.historyTotal}
             onReplay={handleReplay}
+            onLoadMore={handleLoadMore}
+            isLoadingMore={isLoadingMore}
           />
         )}
       </ScrollView>

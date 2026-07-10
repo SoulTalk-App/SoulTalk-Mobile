@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fonts } from '../../theme';
 import {
@@ -24,7 +24,11 @@ type Props = {
   theme: Theme;
   today: AffirmationItem;
   history: AffirmationItem[];
+  // so-lt40 MI-2: total from BE so we know when more pages exist.
+  historyTotal: number;
   onReplay?: () => void;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 };
 
 const formatHistoryDate = (date_key: string): string => {
@@ -39,7 +43,7 @@ const formatHistoryDate = (date_key: string): string => {
   });
 };
 
-export function ReadyState({ theme, today, history, onReplay }: Props) {
+export function ReadyState({ theme, today, history, historyTotal, onReplay, onLoadMore, isLoadingMore }: Props) {
   const isDark = theme === 'dark';
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
@@ -122,6 +126,28 @@ export function ReadyState({ theme, today, history, onReplay }: Props) {
               );
             })}
           </View>
+          {/* so-lt40 MI-2: show load-more when history doesn't cover all rows.
+              history.length includes today; historyTotal is the BE total which
+              also includes today — so history.length < historyTotal means more
+              pages exist. */}
+          {history.length < historyTotal && (
+            <Pressable
+              onPress={onLoadMore}
+              disabled={isLoadingMore}
+              style={styles.loadMoreBtn}
+              accessibilityRole="button"
+              accessibilityLabel={isLoadingMore ? 'Loading more affirmations' : 'Load more affirmations'}
+              accessibilityState={{ busy: isLoadingMore ?? false }}
+            >
+              {isLoadingMore ? (
+                <ActivityIndicator size="small" color={isDark ? TEAL : PURPLE} />
+              ) : (
+                <Text style={[styles.loadMoreText, { color: isDark ? TEAL : PURPLE }]}>
+                  Load more
+                </Text>
+              )}
+            </Pressable>
+          )}
         </View>
       ) : null}
     </View>
@@ -188,5 +214,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.5,
+  },
+  // so-lt40 MI-2: load-more trigger below the history list.
+  loadMoreBtn: {
+    marginTop: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  loadMoreText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
 });
