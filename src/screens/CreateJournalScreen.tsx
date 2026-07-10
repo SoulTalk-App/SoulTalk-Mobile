@@ -25,6 +25,7 @@ import {
 } from '../hooks/useLocalDraft';
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { useAppAlert } from '../components/AppAlertProvider';
+import { CrisisResourcesSheet } from '../components/CrisisResourcesSheet';
 import JournalLoader from '../components/JournalLoader';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
@@ -128,6 +129,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // entries (no fresh analysis), gets set true immediately on submit.
   const [analysisDone, setAnalysisDone] = useState(false);
   const savedEntryIdRef = React.useRef<string | null>(null);
+  // so-h8eo: crisis resources are attached synchronously to the POST /journal/
+  // 201 (be_core so-qyky CR-2). When present, show the crisis sheet BEFORE the
+  // save animation so the user sees help resources the instant the entry saves.
+  const [crisisResources, setCrisisResources] = useState<string | null>(null);
 
   // so-ztg9: gate journaling on SoulPal setup being complete. A social-signup
   // user can land on Home with @soultalk_setup_complete force-set (App.tsx
@@ -288,6 +293,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     const finalizingText = text.trim();
     try {
       let entryId: string | null = null;
+      // so-h8eo: crisis_resources is present ONLY on a fresh non-draft create
+      // (POST /journal/ 201). Draft-finalize (PUT) and edit (PUT) don't run
+      // the sync crisis scan, so we only capture it on that path.
+      let capturedCrisisResources: string | null = null;
       if (finalizingDraftId) {
         // so-hl09: kill the autosave timer FIRST + drop the draftId from
         // screen state so even a JS-event-loop-queued saveNow that
@@ -307,13 +316,23 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       } else {
         const result = await createEntry(finalizingText);
         entryId = result?.id || null;
+        // so-h8eo: capture resources defensively; the field may be absent on
+        // older BE versions or non-crisis entries.
+        capturedCrisisResources = result?.crisis_resources ?? null;
       }
       savedEntryIdRef.current = entryId;
       // Clear the local crash-recovery draft (so-skm) on successful submit so
       // the next New Entry session starts clean.
       clearLocalDraft(userId);
       setAnalysisDone(false);
-      setShowSaveAnimation(true);
+      if (capturedCrisisResources) {
+        // so-h8eo: show the crisis sheet BEFORE the save animation. The sheet's
+        // "I've read this" button triggers the save animation + navigation via
+        // handleCrisisClose below, maintaining the normal completion UX.
+        setCrisisResources(capturedCrisisResources);
+      } else {
+        setShowSaveAnimation(true);
+      }
     } catch (error: any) {
       const status = error?.response?.status;
       const detail = error?.response?.data?.detail;
@@ -376,6 +395,13 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       navigation.goBack();
     }
   };
+
+  // so-h8eo: called when the user dismisses the CrisisResourcesSheet. We then
+  // proceed to the normal save animation → JournalEntry navigation sequence.
+  const handleCrisisClose = useCallback(() => {
+    setCrisisResources(null);
+    setShowSaveAnimation(true);
+  }, []);
 
   // so-apy: poll the saved entry's ai_processing_status while the loader is
   // up. Loop continues until 'complete' / 'failed' / 'skipped' or the 30s
@@ -605,6 +631,16 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           done={analysisDone}
           onComplete={handleSaveAnimationComplete}
         />
+        {/* so-h8eo: crisis resources surface here BEFORE the save animation
+            so the user sees help the instant the entry saves. The sheet
+            renders on top of everything via its own Modal portal. */}
+        {crisisResources != null && (
+          <CrisisResourcesSheet
+            visible
+            text={crisisResources}
+            onClose={handleCrisisClose}
+          />
+        )}
       </CosmicScreen>
     );
   }
@@ -673,6 +709,14 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         done={analysisDone}
         onComplete={handleSaveAnimationComplete}
       />
+      {/* so-h8eo: crisis resources sheet — see dark-mode branch for rationale. */}
+      {crisisResources != null && (
+        <CrisisResourcesSheet
+          visible
+          text={crisisResources}
+          onClose={handleCrisisClose}
+        />
+      )}
     </CosmicScreen>
   );
 };
