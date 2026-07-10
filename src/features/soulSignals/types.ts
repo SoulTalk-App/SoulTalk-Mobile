@@ -26,6 +26,18 @@ export type Signal = {
    * to a now-released shift returns null here.
    */
   linkedShiftId?: string | null;
+  /**
+   * ISO-8601 creation timestamp from the wire (so-9kg3). Used by groupSignals
+   * to order groups by most-recent first. Optional — absent for mock/legacy
+   * signals that pre-date the field.
+   */
+  createdAt?: string;
+  /**
+   * Server-assigned display sort order within a tag group (so-9kg3). Used by
+   * groupSignals to order related (observation) signals within each group.
+   * Lower numbers surface first.
+   */
+  sortOrder?: number;
 };
 
 /**

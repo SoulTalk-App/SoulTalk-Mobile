@@ -66,14 +66,6 @@ export const MOCK_SIGNALS: Signal[] = [
   },
 ];
 
-export function buildGroups(signals: Signal[], count: number): { pattern: Signal; related: Signal[] }[] {
-  return signals
-    .filter((s) => s.kind === 'pattern')
-    .slice(0, Math.ceil(count / 2))
-    .map((p) => ({
-      pattern: p,
-      related: signals
-        .filter((s) => s.kind === 'observation' && s.tone === p.tone)
-        .slice(0, 2),
-    }));
-}
+// so-9kg3 M-1: buildGroups removed from this file. It was bundled in
+// production despite belonging to dev tooling. The production version lives
+// in groupSignals.ts and groups by semantic `tag`, not `tone` (colour).

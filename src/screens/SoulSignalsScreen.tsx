@@ -28,9 +28,10 @@ import SoulShiftsService from '../services/SoulShiftsService';
 import SoulSightService from '../services/SoulSightService';
 import { useAppAlert } from '../components/AppAlertProvider';
 
-// Matches soul_bar_service.compute_progress on the backend (is_full = entries_since >= 6).
-// Design spec drafted '5 more' approximately; backend is the source of truth.
-const ENTRIES_NEEDED = 6;
+// so-9kg3 MI-2: FE fallback for the eligibility threshold when the BE field is
+// absent (older builds). The live value comes from EligibilityResponse.threshold
+// and is tracked in state to avoid a release for any future BE tuning.
+const ENTRIES_NEEDED_FALLBACK = 6;
 
 const SoulSignalsScreen = ({ navigation, route }: any) => {
   const insets = useSafeAreaInsets();
@@ -42,18 +43,20 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
   // so-73pj: replace the silent .catch(console.log) sites — surface a friendly,
   // normalized message (never raw axios/technical strings) and keep a dev
   // breadcrumb. Loading/submitting state is reset by each handler's finally.
-  // so-iiw8: the generic "Something went wrong" title told the user nothing
-  // about WHERE the error happened ("a signal?" "the network?") — surface
-  // the scope so the title is specific. Body text still goes through
-  // normalizeError so SDK / axios strings never reach the user.
+  // so-iiw8 / so-9kg3 MI-1: use the caller-supplied `scope` as the dialog
+  // title so the user knows WHERE the error happened instead of always seeing
+  // "Couldn't load signals". Body goes through normalizeError (never raw SDK).
   const surfaceError = (scope: string, err: unknown) => {
     if (__DEV__) console.warn(`[SoulSignals] ${scope}:`, err);
-    showError(err, { title: "Couldn't load signals" });
+    showError(err, { title: scope });
   };
   const statusOverride: SignalsStatus | undefined = route?.params?.displayStatus;
 
   const [signals, setSignals] = useState<Signal[]>([]);
   const [entriesSinceSight, setEntriesSinceSight] = useState(0);
+  // so-9kg3 MI-2: threshold comes from the eligibility response so the FE
+  // doesn't need a release when the BE tunes the required entry count.
+  const [entriesNeeded, setEntriesNeeded] = useState(ENTRIES_NEEDED_FALLBACK);
   const [isLoading, setIsLoading] = useState(true);
 
   // Detail-modal state (so-4vd). selectedId drives both the feed's focusId
@@ -105,10 +108,15 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           if (sigResult.status === 'fulfilled') {
             setSignals(sigResult.value);
           } else {
-            surfaceError('List fetch error', sigResult.reason);
+            surfaceError("Couldn't load your signals", sigResult.reason);
           }
           if (eligResult.status === 'fulfilled') {
             setEntriesSinceSight(eligResult.value.points ?? 0);
+            // so-9kg3 MI-2: update threshold from the BE response; fall back
+            // to ENTRIES_NEEDED_FALLBACK when the field is absent (older BE).
+            if (eligResult.value.threshold != null) {
+              setEntriesNeeded(eligResult.value.threshold);
+            }
           } else {
             if (__DEV__) console.warn('[SoulSignals] Eligibility fetch error:', eligResult.reason);
           }
@@ -125,7 +133,8 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     }, []),
   );
 
-  const groups = useMemo(() => buildGroups(signals, 6), [signals]);
+  // so-9kg3 M-1: buildGroups no longer takes a count arg — all signals render.
+  const groups = useMemo(() => buildGroups(signals), [signals]);
   // Muted view renders each muted signal as its own pseudo-group (no related
   // siblings) so the existing PatternCard render path stays unchanged.
   const mutedGroups = useMemo(
@@ -148,7 +157,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     statusOverride ??
     (signals.length > 0
       ? 'done'
-      : entriesSinceSight < ENTRIES_NEEDED
+      : entriesSinceSight < entriesNeeded
         ? 'locked'
         : 'listening');
 
@@ -158,7 +167,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     setSelectedId(id);
     SoulSignalsService.getDetail(id)
       .then(setDetail)
-      .catch((err) => surfaceError('Detail fetch error', err));
+      .catch((err) => surfaceError("Couldn't load signal detail", err));
   };
 
   const handleClose = () => {
@@ -189,7 +198,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
                 setSignals((prev) => prev.filter((s) => s.id !== id));
                 handleClose();
               } catch (err: any) {
-                surfaceError('Mute error', err);
+                surfaceError("Couldn't mute this signal", err);
               } finally {
                 setResonanceSubmitting(null);
               }
@@ -208,7 +217,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       }
       if (value === 'yes') setResonanceToastVisible(true);
     } catch (err: any) {
-      surfaceError('Resonance error', err);
+      surfaceError("Couldn't record your response", err);
     } finally {
       setResonanceSubmitting(null);
     }
@@ -230,7 +239,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       setMuteOpen(false);
       handleClose();
     } catch (err: any) {
-      surfaceError('Mute error', err);
+      surfaceError("Couldn't mute this signal", err);
     } finally {
       setMuteSubmitting(false);
     }
@@ -252,7 +261,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         .catch((err) => {
           // Allow a later retry since this fetch has no loading state of its own.
           setMutedFetched(false);
-          surfaceError('Muted list error', err);
+          surfaceError("Couldn't load muted signals", err);
         });
     }
   };
@@ -271,7 +280,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       );
       handleClose();
     } catch (err: any) {
-      surfaceError('Unmute error', err);
+      surfaceError("Couldn't unmute this signal", err);
     }
   };
 
@@ -426,7 +435,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
             : [{ text: 'OK', style: 'cancel' }],
         });
       } else {
-        surfaceError('TurnToShift error', err);
+        surfaceError("Couldn't create shift from this pattern", err);
       }
     } finally {
       setTurnSubmitting(false);
@@ -448,7 +457,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         setDetail({ ...detail, ...updated, isSaved: nextSaved });
       }
     } catch (err: any) {
-      surfaceError('Save error', err);
+      surfaceError("Couldn't save this signal", err);
     } finally {
       setSaveSubmitting(false);
     }
@@ -478,7 +487,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           theme={theme}
           status={status}
           groups={filter === 'muted' ? mutedGroups : groups}
-          eligibility={{ current: entriesSinceSight, needed: ENTRIES_NEEDED }}
+          eligibility={{ current: entriesSinceSight, needed: entriesNeeded }}
           listeningMeta={{ entries: entriesSinceSight, patterns: patternsCount }}
           onOpenJournal={handleOpenJournal}
           onBack={() => navigation.goBack()}
