@@ -541,44 +541,65 @@ export function AffirmationReveal({
         )}
       </Animated.View>
 
-      {/* so-0e5y / so-b19z: dark-mode radial glow to merge the video's non-flat
-          top edge into the sky fill. The dark video has a radial glow from the
-          mascot that is brighter at the centre of the seam row than at the edges.
-          A flat sky colour can't match this; the SVG RadialGradient centred at
-          the BOTTOM-CENTRE of the top half (cx=50% cy=100% = the seam line)
-          reproduces the same radial luminance so the join disappears.
-          Rendered below stars + clouds; pointerEvents=none.
-          so-b19z: two fixes to the original so-0e5y stops:
-          (a) Centre tuned to the cover-cropped visible top row (~16px in after
-              contentFit="cover" fill-to-height); raw row-0 sample #3C1E61
-              overshot the video's actual rendered brightness.
-          (b) Non-monotonic ramp removed — the original 50% stop (#2C1647) was
-              DARKER than the sky endpoint (#321A52), creating a dark-ring
-              artefact mid-radius. All stops now decrease monotonically from
-              bright centre to sky with no mid dip. Seam edges land at ~sky. */}
+      {/* so-0e5y / so-b19z / so-5cfa: state-aware dual topGlow radials that
+          crossfade in lockstep with the idle/revealed video swap.
+          Both sit at zIndex 0 (above video, below stars/clouds) inside the
+          same styles.topGlow container, stacked via absoluteFillObject.
+          - Idle glow:    driven by idleVideoAnimStyle (fades out on reveal)
+          - Revealed glow: driven by revealedVideoAnimStyle (fades in on reveal),
+                           mounted only when isRevealedMounted
+          The revealed video has a brighter/more-saturated/bluer top edge than
+          the idle video (~#390C84 vs ~#3C1E61), so it needs its own radial. */}
       {isDarkMode && (
         <View pointerEvents="none" style={styles.topGlow}>
-          <Svg
-            width={SCREEN_WIDTH}
-            height={MIRROR_HEIGHT}
-            preserveAspectRatio="none"
-            viewBox="0 0 100 100"
-          >
-            <Defs>
-              <RadialGradient id="mirror-top-glow" cx="50%" cy="100%" r="100%">
-                {/* so-gg5z: Overseer-approved on-device values — apply verbatim.
-                    Monotonic: R 65→55→42→42, G 39→32→25→25, B 104→85→65→65. */}
-                <Stop offset="0%"   stopColor="#412768" stopOpacity={1} />
-                <Stop offset="25%"  stopColor="#372055" stopOpacity={1} />
-                <Stop offset="50%"  stopColor="#2a1941" stopOpacity={1} />
-                {/* outer reach: #2a1941 — intentionally a touch darker than
-                    DARK_MIRROR_BG (#321A52); radial covers top half opaquely
-                    so the base bg is not visible here */}
-                <Stop offset="100%" stopColor="#2a1941" stopOpacity={1} />
-              </RadialGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow)" />
-          </Svg>
+          {/* IDLE glow — so-gg5z Overseer-approved stops (LOCKED, do NOT change) */}
+          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFillObject, idleVideoAnimStyle]}>
+            <Svg
+              width={SCREEN_WIDTH}
+              height={MIRROR_HEIGHT}
+              preserveAspectRatio="none"
+              viewBox="0 0 100 100"
+            >
+              <Defs>
+                <RadialGradient id="mirror-top-glow-idle" cx="50%" cy="100%" r="100%">
+                  {/* so-gg5z: Overseer-approved on-device values — LOCKED.
+                      Monotonic: R 65→55→42→42, G 39→32→25→25, B 104→85→65→65. */}
+                  <Stop offset="0%"   stopColor="#412768" stopOpacity={1} />
+                  <Stop offset="25%"  stopColor="#372055" stopOpacity={1} />
+                  <Stop offset="50%"  stopColor="#2a1941" stopOpacity={1} />
+                  {/* outer reach intentionally a touch darker than DARK_MIRROR_BG */}
+                  <Stop offset="100%" stopColor="#2a1941" stopOpacity={1} />
+                </RadialGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow-idle)" />
+            </Svg>
+          </Animated.View>
+          {/* REVEALED glow — first-pass; Overseer will hand-tune on-device.
+              ↓↓↓ TUNABLE KNOB: mirror-top-glow-revealed stops ↓↓↓ */}
+          {isRevealedMounted && (
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFillObject, revealedVideoAnimStyle]}>
+              <Svg
+                width={SCREEN_WIDTH}
+                height={MIRROR_HEIGHT}
+                preserveAspectRatio="none"
+                viewBox="0 0 100 100"
+              >
+                <Defs>
+                  <RadialGradient id="mirror-top-glow-revealed" cx="50%" cy="100%" r="100%">
+                    {/* First-pass: revealed video top edge ~#390C84 (brighter +
+                        bluer than idle). Monotonic: R74→61→46→46, G37→28→22→22,
+                        B133→107→82→82. Overseer tunes these values on-device. */}
+                    <Stop offset="0%"   stopColor="#4A2585" stopOpacity={1} />
+                    <Stop offset="25%"  stopColor="#3D1C6B" stopOpacity={1} />
+                    <Stop offset="50%"  stopColor="#2E1652" stopOpacity={1} />
+                    {/* outer reach: same discipline as idle — flat at outer stop */}
+                    <Stop offset="100%" stopColor="#2E1652" stopOpacity={1} />
+                  </RadialGradient>
+                </Defs>
+                <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow-revealed)" />
+              </Svg>
+            </Animated.View>
+          )}
         </View>
       )}
 
