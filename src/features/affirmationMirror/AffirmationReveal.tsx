@@ -215,13 +215,16 @@ export function AffirmationReveal({
 
   const isRevealedRef = useRef(false);
 
+  // so-wx08: size ladder rebalanced for the ~180-char BE cap. Floor is 30px so
+  // nothing shrinks unreadably. Any rare legacy >180-char row falls through to
+  // the else bucket and is caught by adjustsFontSizeToFit + minimumFontScale.
+  // ↓ TUNABLE: affirmation size buckets ↓
   const { fontSize, lineHeight } = useMemo(() => {
     const len = text?.length ?? 0;
-    if (len <= 60) return { fontSize: 42, lineHeight: 56 };
-    if (len <= 100) return { fontSize: 36, lineHeight: 48 };
-    if (len <= 160) return { fontSize: 30, lineHeight: 42 };
-    if (len <= 220) return { fontSize: 26, lineHeight: 37 };
-    return { fontSize: 22, lineHeight: 32 };
+    if (len <= 80)  return { fontSize: 40, lineHeight: 52 };
+    if (len <= 120) return { fontSize: 36, lineHeight: 48 };
+    if (len <= 160) return { fontSize: 32, lineHeight: 44 };
+    return { fontSize: 30, lineHeight: 41 };
   }, [text]);
 
   useEffect(() => {
@@ -670,13 +673,15 @@ export function AffirmationReveal({
               themes (tone stays "light"). */}
           <Animated.View style={[styles.textBlock, textAnimStyle]}>
             <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
-            {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale guard
-                long affirmations from overflowing the top-half text area. */}
+            {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale safety net —
+                rarely triggers once BE caps length at ~180 chars (so-wx08).
+                ellipsizeMode="tail" makes any remaining overflow visible. */}
             <Text
               style={[styles.affirmationText, { fontSize, lineHeight }]}
               adjustsFontSizeToFit
-              minimumFontScale={0.65}
+              minimumFontScale={0.80}
               numberOfLines={8}
+              ellipsizeMode="tail"
             >
               {text}
             </Text>
@@ -824,7 +829,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     alignItems: 'center',
   },
   affirmationText: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular, // so-wx08: light (300) → regular (400) for readability on busy sky
     color: colors.white,
     textAlign: 'center',
   },
