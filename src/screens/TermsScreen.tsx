@@ -17,7 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { privacyPolicy, termsOfService } from "../mocks/content";
-import { fonts, typography, useThemeColors } from "../theme";
+import { fonts, useThemeColors } from "../theme";
+import AppText from "../components/AppText";
 import { completeOnboarding } from "../utils/resetOnboarding";
 import { SpringConfigs, TimingConfigs, AnimationValues } from "../animations/constants";
 import { CosmicScreen } from "../components/CosmicBackdrop";
@@ -85,8 +86,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           marginLeft: 8,
         },
         lastUpdated: {
-          fontFamily: fonts.outfit.regular,
-          fontSize: 14,
+          // so-bh3j: preset (bodySmall = Outfit regular 14px) via AppText variant
           color: colors.text.light,
           marginBottom: 12,
         },
@@ -105,8 +105,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           backgroundColor: colors.primary,
         },
         tabText: {
-          fontFamily: fonts.outfit.medium,
-          fontSize: 14,
+          // so-bh3j: preset (label = Outfit medium 14px) via AppText variant
           color: colors.text.light,
         },
         tabTextActive: {
@@ -121,10 +120,9 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           paddingBottom: 20,
         },
         content: {
-          // typography.bodyLarge per so-ci7 — read-heavy policy copy at
-          // outfit.light/15pt was P1 illegibility. bodyLarge is
-          // outfit.regular at 17pt, comfortable sustained-read tier.
-          ...typography.bodyLarge,
+          // so-bh3j: preset (bodyLarge = Outfit regular 17px) via AppText variant;
+          // spread removed — AppText applies the preset before this style.
+          // so-ci7: read-heavy policy copy; 17pt comfortable sustained-read tier.
           color: colors.text.primary,
         },
         // so-ffl4: the Accept footer sat as an opaque white slab over the
@@ -277,25 +275,25 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           </AnimatedPressable>
           <Text style={styles.title}>Terms and Privacy</Text>
         </View>
-        <Text style={styles.lastUpdated}>
+        <AppText variant="bodySmall" style={styles.lastUpdated}>
           Effective: {currentDoc.effectiveDate}
-        </Text>
+        </AppText>
         <View style={styles.tabRow}>
           <Pressable
             style={[styles.tab, activeTab === 'privacy' && styles.tabActive]}
             onPress={() => handleTabSwitch('privacy')}
           >
-            <Text style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
+            <AppText variant="label" style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
               Privacy Policy
-            </Text>
+            </AppText>
           </Pressable>
           <Pressable
             style={[styles.tab, activeTab === 'terms' && styles.tabActive]}
             onPress={() => handleTabSwitch('terms')}
           >
-            <Text style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
+            <AppText variant="label" style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
               Terms of Service
-            </Text>
+            </AppText>
           </Pressable>
         </View>
       </Animated.View>
@@ -307,7 +305,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           showsVerticalScrollIndicator={true}
           bounces={true}
         >
-          <Text style={styles.content}>{currentDoc.content}</Text>
+          <AppText variant="bodyLarge" style={styles.content}>{currentDoc.content}</AppText>
         </ScrollView>
       </Animated.View>
 
