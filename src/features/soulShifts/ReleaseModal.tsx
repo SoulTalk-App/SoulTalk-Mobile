@@ -248,11 +248,11 @@ const styles = StyleSheet.create({
     lineHeight: 24 * 1.15,
     textAlign: 'center',
   },
-  // Body-length Edensor italic per so-6a7: bump to 16/ink/0.2 letterSpacing
-  // so the display serif holds shape on iPhone 16e width.
+  // so-kima (Option B): body-length copy → Outfit (Edensor italic reserved for
+  // titles + short accents only). Retain size/spacing from so-6a7.
   subtitle: {
     marginTop: 8,
-    fontFamily: fonts.edensor.italic,
+    fontFamily: fonts.outfit.regular,
     fontSize: 16,
     lineHeight: 16 * 1.45,
     letterSpacing: 0.2,
