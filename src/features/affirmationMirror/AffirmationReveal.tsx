@@ -566,16 +566,15 @@ export function AffirmationReveal({
           >
             <Defs>
               <RadialGradient id="mirror-top-glow" cx="50%" cy="100%" r="100%">
-                {/* seam-row centre: estimated cover-crop visible row value
-                    (tuned down from raw row-0 #3C1E61 measurement) */}
-                <Stop offset="0%" stopColor="#381E5E" stopOpacity={1} />
-                {/* monotonic interpolation — each stop strictly between
-                    its neighbours; no luminance dip below sky */}
-                <Stop offset="25%" stopColor="#361C5B" stopOpacity={1} />
-                <Stop offset="50%" stopColor="#331A54" stopOpacity={1} />
-                {/* sky / DARK_MIRROR_BG at outer reach; screen edges of the
-                    seam row land near sky colour — no dark-edge artefact */}
-                <Stop offset="100%" stopColor="#321A52" stopOpacity={1} />
+                {/* so-gg5z: Overseer-approved on-device values — apply verbatim.
+                    Monotonic: R 65→55→42→42, G 39→32→25→25, B 104→85→65→65. */}
+                <Stop offset="0%"   stopColor="#412768" stopOpacity={1} />
+                <Stop offset="25%"  stopColor="#372055" stopOpacity={1} />
+                <Stop offset="50%"  stopColor="#2a1941" stopOpacity={1} />
+                {/* outer reach: #2a1941 — intentionally a touch darker than
+                    DARK_MIRROR_BG (#321A52); radial covers top half opaquely
+                    so the base bg is not visible here */}
+                <Stop offset="100%" stopColor="#2a1941" stopOpacity={1} />
               </RadialGradient>
             </Defs>
             <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow)" />
