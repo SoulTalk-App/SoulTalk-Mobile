@@ -1161,18 +1161,25 @@ const HomeScreen = ({ navigation }: any) => {
                 />
               </Animated.View>
               <View style={dk.greetingTextSection}>
-                {/* so-mj74: single Text with explicit \n so row-1 is always
-                    "Welcome back," and row-2 is always the name. numberOfLines=2
-                    caps at two rows; adjustsFontSizeToFit shrinks both rows
-                    uniformly if the name is wide; minimumFontScale=0.5 floors at
-                    14px worst-case. Never wraps to 3 lines on any name/device. */}
+                {/* so-443z: two separate Text rows — each numberOfLines=1 so
+                    "Welcome back," can never consume both rows and clip the
+                    name. adjustsFontSizeToFit + minimumFontScale={0.5} let
+                    each row shrink independently on very wide names. */}
                 <Text
                   style={dk.welcomeLine}
-                  numberOfLines={2}
+                  numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={0.5}
                 >
-                  {`Welcome back,\n${displayName}.`}
+                  Welcome back,
+                </Text>
+                <Text
+                  style={dk.welcomeLine}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {`${displayName}.`}
                 </Text>
               </View>
               {/* so-nv2g CR-m3: Help one tap from Home — dark mode */}
@@ -1470,14 +1477,22 @@ const HomeScreen = ({ navigation }: any) => {
               />
             </Animated.View>
             <View style={lt.greetingTextSection}>
-              {/* so-mj74: same two-row pattern as dark — see dark block comment */}
+              {/* so-443z: two separate Text rows — same fix as dark block */}
               <Text
                 style={lt.welcomeLine}
-                numberOfLines={2}
+                numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.5}
               >
-                {`Welcome back,\n${displayName}.`}
+                Welcome back,
+              </Text>
+              <Text
+                style={lt.welcomeLine}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {`${displayName}.`}
               </Text>
             </View>
             {/* so-nv2g CR-m3: Help one tap from Home — light mode */}
