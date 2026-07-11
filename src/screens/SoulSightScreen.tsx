@@ -463,7 +463,10 @@ const SoulSightScreen = ({ navigation }: any) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyCard}>
-      <Image source={SOULPAL_SRC[4]} style={styles.emptySoulpal} resizeMode="contain" />
+      {/* so-qnkr: was [4] (angry/slashed-eye) — wrong tone for a gentle
+          "forming" empty state. [5] = wide-eyed friendly, consistent
+          with the sibling forming-cards at ~L254 and ~L359. */}
+      <Image source={SOULPAL_SRC[5]} style={styles.emptySoulpal} resizeMode="contain" />
       <Text style={styles.emptyTitle}>Your first SoulSight is forming.</Text>
       <Text style={styles.emptySubtitle}>
         Keep writing. After your first 6 entries, {soulPalName} will draft your first chapter.
