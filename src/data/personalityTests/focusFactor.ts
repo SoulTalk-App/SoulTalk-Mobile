@@ -15,8 +15,9 @@ export const focusFactor: TestDefinition = {
   tagline: 'Uncover your natural rhythm of attention.',
   about:
     "Focus Factor uncovers your natural rhythm of attention \u2014 whether you dive deep into one thing, jump between multiple priorities, or adapt fluidly depending on what life throws at you. Your focus style affects productivity, stress levels, creativity, and how you connect with people. By knowing your focus pattern, you can stop fighting your brain and instead set up your work, home, and relationships to match your strengths.\n\n" +
-    "Are you a master of deep work, a sprint specialist, a multitasking maestro, or a flexible adapter? Take this quiz to discover your unique Focus Factor. Unlock personalized strategies to design your work, your space, and your life in a way that doesn't fight your brain\u2014but fuels it.\n\n" +
-    "How it works: 25 statements. Rate each on a scale of 1 (Strongly Disagree) to 5 (Strongly Agree). Answer intuitively and honestly\u2014there are no right or wrong answers.",
+    // so-36n7: removed trailing "How it works: 25 statements\u2026" paragraph \u2014
+    // duplicate of the GlassCard rendered by PersonalityIntroScreen below the about text.
+    "Are you a master of deep work, a sprint specialist, a multitasking maestro, or a flexible adapter? Take this quiz to discover your unique Focus Factor. Unlock personalized strategies to design your work, your space, and your life in a way that doesn't fight your brain\u2014but fuels it.",
   locked: true,
   categories: ['Deep Diver', 'Sprinter', 'Juggler', 'Adaptive'],
   questions: [

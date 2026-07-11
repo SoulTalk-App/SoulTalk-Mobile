@@ -13,8 +13,9 @@ export const innerLens: TestDefinition = {
   about:
     "Inner Lens explores the unique \u201Cfilter\u201D through which you interpret the world. It\u2019s shaped by your values, past experiences, emotional wiring, and mental patterns. This lens influences how you perceive challenges, opportunities, relationships, and even yourself. Understanding it gives you the power to spot biases, deepen self-awareness, and make more conscious choices in work, love, and daily life.\n\n" +
     "The world isn't just what happens to us\u2014it's how we see it. Your Inner Lens is the unique filter, built from your experiences and wiring, that shapes your every perception. It determines whether you see a risk or an opportunity, a detail or a pattern, the past or the future.\n\n" +
-    "Discover your dominant lens to understand why you react the way you do, how you connect with others, and how to make your perspective your greatest asset.\n\n" +
-    "How it works: 25 statements. Rate each on a scale of 1 (Strongly Disagree) to 5 (Strongly Agree). Answer intuitively and honestly\u2014there are no right or wrong answers.",
+    // so-36n7: removed trailing "How it works: 25 statements\u2026" paragraph \u2014
+    // duplicate of the GlassCard rendered by PersonalityIntroScreen below the about text.
+    "Discover your dominant lens to understand why you react the way you do, how you connect with others, and how to make your perspective your greatest asset.",
   locked: false,
   categories: ['Visionary', 'Reflective', 'Cautious', 'Analytical'],
   questions: [
