@@ -76,25 +76,6 @@ const DARK_MIRROR_BG = '#321A52';
 // half (MIRROR_HEIGHT is the height of each half / the video's top offset).
 const MIRROR_HEIGHT = SCREEN_HEIGHT / 2;
 
-// so-f0hq: horizontal seam-blending band. The dark video's top edge is brighter
-// in the centre than at the sides; a flat DARK_MIRROR_BG creates a visible
-// horizontal step at y=MIRROR_HEIGHT. This 36px band provides a horizontal colour
-// profile and a symmetric sky-erase (opaque sky at both top AND bottom, transparent
-// at centre) so the band floats softly with no hard line on either edge.
-// Heights: 36px sits within the 24-48px spec; absorbs subpixel device variation.
-const SEAM_BAND_HEIGHT = 36;
-// so-wqx0: re-tuned from raw row-0 samples to the cover-cropped VISIBLE top row
-// (~16px deeper than row 0 after contentFit="cover" fill-to-height).
-// The visible edge is measurably darker/closer to sky than row 0; the bead
-// confirms that if the visible edge ≈ sky the band should nearly disappear.
-// Idle: centre = sky (#321A52), sides slightly below sky — no centre overshoot.
-// Revealed: same conservative approach; horizontal variance kept minimal.
-const IDLE_SEAM_DARK: [string, string, string] = ['#2D1749', '#321A52', '#2D1749'];
-const REVEALED_SEAM_DARK: [string, string, string] = ['#2D0B69', '#311372', '#2D0B69'];
-// Transparent counterpart of DARK_MIRROR_BG (#321A52 = R50 G26 B82) for the
-// symmetric sky-erase overlay — both edges opaque sky, centre transparent.
-const DARK_MIRROR_BG_CLEAR = 'rgba(50,26,82,0)';
-
 const CloudsBg = require('../../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../../assets/images/home/CloudsRight.png');
@@ -560,12 +541,21 @@ export function AffirmationReveal({
         )}
       </Animated.View>
 
-      {/* so-0e5y: dark-mode radial glow to match the video's non-flat top edge.
-          The dark video has a radial glow from the mascot: center #3C1E61 (bright),
-          horizontal edges #2C1647 (dark). A flat sky colour can't match this; the
-          SVG RadialGradient centred at the BOTTOM-CENTRE of the top half (cx=50%
-          cy=100% = the seam line) reproduces the same radial luminance so the seam
-          disappears.  Rendered below stars + clouds; pointerEvents=none. */}
+      {/* so-0e5y / so-b19z: dark-mode radial glow to merge the video's non-flat
+          top edge into the sky fill. The dark video has a radial glow from the
+          mascot that is brighter at the centre of the seam row than at the edges.
+          A flat sky colour can't match this; the SVG RadialGradient centred at
+          the BOTTOM-CENTRE of the top half (cx=50% cy=100% = the seam line)
+          reproduces the same radial luminance so the join disappears.
+          Rendered below stars + clouds; pointerEvents=none.
+          so-b19z: two fixes to the original so-0e5y stops:
+          (a) Centre tuned to the cover-cropped visible top row (~16px in after
+              contentFit="cover" fill-to-height); raw row-0 sample #3C1E61
+              overshot the video's actual rendered brightness.
+          (b) Non-monotonic ramp removed — the original 50% stop (#2C1647) was
+              DARKER than the sky endpoint (#321A52), creating a dark-ring
+              artefact mid-radius. All stops now decrease monotonically from
+              bright centre to sky with no mid dip. Seam edges land at ~sky. */}
       {isDarkMode && (
         <View pointerEvents="none" style={styles.topGlow}>
           <Svg
@@ -576,13 +566,15 @@ export function AffirmationReveal({
           >
             <Defs>
               <RadialGradient id="mirror-top-glow" cx="50%" cy="100%" r="100%">
-                {/* centre of seam row (measured from dark idle video frame row 0) */}
-                <Stop offset="0%" stopColor="#3C1E61" stopOpacity={1} />
-                {/* horizontal-edge colour at seam row: left/right screen edge is
-                    exactly 50 vb-units from centre (cx=50) with r=100, so 50% is
-                    the mathematically correct offset for #2C1647 at x=0 and x=100 */}
-                <Stop offset="50%" stopColor="#2C1647" stopOpacity={1} />
-                {/* sky / DARK_MIRROR_BG at outer reach */}
+                {/* seam-row centre: estimated cover-crop visible row value
+                    (tuned down from raw row-0 #3C1E61 measurement) */}
+                <Stop offset="0%" stopColor="#381E5E" stopOpacity={1} />
+                {/* monotonic interpolation — each stop strictly between
+                    its neighbours; no luminance dip below sky */}
+                <Stop offset="25%" stopColor="#361C5B" stopOpacity={1} />
+                <Stop offset="50%" stopColor="#331A54" stopOpacity={1} />
+                {/* sky / DARK_MIRROR_BG at outer reach; screen edges of the
+                    seam row land near sky colour — no dark-edge artefact */}
                 <Stop offset="100%" stopColor="#321A52" stopOpacity={1} />
               </RadialGradient>
             </Defs>
@@ -609,50 +601,6 @@ export function AffirmationReveal({
             />
           ))}
         </View>
-      )}
-
-      {/* so-f0hq/so-wqx0: horizontal seam band — idle state. Two stacked LinearGradients:
-          1) horizontal colour profile (left/centre/right = cover-crop-tuned samples)
-          2) sky-erase overlay: SYMMETRIC 3-stop ramp — opaque sky at top AND bottom,
-             transparent at centre — so the band "floats" with no hard line on either
-             edge. The seam row itself shows sky colour from the erase (no overshoot),
-             and the subtle horizontal tint is visible only at mid-band.
-          Animated with idleVideoOpacity so it crossfades in lockstep with the
-          video swap. zIndex 1 sits above topGlow (0) and below clouds (2). */}
-      {isDarkMode && (
-        <Animated.View pointerEvents="none" style={[styles.seamBand, idleVideoAnimStyle]}>
-          <LinearGradient
-            colors={IDLE_SEAM_DARK}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <LinearGradient
-            colors={[DARK_MIRROR_BG, DARK_MIRROR_BG_CLEAR, DARK_MIRROR_BG]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
-      )}
-      {/* so-f0hq/so-wqx0: horizontal seam band — revealed state. Same symmetric
-          sky-erase approach; mounted alongside the revealed video (isRevealedMounted)
-          and crossfades with revealedVideoOpacity. */}
-      {isDarkMode && isRevealedMounted && (
-        <Animated.View pointerEvents="none" style={[styles.seamBand, revealedVideoAnimStyle]}>
-          <LinearGradient
-            colors={REVEALED_SEAM_DARK}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <LinearGradient
-            colors={[DARK_MIRROR_BG, DARK_MIRROR_BG_CLEAR, DARK_MIRROR_BG]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
       )}
 
       <View
@@ -813,17 +761,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     width: SCREEN_WIDTH,
     height: MIRROR_HEIGHT,
     zIndex: 0,
-  },
-  // so-f0hq: 36px band positioned at bottom of the top half (the seam row).
-  // zIndex 1: above topGlow (0), below clouds (2).
-  seamBand: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: MIRROR_HEIGHT - SEAM_BAND_HEIGHT,
-    height: SEAM_BAND_HEIGHT,
-    zIndex: 1,
-    overflow: 'hidden',
   },
   cloudsLayer: {
     ...StyleSheet.absoluteFillObject,
