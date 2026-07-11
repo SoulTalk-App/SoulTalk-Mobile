@@ -116,6 +116,26 @@ export interface DailyMoodResponse {
   is_first_fill: boolean;
 }
 
+// so-u4hp: module-level crisis-resource cache. Populated by
+// prefetchCrisisResources() (called on authenticated HomeScreen mount) so
+// HelpScreen can seed its initial state from this and render the correct
+// country-specific list on first paint — no fallback-then-real flash.
+type CrisisResourceEntry = {
+  id: string;
+  country_code: string;
+  country_name: string;
+  resource_name: string;
+  contact_type: string;
+  contact_value: string;
+  description: string;
+  display_order: number;
+};
+type CrisisResourcesPayload = {
+  country_code: string;
+  resources: CrisisResourceEntry[];
+};
+let _crisisCache: CrisisResourcesPayload | null = null;
+
 class JournalService {
   private axiosInstance;
 
@@ -335,6 +355,26 @@ class JournalService {
       params: { limit, offset },
     });
     return response.data;
+  }
+
+  // so-u4hp: fire-and-forget prefetch. Caller does NOT await. On success the
+  // cache is populated so HelpScreen's getCachedCrisisResources() returns the
+  // real country list; on any error the cache stays null and HelpScreen shows
+  // the safe-ordered FALLBACK_CRISIS_RESOURCES instead. Never throws.
+  async prefetchCrisisResources(): Promise<void> {
+    try {
+      const data = await this.getCrisisResources();
+      if (data.resources && data.resources.length > 0) {
+        _crisisCache = data;
+      }
+    } catch {
+      // best-effort — HelpScreen always falls back to the safe-ordered fallback
+    }
+  }
+
+  // so-u4hp: returns cached crisis resources or null on cache miss.
+  getCachedCrisisResources(): CrisisResourcesPayload | null {
+    return _crisisCache;
   }
 
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {

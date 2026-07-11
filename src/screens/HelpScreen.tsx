@@ -42,27 +42,32 @@ const CONTACT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 // this fallback when the fetch succeeds with ≥1 resource).
 // Sources: IASP (https://www.iasp.info/resources/Crisis_Centres/),
 // SAMHSA (988lifeline.org), Crisis Text Line, Samaritans, CAMH, Lifeline AU.
+//
+// so-u4hp: SAFE ORDER — universal options lead so ANY country sees actionable
+// help first. IASP directory + local emergency number before country-specific lines.
 const FALLBACK_CRISIS_RESOURCES: CrisisResource[] = [
+  // UNIVERSAL — works from any country; always shown first.
   {
-    id: 'fallback-us-988',
+    id: 'fallback-iasp',
     country_code: 'XX',
     country_name: 'International',
-    resource_name: 'US 988 Suicide & Crisis Lifeline',
-    contact_type: 'call_text',
-    contact_value: '988',
-    description: 'Call or text 988 — free, 24/7 (United States)',
+    resource_name: 'Find a Helpline (IASP)',
+    contact_type: 'web',
+    contact_value: 'https://findahelpline.com/i/iasp',
+    description: 'International directory of crisis centres (findahelpline.com)',
     display_order: 1,
   },
   {
-    id: 'fallback-us-ctl',
+    id: 'fallback-local-emergency',
     country_code: 'XX',
     country_name: 'International',
-    resource_name: 'Crisis Text Line',
-    contact_type: 'text',
-    contact_value: '741741',
-    description: 'Text HOME to 741741 — free, 24/7 (United States)',
+    resource_name: 'Local Emergency Services',
+    contact_type: 'call',
+    contact_value: '112',
+    description: 'Call your local emergency number (112 / 911 / 000 / 999)',
     display_order: 2,
   },
+  // Country-specific lines below.
   {
     id: 'fallback-uk-samaritans',
     country_code: 'XX',
@@ -74,6 +79,26 @@ const FALLBACK_CRISIS_RESOURCES: CrisisResource[] = [
     display_order: 3,
   },
   {
+    id: 'fallback-us-988',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'US 988 Suicide & Crisis Lifeline',
+    contact_type: 'call_text',
+    contact_value: '988',
+    description: 'Call or text 988 — free, 24/7 (United States)',
+    display_order: 4,
+  },
+  {
+    id: 'fallback-us-ctl',
+    country_code: 'XX',
+    country_name: 'International',
+    resource_name: 'Crisis Text Line',
+    contact_type: 'text',
+    contact_value: '741741',
+    description: 'Text HOME to 741741 — free, 24/7 (United States)',
+    display_order: 5,
+  },
+  {
     id: 'fallback-ca-988',
     country_code: 'XX',
     country_name: 'International',
@@ -81,7 +106,7 @@ const FALLBACK_CRISIS_RESOURCES: CrisisResource[] = [
     contact_type: 'call_text',
     contact_value: '988',
     description: 'Call or text 988 — free, 24/7 (Canada)',
-    display_order: 4,
+    display_order: 6,
   },
   {
     id: 'fallback-au-lifeline',
@@ -91,17 +116,7 @@ const FALLBACK_CRISIS_RESOURCES: CrisisResource[] = [
     contact_type: 'call',
     contact_value: '131114',
     description: 'Call 13 11 14 — free, 24/7 (Australia)',
-    display_order: 5,
-  },
-  {
-    id: 'fallback-iasp',
-    country_code: 'XX',
-    country_name: 'International',
-    resource_name: 'Find a Helpline (IASP)',
-    contact_type: 'web',
-    contact_value: 'https://findahelpline.com/i/iasp',
-    description: 'International directory of crisis centres',
-    display_order: 6,
+    display_order: 7,
   },
 ];
 
@@ -109,23 +124,34 @@ const HelpScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  // so-nv2g: initialize to fallback so hotline numbers render instantly on
-  // mount — no spinner-before-numbers window on a crisis screen. The fetch
-  // enriches/replaces silently in the background.
-  const [resources, setResources] = useState<CrisisResource[]>(FALLBACK_CRISIS_RESOURCES);
+  // so-u4hp: seed from prefetch cache if available → correct country data on
+  // first paint, zero flash. Falls back to safe-ordered FALLBACK list on miss.
+  // so-nv2g: never a spinner — always render something actionable immediately.
+  const [resources, setResources] = useState<CrisisResource[]>(() => {
+    const cached = JournalService.getCachedCrisisResources();
+    return (cached?.resources?.length ? cached.resources : FALLBACK_CRISIS_RESOURCES) as CrisisResource[];
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // so-nv2g: server list only ENRICHES — fallback is the floor.
-    // On any error (offline, 401, 5xx) OR an empty server response,
-    // render the hardcoded international list so a person in crisis
-    // always sees real tappable numbers, not a blank screen.
+    // so-u4hp / so-nv2g: background refresh — fires on every mount to stay fresh
+    // but only calls setResources when the data actually changes (avoids jank
+    // when the cache is already current). On any error, leaves the cached or
+    // fallback state in place — a person in crisis always sees tappable numbers.
     JournalService.getCrisisResources()
       .then((data) => {
-        const serverList = data.resources || [];
-        setResources(serverList.length > 0 ? serverList : FALLBACK_CRISIS_RESOURCES);
+        const serverList = (data.resources || []) as CrisisResource[];
+        if (serverList.length > 0) {
+          setResources((prev) => {
+            const newKey = serverList.map((r) => r.id).join(',');
+            const prevKey = prev.map((r) => r.id).join(',');
+            return newKey === prevKey ? prev : serverList;
+          });
+        }
       })
-      .catch(() => setResources(FALLBACK_CRISIS_RESOURCES))
+      .catch(() => {
+        // Cache or fallback already showing — no action needed
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -252,13 +278,14 @@ const HelpScreen = ({ navigation }: any) => {
           marginTop: 30,
         },
         disclaimer: {
-          fontFamily: fonts.outfit.regular,
-          // 11 → 12 per typography.caption floor (so-cn9 / so-8li)
-          fontSize: 12,
-          lineHeight: 16,
-          color: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(58, 14, 102, 0.55)',
+          // so-u4hp: moved to top (under title) and made prominent — safety
+          // banner must be readable at a glance, not a near-invisible footnote.
+          fontFamily: fonts.outfit.medium,
+          fontSize: 16,
+          lineHeight: 22,
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.92)' : colors.text.primary,
           textAlign: 'center',
-          marginTop: 8,
+          marginBottom: 20,
         },
       }),
     [colors, isDarkMode],
@@ -320,6 +347,11 @@ const HelpScreen = ({ navigation }: any) => {
           </Pressable>
           <Text style={styles.headerTitle}>Help</Text>
         </View>
+
+        {/* so-u4hp: safety disclaimer at top — prominent banner, not a footnote */}
+        <Text style={styles.disclaimer}>
+          SoulTalk is not a substitute for professional mental health care. If you are experiencing a mental health emergency, please contact your local emergency services or a crisis helpline immediately.
+        </Text>
 
         {/* Intro */}
         <Text style={styles.introText}>
@@ -397,10 +429,6 @@ const HelpScreen = ({ navigation }: any) => {
               </Pressable>
             </View>
 
-            {/* Disclaimer */}
-            <Text style={styles.disclaimer}>
-              SoulTalk is not a substitute for professional mental health care. If you are experiencing a mental health emergency, please contact your local emergency services or a crisis helpline immediately.
-            </Text>
           </>
         )}
       </ScrollView>
