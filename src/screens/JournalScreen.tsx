@@ -11,6 +11,7 @@ import {
   Platform,
   UIManager,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -191,6 +192,8 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
 
     entriesScroll: { flex: 1 },
     entriesList: { gap: 12, paddingTop: 4 },
+    // so-8137 M-1: footer spinner shown while loadMoreEntries is in flight.
+    loadMoreSpinner: { paddingVertical: 20, alignItems: 'center' },
     entryCard: { borderRadius: 14 },
     accentStrip: { height: 3, borderTopLeftRadius: 14, borderTopRightRadius: 14 },
     entryContent: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 14 },
@@ -329,7 +332,7 @@ const JournalScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { entries, isLoading, fetchEntries, streak, hasEntryToday } = useJournal();
+  const { entries, isLoading, isLoadingMore, listError, fetchEntries, loadMoreEntries, streak, hasEntryToday } = useJournal();
   const { colorId } = useSoulPal();
   const soulPalHex = getSoulPalHex(colorId, isDarkMode);
 
@@ -518,6 +521,9 @@ const JournalScreen = ({ navigation }: any) => {
                     key={year}
                     style={[styles.pill, selectedYears.includes(year) && styles.pillActive]}
                     onPress={() => toggleYear(year)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by year ${year}`}
+                    accessibilityState={{ selected: selectedYears.includes(year) }}
                   >
                     <Text style={[styles.pillText, selectedYears.includes(year) && styles.pillTextActive]}>{year}</Text>
                   </Pressable>
@@ -531,6 +537,9 @@ const JournalScreen = ({ navigation }: any) => {
                     key={idx}
                     style={[styles.pill, selectedMonths.includes(idx) && styles.pillActive]}
                     onPress={() => toggleMonth(idx)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter by month ${month}`}
+                    accessibilityState={{ selected: selectedMonths.includes(idx) }}
                   >
                     <Text style={[styles.pillText, selectedMonths.includes(idx) && styles.pillTextActive]}>{month}</Text>
                   </Pressable>
@@ -546,7 +555,12 @@ const JournalScreen = ({ navigation }: any) => {
             GlassCards (~10 nested layers each) in the live tree, so when
             JournalScreen sat in the background and a downstream .map()
             triggered Hermes GC, the recursive ShadowNode destructor
-            blew the JS-thread stack tearing down the deep tree. */}
+            blew the JS-thread stack tearing down the deep tree.
+            so-8137 M-1: onEndReached appends the next page; the list
+            cursor lives in JournalContext (currentPageRef) so filter
+            changes reset pagination automatically via fetchEntries.
+            so-8137 MI-4: three-state — skeleton while loading, error
+            state on fetch failure, empty/loaded otherwise. */}
         {isLoading && entries.length === 0 ? (
           <ScrollView
             style={styles.entriesScroll}
@@ -557,6 +571,26 @@ const JournalScreen = ({ navigation }: any) => {
             }
           >
             <JournalLoader />
+          </ScrollView>
+        ) : listError && entries.length === 0 ? (
+          <ScrollView
+            style={styles.entriesScroll}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.entriesList, { paddingBottom: tabBarHeight + 20 }]}
+            refreshControl={
+              <RefreshControl refreshing={isLoading} onRefresh={() => fetchEntries()} tintColor={colors.white} />
+            }
+          >
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>Couldn't load entries</Text>
+              <Pressable
+                onPress={() => fetchEntries()}
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading journal entries"
+              >
+                <Text style={[styles.emptySub, { marginTop: 8 }]}>Tap to retry</Text>
+              </Pressable>
+            </View>
           </ScrollView>
         ) : entries.length === 0 ? (
           <ScrollView
@@ -590,6 +624,15 @@ const JournalScreen = ({ navigation }: any) => {
             maxToRenderPerBatch={8}
             windowSize={5}
             removeClippedSubviews
+            onEndReached={loadMoreEntries}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View style={styles.loadMoreSpinner}>
+                  <ActivityIndicator color={colors.white} />
+                </View>
+              ) : null
+            }
             renderItem={({ item, index }) => {
               const emotionColor = getEmotionColor(item);
               return (
@@ -602,6 +645,8 @@ const JournalScreen = ({ navigation }: any) => {
                     shadowOffset: { width: 0, height: 2 },
                   }] as any}
                   onPress={() => navigation.navigate('JournalEntry', { entryId: item.id, isLatest: index === 0 })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Journal entry from ${formatDate(item.created_at)}: ${item.raw_text.slice(0, 60)}`}
                 >
                   <View style={[styles.accentStrip, { backgroundColor: emotionColor }]} />
                   <View style={styles.entryContent}>
