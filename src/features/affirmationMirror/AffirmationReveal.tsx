@@ -76,6 +76,22 @@ const DARK_MIRROR_BG = '#321A52';
 // half (MIRROR_HEIGHT is the height of each half / the video's top offset).
 const MIRROR_HEIGHT = SCREEN_HEIGHT / 2;
 
+// so-f0hq: horizontal seam-blending band. The dark video's top edge is brighter
+// in the centre than at the sides; a flat DARK_MIRROR_BG creates a visible
+// horizontal step at y=MIRROR_HEIGHT. This 36px band provides a horizontal colour
+// profile matching the video's row-0 pixel data and fades vertically (sky-erase
+// at top, full colour at bottom = seam row) so no new hard line is introduced.
+// Heights: 36px sits within the 24-48px spec; absorbs subpixel device variation.
+const SEAM_BAND_HEIGHT = 36;
+// Row-0 dark-video colour samples: average left-third, centre, right-third.
+// idle dark:     sides ≈ #311850, centre ≈ #3C1E61
+// revealed dark: sides ≈ #320B74, centre ≈ #390C84
+const IDLE_SEAM_DARK: [string, string, string] = ['#311850', '#3C1E61', '#311850'];
+const REVEALED_SEAM_DARK: [string, string, string] = ['#320B74', '#390C84', '#320B74'];
+// Transparent counterpart of DARK_MIRROR_BG (#321A52 = R50 G26 B82) for the
+// sky-erase overlay — top of band is opaque sky, bottom is fully transparent.
+const DARK_MIRROR_BG_CLEAR = 'rgba(50,26,82,0)';
+
 const CloudsBg = require('../../../assets/images/home/CloudsBg.png');
 const CloudsLeft = require('../../../assets/images/home/CloudsLeft.png');
 const CloudsRight = require('../../../assets/images/home/CloudsRight.png');
@@ -592,6 +608,48 @@ export function AffirmationReveal({
         </View>
       )}
 
+      {/* so-f0hq: horizontal seam band — idle state. Two stacked LinearGradients:
+          1) horizontal colour profile (left/centre/right = video row-0 samples)
+          2) sky-erase overlay (opaque DARK_MIRROR_BG at top → transparent at
+             bottom) so the top of the band dissolves into the sky fill rather
+             than introducing a second hard line.
+          Animated with idleVideoOpacity so it crossfades in lockstep with the
+          video swap. zIndex 1 sits above topGlow (0) and below clouds (2). */}
+      {isDarkMode && (
+        <Animated.View pointerEvents="none" style={[styles.seamBand, idleVideoAnimStyle]}>
+          <LinearGradient
+            colors={IDLE_SEAM_DARK}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <LinearGradient
+            colors={[DARK_MIRROR_BG, DARK_MIRROR_BG_CLEAR]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
+      {/* so-f0hq: horizontal seam band — revealed state. Mounted alongside the
+          revealed video (isRevealedMounted) and crossfades with revealedVideoOpacity. */}
+      {isDarkMode && isRevealedMounted && (
+        <Animated.View pointerEvents="none" style={[styles.seamBand, revealedVideoAnimStyle]}>
+          <LinearGradient
+            colors={REVEALED_SEAM_DARK}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <LinearGradient
+            colors={[DARK_MIRROR_BG, DARK_MIRROR_BG_CLEAR]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      )}
+
       <View
         style={[styles.cloudsContainer, isDarkMode && styles.cloudsContainerDark]}
         pointerEvents="none"
@@ -750,6 +808,17 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     width: SCREEN_WIDTH,
     height: MIRROR_HEIGHT,
     zIndex: 0,
+  },
+  // so-f0hq: 36px band positioned at bottom of the top half (the seam row).
+  // zIndex 1: above topGlow (0), below clouds (2).
+  seamBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: MIRROR_HEIGHT - SEAM_BAND_HEIGHT,
+    height: SEAM_BAND_HEIGHT,
+    zIndex: 1,
+    overflow: 'hidden',
   },
   cloudsLayer: {
     ...StyleSheet.absoluteFillObject,
