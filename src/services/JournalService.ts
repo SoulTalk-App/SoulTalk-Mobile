@@ -377,6 +377,12 @@ class JournalService {
     return _crisisCache;
   }
 
+  // so-dorm: clear the cache on logout so a subsequent user on the same device
+  // doesn't see the previous user's country-specific crisis resources.
+  clearCrisisCache(): void {
+    _crisisCache = null;
+  }
+
   async transcribeAudio(audioUri: string): Promise<{ text: string; duration_seconds: number | null }> {
     const file = new File(audioUri);
     if (!file.exists) throw new Error('Audio file not found');

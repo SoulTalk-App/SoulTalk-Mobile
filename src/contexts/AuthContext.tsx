@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
+import JournalService from '../services/JournalService';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
 import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
@@ -290,6 +291,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await clearAuthLocalFlags();
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
+      JournalService.clearCrisisCache(); // so-dorm: shared-device PII hygiene
       await AuthService.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -298,6 +300,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await clearAuthLocalFlags();
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
+      JournalService.clearCrisisCache(); // so-dorm: mirror try-branch cleanup
     }
   }, [user]);
 
