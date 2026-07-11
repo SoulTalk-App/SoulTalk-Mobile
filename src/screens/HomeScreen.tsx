@@ -997,6 +997,15 @@ const HomeScreen = ({ navigation }: any) => {
     if (user?.id) JournalService.flushPendingSoulPalName(user.id);
   }, [user?.id]);
 
+  // so-u4hp: prefetch crisis resources on authenticated Home mount so HelpScreen
+  // opens with the correct country-specific list on first paint (no flash).
+  // Fire-and-forget — never blocks Home render.
+  useEffect(() => {
+    if (user?.id) {
+      JournalService.prefetchCrisisResources();
+    }
+  }, [user?.id]);
+
   // so-cywf: server-authoritative terms-of-service consent check. Home is the
   // authenticated entry route, so this is the "on launch" checkpoint. If the
   // server says acceptance is required (a freshly-registered user at version 0,
