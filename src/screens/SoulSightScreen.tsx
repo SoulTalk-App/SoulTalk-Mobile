@@ -661,7 +661,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     heroSubtitle: {
       marginTop: 4,
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 16,
       lineHeight: 16 * 1.45,
       letterSpacing: 0.2,
@@ -741,7 +741,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     currentBlurb: {
       marginTop: 6,
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 16,
       lineHeight: 16 * 1.45,
       letterSpacing: 0.2,
@@ -869,7 +869,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     pastBlurb: {
       marginTop: 4,
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 14,
       lineHeight: 14 * 1.4,
       letterSpacing: 0.2,
@@ -946,7 +946,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       textAlign: 'center',
     },
     emptySubtitle: {
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 16,
       lineHeight: 16 * 1.45,
       letterSpacing: 0.2,

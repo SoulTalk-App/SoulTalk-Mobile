@@ -546,7 +546,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     heroSubtitle: {
       marginTop: 8,
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 16,
       lineHeight: 16 * 1.45,
       letterSpacing: 0.2,
@@ -600,7 +600,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     constellationSoulpal: { width: 28, height: 28 },
     constellationCopy: {
       flex: 1,
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 14,
       lineHeight: 14 * 1.35,
       letterSpacing: 0.2,
@@ -643,7 +643,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       marginBottom: 4,
     },
     testCardBlurb: {
-      fontFamily: fonts.edensor.italic,
+      fontFamily: fonts.outfit.regular,
       fontSize: 14,
       lineHeight: 14 * 1.4,
       letterSpacing: 0.2,
