@@ -15,6 +15,9 @@ import { getDeviceTimezone } from '../utils/timezone';
 // (network drop mid-PUT), we stash the intent and retry on the next
 // app launch so the entry doesn't sit stranded as a draft. Per-user
 // scoped to prevent cross-user bleed on a shared device.
+// so-8137 MI-5: key format "@soultalk_pending_finalize:<user_id>".
+// Per-user (not global) so logout-clean (clearPendingFinalize) can wipe
+// only the current user's pending work on a shared device.
 const PENDING_FINALIZE_KEY_PREFIX = '@soultalk_pending_finalize';
 const pendingFinalizeKey = (userId: string) =>
   `${PENDING_FINALIZE_KEY_PREFIX}:${userId}`;
@@ -41,6 +44,13 @@ interface PendingFinalize {
 interface JournalStateType {
   entries: JournalEntry[];
   isLoading: boolean;
+  // so-8137 M-1: true while a page-append fetch is in flight (pull-to-
+  // refresh or filter change use isLoading instead). Lets the list show a
+  // footer spinner without blocking the whole-page skeleton.
+  isLoadingMore: boolean;
+  // so-8137 MI-4: true after a fetchEntries failure with no entries loaded.
+  // Cleared on the next fetchEntries call so the error state is transient.
+  listError: boolean;
   currentEntry: JournalEntry | null;
   total: number;
   streak: StreakResponse | null;
@@ -55,6 +65,10 @@ interface JournalStateType {
 
 interface JournalActionsType {
   fetchEntries: (params?: ListEntriesParams) => Promise<void>;
+  // so-8137 M-1: append the next page of entries under the current filter.
+  // No-ops when already loading, loading more, or all pages are loaded.
+  // Stable identity (no deps) — safe to pass directly as onEndReached.
+  loadMoreEntries: () => Promise<void>;
   createEntry: (rawText: string, mood?: Mood, isDraft?: boolean) => Promise<JournalEntry>;
   updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
   deleteEntry: (id: string) => Promise<void>;
@@ -126,9 +140,27 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     entriesRef.current = entries;
   }, [entries]);
   const [isLoading, setIsLoading] = useState(false);
+  // so-8137 M-1: page-append loading flag (separate from isLoading which
+  // covers full-page skeleton). Driven by isLoadingMoreRef for guard logic.
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // so-8137 MI-4: last fetchEntries call failed with no data loaded.
+  const [listError, setListError] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<JournalEntry | null>(null);
   const [total, setTotal] = useState(0);
   const [lastParams, setLastParams] = useState<ListEntriesParams | undefined>();
+  // so-8137 M-1: ref mirrors for loadMoreEntries guard logic. Declared
+  // after the state variables they mirror — hooks must be called in the same
+  // order every render, and refs that reference state in their deps arrays
+  // must come AFTER those state declarations to avoid TDZ errors.
+  const isLoadingRef = useRef(false);
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+  const isLoadingMoreRef = useRef(false);
+  const totalRef = useRef(0);
+  useEffect(() => { totalRef.current = total; }, [total]);
+  const currentPageRef = useRef(1);
+  // lastParamsRef mirrors lastParams so loadMoreEntries can read the
+  // current filter without capturing it in its deps.
+  const lastParamsRef = useRef<ListEntriesParams | undefined>(undefined);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [soulBar, setSoulBar] = useState<SoulBarResponse | null>(null);
   // so-a1lb MI-1: starts true; flips false on first fetch attempt (success
@@ -236,12 +268,20 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const fetchEntries = useCallback(async (params?: ListEntriesParams) => {
     try {
       setIsLoading(true);
+      setListError(false);
       setLastParams(params);
+      lastParamsRef.current = params;
       const response = await JournalService.listEntries(params);
       setEntries(response.entries);
       setTotal(response.total);
+      // so-8137 M-1: full-page fetch resets the page cursor so loadMoreEntries
+      // starts from page 2 on the new result set.
+      currentPageRef.current = 1;
     } catch (error) {
       console.error('Failed to fetch journal entries:', error);
+      // so-8137 MI-4: surface fetch failure so JournalScreen can show
+      // a retry prompt instead of a silent empty list.
+      setListError(true);
     } finally {
       setIsLoading(false);
     }
@@ -250,6 +290,39 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const refreshEntries = useCallback(async () => {
     await fetchEntries(lastParams);
   }, [fetchEntries, lastParams]);
+
+  // so-8137 M-1: append the next page to the current filtered list.
+  // All guards read from refs so this callback has stable identity (zero
+  // deps) — the FlatList onEndReached prop never changes between renders.
+  // Per-page size mirrors the BE default (20); adjusting BE per_page
+  // changes the effective window; 20 is conservative and matches launch.
+  const PAGE_SIZE = 20;
+  const loadMoreEntries = useCallback(async () => {
+    // Guard: skip if a full-page or append fetch is already in flight.
+    if (isLoadingRef.current || isLoadingMoreRef.current) return;
+    // Guard: all pages loaded.
+    if (entriesRef.current.length >= totalRef.current) return;
+    const nextPage = currentPageRef.current + 1;
+    try {
+      isLoadingMoreRef.current = true;
+      setIsLoadingMore(true);
+      const response = await JournalService.listEntries({
+        ...lastParamsRef.current,
+        page: nextPage,
+        per_page: PAGE_SIZE,
+      });
+      setEntries((prev) => [...prev, ...response.entries]);
+      setTotal(response.total);
+      currentPageRef.current = nextPage;
+    } catch (err) {
+      console.error('[JournalContext] loadMoreEntries failed:', err);
+      // Pagination errors are transient — user can scroll back up and
+      // pull-to-refresh to reset. No listError flag needed here.
+    } finally {
+      isLoadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, []);
 
   // so-rhap: fetchStreak / fetchSoulBar are called fire-and-forget from
   // ~8 sites (mount, createEntry, finalizeDraft, updateEntry, pending
@@ -407,6 +480,11 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     };
   }, [user?.id, fetchGamification]);
 
+  // so-8137 MI-5: the Mood field passed here is a per-entry self-reported
+  // mood at write time (JournalEntry.mood — typed union). It is independent
+  // of the daily-mood check-in (JournalService.getTodayMood / upsertTodayMood,
+  // which returns a free-form mood_word string). No gate or sync between the
+  // two: a user can set daily mood without writing an entry, and vice versa.
   const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false) => {
     const entry = await JournalService.createEntry(rawText, mood, isDraft);
     if (!isDraft) {
@@ -421,6 +499,13 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
 
   const updateEntry = useCallback(async (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => {
     const updated = await JournalService.updateEntry(id, data);
+    // so-8137 MI-2: mood-only edit (raw_text absent, no draft state change).
+    // The BE PUT returns the entry as stored, but tags/ai_response are set
+    // by async AI processing and may come back null on the PUT response even
+    // when they were previously populated locally. Merge-preserve them so a
+    // mood-badge tap doesn't visually blank out an entry's AI analysis.
+    const isMoodOnly = data.raw_text === undefined && data.is_draft === undefined;
+
     // If draft was finalized, add to entries list and refresh gamification
     if (data.is_draft === false) {
       // so-cnd8: derive existence from the ref-mirrored committed state
@@ -440,9 +525,21 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       }
       fetchGamification();
     } else {
-      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+      setEntries((prev) => prev.map((e) => {
+        if (e.id !== id) return e;
+        if (isMoodOnly) {
+          return { ...updated, tags: updated.tags ?? e.tags, ai_response: updated.ai_response ?? e.ai_response };
+        }
+        return updated;
+      }));
     }
-    if (currentEntry?.id === id) setCurrentEntry(updated);
+    if (currentEntry?.id === id) {
+      const merged = isMoodOnly
+        ? { ...updated, tags: updated.tags ?? currentEntry.tags, ai_response: updated.ai_response ?? currentEntry.ai_response }
+        : updated;
+      setCurrentEntry(merged);
+      return merged;
+    }
     return updated;
   }, [currentEntry, fetchGamification]);
 
@@ -532,6 +629,8 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     () => ({
       entries,
       isLoading,
+      isLoadingMore,
+      listError,
       currentEntry,
       total,
       streak,
@@ -540,7 +639,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       soulBarLoading,
       streakLoading,
     }),
-    [entries, isLoading, currentEntry, total, streak, soulBar, hasEntryToday, soulBarLoading, streakLoading],
+    [entries, isLoading, isLoadingMore, listError, currentEntry, total, streak, soulBar, hasEntryToday, soulBarLoading, streakLoading],
   );
 
   // so-l304 F2: stable actions memo — only re-creates if a callback
@@ -549,6 +648,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   const actionsValue: JournalActionsType = useMemo(
     () => ({
       fetchEntries,
+      loadMoreEntries,
       createEntry,
       updateEntry,
       deleteEntry,
@@ -563,6 +663,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     }),
     [
       fetchEntries,
+      loadMoreEntries,
       createEntry,
       updateEntry,
       deleteEntry,
