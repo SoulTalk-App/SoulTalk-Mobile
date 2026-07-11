@@ -105,7 +105,10 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           backgroundColor: colors.primary,
         },
         tabText: {
-          // so-bh3j: preset (label = Outfit medium 14px) via AppText variant
+          // so-nwly: plain Text — preset lineHeight doesn't apply to single-line
+          // fixed-height tab controls; explicit props give exact control.
+          fontFamily: fonts.outfit.medium,
+          fontSize: 14,
           color: colors.text.light,
         },
         tabTextActive: {
@@ -283,17 +286,17 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
             style={[styles.tab, activeTab === 'privacy' && styles.tabActive]}
             onPress={() => handleTabSwitch('privacy')}
           >
-            <AppText variant="label" style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
               Privacy Policy
-            </AppText>
+            </Text>
           </Pressable>
           <Pressable
             style={[styles.tab, activeTab === 'terms' && styles.tabActive]}
             onPress={() => handleTabSwitch('terms')}
           >
-            <AppText variant="label" style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
               Terms of Service
-            </AppText>
+            </Text>
           </Pressable>
         </View>
       </Animated.View>
