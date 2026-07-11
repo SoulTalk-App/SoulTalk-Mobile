@@ -1152,8 +1152,19 @@ const HomeScreen = ({ navigation }: any) => {
                 />
               </Animated.View>
               <View style={dk.greetingTextSection}>
-                <Text style={dk.welcomeLine}>Welcome back,</Text>
-                <Text style={dk.welcomeLine}>{displayName}.</Text>
+                {/* so-mj74: single Text with explicit \n so row-1 is always
+                    "Welcome back," and row-2 is always the name. numberOfLines=2
+                    caps at two rows; adjustsFontSizeToFit shrinks both rows
+                    uniformly if the name is wide; minimumFontScale=0.5 floors at
+                    14px worst-case. Never wraps to 3 lines on any name/device. */}
+                <Text
+                  style={dk.welcomeLine}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {`Welcome back,\n${displayName}.`}
+                </Text>
               </View>
               {/* so-nv2g CR-m3: Help one tap from Home — dark mode */}
               <Pressable
@@ -1450,8 +1461,15 @@ const HomeScreen = ({ navigation }: any) => {
               />
             </Animated.View>
             <View style={lt.greetingTextSection}>
-              <Text style={lt.welcomeLine}>Welcome back,</Text>
-              <Text style={lt.welcomeLine}>{displayName}.</Text>
+              {/* so-mj74: same two-row pattern as dark — see dark block comment */}
+              <Text
+                style={lt.welcomeLine}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {`Welcome back,\n${displayName}.`}
+              </Text>
             </View>
             {/* so-nv2g CR-m3: Help one tap from Home — light mode */}
             <Pressable
