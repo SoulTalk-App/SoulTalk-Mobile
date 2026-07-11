@@ -586,14 +586,16 @@ export function AffirmationReveal({
               >
                 <Defs>
                   <RadialGradient id="mirror-top-glow-revealed" cx="50%" cy="100%" r="100%">
-                    {/* First-pass: revealed video top edge ~#390C84 (brighter +
-                        bluer than idle). Monotonic: R74→61→46→46, G37→28→22→22,
-                        B133→107→82→82. Overseer tunes these values on-device. */}
-                    <Stop offset="0%"   stopColor="#4A2585" stopOpacity={1} />
-                    <Stop offset="25%"  stopColor="#3D1C6B" stopOpacity={1} />
-                    <Stop offset="50%"  stopColor="#2E1652" stopOpacity={1} />
-                    {/* outer reach: same discipline as idle — flat at outer stop */}
-                    <Stop offset="100%" stopColor="#2E1652" stopOpacity={1} />
+                    {/* so-dt75: ffmpeg-measured from dark revealed video frame-0
+                        top edge (assets/videos/dark/affirmationMirrorLookingUp.mp4,
+                        1200×1200; cover-crop is horizontal so top row ≈ row 0).
+                        centre=#3d0d88, sides=#2f0b6a, strip-avg=#370c7d.
+                        Monotonic: R61→54→47→47, G13→12→11→11, B136→121→106→106. */}
+                    <Stop offset="0%"   stopColor="#3d0d88" stopOpacity={1} />
+                    <Stop offset="25%"  stopColor="#360c79" stopOpacity={1} />
+                    <Stop offset="50%"  stopColor="#2f0b6a" stopOpacity={1} />
+                    {/* outer reach flat at measured video sides */}
+                    <Stop offset="100%" stopColor="#2f0b6a" stopOpacity={1} />
                   </RadialGradient>
                 </Defs>
                 <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow-revealed)" />
