@@ -212,17 +212,18 @@ const SoulSightScreen = ({ navigation }: any) => {
     }
   };
 
-  // so-9t3d MI-1: only filter on fields the BE actually returns in the list
-  // response. headline + content_preview are not sent by the list endpoint —
-  // filtering on them always returns false and makes the search box appear
-  // broken. Filter on window_label (always present) + title (optional).
+  // so-9t3d MI-1 / so-n6ui: filter on all fields the BE returns in the list
+  // response. window_label is always present; title and content_preview are
+  // optional (null on older rows — guard with || ''). Match any substring so
+  // searching a word from an insight's preview or title narrows the past list.
   const filteredPast = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return past;
     return past.filter((s) => {
       const label = (s.window_label || '').toLowerCase();
       const title = (s.title || '').toLowerCase();
-      return label.includes(q) || title.includes(q);
+      const preview = (s.content_preview || '').toLowerCase();
+      return label.includes(q) || title.includes(q) || preview.includes(q);
     });
   }, [past, query]);
 
