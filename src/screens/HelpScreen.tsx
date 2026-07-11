@@ -143,9 +143,15 @@ const HelpScreen = ({ navigation }: any) => {
         const serverList = (data.resources || []) as CrisisResource[];
         if (serverList.length > 0) {
           setResources((prev) => {
-            const newKey = serverList.map((r) => r.id).join(',');
-            const prevKey = prev.map((r) => r.id).join(',');
-            return newKey === prevKey ? prev : serverList;
+            // so-dorm: Set-based compare — order-independent so a server that
+            // returns the same resources in a different order doesn't trigger
+            // a spurious re-render and layout jump.
+            const newIds = new Set(serverList.map((r) => r.id));
+            const prevIds = new Set(prev.map((r) => r.id));
+            if (newIds.size === prevIds.size && [...newIds].every((id) => prevIds.has(id))) {
+              return prev;
+            }
+            return serverList;
           });
         }
       })
