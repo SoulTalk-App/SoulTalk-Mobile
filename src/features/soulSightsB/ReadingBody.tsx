@@ -335,8 +335,9 @@ const styles = StyleSheet.create({
     marginTop: 22,
     gap: 14,
   },
+  // so-kima (Option B): Light (300) → Regular readability floor on dark bg.
   paragraph: {
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
   },
@@ -387,9 +388,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
   },
+  // so-kima (Option B): Light (300) → Regular readability floor on dark bg.
   signalText: {
     flex: 1,
-    fontFamily: fonts.outfit.light,
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.4,
   },

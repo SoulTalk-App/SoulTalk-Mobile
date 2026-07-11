@@ -187,8 +187,10 @@ const styles = StyleSheet.create({
   historyBlock: {
     marginTop: 28,
   },
+  // so-kima (Option B): section-header label → Outfit semiBold, parity with
+  // other section headers (SignalsB countCap, PatternCard relatedLabel).
   sectionLabel: {
-    fontFamily: fonts.edensor.italic,
+    fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',

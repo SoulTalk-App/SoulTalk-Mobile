@@ -7,6 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
+import { fonts } from '../theme';
 
 /**
  * so-ve7q: root ErrorBoundary around Navigation. Prior to this, any
@@ -118,13 +119,15 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
   },
+  // so-kima: add Outfit family (was missing, fell back to OS system font).
   title: {
+    fontFamily: fonts.outfit.semiBold,
     color: '#FFFFFF',
     fontSize: 22,
-    fontWeight: '600',
     marginBottom: 12,
   },
   body: {
+    fontFamily: fonts.outfit.regular,
     color: 'rgba(255,255,255,0.78)',
     fontSize: 15,
     lineHeight: 21,
@@ -136,6 +139,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 24,
   },
+  // Intentional monospace — dev-only stack trace display.
   devLabel: {
     color: '#FFB4B4',
     fontSize: 13,
@@ -161,9 +165,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.22)',
   },
   buttonText: {
+    fontFamily: fonts.outfit.semiBold,
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '500',
   },
 });
 
