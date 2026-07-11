@@ -586,16 +586,15 @@ export function AffirmationReveal({
               >
                 <Defs>
                   <RadialGradient id="mirror-top-glow-revealed" cx="50%" cy="100%" r="100%">
-                    {/* so-dt75: ffmpeg-measured from dark revealed video frame-0
-                        top edge (assets/videos/dark/affirmationMirrorLookingUp.mp4,
-                        1200×1200; cover-crop is horizontal so top row ≈ row 0).
-                        centre=#3d0d88, sides=#2f0b6a, strip-avg=#370c7d.
-                        Monotonic: R61→54→47→47, G13→12→11→11, B136→121→106→106. */}
-                    <Stop offset="0%"   stopColor="#3d0d88" stopOpacity={1} />
-                    <Stop offset="25%"  stopColor="#360c79" stopOpacity={1} />
-                    <Stop offset="50%"  stopColor="#2f0b6a" stopOpacity={1} />
-                    {/* outer reach flat at measured video sides */}
-                    <Stop offset="100%" stopColor="#2f0b6a" stopOpacity={1} />
+                    {/* so-985b: Overseer final on-device-tuned values — supersedes
+                        so-dt75 ffmpeg-measured set. Apply verbatim; do NOT re-tune.
+                        100% outer (#331763) is intentionally warmer than 50%
+                        (#30136c) — deliberate blend toward the magenta sky edges. */}
+                    <Stop offset="0%"   stopColor="#461d9c" stopOpacity={1} />
+                    <Stop offset="25%"  stopColor="#3b1885" stopOpacity={1} />
+                    <Stop offset="50%"  stopColor="#30136c" stopOpacity={1} />
+                    {/* outer reach: intentionally warmer/redder than 50% stop */}
+                    <Stop offset="100%" stopColor="#331763" stopOpacity={1} />
                   </RadialGradient>
                 </Defs>
                 <Rect x="0" y="0" width="100" height="100" fill="url(#mirror-top-glow-revealed)" />
