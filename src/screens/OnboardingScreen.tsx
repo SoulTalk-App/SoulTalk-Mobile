@@ -740,7 +740,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
           marginTop: 1,
         },
         privacyLine: {
-          fontFamily: fonts.edensor.italic,
+          fontFamily: fonts.outfit.regular,
           fontSize: 14,
           letterSpacing: 0.3,
           color: isDarkMode ? 'rgba(255,255,255,0.92)' : colors.text.primary,

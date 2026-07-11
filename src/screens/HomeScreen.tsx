@@ -230,7 +230,7 @@ const HomeScreen = ({ navigation }: any) => {
         },
         moodInput: {
           flex: 1,
-          fontFamily: fonts.edensor.italic,
+          fontFamily: fonts.outfit.regular,
           fontSize: 16,
           color: colors.white,
           padding: 0,
@@ -361,7 +361,7 @@ const HomeScreen = ({ navigation }: any) => {
           justifyContent: 'flex-end',
         },
         soulBarFooterRight: {
-          fontFamily: fonts.edensor.italic,
+          fontFamily: fonts.outfit.regular,
           fontSize: 12,
           color: colors.text.secondary,
         },
@@ -638,7 +638,7 @@ const HomeScreen = ({ navigation }: any) => {
         },
         moodInput: {
           flex: 1,
-          fontFamily: fonts.edensor.italic,
+          fontFamily: fonts.outfit.regular,
           fontSize: 16,
           color: colors.text.primary,
           padding: 0,
