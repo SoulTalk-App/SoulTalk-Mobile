@@ -152,17 +152,17 @@ export function SuggestModal({
                 </Text>
                 <Text style={[styles.title, { color: ink(theme) }]}>
                   {hasCandidates
-                    ? "A shift that’s forming for you"
+                    ? "A shift that's forming for you"
                     : consentOff
-                    ? ‘AI suggestions are off’
-                    : ‘Nothing new yet’}
+                    ? 'AI suggestions are off'
+                    : 'Nothing new yet'}
                 </Text>
                 <Text style={[styles.subtitle, { color: ink(theme) }]}>
                   {hasCandidates
-                    ? ‘From the patterns in your last two weeks.’
+                    ? 'From the patterns in your last two weeks.'
                     : consentOff
-                    ? `${soulPalName} can’t surface suggestions when AI Insights is off. Enable it in Settings to start receiving shift suggestions.`
-                    : `${soulPalName} hasn’t found patterns yet — keep tending and check back.`}
+                    ? `${soulPalName} can't surface suggestions when AI Insights is off. Enable it in Settings to start receiving shift suggestions.`
+                    : `${soulPalName} hasn't found patterns yet — keep tending and check back.`}
                 </Text>
               </View>
 
