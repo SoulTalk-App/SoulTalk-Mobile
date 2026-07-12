@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, consumeJustSignedIn } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import Animated, {
   useSharedValue,
@@ -39,6 +39,7 @@ import { cosmicTextShadow } from '../components/CosmicText';
 import { MoodToast, MoodToastKind } from '../components/MoodToast';
 import { BottomTabBar } from '../components/BottomTabBar';
 import { sanitizeMoodWord } from '../utils/moodSanitizer';
+import WelcomeBackOverlay from '../components/WelcomeBackOverlay';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -1006,6 +1007,10 @@ const HomeScreen = ({ navigation }: any) => {
     }
   }, [user?.id]);
 
+  // so-98dx: WelcomeBack bridge — shows once per explicit sign-in action.
+  // consumeJustSignedIn() reads + clears the one-shot flag set by AuthContext.
+  const [showBridge, setShowBridge] = useState(() => consumeJustSignedIn());
+
   // so-cywf: server-authoritative terms-of-service consent check. Home is the
   // authenticated entry route, so this is the "on launch" checkpoint. If the
   // server says acceptance is required (a freshly-registered user at version 0,
@@ -1452,6 +1457,13 @@ const HomeScreen = ({ navigation }: any) => {
           onAccept={handleAcceptTerms}
           loading={termsAccepting}
         />
+        {/* so-98dx: WelcomeBack bridge — absolute-fill over Home so data loads beneath. */}
+        {showBridge && (
+          <WelcomeBackOverlay
+            displayName={displayName || null}
+            onDismiss={() => setShowBridge(false)}
+          />
+        )}
       </CosmicScreen>
     );
   }
@@ -1754,6 +1766,13 @@ const HomeScreen = ({ navigation }: any) => {
         onAccept={handleAcceptTerms}
         loading={termsAccepting}
       />
+      {/* so-98dx: WelcomeBack bridge — absolute-fill over Home so data loads beneath. */}
+      {showBridge && (
+        <WelcomeBackOverlay
+          displayName={displayName || null}
+          onDismiss={() => setShowBridge(false)}
+        />
+      )}
     </CosmicScreen>
   );
 };
