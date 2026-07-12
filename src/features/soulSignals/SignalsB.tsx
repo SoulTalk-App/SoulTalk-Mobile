@@ -161,7 +161,7 @@ export function SignalsB({
             style={[styles.title, { color: ink(theme) }]}
             numberOfLines={1}
           >
-            Soul Signals
+            SoulSignals
           </Text>
           <Text style={[styles.countCap, { color: inkSub(theme) }]}>
             {groups.length} patterns

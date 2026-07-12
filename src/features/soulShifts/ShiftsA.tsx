@@ -144,7 +144,7 @@ export function ShiftsA({
             style={[styles.title, { color: ink(theme) }]}
             numberOfLines={1}
           >
-            Soul Shifts
+            SoulShifts
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: inkSub(theme) }]}>
@@ -279,10 +279,10 @@ export function ShiftsA({
       ) : (
         <>
           <Text style={[emptyStyles.title, { color: ink(theme) }]}>
-            No Soul Shifts yet.
+            No SoulShifts yet.
           </Text>
           <Text style={[emptyStyles.subtitle, { color: inkSub(theme) }]}>
-            Soul Shifts surface from patterns {soulPalName} notices in your
+            SoulShifts surface from patterns {soulPalName} notices in your
             entries and SoulSights. Keep journaling. Your first Shift will
             appear after your first SoulSight.
           </Text>
