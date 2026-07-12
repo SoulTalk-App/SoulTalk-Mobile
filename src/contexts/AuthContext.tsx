@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import AuthService from '../services/AuthService';
 import JournalService from '../services/JournalService';
+import { logHandledError } from '../utils/logger';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
 import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
@@ -178,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ensureCountryCode(userInfo);
           ensureTimezone(userInfo);
         } catch (userError) {
-          console.error('Failed to get user info:', userError);
+          logHandledError('AuthContext: checkAuthState — get user info', userError);
           // If we can't get user info, clear auth state
           setUser(null);
           setIsAuthenticated(false);
@@ -194,7 +195,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth state check failed:', error);
+      logHandledError('AuthContext: checkAuthState', error);
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -267,7 +268,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.register({ ...userData, timezone: getDeviceTimezone() });
       // Note: User will need to verify email via OTP before they can login
     } catch (error) {
-      console.error('Registration failed:', error);
+      logHandledError('AuthContext: register', error);
       throw error;
     }
   }, []);
@@ -294,7 +295,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       JournalService.clearCrisisCache(); // so-dorm: shared-device PII hygiene
       await AuthService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      logHandledError('AuthContext: logout', error);
       setUser(null);
       setIsAuthenticated(false);
       await clearAuthLocalFlags();
@@ -324,7 +325,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userInfo);
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      logHandledError('AuthContext: refreshUser', error);
       // If refresh fails, user might need to re-authenticate
       setUser(null);
       setIsAuthenticated(false);
@@ -340,7 +341,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const updated = await AuthService.updateProfile(data);
       setUser(updated);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      logHandledError('AuthContext: updateProfile', error);
       throw error;
     }
   }, []);
@@ -349,7 +350,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await AuthService.resetPassword(email);
     } catch (error) {
-      console.error('Password reset failed:', error);
+      logHandledError('AuthContext: resetPassword', error);
       throw error;
     }
   }, []);
@@ -381,7 +382,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
-      console.error('Google login failed:', error);
+      logHandledError('AuthContext: loginWithGoogle', error);
       setUser(null);
       setIsAuthenticated(false);
       throw error;
@@ -412,7 +413,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
-      console.error('Apple login failed:', error);
+      logHandledError('AuthContext: loginWithApple', error);
       setUser(null);
       setIsAuthenticated(false);
       throw error;
@@ -443,7 +444,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
-      console.error('Facebook login failed:', error);
+      logHandledError('AuthContext: loginWithFacebook', error);
       setUser(null);
       setIsAuthenticated(false);
       throw error;
@@ -458,7 +459,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.linkGoogleAccount(idToken);
       await refreshUser();
     } catch (error) {
-      console.error('Failed to link Google account:', error);
+      logHandledError('AuthContext: linkGoogleAccount', error);
       throw error;
     }
   }, [refreshUser]);
@@ -468,7 +469,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.linkFacebookAccount(accessToken);
       await refreshUser();
     } catch (error) {
-      console.error('Failed to link Facebook account:', error);
+      logHandledError('AuthContext: linkFacebookAccount', error);
       throw error;
     }
   }, [refreshUser]);
@@ -478,7 +479,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.unlinkProvider(provider);
       await refreshUser();
     } catch (error) {
-      console.error(`Failed to unlink ${provider}:`, error);
+      logHandledError(`AuthContext: unlinkProvider (${provider})`, error);
       throw error;
     }
   }, [refreshUser]);
@@ -487,7 +488,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       return await AuthService.getLinkedAccounts();
     } catch (error) {
-      console.error('Failed to get linked accounts:', error);
+      logHandledError('AuthContext: getLinkedAccounts', error);
       throw error;
     }
   }, []);
@@ -507,7 +508,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ensureTimezone(userInfo);
       await AsyncStorage.setItem('user_logged_in', 'true');
     } catch (error) {
-      console.error('Email verification failed:', error);
+      logHandledError('AuthContext: verifyEmail', error);
       throw error;
     }
   }, []);
@@ -516,7 +517,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await AuthService.resendVerificationEmail(email);
     } catch (error) {
-      console.error('Failed to resend verification email:', error);
+      logHandledError('AuthContext: resendVerificationEmail', error);
       throw error;
     }
   }, []);
@@ -526,7 +527,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await AuthService.confirmPasswordReset(token, newPassword);
     } catch (error) {
-      console.error('Password reset failed:', error);
+      logHandledError('AuthContext: requestPasswordReset', error);
       throw error;
     }
   }, []);
@@ -537,7 +538,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Backend revokes all tokens — force logout
       await logout();
     } catch (error) {
-      console.error('Password change failed:', error);
+      logHandledError('AuthContext: changePassword', error);
       throw error;
     }
   }, [logout]);
@@ -546,7 +547,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await AuthService.setPassword(password);
     } catch (error) {
-      console.error('Failed to set password:', error);
+      logHandledError('AuthContext: setPassword', error);
       throw error;
     }
   }, []);
@@ -558,7 +559,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       await AuthService.logoutAllDevices();
     } catch (error) {
-      console.error('Logout all devices error:', error);
+      logHandledError('AuthContext: logoutAllDevices', error);
     } finally {
       setUser(null);
       setIsAuthenticated(false);
@@ -585,7 +586,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // persist and silently grant acceptance to the next user on the device).
       await clearAuthLocalFlags();
     } catch (error) {
-      console.error('Account deletion failed:', error);
+      logHandledError('AuthContext: deleteAccount', error);
       throw error;
     }
   }, []);

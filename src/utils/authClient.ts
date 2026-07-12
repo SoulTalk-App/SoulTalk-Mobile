@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import Constants from 'expo-constants';
 import SecureStorage from './SecureStorage';
+import { logHandledError } from './logger';
 import {
   presentPaywall,
   wasUnlocked,
@@ -163,13 +164,10 @@ export const refreshAccessToken = (): Promise<string | null> => {
         }
       } else {
         // Transient (network down, 5xx, etc.) — log status/message ONLY.
-        // SECURITY: never log err or err.config — they contain the refresh_token
+        // SECURITY: never pass err or err.config — they contain the refresh_token
         // in the request body and must never reach logs or crash-reporters.
-        // eslint-disable-next-line no-console
-        console.error(
-          '[authClient] Token refresh failed (transient):',
-          err?.response?.status,
-          err?.message,
+        logHandledError(
+          `[authClient] Token refresh failed (transient): ${err?.response?.status} ${err?.message}`,
         );
       }
       return null;

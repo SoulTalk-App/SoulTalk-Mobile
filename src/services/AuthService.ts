@@ -1,4 +1,5 @@
 import SecureStorage from '../utils/SecureStorage';
+import { logHandledError } from '../utils/logger';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { AuthRequest, AuthRequestConfig, AuthSessionResult } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -214,7 +215,7 @@ class AuthService {
         });
       }
     } catch (error) {
-      console.error('Logout API call failed:', error);
+      logHandledError('AuthService: logout API call', error);
     } finally {
       // Clear stored tokens regardless of API call success
       await this.clearStoredTokens();
@@ -569,7 +570,7 @@ class AuthService {
       });
       return result.success;
     } catch (error) {
-      console.error('Biometric authentication error:', error);
+      logHandledError('AuthService: biometric authenticate', error);
       return false;
     }
   }

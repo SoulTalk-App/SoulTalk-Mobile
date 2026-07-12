@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { Mood } from '../services/JournalService';
+import { logHandledError } from '../utils/logger';
 import { useJournalActions } from '../contexts/JournalContext';
 
 interface UseAutoSaveOptions {
@@ -91,7 +92,7 @@ export const useAutoSave = ({
         setDraftIdRef.current(result.id);
       }
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      logHandledError('useAutoSave: save failed', error);
     }
   }, []);
 

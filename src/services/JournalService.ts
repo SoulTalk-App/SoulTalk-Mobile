@@ -169,7 +169,9 @@ class JournalService {
   }
 
   async listEntries(params?: ListEntriesParams): Promise<JournalListResponse> {
-    const response = await this.axiosInstance.get('/journal/', { params });
+    // so-vrud: 20s timeout — list can legitimately exceed the 10s global default
+    // until the BE index lands; keep enough headroom without hanging indefinitely.
+    const response = await this.axiosInstance.get('/journal/', { params, timeout: 20000 });
     return response.data;
   }
 
