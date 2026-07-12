@@ -266,7 +266,7 @@ const SoulSightScreen = ({ navigation }: any) => {
               </View>
               <Text style={styles.currentTitle}>Drafting your SoulSight…</Text>
               <Text style={styles.currentBlurb}>
-                {soulPalName} is reading the week. This usually takes a minute.
+                {soulPalName} is reading your entries. This usually takes a minute.
               </Text>
             </View>
           </View>
