@@ -69,6 +69,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         // 0.8 → text.secondary (dark = 0.7) — slight drop, tokenized
         pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.text.secondary },
         // teal at alpha — uses dark accent.teal (#4DE8D4) at 0.7
+        themesLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
         copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: 'rgba(77, 232, 212, 0.7)', marginBottom: 6 },
         // TODO(theme): map 'rgba(77, 232, 212, 0.08)' / '0.20' (coping pill) to palette keys
         copingPill: { backgroundColor: 'rgba(77, 232, 212, 0.08)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(77, 232, 212, 0.20)' },
@@ -138,6 +139,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         // TODO(theme): map '#F3ECFA' to palette key (lavender pill bg)
         topicPill: { backgroundColor: '#F3ECFA', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
         pillText: { fontFamily: fonts.outfit.medium, fontSize: 12, color: colors.primary },
+        themesLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: colors.primary, marginBottom: 4 },
         copingLabel: { fontFamily: fonts.outfit.semiBold, fontSize: 12, color: colors.primary, marginBottom: 4 },
         // TODO(theme): map '#E8F5E9' (coping pill bg) to palette key
         copingPill: { backgroundColor: '#E8F5E9', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
@@ -506,18 +508,21 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           )}
           {!entry!.tags?.crisis_flag && entry!.ai_response?.mode !== 'CRISIS_OVERRIDE' &&
             entry!.tags?.topics && entry!.tags.topics.length > 0 && (
-            <View style={isDarkMode ? dk.pillRow : lt.pillRow}>
-              {entry!.tags.topics.map((topic, idx) => (
-                <View key={idx} style={isDarkMode ? dk.topicPill : lt.topicPill}>
-                  <Text style={isDarkMode ? dk.pillText : lt.pillText}>{topic}</Text>
-                </View>
-              ))}
+            <View>
+              <Text style={isDarkMode ? dk.themesLabel : lt.themesLabel}>Themes in this reflection</Text>
+              <View style={isDarkMode ? dk.pillRow : lt.pillRow}>
+                {entry!.tags.topics.map((topic, idx) => (
+                  <View key={idx} style={isDarkMode ? dk.topicPill : lt.topicPill}>
+                    <Text style={isDarkMode ? dk.pillText : lt.pillText}>{topic}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
           {!entry!.tags?.crisis_flag && entry!.ai_response?.mode !== 'CRISIS_OVERRIDE' &&
             entry!.tags?.coping_mechanisms && entry!.tags.coping_mechanisms.length > 0 && (
             <View>
-              <Text style={isDarkMode ? dk.copingLabel : lt.copingLabel}>Coping</Text>
+              <Text style={isDarkMode ? dk.copingLabel : lt.copingLabel}>General coping suggestions</Text>
               <View style={isDarkMode ? dk.pillRow : lt.pillRow}>
                 {entry!.tags.coping_mechanisms.map((mech, idx) => (
                   <View key={idx} style={isDarkMode ? dk.copingPill : lt.copingPill}>
