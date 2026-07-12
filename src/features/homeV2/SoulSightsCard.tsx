@@ -74,7 +74,7 @@ export function SoulSightsCard({ theme, onPress }: Props) {
     <CardShell
       theme={theme}
       aspectRatio={1 / 1.25}
-      label="Soul Sights"
+      label="SoulSights"
       labelColor={PURPLE}
       onPress={onPress}
       info={{
