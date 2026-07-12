@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logHandledError } from '../utils/logger';
 import JournalService, {
   JournalEntry,
   Mood,
@@ -278,7 +279,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       // starts from page 2 on the new result set.
       currentPageRef.current = 1;
     } catch (error) {
-      console.error('Failed to fetch journal entries:', error);
+      logHandledError('JournalContext: fetchEntries', error);
       // so-8137 MI-4: surface fetch failure so JournalScreen can show
       // a retry prompt instead of a silent empty list.
       setListError(true);
@@ -315,7 +316,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       setTotal(response.total);
       currentPageRef.current = nextPage;
     } catch (err) {
-      console.error('[JournalContext] loadMoreEntries failed:', err);
+      logHandledError('JournalContext: loadMoreEntries', err);
       // Pagination errors are transient — user can scroll back up and
       // pull-to-refresh to reset. No listError flag needed here.
     } finally {
@@ -350,7 +351,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
         AsyncStorage.setItem(streakCacheKey(uid), JSON.stringify(data)).catch(() => {});
       }
     } catch (error) {
-      console.error('Failed to fetch streak:', error);
+      logHandledError('JournalContext: fetchStreak', error);
       setStreakLoading(false);
     }
   }, []);
@@ -372,7 +373,7 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
         AsyncStorage.setItem(soulBarCacheKey(uid), JSON.stringify(data)).catch(() => {});
       }
     } catch (error) {
-      console.error('Failed to fetch soul bar:', error);
+      logHandledError('JournalContext: fetchSoulBar', error);
       setSoulBarLoading(false);
     }
   }, []);

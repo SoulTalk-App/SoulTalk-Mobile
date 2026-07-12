@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AuthService from './AuthService';
 import SecureStorage from '../utils/SecureStorage';
+import { logHandledError } from '../utils/logger';
 
 // so-3nst: persisted across cold starts so unregisterPushToken() can still
 // deactivate the token after a process restart. The in-memory `pushToken`
@@ -58,7 +59,7 @@ class NotificationService {
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       if (!projectId) {
-        console.error('[Push] No EAS projectId configured');
+        logHandledError('[Push] No EAS projectId configured');
         return null;
       }
       const tokenData = await Notifications.getExpoPushTokenAsync({
@@ -70,7 +71,7 @@ class NotificationService {
       await SecureStorage.setItem(PUSH_TOKEN_KEY, this.pushToken);
       console.log('[Push] Got Expo token');
     } catch (error) {
-      console.error('[Push] Failed to get push token:', error);
+      logHandledError('[Push] Failed to get push token', error);
       return null;
     }
 
@@ -109,7 +110,7 @@ class NotificationService {
         }
       }
     }
-    console.error('[Push] Failed to register token with backend after retries');
+    logHandledError('[Push] Failed to register token with backend after retries');
   }
 
   /**
@@ -133,7 +134,7 @@ class NotificationService {
         data: { push_token: this.pushToken },
       });
     } catch (error) {
-      console.error('[Push] Failed to unregister token:', error);
+      logHandledError('[Push] Failed to unregister token', error);
     }
 
     // Always clear locally regardless of backend success — on a logout/
