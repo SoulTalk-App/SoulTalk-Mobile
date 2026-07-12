@@ -659,10 +659,6 @@ export function AffirmationReveal({
 
       {isRevealed && (
         <View style={styles.textArea}>
-          {/* so-7r4y: persistent AI-disclosure label above every
-              AI-generated affirmation. tone="light" because the reveal
-              view is always on the dark cosmic backdrop regardless of
-              the active app theme. */}
           {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
               affirmation) in as one unit via textAnimStyle. Previously the
               AIGeneratedLabel was static and popped in instantly while the
@@ -672,7 +668,6 @@ export function AffirmationReveal({
               (reuses the existing textOpacity/textScale); identical in both
               themes (tone stays "light"). */}
           <Animated.View style={[styles.textBlock, textAnimStyle]}>
-            <AIGeneratedLabel tone="light" style={{ marginBottom: 16 }} />
             {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale safety net —
                 rarely triggers once BE caps length at ~180 chars (so-wx08).
                 ellipsizeMode="tail" makes any remaining overflow visible. */}
@@ -685,6 +680,16 @@ export function AffirmationReveal({
             >
               {text}
             </Text>
+            {/* so-7r4y / so-cdis: AI-disclosure label — legally required, always
+                visible per so-7r4y. Moved below the affirmation text so it is
+                never occluded by the back-chevron (position:absolute top-left).
+                Compact + no pill chrome keeps it faint metadata, not competing
+                with the affirmation. tone="light" for the dark cosmic backdrop. */}
+            <AIGeneratedLabel
+              tone="light"
+              size="compact"
+              style={{ marginTop: 14, backgroundColor: 'transparent', borderColor: 'transparent' }}
+            />
           </Animated.View>
         </View>
       )}
