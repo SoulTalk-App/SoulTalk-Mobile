@@ -177,35 +177,22 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
 
   const handleResonance = async (id: string, value: ResonanceVote) => {
     if (value === 'not_quite') {
-      // so-xli: 'Not quite' now means mute indefinitely. Confirm first; on
-      // confirm, record the vote AND mute forever, then drop from the active
-      // feed. Cancel is a true no-op (no vote recorded).
-      showAlert({
-        title: 'Mute this signal?',
-        message:
-          "We'll stop showing this signal. You can unmute it later from the Muted filter.",
-        buttons: [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Mute',
-            style: 'destructive',
-            onPress: async () => {
-              setResonanceSubmitting('not_quite');
-              try {
-                await SoulSignalsService.setResonance(id, 'not_quite');
-                await SoulSignalsService.muteSignal(id, 'forever');
-                // Default list excludes muted, mirror that locally.
-                setSignals((prev) => prev.filter((s) => s.id !== id));
-                handleClose();
-              } catch (err: any) {
-                surfaceError("Couldn't mute this signal", err);
-              } finally {
-                setResonanceSubmitting(null);
-              }
-            },
-          },
-        ],
-      });
+      // so-xli / so-dyml: 'Not quite' mutes indefinitely. Confirmation is
+      // handled inline inside SignalsDetailModal (Solution A from so-dyml) so
+      // onResonance is only called here AFTER the user confirms — no second
+      // native Modal needed, no stacking race possible.
+      setResonanceSubmitting('not_quite');
+      try {
+        await SoulSignalsService.setResonance(id, 'not_quite');
+        await SoulSignalsService.muteSignal(id, 'forever');
+        // Default list excludes muted, mirror that locally.
+        setSignals((prev) => prev.filter((s) => s.id !== id));
+        handleClose();
+      } catch (err: any) {
+        surfaceError("Couldn't mute this signal", err);
+      } finally {
+        setResonanceSubmitting(null);
+      }
       return;
     }
     setResonanceSubmitting(value);

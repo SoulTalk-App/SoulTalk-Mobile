@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   Modal,
@@ -82,6 +82,13 @@ export function SignalsDetailModal({
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+
+  // so-dyml (Solution A): inline confirm replaces AppAlert for 'Not quite' to
+  // avoid native Modal stacking on iOS (see so-6t5r / so-dyml bead for root
+  // cause). When true, the resonance card body swaps to the mute-confirm view.
+  // Resets to false on every unmount cycle (SignalsDetailModal does
+  // 'if (!visible) return null', so it unmounts + remounts each session).
+  const [confirmingMute, setConfirmingMute] = useState(false);
 
   // While the detail fetch is in flight, project from the fallback list
   // signal so the modal's chrome paints immediately rather than blank.
@@ -291,65 +298,125 @@ export function SignalsDetailModal({
                   },
                 ]}
               >
-                <Text
-                  style={[styles.resonanceTitle, { color: ink(theme) }]}
-                >
-                  Does this resonate?
-                </Text>
-                <View style={styles.resonanceRow}>
-                  <Pressable
-                    onPress={() => onResonance?.(display.id, 'yes')}
-                    disabled={!onResonance || resonanceSubmitting != null}
-                    style={[
-                      styles.resonanceBtn,
-                      {
-                        backgroundColor: isDark
-                          ? 'rgba(112,202,207,0.20)'
-                          : '#FFFFFF',
-                        borderColor: tone,
-                        borderWidth: 1.5,
-                      },
-                      resonanceSubmitting === 'yes' && styles.btnDimmed,
-                    ]}
-                    accessibilityLabel="Yes, this resonates"
-                  >
-                    <Text
-                      style={[
-                        styles.resonanceBtnText,
-                        { color: ink(theme) },
-                      ]}
-                    >
-                      ✓ Yes
+                {confirmingMute ? (
+                  /* so-dyml Solution A: inline confirm — no second native Modal,
+                     no iOS stacking race, cannot brick the detail modal. */
+                  <>
+                    <Text style={[styles.resonanceTitle, { color: ink(theme) }]}>
+                      Mute this signal?
                     </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => onResonance?.(display.id, 'not_quite')}
-                    disabled={!onResonance || resonanceSubmitting != null}
-                    style={[
-                      styles.resonanceBtn,
-                      {
-                        backgroundColor: isDark
-                          ? 'rgba(255,255,255,0.04)'
-                          : '#FFFFFF',
-                        borderColor: isDark
-                          ? 'rgba(255,255,255,0.10)'
-                          : 'rgba(58,14,102,0.08)',
-                        borderWidth: 1,
-                      },
-                      resonanceSubmitting === 'not_quite' && styles.btnDimmed,
-                    ]}
-                    accessibilityLabel="Not quite"
-                  >
-                    <Text
-                      style={[
-                        styles.resonanceBtnText,
-                        { color: inkSub(theme), fontFamily: fonts.outfit.medium },
-                      ]}
-                    >
-                      Not quite
+                    <Text style={[styles.muteConfirmBody, { color: inkSub(theme) }]}>
+                      We'll stop showing this signal. You can unmute it later from the Muted filter.
                     </Text>
-                  </Pressable>
-                </View>
+                    <View style={styles.resonanceRow}>
+                      <Pressable
+                        onPress={() => setConfirmingMute(false)}
+                        style={[
+                          styles.resonanceBtn,
+                          {
+                            backgroundColor: isDark
+                              ? 'rgba(255,255,255,0.04)'
+                              : '#FFFFFF',
+                            borderColor: isDark
+                              ? 'rgba(255,255,255,0.10)'
+                              : 'rgba(58,14,102,0.08)',
+                            borderWidth: 1,
+                          },
+                        ]}
+                        accessibilityLabel="Cancel mute"
+                      >
+                        <Text style={[styles.resonanceBtnText, { color: inkSub(theme) }]}>
+                          Cancel
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          setConfirmingMute(false);
+                          onResonance?.(display.id, 'not_quite');
+                        }}
+                        disabled={resonanceSubmitting != null}
+                        style={[
+                          styles.resonanceBtn,
+                          {
+                            backgroundColor: isDark
+                              ? 'rgba(233,54,120,0.18)'
+                              : 'rgba(233,54,120,0.08)',
+                            borderColor: '#E93678',
+                            borderWidth: 1.5,
+                          },
+                          resonanceSubmitting === 'not_quite' && styles.btnDimmed,
+                        ]}
+                        accessibilityLabel="Confirm mute"
+                      >
+                        <Text style={[styles.resonanceBtnText, { color: '#E93678' }]}>
+                          Mute
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text
+                      style={[styles.resonanceTitle, { color: ink(theme) }]}
+                    >
+                      Does this resonate?
+                    </Text>
+                    <View style={styles.resonanceRow}>
+                      <Pressable
+                        onPress={() => onResonance?.(display.id, 'yes')}
+                        disabled={!onResonance || resonanceSubmitting != null}
+                        style={[
+                          styles.resonanceBtn,
+                          {
+                            backgroundColor: isDark
+                              ? 'rgba(112,202,207,0.20)'
+                              : '#FFFFFF',
+                            borderColor: tone,
+                            borderWidth: 1.5,
+                          },
+                          resonanceSubmitting === 'yes' && styles.btnDimmed,
+                        ]}
+                        accessibilityLabel="Yes, this resonates"
+                      >
+                        <Text
+                          style={[
+                            styles.resonanceBtnText,
+                            { color: ink(theme) },
+                          ]}
+                        >
+                          ✓ Yes
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => setConfirmingMute(true)}
+                        disabled={!onResonance || resonanceSubmitting != null}
+                        style={[
+                          styles.resonanceBtn,
+                          {
+                            backgroundColor: isDark
+                              ? 'rgba(255,255,255,0.04)'
+                              : '#FFFFFF',
+                            borderColor: isDark
+                              ? 'rgba(255,255,255,0.10)'
+                              : 'rgba(58,14,102,0.08)',
+                            borderWidth: 1,
+                          },
+                          resonanceSubmitting === 'not_quite' && styles.btnDimmed,
+                        ]}
+                        accessibilityLabel="Not quite"
+                      >
+                        <Text
+                          style={[
+                            styles.resonanceBtnText,
+                            { color: inkSub(theme), fontFamily: fonts.outfit.medium },
+                          ]}
+                        >
+                          Not quite
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
               </View>
 
               {showViewPattern ? (
@@ -581,6 +648,13 @@ const styles = StyleSheet.create({
   resonanceBtnText: {
     fontFamily: fonts.outfit.semiBold,
     fontSize: 12,
+  },
+  // so-dyml: body copy for the inline mute-confirm view inside the resonance card.
+  muteConfirmBody: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    lineHeight: 12 * 1.5,
+    marginBottom: 10,
   },
   viewPatternRow: {
     marginTop: 14,
