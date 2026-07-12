@@ -271,25 +271,6 @@ const PersonalityHubScreen = ({ navigation }: any) => {
         A window into how your mind moves and makes sense of the world.
       </Text>
 
-      {/* Constellation hint row */}
-      <View style={styles.constellationRow}>
-        <View style={styles.constellationStack}>
-          {[1, 5, 3, 4].map((v, i) => (
-            <Image
-              key={`${v}-${i}`}
-              source={SOULPAL_SRC[v as SoulpalVariant]}
-              style={[
-                styles.constellationSoulpal,
-                i === 0 ? null : { marginLeft: -10 },
-              ]}
-              resizeMode="contain"
-            />
-          ))}
-        </View>
-        <Text style={styles.constellationCopy}>
-          Each test colors a different SoulPal in your constellation.
-        </Text>
-      </View>
     </View>
   );
 
@@ -580,31 +561,6 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       letterSpacing: 0.4,
       textTransform: 'uppercase',
       color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(58,14,102,0.6)',
-    },
-
-    // Constellation hint row
-    constellationRow: {
-      marginTop: 14,
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      borderRadius: 14,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.7)',
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(58,14,102,0.06)',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 18,
-    },
-    constellationStack: { flexDirection: 'row' },
-    constellationSoulpal: { width: 28, height: 28 },
-    constellationCopy: {
-      flex: 1,
-      fontFamily: fonts.outfit.regular,
-      fontSize: 14,
-      lineHeight: 14 * 1.35,
-      letterSpacing: 0.2,
-      color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(58,14,102,0.7)',
     },
 
     // Test list
