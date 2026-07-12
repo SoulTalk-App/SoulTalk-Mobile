@@ -100,6 +100,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// so-98dx: transient one-shot sign-in flag. Set on explicit email/password
+// login or existing-user social OAuth; consumed + cleared synchronously by
+// HomeScreen's WelcomeBackOverlay on first mount. Module-level (not React
+// state) so reading it never triggers a re-render.
+let _justSignedIn = false;
+
+/** Consume the just-signed-in flag. Returns true once after an explicit
+ *  sign-in, then false on every subsequent call until the next sign-in.
+ *  Call from the useState initializer of WelcomeBackOverlay's host. */
+export const consumeJustSignedIn = (): boolean => {
+  const was = _justSignedIn;
+  _justSignedIn = false;
+  return was;
+};
+
 // so-ap3b M-2: single source of truth for session-scoped AsyncStorage keys.
 // Every session-teardown path (logout, logoutAllDevices, deleteAccount,
 // checkAuthState-fail, refreshUser-fail) calls this so no path leaves a stale
@@ -237,6 +252,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Get user info after successful login
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
+      // so-98dx: set before setIsAuthenticated so the flag is ready when
+      // HomeScreen's useState initializer fires on the first render.
+      _justSignedIn = true;
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
       ensureTimezone(userInfo);
@@ -376,6 +394,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
+      // so-98dx: only existing users land on Home after sign-in; new users
+      // route through PostSignupConsent and the onboarding flow instead.
+      if (!tokenData.is_new_user) _justSignedIn = true;
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
       ensureTimezone(userInfo);
@@ -407,6 +428,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
+      // so-98dx: same gate as loginWithGoogle — new-user path goes through onboarding.
+      if (!tokenData.is_new_user) _justSignedIn = true;
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
       ensureTimezone(userInfo);
@@ -438,6 +461,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const userInfo = await AuthService.getCurrentUser();
       setUser(userInfo);
+      // so-98dx: same gate as loginWithGoogle — new-user path goes through onboarding.
+      if (!tokenData.is_new_user) _justSignedIn = true;
       setIsAuthenticated(true);
       ensureCountryCode(userInfo);
       ensureTimezone(userInfo);
