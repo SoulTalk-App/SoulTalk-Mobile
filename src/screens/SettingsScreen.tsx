@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -581,11 +582,12 @@ const SettingsScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+        {/* Header — chevron + 'Settings' title (so-wzq9 pattern) */}
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={12}>
             <Feather name="chevron-left" size={28} color={isDarkMode ? '#FFFFFF' : '#3A0E66'} />
           </Pressable>
+          <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
         {/* Signed in as */}
@@ -593,8 +595,8 @@ const SettingsScreen = ({ navigation }: any) => {
           Signed in as <Text style={styles.signedInBold}>{user?.first_name || 'User'}</Text>
         </Text>
 
-        {/* Dashed separator */}
-        <View style={styles.dashedLine} />
+        {/* Separator — solid, matches all other field-row dividers (so-lvyt #5) */}
+        <View style={styles.separator} />
 
         {/* so-wz41: non-blocking retry affordance when a prior save didn't land */}
         {pendingSaveFailed && (
@@ -610,23 +612,25 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Display Name */}
+        {/* Name (so-lvyt #4: label added for field-row consistency) */}
+        <Text style={styles.fieldLabel}>Name</Text>
         <TextInput
           style={[styles.fieldInput, displayName ? styles.fieldInputActive : null]}
           value={displayName}
           onChangeText={setDisplayName}
-          placeholder="user"
+          placeholder="Add a name"
           placeholderTextColor={placeholderColor}
         />
         <View style={styles.separator} />
 
-        {/* @username */}
+        {/* Username (so-lvyt #4: label added; #3: placeholder copy) */}
+        <Text style={styles.fieldLabel}>Username</Text>
         <View style={styles.usernameRow}>
           <TextInput
             style={[styles.fieldInput, { flex: 1, opacity: usernameIsLocked ? 0.6 : 1 }]}
             value={username}
             onChangeText={handleUsernameChange}
-            placeholder="@username"
+            placeholder="Add a username"
             placeholderTextColor={placeholderColor}
             autoCapitalize="none"
             editable={!usernameIsLocked}
@@ -663,49 +667,40 @@ const SettingsScreen = ({ navigation }: any) => {
           </Pressable>
         )}
 
-        {/* Pronouns */}
+        {/* Pronouns — empty state shows greyed placeholder (so-lvyt #1) */}
         <Text style={styles.fieldLabel}>Pronouns</Text>
         <Pressable onPress={() => setShowPronounPicker(true)}>
-          <Text style={styles.pronounText}>{pronoun}</Text>
+          <Text style={[styles.pronounText, pronoun ? styles.pronounTextActive : null]}>
+            {pronoun || 'Add pronouns'}
+          </Text>
         </Pressable>
         <View style={styles.separator} />
-
-        {/* Push Notification */}
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Push Notification</Text>
-          <Text style={styles.comingSoonTag}>Coming Soon</Text>
-        </View>
 
         {/* so-kff3: AI Insights ON/OFF toggle. ON (default) = consent granted;
             OFF = user explicitly opted out via POST /auth/ai-consent/disable.
             so-k25b opt-out model: status_for() returns consent_required=false
-            for everyone by default — new users start with toggle ON. */}
+            for everyone by default — new users start with toggle ON.
+            so-lvyt #6: replaced ambiguous pill with a Switch for clear on/off UX.
+            so-lvyt #2: Push Notification 'Coming Soon' row removed. */}
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>AI Insights</Text>
-          {aiConsentGranted === null ? (
-            <Text style={styles.comingSoonTag}>…</Text>
-          ) : (
-            <Pressable
-              onPress={aiConsentGranted ? handleRevokeAiConsent : handleGrantAiConsent}
-              disabled={aiConsentBusy}
-              accessibilityRole="switch"
-              accessibilityLabel="AI Insights"
-              accessibilityState={{ checked: aiConsentGranted, disabled: aiConsentBusy, busy: aiConsentBusy }}
-            >
-              <Text
-                style={[
-                  styles.comingSoonTag,
-                  {
-                    color: aiConsentGranted ? colors.text.secondary : colors.primary,
-                    borderColor: aiConsentGranted ? colors.text.secondary : colors.primary,
-                  },
-                  aiConsentBusy && { opacity: 0.6 },
-                ]}
-              >
-                {aiConsentBusy ? '…' : aiConsentGranted ? 'On' : 'Off'}
-              </Text>
-            </Pressable>
-          )}
+          <Switch
+            value={aiConsentGranted === true}
+            onValueChange={(val) =>
+              val ? handleGrantAiConsent() : handleRevokeAiConsent()
+            }
+            disabled={aiConsentBusy || aiConsentGranted === null}
+            trackColor={{
+              false: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(58,14,102,0.12)',
+              true: colors.primary,
+            }}
+            thumbColor={colors.white}
+            ios_backgroundColor={
+              isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(58,14,102,0.12)'
+            }
+            accessibilityLabel="AI Insights"
+            style={(aiConsentBusy || aiConsentGranted === null) ? { opacity: 0.6 } : undefined}
+          />
         </View>
 
         {/* Appearance — Light / Dark */}
@@ -786,18 +781,14 @@ const SettingsScreen = ({ navigation }: any) => {
           </>
         )}
 
-        {/* Log Out */}
+        {/* Destructive actions — grouped, no float gap (so-lvyt #7) */}
+        <View style={styles.separator} />
         <Pressable onPress={handleLogout}>
           <Text style={styles.logoutText}>LOG OUT</Text>
         </Pressable>
-
-        {/* Delete Account */}
         <Pressable onPress={handleDeleteAccount}>
           <Text style={styles.deleteAccountText}>DELETE ACCOUNT</Text>
         </Pressable>
-
-        {/* Spacer */}
-        <View style={{ flex: 1, minHeight: 80 }} />
 
         {/* Footer */}
         <View style={styles.footerLinks}>
@@ -883,6 +874,13 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     backButton: {
       marginRight: 12,
+    },
+    // so-lvyt #8: 'Settings' title on chevron row (so-wzq9 pattern)
+    headerTitle: {
+      fontFamily: fonts.edensor.bold,
+      fontSize: 24,
+      color: ink,
+      flex: 1,
     },
 
     // Signed in
@@ -1008,6 +1006,10 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       height: 36,
       color: inkSub,
     },
+    // so-lvyt #1: active (set) pronoun uses full ink; placeholder stays inkSub
+    pronounTextActive: {
+      color: ink,
+    },
 
     // Toggle rows
     toggleRow: {
@@ -1069,20 +1071,19 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       color: colors.white,
     },
 
-    // Logout
+    // Destructive link row — so-lvyt #7: aligned treatment.
+    // Both underlined; DELETE ACCOUNT uses semiBold to signal permanence.
     logoutText: {
       fontFamily: fonts.outfit.regular,
       fontSize: 15,
       lineHeight: 46,
       color: colors.error,
-      marginTop: 4,
+      textDecorationLine: 'underline',
     },
-
-    // Delete Account (destructive — Apple 5.1.1(v) requirement)
     deleteAccountText: {
-      fontFamily: fonts.outfit.regular,
+      fontFamily: fonts.outfit.semiBold,
       fontSize: 15,
-      lineHeight: 32,
+      lineHeight: 46,
       color: colors.error,
       textDecorationLine: 'underline',
     },
