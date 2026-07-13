@@ -135,16 +135,6 @@ const ProfileScreen = ({ navigation }: any) => {
             {user?.username ? `@${user.username}` : 'Add a username'}
           </Text>
 
-          {/* Edit Profile Button */}
-          <View style={dk.editProfileContainer}>
-            <Pressable
-              style={dk.editProfileButton}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <Text style={dk.editProfileText}>Edit Profile</Text>
-            </Pressable>
-          </View>
-
           {/* Badges Card */}
           <GlassCard style={dk.badgesCard}>
             <View style={dk.badgesHeader}>
@@ -288,16 +278,6 @@ const ProfileScreen = ({ navigation }: any) => {
         <Text style={lt.usernameText}>
           {user?.username ? `@${user.username}` : 'Add a username'}
         </Text>
-
-        {/* Edit Profile Button */}
-        <View style={lt.editProfileContainer}>
-          <Pressable
-            style={lt.editProfileButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Text style={lt.editProfileText}>Edit Profile</Text>
-          </Pressable>
-        </View>
 
         {/* Badges Card */}
         <View style={lt.badgesCard}>
@@ -474,27 +454,6 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     color: colors.text.light,
     textAlign: 'center',
     marginBottom: 10,
-  },
-
-  // Edit Profile — glass style
-  editProfileContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  editProfileButton: {
-    backgroundColor: 'rgba(112, 202, 207, 0.12)',
-    borderRadius: 10,
-    paddingHorizontal: 22,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(112, 202, 207, 0.25)',
-  },
-  editProfileText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    // 0.85 → colors.text.primary (#fff) — slight visual lift but tokenized
-    color: colors.text.primary,
   },
 
   // Badges — GlassCard wrapper
@@ -882,25 +841,6 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     color: 'rgba(58, 14, 102, 0.7)',
     textAlign: 'center',
     marginBottom: 10,
-  },
-
-  // Edit Profile — white bg, purple text, no border
-  editProfileContainer: {
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  editProfileButton: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 20,
-    paddingVertical: 3,
-  },
-  editProfileText: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 12,
-    lineHeight: 12 * 1.26,
-    // #59168B → colors.primary (#4F1786) — minor pixel shift, brand-canonical
-    color: colors.primary,
   },
 
   // Badges — plain white card

@@ -182,17 +182,6 @@ const HomeScreen = ({ navigation }: any) => {
           // light-mode lavender wash has no stars.
           ...cosmicTextShadow,
         },
-        settingsBtn: {
-          flexShrink: 0,
-          width: 38,
-          height: 38,
-          borderRadius: 19,
-          backgroundColor: 'rgba(255, 255, 255, 0.10)',
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.18)',
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
         // so-nv2g CR-m3: Help one tap from Home (dark mode variant)
         helpBtn: {
           flexShrink: 0,
@@ -590,17 +579,6 @@ const HomeScreen = ({ navigation }: any) => {
           // #3A0E66 → colors.text.primary (#4F1786, brand canonical)
           color: colors.text.primary,
           letterSpacing: -0.2,
-        },
-        settingsBtn: {
-          flexShrink: 0,
-          width: 38,
-          height: 38,
-          borderRadius: 19,
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          borderWidth: 1,
-          borderColor: 'rgba(79, 23, 134, 0.10)',
-          alignItems: 'center',
-          justifyContent: 'center',
         },
         // so-nv2g CR-m3: Help one tap from Home (light mode variant)
         helpBtn: {
@@ -1196,25 +1174,6 @@ const HomeScreen = ({ navigation }: any) => {
               >
                 <Ionicons name="heart-outline" size={20} color="#fff" />
               </Pressable>
-              <Pressable
-                style={dk.settingsBtn}
-                onPress={() => navigation.navigate('Settings')}
-                accessibilityLabel="Settings"
-              >
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                  <Path
-                    d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"
-                    fill="#fff"
-                  />
-                  <Path
-                    d="M19.4 13.6c.04-.5.06-1 .06-1.6s-.02-1.1-.06-1.6l2-1.5a.5.5 0 00.12-.65l-1.9-3.3a.5.5 0 00-.6-.22l-2.35.95a7 7 0 00-2.7-1.55l-.36-2.5a.5.5 0 00-.5-.43h-3.8a.5.5 0 00-.5.43l-.36 2.5a7 7 0 00-2.7 1.55l-2.35-.95a.5.5 0 00-.6.22l-1.9 3.3a.5.5 0 00.12.65l2 1.5c-.04.5-.06 1-.06 1.6s.02 1.1.06 1.6l-2 1.5a.5.5 0 00-.12.65l1.9 3.3a.5.5 0 00.6.22l2.35-.95a7 7 0 002.7 1.55l.36 2.5c.04.25.25.43.5.43h3.8c.25 0 .46-.18.5-.43l.36-2.5a7 7 0 002.7-1.55l2.35.95c.23.09.5 0 .6-.22l1.9-3.3a.5.5 0 00-.12-.65l-2-1.5z"
-                    stroke="#fff"
-                    strokeWidth={1.5}
-                    strokeLinejoin="round"
-                    fill="none"
-                  />
-                </Svg>
-              </Pressable>
             </View>
 
             {/* Daily feeling block — so-0nwv: mood + journal are independent
@@ -1515,25 +1474,6 @@ const HomeScreen = ({ navigation }: any) => {
               accessibilityRole="button"
             >
               <Ionicons name="heart-outline" size={20} color="#4F1786" />
-            </Pressable>
-            <Pressable
-              style={lt.settingsBtn}
-              onPress={() => navigation.navigate('Settings')}
-              accessibilityLabel="Settings"
-            >
-              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z"
-                  fill="#4F1786"
-                />
-                <Path
-                  d="M19.4 13.6c.04-.5.06-1 .06-1.6s-.02-1.1-.06-1.6l2-1.5a.5.5 0 00.12-.65l-1.9-3.3a.5.5 0 00-.6-.22l-2.35.95a7 7 0 00-2.7-1.55l-.36-2.5a.5.5 0 00-.5-.43h-3.8a.5.5 0 00-.5.43l-.36 2.5a7 7 0 00-2.7 1.55l-2.35-.95a.5.5 0 00-.6.22l-1.9 3.3a.5.5 0 00.12.65l2 1.5c-.04.5-.06 1-.06 1.6s.02 1.1.06 1.6l-2 1.5a.5.5 0 00-.12.65l1.9 3.3a.5.5 0 00.6.22l2.35-.95a7 7 0 002.7 1.55l.36 2.5c.04.25.25.43.5.43h3.8c.25 0 .46-.18.5-.43l.36-2.5a7 7 0 002.7-1.55l2.35.95c.23.09.5 0 .6-.22l1.9-3.3a.5.5 0 00-.12-.65l-2-1.5z"
-                  stroke="#4F1786"
-                  strokeWidth={1.5}
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              </Svg>
             </Pressable>
           </View>
 
