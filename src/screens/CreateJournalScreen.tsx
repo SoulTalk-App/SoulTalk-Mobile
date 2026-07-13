@@ -9,6 +9,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  AppState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -469,6 +470,25 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     return () => {
       cancelled = true;
     };
+  }, [showSaveAnimation, analysisDone]);
+
+  // so-9bq8: immediate refetch on foreground so the save overlay settles
+  // without waiting for the next 1500ms tick after a background→foreground.
+  // Only active while the overlay is up and not yet done.
+  useEffect(() => {
+    if (!showSaveAnimation || analysisDone) return;
+    const id = savedEntryIdRef.current;
+    if (!id) return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') return;
+      JournalService.getEntry(id)
+        .then((e) => {
+          const s = e.ai_processing_status;
+          if (s === 'complete' || s === 'failed' || s === 'skipped') setAnalysisDone(true);
+        })
+        .catch(() => {});
+    });
+    return () => sub.remove();
   }, [showSaveAnimation, analysisDone]);
 
   const displayValue = isRecording && liveTranscript

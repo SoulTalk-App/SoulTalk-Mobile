@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -263,6 +264,10 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   // user isn't silently shown a stale ai_response. Clearing the flag
   // resets the poll budget and re-arms the existing 5s loop.
   const [aiRefreshError, setAiRefreshError] = useState(false);
+  // so-9bq8: separate flag for budget-exhausted-while-pending (BE still
+  // working) vs a genuine fetch/status failure. Different copy; no retry
+  // affordance (user just checks back later or foregrounds to re-arm).
+  const [aiPendingExhausted, setAiPendingExhausted] = useState(false);
 
   useEffect(() => {
     JournalService.getEntry(entryId)
@@ -292,6 +297,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       // Clear any lingering surfaced AI-refresh error on re-focus — the
       // refetch below will arm a fresh poll cycle.
       setAiRefreshError(false);
+      setAiPendingExhausted(false);
       JournalService.getEntry(entryId)
         .then((fetched) => {
           if (mountedRef.current) setEntry(fetched);
@@ -321,7 +327,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     // so-por9: 'skipped' is terminal (AI consent absent) — stop poll immediately.
   if (!entry || entry.ai_processing_status === 'complete' || entry.ai_processing_status === 'failed' || entry.ai_processing_status === 'skipped' || entry.is_draft) return;
-    if (aiRefreshError) return; // so-uba4: stop polling once we've surfaced the error; resume on retry tap.
+    if (aiRefreshError || aiPendingExhausted) return; // so-uba4/so-9bq8: stop polling once we've surfaced an error or exhaustion; resume on re-arm.
     // so-urv4 #3: cancelled flag scoped to this poll session. clearInterval
     // stops future ticks but doesn't cancel an in-flight tick's await —
     // setEntry could land on an unmounted/blurred screen. Mirror the
@@ -363,11 +369,12 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           return;
         }
         if (attempts >= MAX_POLL_ATTEMPTS) {
-          // so-uba4: budget exhausted with status still pending/none.
-          // Treat as a refresh failure rather than letting the poll run
-          // forever or quietly disappear.
+          // so-uba4/so-9bq8: budget exhausted with status still pending.
+          // BE is still working — signal with aiPendingExhausted (distinct
+          // from aiRefreshError) so a softer "check back later" message
+          // renders instead of the retry affordance.
           clearInterval(interval);
-          if (!ctrl.cancelled && mountedRef.current) setAiRefreshError(true);
+          if (!ctrl.cancelled && mountedRef.current) setAiPendingExhausted(true);
         }
       } catch {
         // so-uba4: network blip mid-poll — count toward the budget so a
@@ -383,7 +390,7 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       ctrl.cancelled = true;
       clearInterval(interval);
     };
-  }, [entry?.ai_processing_status, entry?.is_draft, entryId, aiRefreshError, mountedRef]);
+  }, [entry?.ai_processing_status, entry?.is_draft, entryId, aiRefreshError, aiPendingExhausted, mountedRef]);
 
   // so-uba4: retry handler for the inline "Couldn't refresh insight" affordance.
   // Refetch once + reset the error flag so the polling effect above re-arms
@@ -401,6 +408,27 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
         if (mountedRef.current) setAiRefreshError(true);
       });
   }, [entryId, mountedRef]);
+
+  // so-9bq8: re-arm the poll when the app returns to the foreground.
+  // useFocusEffect is navigation focus only — backgrounding a mounted screen
+  // never triggers it. When the entry is still non-terminal, clear both error
+  // flags and do an immediate refetch so the poll effect restarts and the
+  // screen doesn't wait 5s for the next tick or stay stuck on "Gathering
+  // your thoughts" after a background→foreground cycle.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' || !mountedRef.current) return;
+      if (!entry) return;
+      const s = entry.ai_processing_status;
+      if (s === 'complete' || s === 'failed' || s === 'skipped' || entry.is_draft) return;
+      setAiRefreshError(false);
+      setAiPendingExhausted(false);
+      JournalService.getEntry(entryId)
+        .then((fetched) => { if (mountedRef.current) setEntry(fetched); })
+        .catch(() => {});
+    });
+    return () => sub.remove();
+  }, [entry?.ai_processing_status, entry?.is_draft, entryId, mountedRef]);
 
   const editCount = entry?.edit_count ?? 0;
   const canEdit = isLatest && editCount < 3;
@@ -455,9 +483,19 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     }
 
     // so-uba4: error surfacing takes precedence over the optimistic
-    // 'complete' branch — otherwise a stale ai_response from before an
+    // ‘complete’ branch — otherwise a stale ai_response from before an
     // edit would render as the current report even though we know the
     // re-run failed.
+    // so-9bq8: budget-exhausted-while-pending gets its own softer copy
+    // (BE is still working, not a hard failure). No retry button — the
+    // AppState listener re-arms on next foreground.
+    if (aiPendingExhausted) {
+      return (
+        <Text style={isDarkMode ? dk.aiLoadingText : lt.aiLoadingText}>
+          Still working on your reflection. Check back in a bit.
+        </Text>
+      );
+    }
     if (aiRefreshError) {
       return (
         <>
