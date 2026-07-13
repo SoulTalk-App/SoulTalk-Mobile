@@ -132,7 +132,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* @username */}
           <Text style={dk.usernameText}>
-            {user?.username ? `@${user.username}` : '@username'}
+            {user?.username ? `@${user.username}` : 'Add a username'}
           </Text>
 
           {/* Edit Profile Button */}
@@ -286,7 +286,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
         {/* @username */}
         <Text style={lt.usernameText}>
-          {user?.username ? `@${user.username}` : '@username'}
+          {user?.username ? `@${user.username}` : 'Add a username'}
         </Text>
 
         {/* Edit Profile Button */}
