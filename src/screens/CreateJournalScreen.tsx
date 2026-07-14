@@ -532,6 +532,20 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     (async () => {
       const local = await loadLocalDraft(userId);
       if (cancelled || !local || !local.text.trim()) return;
+      // so-vhse: content dedupe — if any committed entry in the loaded page
+      // has raw_text matching the local draft's text (trimmed), the draft was
+      // already submitted. Silently clear and skip the prompt.
+      // Handles draftId=null (text typed before server draft created) and the
+      // pagination gap where the committed entry is absent from
+      // stalePointsToFinalized's scope. raw_text is confirmed present on list
+      // items (JournalEntryListItem, _entry_list_item in journal.py).
+      const alreadySubmitted = entries.some(
+        (e) => !e.is_draft && (e.raw_text?.trim() ?? '') === local.text.trim(),
+      );
+      if (alreadySubmitted) {
+        clearLocalDraft(userId);
+        return;
+      }
       const stalePointsToFinalized =
         local.draftId &&
         entries.some((e) => e.id === local.draftId && !e.is_draft);
