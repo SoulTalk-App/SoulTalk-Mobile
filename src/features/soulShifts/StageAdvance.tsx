@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -11,16 +10,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Line } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, fonts } from '../../theme';
-import { ShiftDetail, SoulpalVariant, STAGES } from './types';
+import { ShiftDetail, STAGES } from './types';
 import { PURPLE_INK, Theme, inkSub } from './tokens';
-
-const SOULPAL_SRC: Record<SoulpalVariant, any> = {
-  1: require('../../../assets/images/home-v2/soulpal-1.png'),
-  2: require('../../../assets/images/home-v2/soulpal-2.png'),
-  3: require('../../../assets/images/home-v2/soulpal-3.png'),
-  4: require('../../../assets/images/home-v2/soulpal-4.png'),
-  5: require('../../../assets/images/home-v2/soulpal-5.png'),
-};
+// so-8bll: use the celebrating (arms-up) pose so the achievement screen reads
+// affirming rather than sad. home_<color>.png assets via SoulPalContext.
+// Note: home-v2/soulpal-1..5.png (numbered resting) have no celebrating
+// counterparts — flag to design for asset follow-up (so-8bll).
+import SoulPalAnimated from '../../components/SoulPalAnimated';
 
 // Headline copy keyed off the stage we just entered. Mirrors canonical
 // shifts-states.jsx ShiftsStageAdvance ("You're embodying it now.")
@@ -148,11 +144,10 @@ export function StageAdvance({
               },
             ]}
           >
-            <Image
-              source={SOULPAL_SRC[detail.soulpal]}
-              style={styles.heroAvatar}
-              resizeMode="contain"
-            />
+            {/* so-8bll: celebrating pose — arms-up artwork (home_<color>.png)
+                via SoulPalContext. Animated float adds life to the achievement
+                moment. Size 100 fits within the 140×140 halo disc. */}
+            <SoulPalAnimated pose="celebrating" size={100} animate={true} />
           </View>
           {/* so-zlvm MI-6: live region announces the celebration to screen
               readers when the modal mounts — VoiceOver/TalkBack reads the
@@ -268,11 +263,7 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     opacity: 0.96,
     elevation: 12,
   },
-  heroAvatar: {
-    width: 140,
-    height: 140,
-    flexShrink: 0,
-  },
+  // heroAvatar removed — so-8bll switched Image to SoulPalAnimated (self-sizing).
   eyebrow: {
     marginTop: 10,
     fontFamily: fonts.outfit.bold,
