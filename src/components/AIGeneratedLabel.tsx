@@ -16,8 +16,9 @@ import { useTheme } from '../contexts/ThemeContext';
  *   competes with the AI content itself.
  * - Theme-aware via useThemeColors so contrast is correct on both palettes.
  *
- * Copy: placeholder "AI-generated" — final wording is pending Chey/Randy.
- * When the final string lands, swap LABEL_TEXT below.
+ * Copy: 'Soulcology-backed, AI-generated' — approved by Chey/Randy per client
+ * feedback (Chelsea ed66db3b / so-gozt). Swap LABEL_TEXT below if wording
+ * is revised again.
  *
  * Sizes:
  * - `compact` — inline metadata, fits next to a timestamp or author line.
@@ -92,12 +93,17 @@ const AIGeneratedLabel: React.FC<Props> = ({
       accessibilityLabel={`${LABEL_TEXT} content`}
     >
       <Feather name="cpu" size={sizes.iconSize} color={palette.iconColor} />
+      {/* so-gesa m1: flexShrink:1 so the text wraps rather than clips under
+          large OS Dynamic Type / accessibility font scaling. The icon keeps
+          flexShrink:0 (default) so it is never squeezed. Legal disclosure
+          must remain fully legible at all font scales (so-7r4y). */}
       <Text
         style={{
           fontFamily: fonts.outfit.medium,
           fontSize: sizes.fontSize,
           color: palette.text,
           letterSpacing: 0.3,
+          flexShrink: 1,
         }}
       >
         {LABEL_TEXT}
@@ -111,6 +117,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
+    // so-gesa m1: cap at parent width so the chip cannot overflow the column
+    // at large Dynamic Type; paired with flexShrink:1 on the Text so content
+    // wraps rather than clips (legal disclosure must stay fully visible).
+    maxWidth: '100%',
     borderWidth: StyleSheet.hairlineWidth,
   },
 });
