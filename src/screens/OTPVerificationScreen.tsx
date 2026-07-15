@@ -5,6 +5,10 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -169,6 +173,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
   };
 
   const handleConfirm = useCallback(async () => {
+    if (isLoading) return;
     const otpCode = otp.join('');
     if (otpCode.length !== OTP_LENGTH) {
       setError(`Please enter the ${OTP_LENGTH}-digit code`);
@@ -210,68 +215,97 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
 
   const isComplete = otp.every((digit) => digit !== '');
 
+  // so-ifrw: single-fire guard — prevents double-submit if isComplete flips
+  // more than once in the same fill (e.g. handleConfirm reference change).
+  const submittedRef = useRef(false);
+
+  // so-ifrw: auto-submit on completion. When isComplete goes false (OTP
+  // cleared on error), reset the guard so re-entry triggers a fresh submit.
+  useEffect(() => {
+    if (!isComplete) {
+      submittedRef.current = false;
+      return;
+    }
+    if (isLoading || submittedRef.current) return;
+    submittedRef.current = true;
+    handleConfirm();
+  }, [isComplete, isLoading, handleConfirm]);
+
   return (
     <CosmicScreen tone="night">
       <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-        <Text style={styles.title}>Verify Your Email</Text>
-
-        <Text style={styles.subtitle}>
-          A {OTP_LENGTH} digit verification code has been sent to{'\n'}{email}
-        </Text>
-
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={(ref) => {
-                // so-xllj #4: block body so the callback returns void (React 19
-                // warns on ref callbacks that return a value).
-                inputRefs.current[index] = ref;
-              }}
-              style={styles.otpInput}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(value, index)}
-              onKeyPress={(e) => handleKeyPress(e, index)}
-              keyboardType="number-pad"
-              // so-nyxy: maxLength left unbounded on the first input so the OS
-              // can paste/auto-fill the full 6-digit code into it — the paste
-              // handler then spreads digits across the rest. Other inputs keep
-              // maxLength=1 since they receive a single char at a time.
-              maxLength={index === 0 ? OTP_LENGTH : 1}
-              selectTextOnFocus
-              autoFocus={index === 0}
-              // so-nyxy: surface iOS QuickType "from messages" suggestion and
-              // Android sms-otp autofill on the first input — only one input
-              // can advertise these because they correspond to the full code.
-              textContentType={index === 0 ? 'oneTimeCode' : 'none'}
-              autoComplete={index === 0 ? 'sms-otp' : 'off'}
-            />
-          ))}
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isLoading}>
-          <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
-            {resendCooldown > 0
-              ? `Resend code in ${resendCooldown}s`
-              : "Didn't receive the code? Resend"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, (!isComplete || isLoading) && styles.buttonDisabled]}
-          onPress={handleConfirm}
-          disabled={!isComplete || isLoading}
+        {/* so-ifrw: KAV keeps Confirm reachable when the number-pad is open.
+            behavior='padding' on iOS slides the content up; 'height' on Android
+            shrinks the layout to fit. */}
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {isLoading ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Text style={styles.buttonText}>Confirm</Text>
-          )}
-        </TouchableOpacity>
-        </View>
+          {/* so-ifrw: tap outside inputs to dismiss the keyboard (secondary
+              fallback for users who skip auto-submit). accessible=false prevents
+              screen readers from announcing the whole content area as a button. */}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.content}>
+              <Text style={styles.title}>Verify Your Email</Text>
+
+              <Text style={styles.subtitle}>
+                A {OTP_LENGTH} digit verification code has been sent to{'\n'}{email}
+              </Text>
+
+              <View style={styles.otpContainer}>
+                {otp.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => {
+                      // so-xllj #4: block body so the callback returns void (React 19
+                      // warns on ref callbacks that return a value).
+                      inputRefs.current[index] = ref;
+                    }}
+                    style={styles.otpInput}
+                    value={digit}
+                    onChangeText={(value) => handleOtpChange(value, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    // so-nyxy: maxLength left unbounded on the first input so the OS
+                    // can paste/auto-fill the full 6-digit code into it — the paste
+                    // handler then spreads digits across the rest. Other inputs keep
+                    // maxLength=1 since they receive a single char at a time.
+                    maxLength={index === 0 ? OTP_LENGTH : 1}
+                    selectTextOnFocus
+                    autoFocus={index === 0}
+                    // so-nyxy: surface iOS QuickType "from messages" suggestion and
+                    // Android sms-otp autofill on the first input — only one input
+                    // can advertise these because they correspond to the full code.
+                    textContentType={index === 0 ? 'oneTimeCode' : 'none'}
+                    autoComplete={index === 0 ? 'sms-otp' : 'off'}
+                  />
+                ))}
+              </View>
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+              <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0 || isLoading}>
+                <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+                  {resendCooldown > 0
+                    ? `Resend code in ${resendCooldown}s`
+                    : "Didn't receive the code? Resend"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, (!isComplete || isLoading) && styles.buttonDisabled]}
+                onPress={handleConfirm}
+                disabled={!isComplete || isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={styles.buttonText}>Confirm</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </CosmicScreen>
   );
