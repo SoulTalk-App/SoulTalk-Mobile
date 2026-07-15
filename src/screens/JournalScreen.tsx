@@ -684,7 +684,7 @@ const JournalScreen = ({ navigation }: any) => {
         onClose={() => dispatchUI({ type: 'SET_INFO_OPEN', value: false })}
         theme={isDarkMode ? 'dark' : 'light'}
         title="Daily Reflection"
-        body={"Every journal entry you submit gets a reflection from your SoulPal. These are meant to be immediate, useful reflections that mirror back what showed up in your writing and gives you something to carry forward.\n\nBuilt on Soulcology, our signature reflection framework, your SoulPal acknowledges the sentiment underneath what you wrote, names patterns, and offers something grounding for you to sit with that day. The more you reflect, the more your SoulPal learns about who you are and what you're moving through, and the richer your insights become in both the journaling reflections and SoulSights."}
+        body={"Every journal entry you submit gets a reflection from your SoulPal. These are meant to be immediate, useful reflections that mirror back what showed up in your writing and gives you something to carry forward.\n\nBuilt on Soulcology, our signature coaching framework, your SoulPal acknowledges the sentiment underneath what you wrote, names patterns, and offers something grounding for you to sit with that day. The more you reflect, the more your SoulPal learns about who you are and what you're moving through, and the richer your insights become in both the journaling reflections and SoulSights."}
       />
     </CosmicScreen>
   );
