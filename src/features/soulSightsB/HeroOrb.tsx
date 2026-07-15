@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, {
   Defs,
   Ellipse,
@@ -16,16 +16,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { fonts } from '../../theme';
 import { StarsBg } from './StarsBg';
-import { SightDetail, SoulpalVariant } from './types';
+import { SightDetail } from './types';
 import { Theme } from './tokens';
-
-const SOULPAL_SRC: Record<SoulpalVariant, any> = {
-  1: require('../../../assets/images/home-v2/soulpal-1.png'),
-  2: require('../../../assets/images/home-v2/soulpal-2.png'),
-  3: require('../../../assets/images/home-v2/soulpal-3.png'),
-  4: require('../../../assets/images/home-v2/soulpal-4.png'),
-  5: require('../../../assets/images/home-v2/soulpal-5.png'),
-};
+// so-8bll: use the celebrating (arms-up) pose so the SoulSight reading
+// header reads warm/positive rather than sad. home_<color>.png via context.
+import SoulPalAnimated from '../../components/SoulPalAnimated';
 
 const HERO_HEIGHT = 320;
 
@@ -132,13 +127,9 @@ export function HeroOrb({ theme, sight }: Props) {
         />
       </Svg>
 
-      {/* soulpal in orbit (78% / 34%) */}
+      {/* soulpal in orbit (78% / 34%) — so-8bll: celebrating pose */}
       <View style={styles.soulpalWrap} pointerEvents="none">
-        <Image
-          source={SOULPAL_SRC[sight.soulpal]}
-          style={styles.soulpal}
-          resizeMode="contain"
-        />
+        <SoulPalAnimated pose="celebrating" size={30} animate={true} />
       </View>
 
       {/* caption */}
@@ -177,11 +168,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
+    // so-8bll: center SoulPalAnimated (self-sizing) within the orb anchor point.
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  soulpal: {
-    width: 40,
-    height: 40,
-  },
+  // soulpal image style removed — so-8bll switched to SoulPalAnimated (self-sizing).
   caption: {
     position: 'absolute',
     left: 0,
