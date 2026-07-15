@@ -473,11 +473,18 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           <View style={isDarkMode ? dk.aiLabelRow : lt.aiLabelRow}>
             {isDarkMode && <SoulPalAnimated size={32} animate={true} />}
             <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
-            <AIGeneratedLabel size="compact" tone="auto" style={{ marginLeft: 8 }} />
           </View>
           <Text style={isDarkMode ? dk.aiText : lt.aiText}>
             {streamingText.replace(/\*+/g, '')}
           </Text>
+          {/* so-gozt: moved below reflection text — de-emphasised metadata
+              position per client feedback. Transparent bg = pill-less,
+              matches so-cdis affirmation approach. Disclosure stays visible. */}
+          <AIGeneratedLabel
+            size="compact"
+            tone="auto"
+            style={{ marginTop: 10, backgroundColor: 'transparent', borderColor: 'transparent' }}
+          />
         </>
       );
     }
@@ -512,12 +519,6 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
           <View style={isDarkMode ? dk.aiLabelRow : lt.aiLabelRow}>
             {isDarkMode && <SoulPalAnimated size={32} animate={false} />}
             <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
-            {/* so-7r4y: persistent AI-disclosure label next to the
-                SoulPal name header — every journal AI response gets
-                tagged so the user always sees the disclosure where the
-                content surfaces. tone="auto" picks the right palette
-                per active theme. */}
-            <AIGeneratedLabel size="compact" tone="auto" style={{ marginLeft: 8 }} />
           </View>
           {entry!.ai_response?.text ? (() => {
             const raw = entry!.ai_response.text.replace(/\*+/g, '');
@@ -570,6 +571,15 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
               </View>
             </View>
           )}
+          {/* so-gozt / so-7r4y: AI-disclosure label — moved below all reflection
+              content per Chelsea's feedback (inconspicuous positioning). Transparent
+              bg removes the pill chrome so it reads as faint metadata at the bottom
+              of the AI card. Legal disclosure remains visible + legible. */}
+          <AIGeneratedLabel
+            size="compact"
+            tone="auto"
+            style={{ marginTop: 12, backgroundColor: 'transparent', borderColor: 'transparent' }}
+          />
         </>
       );
     }
