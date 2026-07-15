@@ -29,7 +29,10 @@ import { useTheme } from '../contexts/ThemeContext';
  *   Falls back to the active theme automatically when unspecified.
  */
 
-const LABEL_TEXT = 'AI-generated';
+// so-gozt: approved reword per client feedback (Chelsea ed66db3b). Prepends
+// 'Soulcology-backed,' so the brand is foregrounded while 'AI-generated'
+// remains visible for legal-disclosure compliance (so-7r4y).
+const LABEL_TEXT = 'Soulcology-backed, AI-generated';
 
 type AILabelSize = 'compact' | 'default';
 type AILabelTone = 'light' | 'dark' | 'auto';
