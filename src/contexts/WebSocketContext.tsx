@@ -68,8 +68,25 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     // the caller a consistent historical sequence followed by live events.
     if (REPLAY_STREAM_EVENTS.has(event)) {
       const now = Date.now();
+      // so-wcz1: compute the highest generation seen per entry_id across
+      // ALL buffered events. Only replay events from the latest generation
+      // so stale/superseded runs never surface to a late subscriber.
+      const maxGenByEntry = new Map<string, number>();
+      replayRef.current.forEach((b) => {
+        const eid = b.data.entry_id;
+        const gen = b.data.generation ?? 0;
+        if (eid != null) {
+          maxGenByEntry.set(eid, Math.max(maxGenByEntry.get(eid) ?? -1, gen));
+        }
+      });
       replayRef.current
-        .filter((b) => b.event === event && now - b.ts < REPLAY_WINDOW_MS)
+        .filter((b) => {
+          if (b.event !== event || now - b.ts >= REPLAY_WINDOW_MS) return false;
+          const eid = b.data.entry_id;
+          if (eid == null) return true; // no entry_id — replay as-is
+          const bGen = b.data.generation ?? 0;
+          return bGen >= (maxGenByEntry.get(eid) ?? 0);
+        })
         .forEach((b) => handler(b.data));
     }
     if (!listenersRef.current.has(event)) {

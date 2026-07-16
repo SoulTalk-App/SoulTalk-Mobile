@@ -209,19 +209,34 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   // seamless (no flash of empty content between stream_start and token 1).
   const [streamingText, setStreamingText] = useState<string | null>(null);
 
+  // so-wcz1: track the generation we are currently streaming. Initialised
+  // to -1 (no generation adopted yet); updated from the fetched entry's
+  // edit_count and from response_stream_start events. Only events whose
+  // generation matches the current are applied; older runs are discarded.
+  const currentGenerationRef = React.useRef<number>(-1);
+
   useEffect(() => {
     const unsubStart = subscribe('response_stream_start', (data: any) => {
       if (data.entry_id !== entryId) return;
+      // so-wcz1: adopt any generation >= current (latest-wins). A new
+      // generation from an edit supersedes any in-flight older run.
+      const gen: number = data.generation ?? 0;
+      if (gen < currentGenerationRef.current) return; // stale run — ignore
+      currentGenerationRef.current = gen;
       setStreamingText('');
     });
     const unsubToken = subscribe('response_token', (data: any) => {
       if (data.entry_id !== entryId) return;
+      // so-wcz1: discard tokens from any generation other than the current.
+      if ((data.generation ?? 0) !== currentGenerationRef.current) return;
       const delta: string = data.delta ?? '';
       if (!delta) return; // dispatch: empty delta → ignore
       setStreamingText((prev) => (prev !== null ? prev + delta : delta));
     });
     const unsubEnd = subscribe('response_stream_end', (data: any) => {
       if (data.entry_id !== entryId) return;
+      // so-wcz1: only settle if this end event belongs to the current run.
+      if ((data.generation ?? 0) !== currentGenerationRef.current) return;
       const { response_text, mode, tags_summary } = data;
       setStreamingText(null);
       // Reconcile local entry to the authoritative full text immediately —
@@ -247,6 +262,8 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
     });
     const unsubError = subscribe('response_stream_error', (data: any) => {
       if (data.entry_id !== entryId) return;
+      // so-wcz1: only exit streaming mode for the current generation's error.
+      if ((data.generation ?? 0) !== currentGenerationRef.current) return;
       // Exit streaming mode; existing 5s poll takes over and surfaces the
       // failure state via ai_processing_status once the BE settles.
       setStreamingText(null);
@@ -273,7 +290,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     JournalService.getEntry(entryId)
       .then((fetched) => {
-        if (mountedRef.current) setEntry(fetched);
+        if (!mountedRef.current) return;
+        // so-wcz1: seed generation from the server's authoritative edit_count
+        // so we can filter WS events that belong to older runs.
+        currentGenerationRef.current = fetched.edit_count;
+        setEntry(fetched);
       })
       .catch(() => {
         const found = entries.find((e) => e.id === entryId);
@@ -301,7 +322,12 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       setAiPendingExhausted(false);
       JournalService.getEntry(entryId)
         .then((fetched) => {
-          if (mountedRef.current) setEntry(fetched);
+          if (!mountedRef.current) return;
+          // so-wcz1: refresh generation on every focus-gain refetch so that
+          // an edit that increments edit_count is reflected before new stream
+          // events arrive.
+          currentGenerationRef.current = fetched.edit_count;
+          setEntry(fetched);
         })
         .catch(() => {
           // Stay on the prior entry view if the refetch fails (network);
