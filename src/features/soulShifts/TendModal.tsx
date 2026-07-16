@@ -186,6 +186,12 @@ export function TendModal({
                 <Text style={[styles.prompt, { color: ink(theme) }]}>
                   How did the practice show up today?
                 </Text>
+                {/* so-tv5f: explicit multi-select affordance so the chip
+                    section reads as "choose many" regardless of what the
+                    AI-generated shift title says (e.g. "pick the one thing"). */}
+                <Text style={[styles.chipCue, { color: inkSub(theme) }]}>
+                  Select all that apply
+                </Text>
 
                 <View style={styles.chipsRow}>
                   {((detail.tend_chips && detail.tend_chips.length > 0)
@@ -357,7 +363,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 16 * 1.45,
     letterSpacing: 0.2,
-    marginBottom: 14,
+    marginBottom: 4,
+  },
+  // so-tv5f: muted helper line immediately under the prompt, before chips.
+  chipCue: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 12,
+    marginBottom: 12,
   },
   chipsRow: {
     flexDirection: 'row',
