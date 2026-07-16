@@ -18,6 +18,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useSoulPalName } from '../contexts/SoulPalContext';
 import JournalService, { JournalEntry } from '../services/JournalService';
 import SoulPalAnimated from '../components/SoulPalAnimated';
+import FloatingBackButton from '../components/FloatingBackButton';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { TOUCH_HITSLOP_SMALL } from '../components/touchPrimitives';
 import { useMountedRef } from '../hooks';
@@ -669,20 +670,16 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   if (isDarkMode) {
     return (
       <CosmicScreen tone="dawn">
-        <ScrollView
-          style={[dk.content, { paddingTop: insets.top + 16 }]}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <Pressable
-            style={dk.backRow}
-            onPress={() => navigation.goBack()}
-            hitSlop={TOUCH_HITSLOP_SMALL}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
+        {/* so-7ok8: FloatingBackButton lives outside the ScrollView so it
+            persists at the top as the user scrolls through long reflections.
+            paddingTop on contentContainerStyle gives the titleRow breathing
+            room below the floating button. */}
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            style={[dk.content, { paddingTop: insets.top + 16 }]}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 24, paddingTop: 44 }}
+            showsVerticalScrollIndicator={false}
           >
-            <Feather name="chevron-left" size={28} color="#FFFFFF" />
-          </Pressable>
           <View style={dk.titleRow}>
             <Text style={dk.titleText}>Journal Entry</Text>
             {isLatest && (
@@ -700,7 +697,13 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             <Text style={dk.entryLabel}>Your Entry</Text>
             <Text style={dk.entryText}>{entry.raw_text}</Text>
           </View>
-        </ScrollView>
+          </ScrollView>
+          <FloatingBackButton
+            onPress={() => navigation.goBack()}
+            top={insets.top + 8}
+            left={16}
+          />
+        </View>
       </CosmicScreen>
     );
   }

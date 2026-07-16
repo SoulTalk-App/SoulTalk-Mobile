@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../theme';
 import AIGeneratedLabel from '../../components/AIGeneratedLabel';
+import FloatingBackButton from '../../components/FloatingBackButton';
 import {
   ResonanceVote,
   Signal,
@@ -192,14 +193,6 @@ export function SignalsDetailModal({
                 >
                   {eyebrowText}
                 </Text>
-                <Pressable
-                  onPress={onClose}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={styles.closeBtn}
-                  accessibilityLabel="Close"
-                >
-                  <Text style={[styles.closeX, { color: inkSub(theme) }]}>×</Text>
-                </Pressable>
               </View>
 
               <View style={styles.headlineRow}>
@@ -498,6 +491,15 @@ export function SignalsDetailModal({
                 </Pressable>
               </View>
             </ScrollView>
+            {/* so-7ok8: floating close always visible regardless of scroll depth */}
+            <FloatingBackButton
+              icon="x"
+              onPress={onClose}
+              top={12}
+              right={12}
+              accessibilityLabel="Close"
+              color={isDark ? '#FFFFFF' : 'rgba(0,0,0,0.72)'}
+            />
           </View>
         </View>
       </View>

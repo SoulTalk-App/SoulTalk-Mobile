@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, fonts } from '../../theme';
 import { formatRelativeTime } from '../../utils/time';
 import AIGeneratedLabel from '../../components/AIGeneratedLabel';
+import FloatingBackButton from '../../components/FloatingBackButton';
 import { ShiftDetail, SoulpalVariant, STAGES } from './types';
 import {
   PINK,
@@ -218,14 +219,6 @@ export function ShiftsDetailModal({
                   {detail.cat}
                   {detail.since ? ` · since ${detail.since}` : ''}
                 </Text>
-                <Pressable
-                  onPress={onClose}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={styles.closeBtn}
-                  accessibilityLabel="Close"
-                >
-                  <Text style={[styles.closeX, { color: inkSub(theme) }]}>×</Text>
-                </Pressable>
               </View>
 
               {/* Long instruction sentences in Italiana 28 (display serif) are
@@ -419,6 +412,15 @@ export function ShiftsDetailModal({
                 </>
               )}
             </ScrollView>
+            {/* so-7ok8: floating close always visible regardless of scroll depth */}
+            <FloatingBackButton
+              icon="x"
+              onPress={onClose}
+              top={12}
+              right={12}
+              accessibilityLabel="Close"
+              color={isDark ? '#FFFFFF' : 'rgba(0,0,0,0.72)'}
+            />
             </View>
           </View>
         )}
