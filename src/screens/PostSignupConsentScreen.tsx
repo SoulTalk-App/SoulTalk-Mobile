@@ -520,7 +520,7 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.ctaButton, styles.ctaButtonPrimary]}
           onPress={handleNoteAck}
           accessibilityRole="button"
-          accessibilityLabel={showTOC ? 'Continue to Terms and Privacy' : 'Get started'}
+          accessibilityLabel={showTOC ? 'Continue to Terms and Privacy Policy' : 'Get started'}
         >
           <Text style={[styles.ctaText, styles.ctaTextPrimary]}>Continue</Text>
         </Pressable>

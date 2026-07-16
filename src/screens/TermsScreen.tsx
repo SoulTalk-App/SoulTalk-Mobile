@@ -276,7 +276,7 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
           >
             <Feather name="chevron-left" size={28} color={colors.white} />
           </AnimatedPressable>
-          <Text style={styles.title}>Terms and Privacy</Text>
+          <Text style={styles.title}>Terms and Privacy Policy</Text>
         </View>
         <AppText variant="bodySmall" style={styles.lastUpdated}>
           Effective: {currentDoc.effectiveDate}

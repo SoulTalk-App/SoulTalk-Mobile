@@ -386,7 +386,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
             onPress={handleTerms}
             hitSlop={TOUCH_HITSLOP_MED}
             accessibilityRole="button"
-            accessibilityLabel="Open Terms and Privacy"
+            accessibilityLabel="Open Terms and Privacy Policy"
           >
             <View style={styles.carveoutIcon}>
               <Feather
@@ -395,7 +395,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
                 color={isDarkMode ? colors.primary : colors.text.primary}
               />
             </View>
-            <Text style={styles.carveoutText}>Terms and Privacy</Text>
+            <Text style={styles.carveoutText}>Terms and Privacy Policy</Text>
           </Pressable>
 
           <Pressable

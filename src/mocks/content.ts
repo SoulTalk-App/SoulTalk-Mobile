@@ -167,7 +167,7 @@ The Services rely on third parties, including the AI Providers and Apple. We do 
 };
 
 export const termsAndConditions = {
-  title: 'Terms and Privacy',
+  title: 'Terms and Privacy Policy',
   lastUpdated: 'April 15, 2026',
   content: privacyPolicy.content + '\n\n---\n\n' + termsOfService.content,
 };

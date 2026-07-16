@@ -814,14 +814,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               onPress={handleTermsRowPress}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: agreedToTerms }}
-              accessibilityLabel={agreedToTerms ? 'Agreed to Terms and Privacy — tap to uncheck' : 'Read and agree to Terms and Privacy'}
+              accessibilityLabel={agreedToTerms ? 'Agreed to Terms and Privacy Policy, tap to uncheck' : 'Read and agree to Terms and Privacy Policy'}
             >
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
                 {agreedToTerms && <Ionicons name="checkmark" size={16} color={colors.white} />}
               </View>
               <Text style={styles.termsText}>
                 I agree to the{' '}
-                <Text style={styles.termsLink}>Terms & Privacy</Text>
+                <Text style={styles.termsLink}>Terms & Privacy Policy</Text>
               </Text>
             </Pressable>
 
