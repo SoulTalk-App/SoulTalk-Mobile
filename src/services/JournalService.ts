@@ -331,7 +331,13 @@ class JournalService {
     }
   }
 
-  async getTodayAffirmation(): Promise<{ affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }> {
+  // so-a95p: BE now returns 200 {code:'no_entry_today', message:string} when the
+  // user has not journaled today. Union covers both the success shape and the
+  // no-entry gate. Callers must narrow before accessing affirmation_text.
+  async getTodayAffirmation(): Promise<
+    | { affirmation_text: string; date_key: string; is_revealed_allowed: boolean; source: string; next_reset_time: string }
+    | { code: 'no_entry_today'; message: string }
+  > {
     // so-lt40 M-1: override the shared 10s client timeout for this call only.
     // The BE was explicitly tuned for patience (so-liyt AM-m3: loser-poll raised
     // 15s→45s because Sonnet p99 exceeds 15s); a 10s client timeout makes the

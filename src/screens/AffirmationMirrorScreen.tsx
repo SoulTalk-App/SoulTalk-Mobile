@@ -32,7 +32,11 @@ import { ink } from '../features/soulSignals/tokens';
 type ScreenState =
   | { kind: 'loading' }
   | { kind: 'reveal'; affirmation_text?: string; date_key?: string }
-  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[]; historyTotal: number };
+  | { kind: 'ready'; today: AffirmationItem; history: AffirmationItem[]; historyTotal: number }
+  // so-a95p: BE returns 200 {code:'no_entry_today'} when user hasn't journaled
+  // today. Distinct state so the FE can show a friendly prompt-to-journal UI
+  // without routing through the error/toast path.
+  | { kind: 'no_entry_today'; message: string };
 
 const AffirmationMirrorScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
@@ -150,16 +154,24 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
   }> => {
     try {
       const data = await JournalService.getTodayAffirmation();
+      // so-a95p: BE returns 200 {code:'no_entry_today'} when user hasn't journaled
+      // today. This is NOT an error — do not route through showError/toast. Set the
+      // dedicated screen state and throw a sentinel so handleGeneratePress resets its
+      // spinner. Real failures (503, network) fall through to the catch below.
+      if ('code' in data && data.code === 'no_entry_today') {
+        setState({ kind: 'no_entry_today', message: data.message });
+        throw Object.assign(new Error('no_entry_today'), { _noToast: true });
+      }
       // so-zmjn: surface a friendly error instead of animating to a
       // blank mirror if the BE returns an empty/whitespace text OR
       // omits date_key entirely (defensive guard — the reveal-once
       // AsyncStorage write below depends on a real key, see
       // AffirmationReveal handleReveal).
-      const trimmedText = data?.affirmation_text?.trim();
+      const trimmedText = data.affirmation_text?.trim();
       if (!trimmedText) {
         throw new Error('Affirmation came back empty. Please try again in a moment.');
       }
-      if (!data?.date_key) {
+      if (!data.date_key) {
         throw new Error("Couldn't tag today's affirmation. Please try again in a moment.");
       }
       return {
@@ -167,6 +179,8 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
         date_key: data.date_key,
       };
     } catch (err: any) {
+      // so-a95p: no_entry_today sentinel — setState already called; skip toast.
+      if (err?._noToast) throw err;
       // so-lt40 MI-1: consent-revoked (403 ai_consent_required) dead-ends in
       // a toast loop today — every tap re-toasts without offering an exit.
       // Detect the specific code and offer navigation to Settings instead.
@@ -295,6 +309,50 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     );
   }
 
+  // so-a95p: friendly empty state when user hasn't journaled today. Uses the
+  // BE message verbatim + a CTA to open the journal. Not an error — no toast.
+  if (state.kind === 'no_entry_today') {
+    return (
+      <CosmicScreen tone="dawn">
+        <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}>
+          <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backButton}>
+            <Feather
+              name="chevron-left"
+              size={26}
+              color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
+            />
+          </Pressable>
+          <Text style={[styles.headerTitle, { color: ink(theme) }]}>
+            Affirmation Mirror
+          </Text>
+          <View style={styles.backButton} />
+        </View>
+        <View style={styles.noEntryShell}>
+          <Text style={[styles.noEntryMsg, { color: ink(theme) }]}>
+            {state.message}
+          </Text>
+          <Pressable
+            onPress={handleOpenJournal}
+            style={[
+              styles.noEntryCta,
+              {
+                borderColor: isDarkMode
+                  ? 'rgba(255,255,255,0.30)'
+                  : 'rgba(58,14,102,0.25)',
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Open journal to write today's entry"
+          >
+            <Text style={[styles.noEntryCtaText, { color: ink(theme) }]}>
+              Write today's entry
+            </Text>
+          </Pressable>
+        </View>
+      </CosmicScreen>
+    );
+  }
+
   return (
     <CosmicScreen tone="dawn">
       <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}>
@@ -367,6 +425,31 @@ const styles = StyleSheet.create({
   loadingShell: {
     paddingTop: 120,
     alignItems: 'center',
+  },
+  // so-a95p: no_entry_today state
+  noEntryShell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 20,
+  },
+  noEntryMsg: {
+    fontFamily: fonts.edensor.regular,
+    fontSize: 18,
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  noEntryCta: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  noEntryCtaText: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
