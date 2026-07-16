@@ -317,10 +317,14 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 22,
   },
+  // so-c44d (feedback #14, Chelsea): edensor.italic → outfit.semiBold for
+  // legibility at small uppercase size. Pink accent color + uppercase +
+  // letterSpacing unchanged. Mirrors pullQuoteTag which already uses
+  // outfit.medium uppercase and reads well.
   sectionLabel: {
     marginTop: 22,
     marginBottom: 8,
-    fontFamily: fonts.edensor.italic,
+    fontFamily: fonts.outfit.semiBold,
     fontSize: 13,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
