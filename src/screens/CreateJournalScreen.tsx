@@ -51,6 +51,12 @@ const MAX_ENTRY_CHARS = 10000;
 // directly rather than couple this screen to the context's private constant.
 const SOULPAL_NAME_KEY = '@soultalk_soulpal_name';
 
+// so-8702: delay from save-confirmed (201) to setAnalysisDone(true).
+// Gives a brief celebration beat before revealing JournalEntryScreen so
+// the streaming tokens render live. Long enough to feel like feedback;
+// short enough that stream_start hasn't passed the 5s replay window.
+const EARLY_NAV_MS = 1500;
+
 const countWords = (s: string): number => {
   const trimmed = s.trim();
   if (!trimmed) return 0;
@@ -130,6 +136,9 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // entries (no fresh analysis), gets set true immediately on submit.
   const [analysisDone, setAnalysisDone] = useState(false);
   const savedEntryIdRef = React.useRef<string | null>(null);
+  // so-8702: true when the current save returned crisis resources. Crisis
+  // entries are non-streamed; they must keep the poll-gated navigate path.
+  const isCrisisEntryRef = React.useRef(false);
   // so-h8eo: crisis resources are attached synchronously to the POST /journal/
   // 201 (be_core so-qyky CR-2). When present, show the crisis sheet BEFORE the
   // save animation so the user sees help resources the instant the entry saves.
@@ -330,8 +339,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         // so-h8eo: show the crisis sheet BEFORE the save animation. The sheet's
         // "I've read this" button triggers the save animation + navigation via
         // handleCrisisClose below, maintaining the normal completion UX.
+        // so-8702: mark as crisis so the early-navigate effect skips it;
+        // crisis entries are non-streamed and must keep the poll-gated path.
+        isCrisisEntryRef.current = true;
         setCrisisResources(capturedCrisisResources);
       } else {
+        isCrisisEntryRef.current = false;
         setShowSaveAnimation(true);
       }
     } catch (error: any) {
@@ -388,6 +401,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   };
 
   const handleSaveAnimationComplete = () => {
+    isCrisisEntryRef.current = false;
     setShowSaveAnimation(false);
     setAnalysisDone(false);
     if (savedEntryIdRef.current && !isEdit) {
@@ -470,6 +484,18 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     return () => {
       cancelled = true;
     };
+  }, [showSaveAnimation, analysisDone]);
+
+  // so-8702: navigate to JournalEntryScreen promptly after the 201, no
+  // longer gating the reveal on AI completion. A brief beat (EARLY_NAV_MS)
+  // gives save confirmation, then JES reveals so streaming tokens render
+  // live via WebSocketContext's replay buffer. JES's 5s poll remains as a
+  // fallback if WS events are missed. Crisis entries are excluded: their
+  // safety response is non-streamed and must keep the poll-gated path.
+  useEffect(() => {
+    if (!showSaveAnimation || analysisDone || isCrisisEntryRef.current) return;
+    const timer = setTimeout(() => setAnalysisDone(true), EARLY_NAV_MS);
+    return () => clearTimeout(timer);
   }, [showSaveAnimation, analysisDone]);
 
   // so-9bq8: immediate refetch on foreground so the save overlay settles
