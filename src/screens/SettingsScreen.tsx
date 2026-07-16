@@ -56,11 +56,10 @@ const SETTINGS_PROFILE_DRAFT_KEY_PREFIX = '@soultalk_settings_profile_draft';
 const settingsDraftKey = (userId: string) =>
   `${SETTINGS_PROFILE_DRAFT_KEY_PREFIX}:${userId}`;
 
-// so-zrb8: the data-export BE route (so-ruvl) is unmerged, so POST /data-export
-// 404s in prod. Hide the button until it lands — flip this to true (and ship
-// once so-ruvl is on main) to re-enable. The handler + AuthService.requestDataExport
-// are intentionally left intact so re-enabling is a one-line change.
-const DATA_EXPORT_ENABLED = false;
+// so-cohf: BE export route (so-aowq) is on main + deployed (76bf89f).
+// POST /api/data-export returns 202, bundle stored KMS-encrypted, email
+// delivered with a secure download link. Flag flipped to ship the button.
+const DATA_EXPORT_ENABLED = true;
 
 interface ProfileFields {
   displayName: string;
@@ -448,9 +447,9 @@ const SettingsScreen = ({ navigation }: any) => {
     try {
       await authService.requestDataExport();
       showAlert({
-        title: 'Preparing your data',
+        title: 'Export requested',
         message:
-          "We're preparing your data. You'll get an email with a secure download link shortly.",
+          'We will email a secure download link to your account address.',
       });
     } catch (error: any) {
       // so-fntk: normalizeError handles BE detail, Pydantic 422,
@@ -760,9 +759,8 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.resetButtonText}>MANAGE SUBSCRIPTION</Text>
         </Pressable>
 
-        {/* Export My Data (so-sjua — CCPA portability).
-            so-zrb8: hidden behind DATA_EXPORT_ENABLED until the BE export route
-            (so-ruvl) merges — it 404s in prod otherwise. */}
+        {/* Export My Data (so-sjua — CCPA portability). so-cohf: flag enabled;
+            BE route so-aowq is deployed and returns 202. */}
         {DATA_EXPORT_ENABLED && (
           <>
             <View style={styles.separator} />
