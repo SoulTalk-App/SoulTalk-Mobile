@@ -15,6 +15,10 @@ module.exports = ({ config }) => ({
   ...config,
   extra: {
     ...config.extra,
+    // so-2otn: EAS prebuild does not repopulate extra.eas from app.json via
+    // the config param, so projectId must be set explicitly to guarantee it
+    // is present in every build context. Value is the static public project ID.
+    eas: { ...(config.extra && config.extra.eas), projectId: "f0ab959d-7dde-41f6-8716-767bd41b656e" },
     apiConfig: {
       baseUrl: apiBaseUrl,
     },
