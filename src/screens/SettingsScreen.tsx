@@ -547,20 +547,27 @@ const SettingsScreen = ({ navigation }: any) => {
   };
 
   const handleDeleteAccount = () => {
+    // so-9bqt: offer data export before permanent deletion (GDPR/CCPA).
+    // Step 1 lets the user request their data first; step 2 is the
+    // existing hard-delete confirm. No auto-delete after export.
     showAlert({
-      title: 'Delete your SoulTalk account?',
+      title: 'Delete Account',
       message:
-        'This permanently removes your journal entries, soul signals, soul shifts, soulsights, mood history, and personality test results. This cannot be undone.',
+        'Before deleting, you can export a copy of your data. We will send a secure download link to your account email. Your account will not be deleted until you confirm in the next step.',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Continue',
+          text: 'Export my data first',
+          onPress: handleExportData,
+        },
+        {
+          text: 'Delete my account',
           style: 'destructive',
           onPress: () => {
             showAlert({
-              title: 'Are you absolutely sure?',
+              title: 'Delete your SoulTalk account?',
               message:
-                'Your account and all related data will be permanently deleted.',
+                'This permanently removes your journal entries, soul signals, soul shifts, soulsights, mood history, and personality test results. This cannot be undone. Export your data first if you have not already.',
               buttons: [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Delete forever', style: 'destructive', onPress: performDeleteAccount },
