@@ -213,11 +213,14 @@ const HelpScreen = ({ navigation }: any) => {
           flex: 1,
         },
         // Light path: page-bg ink for AA on the so-u1k lavender wash.
+        // so-oecu: reduced to 20 so the longer "Mental Health and Safety
+        // Resources" title wraps cleanly on SE-width screens.
         headerTitle: {
           fontFamily: fonts.outfit.semiBold,
-          fontSize: 24,
-          lineHeight: 24 * 1.26,
+          fontSize: 20,
+          lineHeight: 20 * 1.28,
           color: isDarkMode ? colors.white : colors.text.primary,
+          flex: 1,
         },
         introText: {
           // bodyLarge per so-ci7 — read-heavy intro paragraph
@@ -351,7 +354,9 @@ const HelpScreen = ({ navigation }: any) => {
               color={isDarkMode ? '#FFFFFF' : '#3A0E66'}
             />
           </Pressable>
-          <Text style={styles.headerTitle}>Help</Text>
+          {/* so-oecu: renamed per client feedback #8 (Sam) — must clearly
+              label this as the mental-health/safety resource surface. */}
+          <Text style={styles.headerTitle}>Mental Health and Safety Resources</Text>
         </View>
 
         {/* so-u4hp: safety disclaimer at top — prominent banner, not a footnote */}

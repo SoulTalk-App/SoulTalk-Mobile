@@ -786,6 +786,30 @@ const SettingsScreen = ({ navigation }: any) => {
           </>
         )}
 
+        {/* so-oecu: Mental Health and Safety Resources — prominent nav row per
+            client feedback #8 (Sam). Replaces the tiny footer "Help" link.
+            Safety-critical surface; must be easy to find. */}
+        <View style={styles.separator} />
+        <Pressable
+          onPress={() => navigation.navigate('Help')}
+          style={styles.mhNavRow}
+          accessibilityRole="button"
+          accessibilityLabel="Mental Health and Safety Resources"
+        >
+          <Ionicons
+            name="heart-outline"
+            size={20}
+            color={isDarkMode ? '#E93678' : '#C0245A'}
+            style={styles.mhNavIcon}
+          />
+          <Text style={styles.mhNavLabel}>Mental Health and Safety Resources</Text>
+          <Feather
+            name="chevron-right"
+            size={18}
+            color={isDarkMode ? 'rgba(255,255,255,0.35)' : 'rgba(58,14,102,0.35)'}
+          />
+        </Pressable>
+
         {/* Destructive actions — grouped, no float gap (so-lvyt #7) */}
         <View style={styles.separator} />
         <Pressable onPress={handleLogout}>
@@ -795,13 +819,10 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.deleteAccountText}>DELETE ACCOUNT</Text>
         </Pressable>
 
-        {/* Footer */}
+        {/* Footer — Help link promoted to its own prominent row above (so-oecu) */}
         <View style={styles.footerLinks}>
           <Pressable onPress={() => navigation.navigate('Terms')}>
             <Text style={styles.footerLink}>Terms & Privacy</Text>
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('Help')}>
-            <Text style={styles.footerLink}>Help</Text>
           </Pressable>
         </View>
         <View style={styles.footerSeparator} />
@@ -1091,6 +1112,23 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       lineHeight: 46,
       color: colors.error,
       textDecorationLine: 'underline',
+    },
+
+    // so-oecu: prominent mental-health nav row — full-width, icon + label + chevron.
+    mhNavRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      minHeight: 52,
+    },
+    mhNavIcon: {
+      marginRight: 12,
+    },
+    mhNavLabel: {
+      flex: 1,
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 15,
+      color: isDark ? colors.white : colors.text.primary,
     },
 
     // Footer
