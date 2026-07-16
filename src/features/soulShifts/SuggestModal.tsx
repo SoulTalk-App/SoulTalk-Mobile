@@ -289,16 +289,11 @@ export function SuggestModal({
                   accessibilityLabel="Begin this shift"
                   accessibilityState={{ disabled: submitting || selectedIdx == null }}
                 >
-                  <LinearGradient
-                    colors={[PINK, PURPLE]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.ctaGradient}
-                  >
+                  <View style={[styles.ctaGradient, { backgroundColor: PURPLE }]}>
                     <Text style={[styles.ctaText, { color: colors.white }]} numberOfLines={1}>
                       {ctaLabel}
                     </Text>
-                  </LinearGradient>
+                  </View>
                 </Pressable>
               ) : null}
 

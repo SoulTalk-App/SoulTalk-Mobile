@@ -10,7 +10,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, fonts } from '../../theme';
 import { SoulpalVariant } from './types';
@@ -216,7 +215,7 @@ export function SignalsTurnToShiftModal({
                   },
                   {
                     label: 'Linked to this pattern',
-                    sub: 'New noticings strengthen it.',
+                    sub: 'New reflections strengthen it.',
                   },
                 ].map((b) => (
                   <View
@@ -254,16 +253,11 @@ export function SignalsTurnToShiftModal({
                 accessibilityLabel="Begin tending this shift"
                 accessibilityState={{ disabled: submitting }}
               >
-                <LinearGradient
-                  colors={[PINK, PURPLE]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.ctaGradient}
-                >
+                <View style={[styles.ctaGradient, { backgroundColor: PURPLE }]}>
                   <Text style={[styles.ctaText, { color: colors.white }]}>
                     {submitting ? 'Beginning…' : 'Begin tending'}
                   </Text>
-                </LinearGradient>
+                </View>
               </Pressable>
 
               <Pressable

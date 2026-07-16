@@ -168,7 +168,7 @@ export function SignalsB({
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: inkSub(theme) }]}>
-          Recurring threads, with the noticings that make them visible.
+          Recurring threads, with the reflections that make them visible.
         </Text>
       </View>
       {/* Drawer filter (so-8ho). All vs Muted; muted is lazy-fetched

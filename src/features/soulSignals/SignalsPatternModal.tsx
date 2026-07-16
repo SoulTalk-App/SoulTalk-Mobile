@@ -182,7 +182,7 @@ export function SignalsPatternModal({
                         { color: inkFaint(theme) },
                       ]}
                     >
-                      {aggregate.noticings.length} noticing
+                      {aggregate.noticings.length} reflection
                       {aggregate.noticings.length === 1 ? '' : 's'}
                     </Text>
                     {hasNoticings ? (
@@ -199,7 +199,7 @@ export function SignalsPatternModal({
                       <Text
                         style={[styles.emptyCopy, { color: ink(theme) }]}
                       >
-                        No noticings tagged here yet — keep journaling and
+                        No reflections tagged here yet. Keep journaling and
                         {' '}{soulPalName} will surface threads as they form.
                       </Text>
                     )}
