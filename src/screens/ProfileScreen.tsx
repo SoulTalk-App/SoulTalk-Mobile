@@ -156,7 +156,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Two Column Layout — Personality (past results) + Achievement */}
           <View style={dk.twoColumns}>
-            <GlassCard style={dk.personalityCard}>
+            <GlassCard style={dk.personalityCard} fillHeight>
               <View style={dk.personalityHeader}>
                 <Text style={dk.personalityTitle}>Personality</Text>
               </View>
@@ -185,7 +185,7 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
             </GlassCard>
 
-            <GlassCard style={dk.achievementCard}>
+            <GlassCard style={dk.achievementCard} fillHeight>
               <View style={dk.achievementHeader}>
                 <Text style={dk.achievementHeaderText}>Achievement</Text>
               </View>
