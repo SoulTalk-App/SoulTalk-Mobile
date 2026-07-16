@@ -11,12 +11,10 @@ const apiBaseUrl = process.env.API_BASE_URL || PROD_API_URL;
 // The server-side ADAPTY_WEBHOOK_SECRET is stored in SSM, never in client config.
 const adaptyPublicSdkKey = process.env.ADAPTY_PUBLIC_SDK_KEY || "";
 
-const appJson = require("./app.json");
-
 module.exports = ({ config }) => ({
-  ...appJson.expo,
+  ...config,
   extra: {
-    ...appJson.expo.extra,
+    ...config.extra,
     apiConfig: {
       baseUrl: apiBaseUrl,
     },
