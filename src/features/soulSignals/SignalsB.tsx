@@ -168,7 +168,7 @@ export function SignalsB({
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: inkSub(theme) }]}>
-          Recurring threads, with the reflections that make them visible.
+          The recurring patterns your reflections reveal.
         </Text>
       </View>
       {/* Drawer filter (so-8ho). All vs Muted; muted is lazy-fetched
@@ -304,9 +304,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
+  // so-8wy7 (feedback #16): edensor.lightItalic → outfit.regular for legibility
+  // at small muted size. Mirrors so-c44d eyebrow fix. inkSub + size unchanged.
   subtitle: {
     marginTop: 6,
-    fontFamily: fonts.edensor.lightItalic,
+    fontFamily: fonts.outfit.regular,
     fontSize: 13,
     lineHeight: 13 * 1.4,
   },
