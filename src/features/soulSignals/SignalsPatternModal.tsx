@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
 import {
@@ -76,6 +77,7 @@ export function SignalsPatternModal({
   const linkedShiftId =
     aggregate?.noticings.find((n) => n.linkedShiftId)?.linkedShiftId ?? null;
   const turnInert = !onTurnToShift || linkedShiftId != null;
+  const [shiftInfoOpen, setShiftInfoOpen] = useState(false);
 
   // so-bl51: bail before mounting the Modal portal subtree when not visible
   // — see soulShifts/TendModal for the architectural rationale.
@@ -216,27 +218,70 @@ export function SignalsPatternModal({
                     capability before the feature is wired up.
                   */}
                   {linkedShiftId == null && (
-                    <Pressable
-                      onPress={
-                        turnInert ? undefined : () => onTurnToShift!(aggregate)
-                      }
-                      disabled={turnInert}
-                      style={[
-                        styles.turnCta,
-                        {
-                          borderColor: isDark
-                            ? 'rgba(255,255,255,0.25)'
-                            : 'rgba(58,14,102,0.20)',
-                          opacity: turnInert ? 0.55 : 1,
-                        },
-                      ]}
-                      accessibilityLabel="Turn pattern into a shift"
-                      accessibilityState={{ disabled: turnInert }}
-                    >
-                      <Text style={[styles.turnCtaText, { color: inkSub(theme) }]}>
-                        Turn pattern into a Shift →
-                      </Text>
-                    </Pressable>
+                    <View>
+                      {/*
+                        so-8gd4: the CTA and (i) info icon share a single
+                        dashed-border row. Using a wrapper View avoids nesting
+                        a Pressable inside a disabled Pressable (touch
+                        propagation edge case on Android).
+                      */}
+                      <View
+                        style={[
+                          styles.turnCtaWrap,
+                          {
+                            borderColor: isDark
+                              ? 'rgba(255,255,255,0.25)'
+                              : 'rgba(58,14,102,0.20)',
+                            opacity: turnInert ? 0.55 : 1,
+                          },
+                        ]}
+                      >
+                        <Pressable
+                          onPress={
+                            turnInert ? undefined : () => onTurnToShift!(aggregate)
+                          }
+                          disabled={turnInert}
+                          style={styles.turnCta}
+                          accessibilityLabel="Turn pattern into a shift"
+                          accessibilityState={{ disabled: turnInert }}
+                        >
+                          <Text style={[styles.turnCtaText, { color: inkSub(theme) }]}>
+                            Turn pattern into a Shift →
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => setShiftInfoOpen((o) => !o)}
+                          style={styles.shiftInfoBtn}
+                          accessibilityLabel="What is a Shift?"
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons
+                            name="information-circle-outline"
+                            size={16}
+                            color={inkSub(theme)}
+                          />
+                        </Pressable>
+                      </View>
+                      {shiftInfoOpen && (
+                        <View
+                          style={[
+                            styles.shiftInfoPanel,
+                            {
+                              borderColor: isDark
+                                ? 'rgba(255,255,255,0.10)'
+                                : 'rgba(58,14,102,0.10)',
+                              backgroundColor: isDark
+                                ? 'rgba(255,255,255,0.04)'
+                                : 'rgba(58,14,102,0.03)',
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.shiftInfoText, { color: inkSub(theme) }]}>
+                            Signals show you the recurring patterns in your reflections. Turning a pattern into a Shift starts a small, tendable practice to work with it: a gentle experiment you move forward each time you catch the old pattern or try a new response. Shifts move through Notice, Practice, Embody, and Integrate as you tend them.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   )}
                   {linkedShiftId != null && onViewExistingShift && (
                     <Pressable
@@ -410,12 +455,20 @@ const styles = StyleSheet.create({
     lineHeight: 16 * 1.45,
     letterSpacing: 0.2,
   },
-  turnCta: {
+  // so-8gd4: wrapper View owns the border + layout; inner Pressable is
+  // touch-only so the (i) icon sits outside the disabled Pressable.
+  turnCtaWrap: {
     marginTop: 16,
-    paddingVertical: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 12,
     borderWidth: 1,
     borderStyle: 'dashed',
+  },
+  turnCta: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingLeft: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -423,6 +476,26 @@ const styles = StyleSheet.create({
     fontFamily: fonts.outfit.medium,
     fontSize: 12,
     letterSpacing: 0.3,
+  },
+  // so-8gd4: (i) icon tap target, right edge of the row.
+  shiftInfoBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // so-8gd4: inline explainer panel — appears below the CTA when (i) tapped.
+  // Not a second Modal (iOS stacking constraint); local state resets on close.
+  shiftInfoPanel: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  shiftInfoText: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    lineHeight: 13 * 1.55,
   },
   viewExistingLink: {
     marginTop: 10,
