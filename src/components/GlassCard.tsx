@@ -22,6 +22,14 @@ interface GlassCardProps {
   onPress?: () => void;
   disabled?: boolean;
   blurIntensity?: number;
+  /**
+   * so-h8mi: when true, the content View gets flex:1 so it fills a
+   * fixed-height card (e.g. Profile two-column cards with height:156).
+   * Default false — content sizes to children, which is the correct
+   * behaviour inside a ScrollView and prevents overflow:hidden clipping
+   * long text mid-word.
+   */
+  fillHeight?: boolean;
 }
 
 const GLASS_BG: Record<GlassIntensity, string> = {
@@ -44,6 +52,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
   onPress,
   disabled,
   blurIntensity,
+  fillHeight = false,
 }) => {
   const scale = useSharedValue(1);
   const borderOpacity = useSharedValue(0.2);
@@ -105,7 +114,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
       <View style={styles.borderOverlay} />
 
       {/* Content */}
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.content, fillHeight && styles.contentFill]}>{children}</View>
     </View>
   );
 
@@ -167,9 +176,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: surfaces.glass.border,
   },
+  // so-h8mi: no flex:1 here — content sizes to children so cards in a
+  // ScrollView grow to fit their text instead of collapsing to padding-height
+  // and clipping via outer's overflow:hidden. Use fillHeight prop for
+  // fixed-height cards that need content to fill the card (e.g. Profile
+  // two-column cards).
   content: {
     position: 'relative',
     zIndex: 1,
+  },
+  contentFill: {
     flex: 1,
   },
 });
