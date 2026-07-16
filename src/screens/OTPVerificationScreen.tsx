@@ -192,7 +192,7 @@ const OTPVerificationScreen: React.FC<OTPVerificationScreenProps> = ({ navigatio
     } finally {
       setIsLoading(false);
     }
-  }, [otp, email, verifyOTP, navigation]);
+  }, [otp, email, verifyOTP, navigation, isLoading]);
 
   const handleResend = useCallback(async () => {
     if (resendCooldown > 0) return;
