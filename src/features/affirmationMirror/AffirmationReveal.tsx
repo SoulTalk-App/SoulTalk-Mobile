@@ -658,7 +658,7 @@ export function AffirmationReveal({
       </Animated.View>
 
       {isRevealed && (
-        <View style={styles.textArea}>
+        <View style={[styles.textArea, { paddingTop: insets.top + 60 }]}>
           {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
               affirmation) in as one unit via textAnimStyle. Previously the
               AIGeneratedLabel was static and popped in instantly while the
@@ -818,6 +818,9 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
   },
   // so-0wzu: affirmation text occupies the TOP half of the screen (cloud area),
   // now that the layout is corrected — clouds top, animation bottom.
+  // so-qnqb: paddingTop is set inline (insets.top + 60) so justifyContent:center
+  // resolves within the safe zone below the status bar + back-button row,
+  // preventing long affirmations from riding under the notch or the chevron.
   textArea: {
     position: 'absolute',
     top: 0,
