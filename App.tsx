@@ -1,4 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { StyleSheet } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+  runOnJS,
+} from "react-native-reanimated";
 import { NavigationContainer, LinkingOptions } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
@@ -65,6 +73,7 @@ import { JournalProvider } from "./src/contexts/JournalContext";
 import { PersonalityProvider } from "./src/contexts/PersonalityContext";
 import { WebSocketProvider } from "./src/contexts/WebSocketContext";
 import { useNotifications } from "./src/hooks";
+import { ColdOpenContext } from "./src/contexts/ColdOpenContext";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 const SETUP_COMPLETE_KEY = "@soultalk_setup_complete";
@@ -87,7 +96,7 @@ const linking: LinkingOptions<any> = {
 const OnboardingStack = () => (
   <Stack.Navigator
     screenOptions={{ headerShown: false }}
-    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Splash"}
+    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Onboarding"}
   >
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
@@ -194,7 +203,7 @@ const OnboardingStack = () => (
 const AuthStack = () => (
   <Stack.Navigator
     screenOptions={{ headerShown: false }}
-    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Splash"}
+    initialRouteName={DEV_SKIP_TO_WELCOME_SPLASH ? "WelcomeSplash" : "Onboarding"}
   >
     <Stack.Screen name="Splash" component={SplashScreen} />
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
@@ -384,6 +393,9 @@ const Navigation = () => {
   );
   const [setupComplete, setSetupComplete] = useState<boolean | null>(null);
   const [showLoading, setShowLoading] = useState(true);
+  // so-5zrq m2: flips true when the overlay fade finishes — HomeScreen gates
+  // its entrance animation on this rather than on its own mount.
+  const [coldOpenRevealed, setColdOpenRevealed] = useState(false);
 
   const dataReady = !isLoading && onboardingComplete !== null && setupComplete !== null;
 
@@ -418,33 +430,67 @@ const Navigation = () => {
     }
   };
 
-  // Show loading screen until data is ready AND the current video loop finishes
-  if (showLoading) {
-    return (
-      <LoadingScreen
-        readyToDismiss={dataReady}
-        onDismiss={() => setShowLoading(false)}
-      />
+  // so-5zrq: crossfade the LoadingScreen overlay OUT over the already-mounted
+  // NavigationContainer. The data-gate contract is unchanged: the overlay stays
+  // fully opaque until dataReady AND the intro loop finishes (same
+  // readyToDismiss/onDismiss timing as before). On dismiss trigger we start a
+  // 400ms ease-out fade, then unmount the overlay via runOnJS once it finishes.
+  const overlayOpacity = useSharedValue(1);
+
+  const overlayAnimStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+
+  const handleOverlayDismiss = useCallback(() => {
+    overlayOpacity.value = withTiming(
+      0,
+      { duration: 400, easing: Easing.out(Easing.ease) },
+      (finished) => {
+        'worklet';
+        if (finished) {
+          runOnJS(setShowLoading)(false);
+          // so-5zrq m2: signal HomeScreen to start its entrance animation now
+          // that the overlay is gone and the content is actually visible.
+          runOnJS(setColdOpenRevealed)(true);
+        }
+      },
     );
-  }
+  }, []);
 
   return (
-    <NavigationContainer linking={linking}>
-      {isAuthenticated ? (
-        accessLocked ? (
-          // so-fwva: server says trial over and not Pro — hide the
-          // whole app behind the paywall gate. Carve-outs still
-          // reachable via PaywallStack.
-          <PaywallStack />
-        ) : (
-          <AppStack setupComplete={setupComplete} />
-        )
-      ) : onboardingComplete ? (
-        <AuthStack />
-      ) : (
-        <OnboardingStack />
+    <>
+      {/* NavigationContainer is ALWAYS mounted so Home settles under the overlay.
+          ColdOpenContext.Provider wraps the nav tree so HomeScreen can gate its
+          entrance animation on overlay dismissal rather than on its own mount. */}
+      <ColdOpenContext.Provider value={coldOpenRevealed}>
+        <NavigationContainer linking={linking}>
+          {isAuthenticated ? (
+            accessLocked ? (
+              // so-fwva: server says trial over and not Pro — hide the
+              // whole app behind the paywall gate. Carve-outs still
+              // reachable via PaywallStack.
+              <PaywallStack />
+            ) : (
+              <AppStack setupComplete={setupComplete} />
+            )
+          ) : onboardingComplete ? (
+            <AuthStack />
+          ) : (
+            <OnboardingStack />
+          )}
+        </NavigationContainer>
+      </ColdOpenContext.Provider>
+      {/* so-5zrq: LoadingScreen as an absolutely-positioned overlay. Stays
+          opaque until dataReady+intro-loop; fades out over 400ms then unmounts. */}
+      {showLoading && (
+        <Animated.View style={[StyleSheet.absoluteFill, overlayAnimStyle, overlayStyles.overlay]}>
+          <LoadingScreen
+            readyToDismiss={dataReady}
+            onDismiss={handleOverlayDismiss}
+          />
+        </Animated.View>
       )}
-    </NavigationContainer>
+    </>
   );
 };
 
@@ -464,6 +510,14 @@ Audio.setAudioModeAsync({
   shouldDuckAndroid: true,
   interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
 }).catch((err) => console.warn('Failed to set audio mode:', err));
+
+// so-5zrq: overlay container sits above the NavigationContainer and fades out.
+const overlayStyles = StyleSheet.create({
+  overlay: {
+    // Must cover nav + safe-area chrome.
+    zIndex: 999,
+  },
+});
 
 // so-jyw0: boot the Adapty SDK once, at module load, with the public
 // SDK key from app.config.extra.adaptyConfig (wired by infra so-153d).

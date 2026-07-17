@@ -15,9 +15,11 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withDelay,
   withSequence,
   withRepeat,
   Easing,
+  useReducedMotion,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Rect, Line } from 'react-native-svg';
@@ -40,6 +42,7 @@ import { MoodToast, MoodToastKind } from '../components/MoodToast';
 import { BottomTabBar } from '../components/BottomTabBar';
 import { sanitizeMoodWord } from '../utils/moodSanitizer';
 import WelcomeBackOverlay from '../components/WelcomeBackOverlay';
+import { useColdOpenRevealed } from '../contexts/ColdOpenContext';
 
 // Assets — light mode (original)
 const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
@@ -959,6 +962,54 @@ const HomeScreen = ({ navigation }: any) => {
   // the recurring report the avatar now simply floats with no blink.
   const palBobY = useSharedValue(0);
 
+  // so-5zrq: cold-open entrance animation — fade-and-rise the hero content.
+  // Gated on coldOpenRevealed (flips true when the LoadingScreen overlay
+  // finishes fading out) so the animation plays AFTER the overlay clears and
+  // is actually visible to the user, not silently behind it at mount time.
+  // Guards: first-time-only (heroEntranceMountedRef) + reduce-motion aware.
+  // Back-navigation to Home does NOT re-animate: coldOpenRevealed stays true
+  // but heroEntranceMountedRef is already set, so the effect is a no-op.
+  const coldOpenRevealed = useColdOpenRevealed();
+  const prefersReducedMotion = useReducedMotion();
+  const heroEntranceMountedRef = useRef(false);
+  const heroOpacity = useSharedValue(0);
+  const heroTranslateY = useSharedValue(14);
+  const cardsOpacity = useSharedValue(0);
+  const cardsTranslateY = useSharedValue(14);
+
+  const heroEnterStyle = useAnimatedStyle(() => ({
+    opacity: heroOpacity.value,
+    transform: [{ translateY: heroTranslateY.value }],
+  }));
+
+  const cardsEnterStyle = useAnimatedStyle(() => ({
+    opacity: cardsOpacity.value,
+    transform: [{ translateY: cardsTranslateY.value }],
+  }));
+
+  useEffect(() => {
+    if (!coldOpenRevealed) return;           // Wait until overlay has cleared
+    if (heroEntranceMountedRef.current) return; // Already animated (back-nav guard)
+    heroEntranceMountedRef.current = true;
+
+    if (prefersReducedMotion) {
+      // Skip motion — land at final state so reduce-motion users see content
+      // immediately without any translateY offset.
+      heroOpacity.value = 1;
+      heroTranslateY.value = 0;
+      cardsOpacity.value = 1;
+      cardsTranslateY.value = 0;
+      return;
+    }
+
+    const cfg = { duration: 300, easing: Easing.out(Easing.ease) };
+    // Greeting hero enters immediately.
+    heroOpacity.value = withTiming(1, cfg);
+    heroTranslateY.value = withTiming(0, cfg);
+    // Charge-up cards follow with a soft 50ms stagger.
+    cardsOpacity.value = withDelay(50, withTiming(1, cfg));
+    cardsTranslateY.value = withDelay(50, withTiming(0, cfg));
+  }, [coldOpenRevealed]);
 
   useEffect(() => {
     const loadLocalName = async () => {
@@ -1131,7 +1182,9 @@ const HomeScreen = ({ navigation }: any) => {
           contentContainerStyle={dk.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* so-5zrq: heroEnterStyle wraps the greeting card — fade+rise on cold-open. */}
           {/* Greeting Hero (so-c0o) — canonical home-v2 design */}
+          <Animated.View style={heroEnterStyle}>
           <View style={dk.welcomeCard}>
             {/* Top row: avatar + welcome + settings cog */}
             <View style={dk.greetingTopRow}>
@@ -1383,9 +1436,10 @@ const HomeScreen = ({ navigation }: any) => {
               )}
             </LinearGradient>
           </View>
+          </Animated.View>{/* end heroEnterStyle dark */}
 
-          {/* Charge Up — 5-card grid */}
-          <View style={dk.chargeUpWrap}>
+          {/* Charge Up — 5-card grid (so-5zrq: cardsEnterStyle — 50ms stagger) */}
+          <Animated.View style={[dk.chargeUpWrap, cardsEnterStyle]}>
             <ChargeUpGrid
               theme="dark"
               onMirrorPress={handleAffirmationPress}
@@ -1394,7 +1448,7 @@ const HomeScreen = ({ navigation }: any) => {
               onSignalsPress={() => navigation.navigate('SoulSignals')}
               onSightsPress={() => navigation.navigate('SoulSight')}
             />
-          </View>
+          </Animated.View>
 
           {/* Bottom spacing for tab bar */}
           <View style={{ height: 140 + (insets.bottom || 16) }} />
@@ -1435,7 +1489,9 @@ const HomeScreen = ({ navigation }: any) => {
         contentContainerStyle={lt.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* so-5zrq: heroEnterStyle wraps the greeting card — fade+rise on cold-open. */}
         {/* Greeting Hero (so-c0o) — canonical home-v2 design */}
+        <Animated.View style={heroEnterStyle}>
         <View style={lt.welcomeCard}>
           {/* Top row: avatar + welcome + settings cog */}
           <View style={lt.greetingTopRow}>
@@ -1676,9 +1732,10 @@ const HomeScreen = ({ navigation }: any) => {
             )}
           </LinearGradient>
         </View>
+        </Animated.View>{/* end heroEnterStyle light */}
 
-        {/* Charge Up — 5-card grid */}
-        <View style={lt.chargeUpWrap}>
+        {/* Charge Up — 5-card grid (so-5zrq: cardsEnterStyle — 50ms stagger) */}
+        <Animated.View style={[lt.chargeUpWrap, cardsEnterStyle]}>
           <ChargeUpGrid
             theme="light"
             onMirrorPress={handleAffirmationPress}
@@ -1687,7 +1744,7 @@ const HomeScreen = ({ navigation }: any) => {
             onSignalsPress={() => navigation.navigate('SoulSignals')}
             onSightsPress={() => navigation.navigate('SoulSight')}
           />
-        </View>
+        </Animated.View>
 
         {/* Bottom spacing for tab bar */}
         <View style={{ height: 140 + (insets.bottom || 16) }} />

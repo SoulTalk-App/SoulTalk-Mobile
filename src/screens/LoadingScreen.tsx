@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { AppState, StyleSheet, View, Dimensions } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEvent } from 'expo';
 import { useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -55,8 +56,42 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ readyToDismiss = false, o
     return () => subscription.remove();
   }, [player, onDismiss]);
 
+  // so-d4xk: LoadingScreen is now the SOLE intro play (SplashScreen no longer
+  // runs first for logged-out stacks). Port the safeguards from SplashScreen so
+  // a broken/slow video still advances past the loading gate once data is ready.
+  // Both guards honour the readyToDismiss contract: navigation never fires
+  // before auth + onboarding flags are resolved.
+  const { status } = useEvent(player, 'statusChange', { status: player.status });
+
+  // Error path: video failed — dismiss immediately once data is ready.
+  // so-d4xk m1: include readyToDismiss in deps so this effect re-fires when
+  // data resolves after a video error — without it, a broken video that errored
+  // before dataReady left the user waiting up to 10s for the fallback timer.
+  useEffect(() => {
+    if (status !== 'error' || !readyToDismiss || dismissedRef.current) return;
+    dismissedRef.current = true;
+    onDismiss?.();
+  }, [status, readyToDismiss, onDismiss]);
+
+  // 10s fallback: if playToEnd never fires (hung video) and data is ready,
+  // force-dismiss so the user isn't stranded on the loading screen.
+  useEffect(() => {
+    if (!readyToDismiss) return;
+    const fallbackTimer = setTimeout(() => {
+      if (!dismissedRef.current) {
+        dismissedRef.current = true;
+        onDismiss?.();
+      }
+    }, 10000);
+    return () => clearTimeout(fallbackTimer);
+  }, [readyToDismiss, onDismiss]);
+
+  // so-5zrq: bg aligned to CosmicScreen "night" top gradient so any residual
+  // seam under the crossfade is invisible.
+  // Dark '#02011A' = CosmicBackdrop TONES.night gradient[0]
+  // Light '#F2EBFA' = CosmicBackdrop LIGHT_TONES.night gradient[0]
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary }, isDarkMode && { backgroundColor: '#0A0818' }]}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#02011A' : '#F2EBFA' }]}>
       <VideoView
         player={player}
         style={styles.video}

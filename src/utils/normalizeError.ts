@@ -70,7 +70,14 @@ const looksLikeRawAxios = (msg: string): boolean => {
 const extractDetail = (data: any): string | null => {
   if (data == null) return null;
   if (typeof data === 'string') {
-    return data.trim() || null;
+    const t = data.trim();
+    if (!t) return null;
+    // so-n30r: reject HTML/gateway bodies (nginx 502/503/504 pages).
+    const lower = t.toLowerCase();
+    if (t.startsWith('<') || lower.includes('<html') || lower.includes('<!doctype')) return null;
+    // so-n30r: real BE user messages are short; reject suspiciously long strings.
+    if (t.length > 200) return null;
+    return t;
   }
   if (typeof data !== 'object') return null;
   const detail = (data as any).detail;
@@ -121,15 +128,24 @@ export const normalizeError = (err: unknown): string => {
   const message: string | undefined =
     typeof e?.message === 'string' ? e.message : undefined;
 
+  // 3a. so-n30r: gateway / server errors (5xx) — ALWAYS use the safe
+  // fallback, checked BEFORE extractDetail. Nginx 502/503/504 bodies are
+  // HTML/plaintext and must NEVER reach the UI, so we short-circuit here
+  // before any body extraction runs.
+  if (typeof status === 'number' && status >= 500) {
+    return FIVE_XX_FALLBACK;
+  }
+
   // 1 + 2: BE-provided detail (Pydantic array or string).
+  // Only reached for non-5xx responses whose body may carry a user-safe
+  // FastAPI detail message (so-4ax7 hardens the BE contract for those).
   const detailMsg = extractDetail(data);
   if (detailMsg) return detailMsg;
 
-  // 3. Status-based friendly copy.
+  // 3b. Status-based friendly copy for known codes and 4xx fallback.
   if (typeof status === 'number') {
     const known = STATUS_COPY[status];
     if (known) return known;
-    if (status >= 500) return FIVE_XX_FALLBACK;
     if (status >= 400) return FOUR_XX_FALLBACK;
   }
 
