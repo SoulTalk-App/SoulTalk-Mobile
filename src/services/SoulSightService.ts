@@ -140,15 +140,16 @@ class SoulSightService {
     return response.data;
   }
 
-  async list(limit: number = 10, offset: number = 0): Promise<SoulsightListResponse> {
+  async list(limit: number = 10, offset: number = 0, q?: string): Promise<SoulsightListResponse> {
     // Trailing slash required (so-rnk): FastAPI's auto-redirect for the
     // collection route returns a 307 with an http:// Location because
     // uvicorn isn't honoring X-Forwarded-Proto. Hitting the canonical
     // path directly skips the redirect entirely. The infra-side fix is
     // tracked in so-6dq.
-    const response = await this.axiosInstance.get('/soulsights/', {
-      params: { limit, offset },
-    });
+    // so-ub07: q= is passed to the server for full-body content search.
+    const params: Record<string, any> = { limit, offset };
+    if (q) params.q = q;
+    const response = await this.axiosInstance.get('/soulsights/', { params });
     return response.data;
   }
 

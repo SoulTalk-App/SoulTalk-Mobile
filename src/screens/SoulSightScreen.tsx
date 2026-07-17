@@ -106,6 +106,23 @@ const SoulSightScreen = ({ navigation }: any) => {
   // so-9t3d MI-2: surface fetch failures instead of silently swallowing them.
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // so-ub07: server-side full-body search state.
+  // debouncedQuery is the query that was actually sent to the server (300ms
+  // after the user stopped typing). searchResults=null means no search is
+  // active or the first result hasn't arrived yet.
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchRetryCount, setSearchRetryCount] = useState(0);
+  const [searchResults, setSearchResults] = useState<SoulsightSummary[] | null>(null);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchOffset, setSearchOffset] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchLoadingMore, setIsSearchLoadingMore] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  // so-ub07 m1: ref kept in sync with debouncedQuery so handleSearchLoadMore
+  // can read the CURRENT query after an async await (the closure value is
+  // always the value at callback-creation time, not at resolution time).
+  const debouncedQueryRef = useRef(debouncedQuery);
+
   const fetchData = useCallback(async () => {
     setFetchError(null);
     try {
@@ -197,6 +214,76 @@ const SoulSightScreen = ({ navigation }: any) => {
     }
   }, [isLoadingMore, soulsights.length, listTotal, showError]);
 
+  // so-ub07: debounce the raw query; clear search state immediately on empty.
+  // so-ub07 m1: keep debouncedQueryRef in sync so load-more can detect stale queries.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      debouncedQueryRef.current = '';
+      setDebouncedQuery('');
+      setSearchResults(null);
+      setSearchTotal(0);
+      setSearchOffset(0);
+      setSearchError(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      debouncedQueryRef.current = trimmed;
+      setDebouncedQuery(trimmed);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // so-ub07: fire the server search whenever the debounced query (or retry
+  // counter) changes. Resets offset so results start from the first page.
+  useEffect(() => {
+    if (!debouncedQuery) return;
+    let cancelled = false;
+    setIsSearching(true);
+    setSearchError(null);
+    setSearchResults(null);
+    setSearchOffset(0);
+    SoulSightService.list(10, 0, debouncedQuery)
+      .then((res) => {
+        if (cancelled) return;
+        setSearchResults(res.soulsights);
+        setSearchTotal(res.total);
+        setSearchOffset(res.soulsights.length);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        setSearchError(err?.message || 'Search failed. Tap to retry.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsSearching(false);
+      });
+    return () => { cancelled = true; };
+  }, [debouncedQuery, searchRetryCount]);
+
+  // so-ub07: load the next page of server-filtered search results.
+  // so-ub07 m1: stale-query guard — capture the query at invocation time
+  // and compare against debouncedQueryRef after the await. If the user
+  // changed their query while this load-more was in-flight, the response
+  // belongs to an old search and must be discarded so stale rows never
+  // mix into the new query's result set.
+  const handleSearchLoadMore = useCallback(async () => {
+    if (isSearchLoadingMore || !searchResults || searchResults.length >= searchTotal) return;
+    const queryAtCall = debouncedQuery;
+    setIsSearchLoadingMore(true);
+    try {
+      const more = await SoulSightService.list(10, searchOffset, queryAtCall);
+      if (debouncedQueryRef.current !== queryAtCall) return; // stale — discard
+      setSearchResults((prev) => (prev ? [...prev, ...more.soulsights] : more.soulsights));
+      setSearchTotal(more.total);
+      setSearchOffset((prev) => prev + more.soulsights.length);
+    } catch (err: any) {
+      if (debouncedQueryRef.current !== queryAtCall) return;
+      showError(err, { title: 'SoulSight' });
+    } finally {
+      setIsSearchLoadingMore(false);
+    }
+  }, [isSearchLoadingMore, searchResults, searchTotal, searchOffset, debouncedQuery, showError]);
+
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
@@ -226,6 +313,13 @@ const SoulSightScreen = ({ navigation }: any) => {
       return label.includes(q) || title.includes(q) || preview.includes(q);
     });
   }, [past, query]);
+
+  // so-ub07: true once a debounced query has been sent to the server.
+  // displayPast shows the client-side-filtered rows as an immediate first
+  // paint while the server result is in flight, then switches to the full
+  // server result set once it arrives.
+  const isSearchActive = debouncedQuery.length > 0;
+  const displayPast = isSearchActive && searchResults !== null ? searchResults : filteredPast;
 
   const showCurrent = current != null || isGenerating;
   // so-9t3d MI-3: consent_required branch — user has enough entries but AI
@@ -583,21 +677,43 @@ const SoulSightScreen = ({ navigation }: any) => {
                 <>
                   <View style={styles.sectionHeaderRow}>
                     <Text style={styles.sectionHeaderText}>
-                      {query.trim()
-                        ? `Results (${filteredPast.length})`
+                      {isSearchActive
+                        ? (isSearching ? 'Searching...' : `Results (${searchTotal})`)
                         : 'Past SoulSights'}
                     </Text>
                     {/* Past-sight count moved to the title row in so-rlz; only
                         the search-result count stays here as a contextual cue. */}
                   </View>
+                  {/* so-ub07: server search in-flight indicator */}
+                  {isSearchActive && isSearching ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={isDark ? '#FFFFFF' : PURPLE}
+                      style={styles.searchSpinner}
+                    />
+                  ) : null}
+                  {/* so-ub07: search fetch error with retry */}
+                  {isSearchActive && !isSearching && searchError ? (
+                    <Pressable
+                      onPress={() => setSearchRetryCount((c) => c + 1)}
+                      style={styles.searchErrorRow}
+                      accessibilityRole="button"
+                      accessibilityLabel="Search failed, tap to retry"
+                    >
+                      <Text style={styles.searchErrorText}>{searchError}</Text>
+                    </Pressable>
+                  ) : null}
+                  {/* so-ub07: server confirmed no matches */}
+                  {isSearchActive && !isSearching && !searchError &&
+                    searchResults !== null && searchResults.length === 0 ? (
+                    <Text style={styles.noResultsText}>No matches found</Text>
+                  ) : null}
                   <View style={styles.pastList}>
-                    {filteredPast.map(renderPastCard)}
+                    {displayPast.map(renderPastCard)}
                   </View>
-                  {/* so-9t3d MI-1: load-more when there are more past sights
-                      on the server than are currently displayed. Hidden while
-                      a search query is active (offset paging and filtered
-                      results don't compose cleanly). */}
-                  {soulsights.length < listTotal && past.length > 0 && !query.trim() ? (
+                  {/* so-ub07: load-more now works for both the normal list and
+                      paginated server search results (paging no longer paused). */}
+                  {!isSearchActive && soulsights.length < listTotal ? (
                     <Pressable
                       onPress={handleLoadMore}
                       disabled={isLoadingMore}
@@ -607,6 +723,19 @@ const SoulSightScreen = ({ navigation }: any) => {
                       accessibilityLabel="Load more SoulSights"
                     >
                       {isLoadingMore
+                        ? <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : PURPLE} />
+                        : <Text style={styles.loadMoreText}>Load more</Text>}
+                    </Pressable>
+                  ) : isSearchActive && searchResults !== null && searchResults.length < searchTotal ? (
+                    <Pressable
+                      onPress={handleSearchLoadMore}
+                      disabled={isSearchLoadingMore}
+                      style={styles.loadMoreBtn}
+                      accessibilityRole="button"
+                      accessibilityState={{ busy: isSearchLoadingMore }}
+                      accessibilityLabel="Load more search results"
+                    >
+                      {isSearchLoadingMore
                         ? <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : PURPLE} />
                         : <Text style={styles.loadMoreText}>Load more</Text>}
                     </Pressable>
@@ -953,6 +1082,29 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       textAlign: 'center',
       maxWidth: 260,
       color: isDark ? 'rgba(255,255,255,0.95)' : 'rgba(58,14,102,0.7)',
+    },
+
+    // so-ub07: server-side search feedback
+    searchSpinner: { marginVertical: 12, alignSelf: 'center' },
+    searchErrorRow: {
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(58,14,102,0.06)',
+      marginBottom: 10,
+      alignItems: 'center',
+    },
+    searchErrorText: {
+      fontFamily: fonts.outfit.medium,
+      fontSize: 13,
+      color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(58,14,102,0.75)',
+    },
+    noResultsText: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(58,14,102,0.55)',
+      textAlign: 'center',
+      paddingVertical: 20,
     },
   });
 
