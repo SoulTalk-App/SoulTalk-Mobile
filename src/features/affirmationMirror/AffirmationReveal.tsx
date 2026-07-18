@@ -146,6 +146,16 @@ export function AffirmationReveal({
   const [reduceMotion, setReduceMotion] = useState(false);
   // so-lt40 MI-5(a): video decode failure — triggers gradient fallback.
   const [videoError, setVideoError] = useState(false);
+  // so-o8kb m2: measure the rendered height of the text+label block so we can
+  // switch justifyContent to 'flex-start' when content exceeds the centering
+  // region — preventing the symmetric-overflow spill that would push content UP
+  // under the back button. Region height is deterministic: MIRROR_HEIGHT minus
+  // the guard-rail spacer. onLayout on the textBlock Animated.View gives the
+  // natural laid-out height (transforms don't affect layout measurement).
+  const [contentH, setContentH] = useState(0);
+  const availableH = MIRROR_HEIGHT - (insets.top + 60);
+  // center when content fits; top-anchor when it overflows so excess goes DOWN.
+  const textOverflows = contentH > 0 && contentH > availableH;
   const isLockedEntry = !initialText && !hasEntryToday;
   const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
   const playRevealedOnMountRef = useRef(false);
@@ -215,16 +225,18 @@ export function AffirmationReveal({
 
   const isRevealedRef = useRef(false);
 
-  // so-wx08: size ladder rebalanced for the ~180-char BE cap. Floor is 30px so
-  // nothing shrinks unreadably. Any rare legacy >180-char row falls through to
-  // the else bucket and is caught by adjustsFontSizeToFit + minimumFontScale.
+  // so-wx08: size ladder rebalanced for the ~180-char BE cap.
+  // so-o8kb: ladder retuned — tighter thresholds + smaller steps prevent
+  // oversized text on mid-length affirmations (40px for ≤80 chars was
+  // noticeably too large for typical 60-80-char phrases; jumps were too abrupt).
+  // Floor lowered from 30 → 28 (still comfortably readable at Outfit Regular).
   // ↓ TUNABLE: affirmation size buckets ↓
   const { fontSize, lineHeight } = useMemo(() => {
     const len = text?.length ?? 0;
-    if (len <= 80)  return { fontSize: 40, lineHeight: 52 };
-    if (len <= 120) return { fontSize: 36, lineHeight: 48 };
-    if (len <= 160) return { fontSize: 32, lineHeight: 44 };
-    return { fontSize: 30, lineHeight: 41 };
+    if (len <= 60)  return { fontSize: 38, lineHeight: 50 };
+    if (len <= 100) return { fontSize: 34, lineHeight: 46 };
+    if (len <= 150) return { fontSize: 30, lineHeight: 42 };
+    return { fontSize: 28, lineHeight: 38 };
   }, [text]);
 
   useEffect(() => {
@@ -658,39 +670,57 @@ export function AffirmationReveal({
       </Animated.View>
 
       {isRevealed && (
-        <View style={[styles.textArea, { paddingTop: insets.top + 60 }]}>
-          {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
-              affirmation) in as one unit via textAnimStyle. Previously the
-              AIGeneratedLabel was static and popped in instantly while the
-              clouds were still dissolving — a hard cut on the top half. Now the
-              label and text resolve together with the same opacity/scale, so
-              the top half reads as one continuous reveal. Timing unchanged
-              (reuses the existing textOpacity/textScale); identical in both
-              themes (tone stays "light"). */}
-          <Animated.View style={[styles.textBlock, textAnimStyle]}>
-            {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale safety net —
-                rarely triggers once BE caps length at ~180 chars (so-wx08).
-                ellipsizeMode="tail" makes any remaining overflow visible. */}
-            <Text
-              style={[styles.affirmationText, { fontSize, lineHeight }]}
-              adjustsFontSizeToFit
-              minimumFontScale={0.80}
-              numberOfLines={8}
-              ellipsizeMode="tail"
+        <View style={styles.textArea}>
+          {/* so-o8kb: guard rail — reserves status-bar + back-button clearance
+              so the centering in textCenter below can NEVER spill upward under
+              the chevron on long affirmations. Previously paddingTop was set
+              inline on textArea itself; with justifyContent:center that means
+              the text center was computed over the full height then shifted by
+              paddingTop, splitting any overflow equally top AND bottom — the
+              upward half went straight under the back button. Moving padding to
+              a spacer View anchors centering strictly below the safe zone. */}
+          <View style={{ height: insets.top + 60 }} />
+          {/* so-o8kb m2: dynamic justifyContent — 'center' when content fits,
+              'flex-start' when it overflows so excess can ONLY go downward
+              (numberOfLines+adjustsFontSizeToFit already cap the downward
+              spill). textOverflows is derived from contentH onLayout below. */}
+          <View style={[styles.textCenter, { justifyContent: textOverflows ? 'flex-start' : 'center' }]}>
+            {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
+                affirmation) in as one unit via textAnimStyle. Previously the
+                AIGeneratedLabel was static and popped in instantly while the
+                clouds were still dissolving — a hard cut on the top half. Now the
+                label and text resolve together with the same opacity/scale, so
+                the top half reads as one continuous reveal. Timing unchanged
+                (reuses the existing textOpacity/textScale); identical in both
+                themes (tone stays "light"). */}
+            <Animated.View
+              style={[styles.textBlock, textAnimStyle]}
+              onLayout={(e) => setContentH(e.nativeEvent.layout.height)}
             >
-              {text}
-            </Text>
-            {/* so-7r4y / so-cdis: AI-disclosure label — legally required, always
-                visible per so-7r4y. Moved below the affirmation text so it is
-                never occluded by the back-chevron (position:absolute top-left).
-                Compact + no pill chrome keeps it faint metadata, not competing
-                with the affirmation. tone="light" for the dark cosmic backdrop. */}
-            <AIGeneratedLabel
-              tone="light"
-              size="compact"
-              style={{ marginTop: 14, backgroundColor: 'transparent', borderColor: 'transparent' }}
-            />
-          </Animated.View>
+              {/* so-lt40 MI-5(b): adjustsFontSizeToFit + minimumFontScale safety net —
+                  rarely triggers once BE caps length at ~180 chars (so-wx08).
+                  ellipsizeMode="tail" makes any remaining overflow visible. */}
+              <Text
+                style={[styles.affirmationText, { fontSize, lineHeight }]}
+                adjustsFontSizeToFit
+                minimumFontScale={0.80}
+                numberOfLines={8}
+                ellipsizeMode="tail"
+              >
+                {text}
+              </Text>
+              {/* so-7r4y / so-cdis: AI-disclosure label — legally required, always
+                  visible per so-7r4y. Moved below the affirmation text so it is
+                  never occluded by the back-chevron (position:absolute top-left).
+                  Compact + no pill chrome keeps it faint metadata, not competing
+                  with the affirmation. tone="light" for the dark cosmic backdrop. */}
+              <AIGeneratedLabel
+                tone="light"
+                size="compact"
+                style={{ marginTop: 14, backgroundColor: 'transparent', borderColor: 'transparent' }}
+              />
+            </Animated.View>
+          </View>
         </View>
       )}
 
@@ -818,19 +848,26 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
   },
   // so-0wzu: affirmation text occupies the TOP half of the screen (cloud area),
   // now that the layout is corrected — clouds top, animation bottom.
-  // so-qnqb: paddingTop is set inline (insets.top + 60) so justifyContent:center
-  // resolves within the safe zone below the status bar + back-button row,
-  // preventing long affirmations from riding under the notch or the chevron.
+  // so-o8kb: justifyContent/alignItems removed from textArea — centering now
+  // lives in textCenter, which sits BELOW a spacer guard-rail (insets.top+60).
+  // This prevents center-justify from splitting overflow equally and spilling
+  // the top half under the back button on long affirmations.
   textArea: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: MIRROR_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 28,
     zIndex: 5,
+  },
+  // so-o8kb: centering zone — occupies all height below the guard-rail spacer.
+  // justifyContent:center here can only spill downward (hidden by numberOfLines
+  // + adjustsFontSizeToFit), never upward into the back-button area.
+  textCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textBlock: {
     width: '100%',
