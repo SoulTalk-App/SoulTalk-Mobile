@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { ScreenEnter } from '../components/ScreenEnter';
 import {
   buildGroups,
   ResonanceToast,
@@ -470,6 +471,9 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
         </View>
       ) : (
+        // so-z3wj: entrance — header lives inside FlatList ListHeaderComponent
+        // so we wrap the whole feature component as one animated block.
+        <ScreenEnter index={0} style={{ flex: 1 }}>
         <SignalsB
           theme={theme}
           status={status}
@@ -483,6 +487,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
           filter={filter}
           onFilterChange={handleFilterChange}
         />
+        </ScreenEnter>
       )}
 
       <SignalsDetailModal

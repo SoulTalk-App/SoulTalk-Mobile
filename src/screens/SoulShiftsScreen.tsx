@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { ScreenEnter } from '../components/ScreenEnter';
 import {
   ShiftsA,
   ShiftsDetailModal,
@@ -473,6 +474,9 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
           <ActivityIndicator color={isDarkMode ? '#fff' : '#3A0E66'} size="large" />
         </View>
       ) : (
+        // so-z3wj: entrance — header lives inside FlatList ListHeaderComponent
+        // so we wrap the whole feature component as one animated block.
+        <ScreenEnter index={0} style={{ flex: 1 }}>
         <ShiftsA
           theme={theme}
           shifts={shifts}
@@ -483,6 +487,7 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
           releasedShifts={releasedShifts}
           onReleasedRequested={handleReleasedRequested}
         />
+        </ScreenEnter>
       )}
 
       <ShiftsDetailModal

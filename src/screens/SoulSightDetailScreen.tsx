@@ -303,6 +303,9 @@ const SoulSightDetailScreen = ({ navigation, route }: any) => {
           signalsFailed={signalsFailed}
           // so-9t3d MI-4: suppress Share + enable crisis link tappability.
           isSafetyRedirect={detail?.status === 'safety_redirect'}
+          // so-c7oq: data-gate the entrance — fires only when content is ready,
+          // not while ProcessingState/loader is visible (double-animation risk).
+          entranceTrigger={{ revealed: status === 'done' }}
         />
       )}
     </CosmicScreen>

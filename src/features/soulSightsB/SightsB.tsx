@@ -21,6 +21,8 @@ import {
   surfaceBorder,
 } from './tokens';
 import { Eligibility, SightDetail, SightStatus } from './types';
+import { ScreenEnter } from '../../components/ScreenEnter';
+import type { EntranceTrigger } from '../../animations/useScreenEntrance';
 
 type Props = {
   theme: Theme;
@@ -41,6 +43,11 @@ type Props = {
   // so-9t3d MI-4: suppresses Share + enables crisis-link tappability for
   // safety_redirect content.
   isSafetyRedirect?: boolean;
+  // so-c7oq: pluggable trigger for the screen-entrance animation on the done
+  // state. Defaults to 'mount-after-settle'. SoulSightDetailScreen passes
+  // { revealed: status === 'done' } so the entrance fires only when data
+  // arrives (not while ProcessingState is showing).
+  entranceTrigger?: EntranceTrigger;
 };
 
 export function SightsB({
@@ -59,6 +66,7 @@ export function SightsB({
   signalsLoading,
   signalsFailed,
   isSafetyRedirect,
+  entranceTrigger,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -130,54 +138,63 @@ export function SightsB({
           </View>
         ) : (
           <>
-            <HeroOrb theme={theme} sight={sight} />
-            <View style={styles.titleBlock}>
-              <Text style={[styles.window, { color: inkSub(theme) }]}>
-                {sight.window}
-              </Text>
-              <Text
-                style={[
-                  styles.title,
-                  { color: ink(theme) },
-                  // so-jkgo: title sits over StarsBg in dark theme; shadow
-                  // halo separates glyphs from any star pixels behind them.
-                  theme === 'dark' && cosmicTextShadow,
-                ]}
-              >
-                {sight.title}
-              </Text>
-              <View style={styles.chipRow}>
-                <View
+            {/* so-c7oq Group 0: hero orb */}
+            <ScreenEnter index={0} trigger={entranceTrigger}>
+              <HeroOrb theme={theme} sight={sight} />
+            </ScreenEnter>
+            {/* so-c7oq Group 1: title + meta */}
+            <ScreenEnter index={1} trigger={entranceTrigger}>
+              <View style={styles.titleBlock}>
+                <Text style={[styles.window, { color: inkSub(theme) }]}>
+                  {sight.window}
+                </Text>
+                <Text
                   style={[
-                    styles.chip,
-                    {
-                      backgroundColor:
-                        theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
-                      borderColor:
-                        theme === 'dark'
-                          ? 'rgba(255,255,255,0.14)'
-                          : 'rgba(58,14,102,0.08)',
-                    },
+                    styles.title,
+                    { color: ink(theme) },
+                    // so-jkgo: title sits over StarsBg in dark theme; shadow
+                    // halo separates glyphs from any star pixels behind them.
+                    theme === 'dark' && cosmicTextShadow,
                   ]}
                 >
-                  <Text style={[styles.chipText, { color: inkSub(theme) }]}>
-                    {sight.entries} entries · {sight.signals} signals
-                  </Text>
+                  {sight.title}
+                </Text>
+                <View style={styles.chipRow}>
+                  <View
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor:
+                          theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
+                        borderColor:
+                          theme === 'dark'
+                            ? 'rgba(255,255,255,0.14)'
+                            : 'rgba(58,14,102,0.08)',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: inkSub(theme) }]}>
+                      {sight.entries} entries · {sight.signals} signals
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-            <ReadingBody
-              theme={theme}
-              sight={sight}
-              accent={PINK}
-              onSave={onSave}
-              onShare={onShare}
-              isArchived={isArchived}
-              isArchiving={isArchiving}
-              signalsLoading={signalsLoading}
-              signalsFailed={signalsFailed}
-              isSafetyRedirect={isSafetyRedirect}
-            />
+            </ScreenEnter>
+            {/* so-c7oq Group 2: reading body + actions */}
+            <ScreenEnter index={2} trigger={entranceTrigger}>
+              <ReadingBody
+                theme={theme}
+                sight={sight}
+                accent={PINK}
+                onSave={onSave}
+                onShare={onShare}
+                isArchived={isArchived}
+                isArchiving={isArchiving}
+                signalsLoading={signalsLoading}
+                signalsFailed={signalsFailed}
+                isSafetyRedirect={isSafetyRedirect}
+              />
+            </ScreenEnter>
           </>
         )}
       </ScrollView>

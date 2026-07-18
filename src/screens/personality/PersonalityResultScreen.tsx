@@ -19,6 +19,7 @@ import PersonalityService, {
 import { getTest } from '../../data/personalityTests';
 import { ResultProfile, WatchOut } from '../../data/personalityTests/types';
 import { usePersonality } from '../../contexts/PersonalityContext';
+import { ScreenEnter } from '../../components/ScreenEnter';
 
 const PersonalityResultScreen = ({ navigation, route }: any) => {
   const colors = useThemeColors();
@@ -119,8 +120,10 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={dk.scrollContent}
           >
-            <View style={dk.hero}>
-              <Text style={dk.eyebrow}>{def.title} {'\u00B7'} Your result</Text>
+            {/* Group 0: archetype hero \u2014 the reveal moment */}
+            <ScreenEnter index={0}>
+              <View style={dk.hero}>
+                <Text style={dk.eyebrow}>{def.title} {'\u00B7'} Your result</Text>
               <Text style={dk.archetype}>{result.dominant_type}</Text>
               <Text style={dk.motto}>"{profile.motto}"</Text>
               {result.is_tie && (
@@ -130,20 +133,26 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
                 </Text>
               )}
             </View>
+            </ScreenEnter>
 
-            <GlassCard intensity="medium" style={dk.atBestCard}>
-              <Text style={dk.sectionEyebrow}>At your best</Text>
-              <Text style={dk.atBestText}>{profile.atYourBest}</Text>
-            </GlassCard>
+            {/* Group 1: first content cards */}
+            <ScreenEnter index={1}>
+              <GlassCard intensity="medium" style={dk.atBestCard}>
+                <Text style={dk.sectionEyebrow}>At your best</Text>
+                <Text style={dk.atBestText}>{profile.atYourBest}</Text>
+              </GlassCard>
 
-            <GlassCard intensity="light" style={dk.card}>
-              {/* so-8hun MI-5: accessibilityRole="header" so screen readers announce section boundaries */}
-              <Text style={dk.sectionHeader} accessibilityRole="header">Who you are</Text>
-              <Text style={dk.bodyText}>{profile.summary}</Text>
-            </GlassCard>
+              <GlassCard intensity="light" style={dk.card}>
+                {/* so-8hun MI-5: accessibilityRole="header" so screen readers announce section boundaries */}
+                <Text style={dk.sectionHeader} accessibilityRole="header">Who you are</Text>
+                <Text style={dk.bodyText}>{profile.summary}</Text>
+              </GlassCard>
+            </ScreenEnter>
 
-            <GlassCard intensity="light" style={dk.card}>
-              <Text style={dk.sectionHeader} accessibilityRole="header">Your scores</Text>
+            {/* Group 2: detail + CTA */}
+            <ScreenEnter index={2}>
+              <GlassCard intensity="light" style={dk.card}>
+                <Text style={dk.sectionHeader} accessibilityRole="header">Your scores</Text>
               {def.categories.map((cat) => {
                 const score = result.scores[cat] ?? 0;
                 const total = Object.values(result.scores).reduce((a, b) => a + b, 0);
@@ -219,6 +228,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
             </Pressable>
 
             <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }} />
+            </ScreenEnter>
           </ScrollView>
         </View>
       </CosmicScreen>
@@ -274,8 +284,10 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={lt.scrollContent}
         >
-          <View style={lt.hero}>
-            <Text style={lt.eyebrow}>{def.title} {'\u00B7'} Your result</Text>
+          {/* Group 0: archetype hero */}
+          <ScreenEnter index={0}>
+            <View style={lt.hero}>
+              <Text style={lt.eyebrow}>{def.title} {'\u00B7'} Your result</Text>
             <Text style={lt.archetype}>{result.dominant_type}</Text>
             <Text style={lt.motto}>"{profile.motto}"</Text>
             {result.is_tie && (
@@ -285,29 +297,35 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
               </Text>
             )}
           </View>
+          </ScreenEnter>
 
-          <View style={lt.sectionCard}>
-            <View style={lt.sectionHeaderBand}>
-              {/* so-8hun MI-5: accessibilityRole="header" for screen reader section nav */}
-              <Text style={lt.sectionHeader} accessibilityRole="header">At your best</Text>
+          {/* Group 1: first content cards */}
+          <ScreenEnter index={1}>
+            <View style={lt.sectionCard}>
+              <View style={lt.sectionHeaderBand}>
+                {/* so-8hun MI-5: accessibilityRole="header" for screen reader section nav */}
+                <Text style={lt.sectionHeader} accessibilityRole="header">At your best</Text>
+              </View>
+              <View style={lt.sectionBody}>
+                <Text style={lt.atBestText}>{profile.atYourBest}</Text>
+              </View>
             </View>
-            <View style={lt.sectionBody}>
-              <Text style={lt.atBestText}>{profile.atYourBest}</Text>
-            </View>
-          </View>
 
-          <View style={lt.sectionCard}>
-            <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader} accessibilityRole="header">Who you are</Text>
+            <View style={lt.sectionCard}>
+              <View style={lt.sectionHeaderBand}>
+                <Text style={lt.sectionHeader} accessibilityRole="header">Who you are</Text>
+              </View>
+              <View style={lt.sectionBody}>
+                <Text style={lt.bodyText}>{profile.summary}</Text>
+              </View>
             </View>
-            <View style={lt.sectionBody}>
-              <Text style={lt.bodyText}>{profile.summary}</Text>
-            </View>
-          </View>
+          </ScreenEnter>
 
-          <View style={lt.sectionCard}>
-            <View style={lt.sectionHeaderBand}>
-              <Text style={lt.sectionHeader} accessibilityRole="header">Your scores</Text>
+          {/* Group 2: detail + CTA */}
+          <ScreenEnter index={2}>
+            <View style={lt.sectionCard}>
+              <View style={lt.sectionHeaderBand}>
+                <Text style={lt.sectionHeader} accessibilityRole="header">Your scores</Text>
             </View>
             <View style={lt.sectionBody}>
               {def.categories.map((cat) => {
@@ -398,6 +416,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
           </Pressable>
 
           <View style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 24 }} />
+          </ScreenEnter>
         </ScrollView>
       </View>
     </CosmicScreen>

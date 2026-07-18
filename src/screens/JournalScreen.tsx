@@ -28,6 +28,7 @@ import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { ScreenEnter } from '../components/ScreenEnter';
 import { cosmicTextShadow } from '../components/CosmicText';
 import { CardInfoModal } from '../features/homeV2/CardInfoModal';
 import { BottomTabBar } from '../components/BottomTabBar';
@@ -455,6 +456,8 @@ const JournalScreen = ({ navigation }: any) => {
   return (
     <CosmicScreen tone="dawn">
       <View style={[styles.screen, { paddingTop: insets.top + 8 }]}>
+        {/* so-z3wj Group 0: header card */}
+        <ScreenEnter index={0}>
         {/* Header Card — manual glass surface */}
         <View style={styles.headerCard}>
           <View style={styles.headerTop}>
@@ -494,7 +497,10 @@ const JournalScreen = ({ navigation }: any) => {
             </View>
           )}
         </View>
+        </ScreenEnter>
 
+        {/* so-z3wj Group 1: filters + entry list */}
+        <ScreenEnter index={1} style={{ flex: 1 }}>
         {/* Active filter pills */}
         {activeFilterCount > 0 && (
           <View style={styles.activeFilters}>
@@ -661,6 +667,7 @@ const JournalScreen = ({ navigation }: any) => {
           />
         )}
 
+        </ScreenEnter>
       </View>
 
       {/* FAB — centered above tab bar */}

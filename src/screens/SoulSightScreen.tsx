@@ -20,6 +20,7 @@ import { useSoulPalName } from '../contexts/SoulPalContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { CosmicScreen } from '../components/CosmicBackdrop';
+import { ScreenEnter } from '../components/ScreenEnter';
 import SoulSightService, {
   EligibilityResponse,
   SoulsightSummary,
@@ -613,8 +614,11 @@ const SoulSightScreen = ({ navigation }: any) => {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
         >
-          {headerCopy}
+          {/* so-z3wj Group 0: hero header */}
+          <ScreenEnter index={0}>{headerCopy}</ScreenEnter>
 
+          {/* so-z3wj Group 1: list content */}
+          <ScreenEnter index={1}>
           {isLoading ? (
             <ActivityIndicator color={isDark ? '#FFFFFF' : PURPLE} style={{ marginTop: 40 }} />
           ) : (
@@ -746,6 +750,7 @@ const SoulSightScreen = ({ navigation }: any) => {
               ) : null}
             </>
           )}
+          </ScreenEnter>
         </ScrollView>
       </View>
     </CosmicScreen>
