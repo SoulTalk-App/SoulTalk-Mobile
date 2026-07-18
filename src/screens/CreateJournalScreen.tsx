@@ -9,7 +9,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  AppState,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +16,6 @@ import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { useAuth } from '../contexts/AuthContext';
-import JournalService from '../services/JournalService';
 import { useAutoSave } from '../hooks/useAutoSave';
 import {
   useLocalDraft,
@@ -27,7 +25,6 @@ import {
 import { useVoiceRecording } from '../hooks/useVoiceRecording';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { CrisisResourcesSheet } from '../components/CrisisResourcesSheet';
-import JournalLoader from '../components/JournalLoader';
 import InspirationDropdown from '../components/InspirationDropdown';
 import VoiceRecordingIndicator from '../components/VoiceRecordingIndicator';
 import SoulPalAnimated from '../components/SoulPalAnimated';
@@ -50,12 +47,6 @@ const MAX_ENTRY_CHARS = 10000;
 // bare AsyncStorage key (cf. @soultalk_setup_complete in App.tsx), so we read it
 // directly rather than couple this screen to the context's private constant.
 const SOULPAL_NAME_KEY = '@soultalk_soulpal_name';
-
-// so-8702: delay from save-confirmed (201) to setAnalysisDone(true).
-// Gives a brief celebration beat before revealing JournalEntryScreen so
-// the streaming tokens render live. Long enough to feel like feedback;
-// short enough that stream_start hasn't passed the 5s replay window.
-const EARLY_NAV_MS = 1500;
 
 const countWords = (s: string): number => {
   const trimmed = s.trim();
@@ -130,18 +121,10 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   const [draftId, setDraftId] = useState<string | null>(
     isEdit && editEntry.is_draft ? editEntry.id : null,
   );
-  const [showSaveAnimation, setShowSaveAnimation] = useState(false);
-  // so-apy: tracks whether AI analysis on the saved entry has finished. Drives
-  // the SaveAnimation's loop → checkmark transition. For edit-mode finalized
-  // entries (no fresh analysis), gets set true immediately on submit.
-  const [analysisDone, setAnalysisDone] = useState(false);
   const savedEntryIdRef = React.useRef<string | null>(null);
-  // so-8702: true when the current save returned crisis resources. Crisis
-  // entries are non-streamed; they must keep the poll-gated navigate path.
-  const isCrisisEntryRef = React.useRef(false);
   // so-h8eo: crisis resources are attached synchronously to the POST /journal/
-  // 201 (be_core so-qyky CR-2). When present, show the crisis sheet BEFORE the
-  // save animation so the user sees help resources the instant the entry saves.
+  // 201 (be_core so-qyky CR-2). When present, show the crisis sheet BEFORE
+  // navigation so the user sees help resources the instant the entry saves.
   const [crisisResources, setCrisisResources] = useState<string | null>(null);
 
   // so-ztg9: gate journaling on SoulPal setup being complete. A social-signup
@@ -334,18 +317,19 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
       // Clear the local crash-recovery draft (so-skm) on successful submit so
       // the next New Entry session starts clean.
       clearLocalDraft(userId);
-      setAnalysisDone(false);
       if (capturedCrisisResources) {
-        // so-h8eo: show the crisis sheet BEFORE the save animation. The sheet's
-        // "I've read this" button triggers the save animation + navigation via
-        // handleCrisisClose below, maintaining the normal completion UX.
-        // so-8702: mark as crisis so the early-navigate effect skips it;
-        // crisis entries are non-streamed and must keep the poll-gated path.
-        isCrisisEntryRef.current = true;
+        // so-h8eo: show the crisis sheet BEFORE navigating. The sheet's
+        // "I've read this" button navigates to JES via handleCrisisClose
+        // below (so-oevk: no overlay between sheet and JES).
         setCrisisResources(capturedCrisisResources);
+      } else if (entryId && !isEdit) {
+        // so-oevk: navigate immediately to JES on 201. JES inline loader
+        // is the sole loading UI while the AI streams the reflection;
+        // no save overlay, no poll on this screen.
+        navigation.replace('JournalEntry', { entryId });
       } else {
-        isCrisisEntryRef.current = false;
-        setShowSaveAnimation(true);
+        // Edit path: navigate back to the entry (already in JES).
+        navigation.goBack();
       }
     } catch (error: any) {
       const status = error?.response?.status;
@@ -400,129 +384,20 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
     }
   };
 
-  const handleSaveAnimationComplete = () => {
-    isCrisisEntryRef.current = false;
-    setShowSaveAnimation(false);
-    setAnalysisDone(false);
+  // so-h8eo / so-oevk: called when the user dismisses the CrisisResourcesSheet.
+  // Navigate directly to JES (no overlay — so-oevk removed the overlay path).
+  const handleCrisisClose = useCallback(() => {
+    setCrisisResources(null);
     if (savedEntryIdRef.current && !isEdit) {
       navigation.replace('JournalEntry', { entryId: savedEntryIdRef.current });
     } else {
       navigation.goBack();
     }
-  };
+  }, [navigation, isEdit]);
 
-  // so-h8eo: called when the user dismisses the CrisisResourcesSheet. We then
-  // proceed to the normal save animation → JournalEntry navigation sequence.
-  const handleCrisisClose = useCallback(() => {
-    setCrisisResources(null);
-    setShowSaveAnimation(true);
-  }, []);
-
-  // so-apy: poll the saved entry's ai_processing_status while the loader is
-  // up. Loop continues until 'complete' / 'failed' / 'skipped' or the 30s
-  // safety bail (max 20 attempts × 1500ms). All three are treated as done
-  // so the user isn't stranded — JournalEntryScreen handles each state.
-  useEffect(() => {
-    if (!showSaveAnimation || analysisDone) return;
-    const id = savedEntryIdRef.current;
-    if (!id) return;
-    let cancelled = false;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 20;
-    const POLL_MS = 1500;
-    const poll = async () => {
-      while (!cancelled) {
-        if (attempts >= MAX_ATTEMPTS) {
-          // so-uba4: timed out waiting for the AI re-run. Don't pretend
-          // this was a clean completion — log so field traces capture
-          // it, then dismiss the save-animation. The detail screen
-          // (JournalEntryScreen) re-arms its own poll on focus and will
-          // surface the failure inline with a retry affordance if the
-          // BE never settles. User isn't stranded on this loader.
-          console.warn(
-            '[CreateJournalScreen] so-uba4: AI poll timed out, dismissing save-animation',
-          );
-          if (!cancelled) setAnalysisDone(true);
-          return;
-        }
-        attempts += 1;
-        try {
-          const entry = await JournalService.getEntry(id);
-          const status = entry.ai_processing_status;
-          if (status === 'failed') {
-            // so-uba4: same telemetry log for hard failures. Detail
-            // screen will render the failure text + retry row.
-            console.warn(
-              '[CreateJournalScreen] so-uba4: AI processing failed for entry',
-              id,
-            );
-          }
-          if (status === 'skipped') {
-            // so-por9: AI was skipped (consent absent). Terminal — dismiss the
-            // loader so the user isn't stranded. JournalEntryScreen renders the
-            // calm "AI insights are off" state.
-            console.log(
-              '[CreateJournalScreen] so-por9: AI skipped (no consent) for entry',
-              id,
-            );
-          }
-          if (status === 'complete' || status === 'failed' || status === 'skipped') {
-            if (!cancelled) setAnalysisDone(true);
-            return;
-          }
-        } catch (err) {
-          // so-uba4: surface mid-poll fetch errors via a log instead of
-          // a bare catch{}. Behavior unchanged (transient errors still
-          // don't kill the loop — we just no longer pretend they didn't
-          // happen).
-          console.warn('[CreateJournalScreen] so-uba4: AI poll fetch error:', err);
-        }
-        await new Promise((r) => setTimeout(r, POLL_MS));
-      }
-    };
-    poll();
-    return () => {
-      cancelled = true;
-    };
-  }, [showSaveAnimation, analysisDone]);
-
-  // so-8702: navigate to JournalEntryScreen promptly after the 201, no
-  // longer gating the reveal on AI completion. A brief beat (EARLY_NAV_MS)
-  // gives save confirmation, then JES reveals so streaming tokens render
-  // live via WebSocketContext's replay buffer. JES's 5s poll remains as a
-  // fallback if WS events are missed. Crisis entries are excluded: their
-  // safety response is non-streamed and must keep the poll-gated path.
-  useEffect(() => {
-    if (!showSaveAnimation || analysisDone || isCrisisEntryRef.current) return;
-    const timer = setTimeout(() => setAnalysisDone(true), EARLY_NAV_MS);
-    return () => clearTimeout(timer);
-  }, [showSaveAnimation, analysisDone]);
-
-  // so-9bq8: immediate refetch on foreground so the save overlay settles
-  // without waiting for the next 1500ms tick after a background->foreground.
-  // Only active while the overlay is up and not yet done.
-  // so-8233 m1: cancelled flag guards the setState after the async getEntry
-  // await so it cannot fire on an unmounted component (mirrors JES pattern).
-  useEffect(() => {
-    if (!showSaveAnimation || analysisDone) return;
-    const id = savedEntryIdRef.current;
-    if (!id) return;
-    let cancelled = false;
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') return;
-      JournalService.getEntry(id)
-        .then((e) => {
-          if (cancelled) return;
-          const s = e.ai_processing_status;
-          if (s === 'complete' || s === 'failed' || s === 'skipped') setAnalysisDone(true);
-        })
-        .catch(() => {});
-    });
-    return () => {
-      cancelled = true;
-      sub.remove();
-    };
-  }, [showSaveAnimation, analysisDone]);
+  // so-oevk: so-apy poll, so-8702 EARLY_NAV_MS timer, and so-9bq8 foreground-
+  // refetch were all overlay-support effects — removed. All loading/polling
+  // now lives exclusively on JournalEntryScreen (the inline loader).
 
   const displayValue = isRecording && liveTranscript
     ? (textBeforeRecordingRef.current.trim() ? textBeforeRecordingRef.current + ' ' : '') + liveTranscript
@@ -684,23 +559,8 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
             </View>
           </View>
         </KeyboardAvoidingView>
-        {/* so-4j34: rainbow SaveAnimation retired. JournalLoader's
-            overlay variant matches the SaveAnimation contract
-            (visible/done/onComplete) but loops a SoulPal reflecting
-            scene with a rotating status line and an on-brand
-            celebrating-SoulPal completion beat. The 30s poll, WS
-            journal_ai_complete fast-path (JournalContext), and so-uba4
-            timeout dismissal are untouched — only the overlay surface
-            changed. */}
-        <JournalLoader
-          variant="overlay"
-          visible={showSaveAnimation}
-          done={analysisDone}
-          onComplete={handleSaveAnimationComplete}
-        />
-        {/* so-h8eo: crisis resources surface here BEFORE the save animation
-            so the user sees help the instant the entry saves. The sheet
-            renders on top of everything via its own Modal portal. */}
+        {/* so-h8eo / so-oevk: crisis sheet renders BEFORE navigation to JES.
+            handleCrisisClose navigates directly to JES (no overlay). */}
         {crisisResources != null && (
           <CrisisResourcesSheet
             visible
@@ -769,14 +629,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-      {/* so-4j34: see dark-mode branch for full rationale. */}
-      <JournalLoader
-        variant="overlay"
-        visible={showSaveAnimation}
-        done={analysisDone}
-        onComplete={handleSaveAnimationComplete}
-      />
-      {/* so-h8eo: crisis resources sheet — see dark-mode branch for rationale. */}
+      {/* so-h8eo / so-oevk: see dark-mode branch for rationale. */}
       {crisisResources != null && (
         <CrisisResourcesSheet
           visible

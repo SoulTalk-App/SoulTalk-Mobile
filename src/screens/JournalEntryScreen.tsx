@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   AppState,
+  AccessibilityInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -258,6 +259,10 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             } as any : prev.tags,
           };
         });
+        // so-oevk: announce for VoiceOver/TalkBack when the full reflection
+        // arrives. Fires after the state update so the complete render is
+        // visible to the screen reader when the announcement plays.
+        AccessibilityInfo.announceForAccessibility('Your reflection is ready');
       }
     });
     const unsubError = subscribe('response_stream_error', (data: any) => {
@@ -501,7 +506,14 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
             {isDarkMode && <SoulPalAnimated size={32} animate={true} />}
             <Text style={isDarkMode ? dk.aiLabel : lt.aiLabel}>{soulPalName}</Text>
           </View>
-          <Text style={isDarkMode ? dk.aiText : lt.aiText}>
+          {/* so-oevk: accessibilityLiveRegion='polite' lets VoiceOver/TalkBack
+              announce new streamed tokens as they arrive without interrupting
+              the user. The polite queue waits for any current utterance to
+              finish before reading the updated content. */}
+          <Text
+            style={isDarkMode ? dk.aiText : lt.aiText}
+            accessibilityLiveRegion="polite"
+          >
             {streamingText.replace(/\*+/g, '')}
           </Text>
           {/* so-gozt: moved below reflection text — de-emphasised metadata
