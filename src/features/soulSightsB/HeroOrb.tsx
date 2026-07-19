@@ -22,7 +22,10 @@ import { Theme } from './tokens';
 // header reads warm/positive rather than sad. home_<color>.png via context.
 import SoulPalAnimated from '../../components/SoulPalAnimated';
 
-const HERO_HEIGHT = 320;
+// so-u343: reduced from 320 → 260 to tighten the hero banner; combined with
+// the orbWrap top-shift below this cuts the empty dark band above the orb
+// from ~80px to ~32px without clipping the orb, rings, or caption.
+const HERO_HEIGHT = 260;
 
 type Props = {
   theme: Theme;
@@ -100,6 +103,10 @@ export function HeroOrb({ theme, sight }: Props) {
       </Animated.View>
 
       {/* orbiting dotted ellipses */}
+      {/* so-u343: cy updated from 160 → 142 to stay co-centred with the raised
+          orb. With xMidYMid slice at HERO_HEIGHT=260 the 393×320 viewBox is
+          cropped 30 units top+bottom (rendered_y = viewBox_y − 30), so the
+          orb centre at rendered 112px maps to viewBox cy = 112 + 30 = 142. */}
       <Svg
         style={StyleSheet.absoluteFill}
         viewBox="0 0 393 320"
@@ -107,7 +114,7 @@ export function HeroOrb({ theme, sight }: Props) {
       >
         <Ellipse
           cx={196.5}
-          cy={160}
+          cy={142}
           rx={140}
           ry={36}
           fill="none"
@@ -117,7 +124,7 @@ export function HeroOrb({ theme, sight }: Props) {
         />
         <Ellipse
           cx={196.5}
-          cy={160}
+          cy={142}
           rx={100}
           ry={22}
           fill="none"
@@ -150,7 +157,9 @@ const styles = StyleSheet.create({
   orbWrap: {
     position: 'absolute',
     left: '50%',
-    top: '50%',
+    // so-u343: raised from '50%' → '43%' — orb centre at 260×0.43 = 112px,
+    // leaving ~32px above the orb instead of the previous ~80px dark band.
+    top: '43%',
     width: 160,
     height: 160,
     marginLeft: -80,
