@@ -374,7 +374,8 @@ const SoulSightScreen = ({ navigation }: any) => {
     if (!current) return null;
     const tone = toneForId(current.id);
     const soulpal = current.soulpal ?? soulpalForId(current.id);
-    const title = current.title || 'A new chapter is forming';
+    // so-6xir: strip leading '#' heading prefix the BE sometimes sends.
+    const title = current.title?.replace(/^#+\s*/, '').trim() || 'A new chapter is forming';
     const blurb =
       current.content_preview ||
       `${current.entry_count} entries · ${current.active_days} active days.`;
@@ -515,7 +516,8 @@ const SoulSightScreen = ({ navigation }: any) => {
   const renderPastCard = (item: SoulsightSummary) => {
     const tone = toneForId(item.id);
     const soulpal = item.soulpal ?? soulpalForId(item.id);
-    const title = item.title || item.window_label || '';
+    // so-6xir: strip leading '#' heading prefix the BE sometimes sends.
+    const title = item.title?.replace(/^#+\s*/, '').trim() || item.window_label || '';
     const blurb =
       item.content_preview ||
       `${item.entry_count} entries · ${item.active_days} active days`;
