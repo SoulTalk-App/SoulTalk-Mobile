@@ -24,7 +24,6 @@ import {
   ShiftSuggestionResponse,
 } from '../features/soulShifts/types';
 import SoulShiftsService from '../services/SoulShiftsService';
-import authService from '../services/AuthService';
 import { useAppAlert } from '../components/AppAlertProvider';
 
 const SoulShiftsScreen = ({ navigation, route }: any) => {
@@ -92,10 +91,6 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   // Track which suggestion ids we've already POST'd /show for this session
   // so the marker fires once per id even if the modal re-opens.
   const shownSuggestionIdsRef = React.useRef<Set<string>>(new Set());
-  // so-zlvm MI-3: AI consent state for the consent-off branch in SuggestModal.
-  // null = not yet fetched; false = consent off; true = consent on.
-  const [aiConsentGranted, setAiConsentGranted] = useState<boolean | null>(null);
-
   // so-sh1y SH-m4: was a mount-only useEffect([]) — the so-72fx fix applied
   // to SoulSignalsScreen was not applied here. Converting a pattern via
   // Signals->Shifts and navigating to an already-mounted Shifts tab left the
@@ -349,17 +344,8 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     setSuggestOpen(true);
     setSuggestLoading(true);
     try {
-      // so-zlvm MI-3: fetch consent status concurrently with suggestions so the
-      // modal can branch on consent-off without a serial round-trip. Both calls
-      // are lightweight; the slower one determines when loading clears.
-      const [result, consentStatus] = await Promise.all([
-        SoulShiftsService.getSuggestions(),
-        authService.getAiConsentStatus().catch(() => null),
-      ]);
+      const result = await SoulShiftsService.getSuggestions();
       setSuggestResponse(result);
-      if (consentStatus != null) {
-        setAiConsentGranted(!consentStatus.consent_required);
-      }
       // Fire /show once per suggestion id per session. Idempotent on BE so
       // a repeat fire is harmless, but caching avoids redundant requests.
       if (result.id && result.candidates.length > 0) {
@@ -547,12 +533,6 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         }}
         onAccept={handleAcceptSuggestion}
         submitting={suggestSubmitting}
-        consentGranted={aiConsentGranted}
-        onGoToSettings={() => {
-          setSuggestOpen(false);
-          setSuggestResponse(null);
-          navigation.navigate('Settings');
-        }}
       />
 
       <TendModal

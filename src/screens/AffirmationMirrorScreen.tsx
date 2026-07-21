@@ -181,25 +181,17 @@ const AffirmationMirrorScreen = ({ navigation }: any) => {
     } catch (err: any) {
       // so-a95p: no_entry_today sentinel — setState already called; skip toast.
       if (err?._noToast) throw err;
-      // so-lt40 MI-1: consent-revoked (403 ai_consent_required) dead-ends in
-      // a toast loop today — every tap re-toasts without offering an exit.
-      // Detect the specific code and offer navigation to Settings instead.
+      // so-iqdp: AI consent is now mandatory at signup (no toggle). If the BE
+      // still returns consent_required for a legacy account, show a neutral
+      // informational alert — no Settings CTA (the toggle no longer exists).
       if (
         err?.response?.status === 403 &&
         err?.response?.data?.detail?.code === 'ai_consent_required'
       ) {
         showAlert({
-          title: 'AI Insights Required',
-          message:
-            err?.response?.data?.detail?.message ||
-            'Enable AI Insights in Settings to generate your affirmation.',
-          buttons: [
-            { text: 'Not Now', style: 'cancel' },
-            {
-              text: 'Enable in Settings',
-              onPress: () => navigation.navigate('Settings'),
-            },
-          ],
+          title: 'AI features unavailable',
+          message: 'AI-powered features are not available for your account.',
+          buttons: [{ text: 'OK', style: 'cancel' }],
         });
         throw err;
       }

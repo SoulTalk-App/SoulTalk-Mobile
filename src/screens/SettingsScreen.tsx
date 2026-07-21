@@ -9,7 +9,6 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -177,10 +176,6 @@ const SettingsScreen = ({ navigation }: any) => {
   // so-fwva: in-flight guard for restore-purchases (sandbox can take a
   // few seconds to round-trip Adapty → App Store).
   const [restoring, setRestoring] = useState(false);
-  // so-por9: AI consent status for the Settings control (null = loading).
-  const [aiConsentGranted, setAiConsentGranted] = useState<boolean | null>(null);
-  const [aiConsentVersion, setAiConsentVersion] = useState<number>(1);
-  const [aiConsentBusy, setAiConsentBusy] = useState(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
   // restored draft) has run, so we don't autosave an empty form or clobber
@@ -217,57 +212,6 @@ const SettingsScreen = ({ navigation }: any) => {
   }, []);
 
 
-  // so-por9: load AI consent status on mount so the Settings toggle reflects
-  // reality. Silently ignores errors — the row stays in its loading state
-  // rather than crashing the screen.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const status = await authService.getAiConsentStatus();
-        if (!cancelled) {
-          setAiConsentGranted(!status.consent_required);
-          setAiConsentVersion(status.current_version);
-        }
-      } catch {
-        // Non-fatal; leave as null (loading appearance).
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // so-por9 / so-kff3: enable AI consent from Settings. Idempotent on the BE.
-  // so-k25b: version is accepted for API compat but not validated on the server.
-  const handleGrantAiConsent = useCallback(async () => {
-    if (aiConsentBusy || aiConsentGranted) return;
-    setAiConsentBusy(true);
-    try {
-      await authService.recordAiConsent(aiConsentVersion);
-      setAiConsentGranted(true);
-    } catch (err: any) {
-      showError(err?.message || 'Failed to enable AI Insights. Please try again.');
-    } finally {
-      setAiConsentBusy(false);
-    }
-  }, [aiConsentBusy, aiConsentGranted, aiConsentVersion, showError]);
-
-  // so-kff3: explicit AI consent opt-out via Settings toggle.
-  // Calls POST /auth/ai-consent/disable (so-k25b) which stamps
-  // ai_consent_revoked_at — has_consent() then returns false until re-enabled.
-  const handleRevokeAiConsent = useCallback(async () => {
-    if (aiConsentBusy || !aiConsentGranted) return;
-    setAiConsentBusy(true);
-    try {
-      await authService.revokeAiConsent();
-      setAiConsentGranted(false);
-    } catch (err: any) {
-      showError(err?.message || 'Failed to disable AI Insights. Please try again.');
-    } finally {
-      setAiConsentBusy(false);
-    }
-  }, [aiConsentBusy, aiConsentGranted, showError]);
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -681,33 +625,6 @@ const SettingsScreen = ({ navigation }: any) => {
           </Text>
         </Pressable>
         <View style={styles.separator} />
-
-        {/* so-kff3: AI Insights ON/OFF toggle. ON (default) = consent granted;
-            OFF = user explicitly opted out via POST /auth/ai-consent/disable.
-            so-k25b opt-out model: status_for() returns consent_required=false
-            for everyone by default — new users start with toggle ON.
-            so-lvyt #6: replaced ambiguous pill with a Switch for clear on/off UX.
-            so-lvyt #2: Push Notification 'Coming Soon' row removed. */}
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>AI Insights</Text>
-          <Switch
-            value={aiConsentGranted === true}
-            onValueChange={(val) =>
-              val ? handleGrantAiConsent() : handleRevokeAiConsent()
-            }
-            disabled={aiConsentBusy || aiConsentGranted === null}
-            trackColor={{
-              false: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(58,14,102,0.12)',
-              true: colors.primary,
-            }}
-            thumbColor={colors.white}
-            ios_backgroundColor={
-              isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(58,14,102,0.12)'
-            }
-            accessibilityLabel="AI Insights"
-            style={(aiConsentBusy || aiConsentGranted === null) ? { opacity: 0.6 } : undefined}
-          />
-        </View>
 
         {/* Appearance — Light / Dark */}
         <View style={styles.appearanceRow}>

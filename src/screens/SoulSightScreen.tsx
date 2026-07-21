@@ -445,10 +445,9 @@ const SoulSightScreen = ({ navigation }: any) => {
     );
   };
 
-  // so-9t3d MI-3: consent_required → "Enable AI Insights in Settings" CTA.
-  // The eligibility endpoint returns {eligible:false, consent_required:true}
-  // when the user has enough entries but AI consent is disabled. Previously
-  // there was no branch for this — the feature went silently inert.
+  // so-iqdp: AI consent is now mandatory at signup — consent_required is only
+  // reachable for the 1 legacy revoked account. Render a neutral informational
+  // card with no Settings CTA (the toggle no longer exists in the app).
   const renderConsentRequired = () => (
     <View style={styles.currentCard}>
       <View style={styles.currentTopRow}>
@@ -456,27 +455,12 @@ const SoulSightScreen = ({ navigation }: any) => {
           <Image source={SOULPAL_SRC[5]} style={styles.currentSoulpal} resizeMode="contain" />
         </View>
         <View style={styles.currentTextCol}>
-          <Text style={styles.currentTitle}>AI Insights Required</Text>
+          <Text style={styles.currentTitle}>AI features unavailable</Text>
           <Text style={styles.currentBlurb}>
-            Enable AI Insights in Settings to generate your SoulSight.
+            SoulSight generation is not available for your account.
           </Text>
         </View>
       </View>
-      <Pressable
-        onPress={() => navigation.navigate('Settings')}
-        style={styles.currentOpenBtn}
-        accessibilityRole="button"
-        accessibilityLabel="Enable AI Insights in Settings"
-      >
-        <LinearGradient
-          colors={[TEAL, PURPLE]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.generateBtnGradient}
-        >
-          <Text style={styles.currentOpenBtnText}>Enable in Settings</Text>
-        </LinearGradient>
-      </Pressable>
     </View>
   );
 

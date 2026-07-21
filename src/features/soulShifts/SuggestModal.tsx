@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, fonts } from '../../theme';
 import { useSoulPalName } from '../../contexts/SoulPalContext';
@@ -17,7 +16,7 @@ import {
   ShiftSuggestionResponse,
   SoulpalVariant,
 } from './types';
-import { PINK, PURPLE, TEAL, Theme, ink, inkFaint, inkSub } from './tokens';
+import { PURPLE, TEAL, Theme, ink, inkFaint, inkSub } from './tokens';
 
 const SOULPAL_SRC: Record<SoulpalVariant, any> = {
   1: require('../../../assets/images/home-v2/soulpal-1.png'),
@@ -47,14 +46,6 @@ type Props = {
   /** User picked a candidate and confirmed; parent calls accept service. */
   onAccept: (candidateIdx: number, candidate: ShiftSuggestionCandidate) => void;
   submitting?: boolean;
-  /**
-   * so-zlvm MI-3: false when AI consent is off; true when on; null while
-   * checking. When false AND candidates is empty, renders "AI suggestions are
-   * off" copy + Settings pointer instead of the hopeful "keep tending" copy.
-   */
-  consentGranted?: boolean | null;
-  /** Navigate to Settings — used when the consent-off CTA is tapped. */
-  onGoToSettings?: () => void;
 };
 
 export function SuggestModal({
@@ -65,8 +56,6 @@ export function SuggestModal({
   onClose,
   onAccept,
   submitting = false,
-  consentGranted,
-  onGoToSettings,
 }: Props) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
@@ -96,10 +85,6 @@ export function SuggestModal({
   };
 
   const hasCandidates = candidates.length > 0;
-  // so-zlvm MI-3: consent-off empty state — indistinguishable from "no patterns
-  // yet" at the API level (both return {candidates: []}). Use consent state to
-  // show the right copy and route the user to Settings when off.
-  const consentOff = !hasCandidates && consentGranted === false;
   const ctaLabel = submitting
     ? 'Beginning…'
     : selectedIdx != null && candidates[selectedIdx]
@@ -153,39 +138,14 @@ export function SuggestModal({
                 <Text style={[styles.title, { color: ink(theme) }]}>
                   {hasCandidates
                     ? "A shift that's forming for you"
-                    : consentOff
-                    ? 'AI suggestions are off'
                     : 'Nothing new yet'}
                 </Text>
                 <Text style={[styles.subtitle, { color: ink(theme) }]}>
                   {hasCandidates
                     ? 'From the patterns in your last two weeks.'
-                    : consentOff
-                    ? `${soulPalName} can't surface suggestions when AI Insights is off. Enable it in Settings to start receiving shift suggestions.`
                     : `${soulPalName} hasn't found patterns yet — keep tending and check back.`}
                 </Text>
               </View>
-
-              {/* so-zlvm MI-3: Settings CTA when consent is off. */}
-              {consentOff && onGoToSettings ? (
-                <Pressable
-                  onPress={onGoToSettings}
-                  style={[styles.cta, { marginTop: 16 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Enable AI Insights in Settings"
-                >
-                  <LinearGradient
-                    colors={[PINK, PURPLE]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.ctaGradient}
-                  >
-                    <Text style={[styles.ctaText, { color: colors.white }]}>
-                      Enable in Settings
-                    </Text>
-                  </LinearGradient>
-                </Pressable>
-              ) : null}
 
               {loading && !hasCandidates ? (
                 <Text
