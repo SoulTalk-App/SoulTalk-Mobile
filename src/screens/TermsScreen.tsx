@@ -45,8 +45,14 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
   const isAcceptMode = route.params?.mode === 'accept';
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<LegalTab>('privacy');
+  // so-c7wq: accept-mode starts on Terms so the user reads ToS before Privacy.
+  // Read-only view keeps the old Privacy-first default (unchanged).
+  const [activeTab, setActiveTab] = useState<LegalTab>(isAcceptMode ? 'terms' : 'privacy');
   const scrollRef = useRef<ScrollView>(null);
+  // so-c7wq: guard — Terms was shown before Accept is reachable.
+  // True from mount in accept-mode (we start on Terms); also set true on
+  // leaving the Terms tab so the guard holds even if tabs are used freely.
+  const termsWasSeenRef = useRef(isAcceptMode);
 
   const styles = useMemo(
     () =>
@@ -199,6 +205,8 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
   }, []);
 
   const handleTabSwitch = (tab: LegalTab) => {
+    // so-c7wq: mark Terms as seen when leaving it (guard for free tab switching).
+    if (activeTab === 'terms') termsWasSeenRef.current = true;
     setActiveTab(tab);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -314,20 +322,37 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
 
       {/* so-eer8: Accept footer is ONLY shown in the signup-accept context
           (mode='accept' from RegisterScreen). All other callers open Terms
-          as a read-only viewer — no Accept button, no agreement text. */}
+          as a read-only viewer — no Accept button, no agreement text.
+          so-c7wq: footer is dynamic by tab:
+            Terms tab  → 'Next' → switches to Privacy tab (scroll top)
+            Privacy tab → 'Accept TOC and Privacy Policy' → handleAccept */}
       {isAcceptMode && (
         <Animated.View style={[styles.bottomContainer, buttonContainerStyle]}>
           <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
-            <Text style={styles.agreementText}>
-              By tapping Accept, you agree to our Terms and Privacy Policy
-            </Text>
+            {activeTab === 'privacy' && (
+              <Text style={styles.agreementText}>
+                By tapping Accept, you agree to our Terms and Privacy Policy
+              </Text>
+            )}
             <AnimatedPressable
               style={[styles.acceptButton, buttonStyle]}
-              onPress={handleAccept}
+              onPress={
+                activeTab === 'terms'
+                  ? () => handleTabSwitch('privacy')
+                  : handleAccept
+              }
               onPressIn={handleButtonPressIn}
               onPressOut={handleButtonPressOut}
+              accessibilityRole="button"
+              accessibilityLabel={
+                activeTab === 'terms'
+                  ? 'Next: view Privacy Policy'
+                  : 'Accept Terms and Privacy Policy'
+              }
             >
-              <Text style={styles.acceptButtonText}>Accept</Text>
+              <Text style={styles.acceptButtonText}>
+                {activeTab === 'terms' ? 'Next' : 'Accept TOC and Privacy Policy'}
+              </Text>
             </AnimatedPressable>
           </View>
         </Animated.View>
