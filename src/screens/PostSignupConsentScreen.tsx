@@ -71,8 +71,13 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   const { user, confirmAge } = useAuth();
 
   const [step, setStep] = useState<0 | 1 | 2>(0);
-  const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('privacy');
+  // so-u57r: legal step starts on Terms (not Privacy) so the user reads ToS first.
+  const [activeLegalTab, setActiveLegalTab] = useState<'privacy' | 'terms'>('terms');
   const legalScrollRef = useRef<ScrollView>(null);
+  // so-u57r: guard — Terms tab must be seen before the Accept CTA is reachable.
+  // Set true on entry to step 2 (we start on Terms) and when leaving the Terms tab.
+  // Reset to false on re-entry so a back→re-enter doesn't skip Terms.
+  const hasSeenTermsRef = useRef(false);
 
   // Terms state for step 2
   const [termsVersion, setTermsVersion] = useState<number | null>(null);
@@ -137,9 +142,11 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const handleLegalTabSwitch = useCallback((tab: 'privacy' | 'terms') => {
+    // so-u57r: mark Terms as seen when leaving it (guard for free tab switching).
+    if (activeLegalTab === 'terms') hasSeenTermsRef.current = true;
     setActiveLegalTab(tab);
     legalScrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, []);
+  }, [activeLegalTab]);
 
   // so-qg4o M-1: final step before WelcomeSplash — gate on is_18_plus.
   // Called by both the 2-step path (handleNoteAck) and the 3-step path
@@ -182,6 +189,10 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleNoteAck = useCallback(() => {
     if (showTOC) {
+      // so-u57r: reset to Terms tab + guard on every entry to the legal step
+      // (covers re-entry via back gesture so user doesn't strand on Privacy).
+      setActiveLegalTab('terms');
+      hasSeenTermsRef.current = true; // starting on Terms → seen on entry
       setStep(2);
     } else {
       // so-qg4o M-1: gate through age affirmation before WelcomeSplash.
@@ -527,20 +538,34 @@ const PostSignupConsentScreen: React.FC<Props> = ({ navigation }) => {
       );
     }
 
-    // Step 2 — TOC acceptance
+    // so-u57r: Step 2 — dynamic CTA matches so-c7wq (TermsScreen):
+    //   Terms tab  → 'Next'  → switch to Privacy tab (scroll top)
+    //   Privacy tab → 'Accept TOC and Privacy Policy' → handleAcceptTOC
+    const onTermsTab = activeLegalTab === 'terms';
     return (
       <Pressable
-        style={[styles.ctaButton, styles.ctaButtonPrimary, tocBusy && styles.ctaButtonDisabled]}
-        onPress={handleAcceptTOC}
-        disabled={tocBusy}
+        style={[
+          styles.ctaButton,
+          styles.ctaButtonPrimary,
+          !onTermsTab && tocBusy && styles.ctaButtonDisabled,
+        ]}
+        onPress={onTermsTab ? () => handleLegalTabSwitch('privacy') : handleAcceptTOC}
+        disabled={!onTermsTab && tocBusy}
         accessibilityRole="button"
-        accessibilityLabel="Accept Terms and Privacy Policy"
-        accessibilityState={{ disabled: tocBusy, busy: tocBusy }}
+        accessibilityLabel={
+          onTermsTab ? 'Next: view Privacy Policy' : 'Accept Terms and Privacy Policy'
+        }
+        accessibilityState={{
+          disabled: !onTermsTab && tocBusy,
+          busy: !onTermsTab && tocBusy,
+        }}
       >
-        {tocBusy ? (
+        {!onTermsTab && tocBusy ? (
           <ActivityIndicator size="small" color="#4F1786" />
         ) : (
-          <Text style={[styles.ctaText, styles.ctaTextPrimary]}>I Accept</Text>
+          <Text style={[styles.ctaText, styles.ctaTextPrimary]}>
+            {onTermsTab ? 'Next' : 'Accept TOC and Privacy Policy'}
+          </Text>
         )}
       </Pressable>
     );
