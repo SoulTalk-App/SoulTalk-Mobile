@@ -33,7 +33,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type ViewStyle,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -146,24 +145,32 @@ export const AppAlert: React.FC<AppAlertProps> = ({
           marginBottom: 18,
         },
         buttonRow: {
-          // Single-button alerts get a full-width pill; two-button alerts
-          // sit side-by-side. Anything beyond 2 we wrap to a column for
-          // legibility on small screens.
+          // 1-2 buttons: side-by-side with flex:1 on each button.
           flexDirection: 'row',
           gap: 8,
-          flexWrap: 'wrap',
+          // flexWrap removed — row is for 1-2 buttons only; >2 uses column.
         },
         buttonRowColumn: {
+          // so-7g6m: >2 buttons stacked vertically — self-contained, no spread
+          // with buttonRow (spreading kept flexWrap:'wrap' which caused Yoga to
+          // lay items horizontally in column mode with no fixed container height).
           flexDirection: 'column',
+          gap: 8,
         },
         button: {
-          flex: 1,
+          flex: 1,        // fills row width when side-by-side (1-2 button case)
           minHeight: 44,
           borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 16,
           marginBottom: 10,
+        },
+        buttonColumnItem: {
+          // so-7g6m: override flex:1 (row-sizing) for the stacked column layout.
+          // flex:0 → natural size (minHeight:44); width:'100%' → full card width.
+          flex: 0,
+          width: '100%',
         },
         buttonDefault: {
           backgroundColor: isDarkMode ? colors.primary : colors.primary,
@@ -235,9 +242,10 @@ export const AppAlert: React.FC<AppAlertProps> = ({
     }
   };
 
-  // Wrap >2 buttons (rare) as a column to avoid cramped Pressables.
-  const buttonRowStyle: ViewStyle =
-    effectiveButtons.length > 2 ? { ...styles.buttonRow, ...styles.buttonRowColumn } : styles.buttonRow;
+  // so-7g6m: >2 buttons stack as a full-width column (no spread — spreading
+  // buttonRow into buttonRowColumn kept flexWrap:'wrap' which caused overflow).
+  const isColumn = effectiveButtons.length > 2;
+  const buttonRowStyle = isColumn ? styles.buttonRowColumn : styles.buttonRow;
 
   return (
     <Modal
@@ -281,6 +289,8 @@ export const AppAlert: React.FC<AppAlertProps> = ({
                       onPress={() => handleButtonPress(btn)}
                       style={({ pressed }) => [
                         styles.button,
+                        // so-7g6m: override flex:1 with full-width in column mode.
+                        isColumn && styles.buttonColumnItem,
                         buttonBase,
                         pressed && styles.buttonPressed,
                       ]}
