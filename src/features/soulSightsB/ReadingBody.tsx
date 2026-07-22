@@ -66,6 +66,9 @@ function CrisisParagraph({ text, textStyle }: { text: string; textStyle: any }) 
         part.url ? (
           <Text
             key={i}
+            // so-q9oc: crisisLink is inline inside the outer Text; no flexShrink
+            // needed here, but keep it consistent with plain-text siblings so
+            // both inherit the outer Text's measured layout width.
             style={styles.crisisLink}
             onPress={() => Linking.openURL(part.url!)}
             accessibilityRole="link"
@@ -74,6 +77,9 @@ function CrisisParagraph({ text, textStyle }: { text: string; textStyle: any }) 
             {part.text}
           </Text>
         ) : (
+          // so-q9oc: plain-text inline child — no style override needed; it
+          // inherits font/size from the outer Text (textStyle). Rendered as
+          // an inline span so React needs a key, but content is just the string.
           <Text key={i}>{part.text}</Text>
         ),
       )}
@@ -329,7 +335,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
+  // so-q9oc: flexShrink:1 lets the Text shrink to its container's layout
+  // width so the engine can wrap lines. Without it the default flexShrink:0
+  // lets the node expand to its natural content width, which overflows the
+  // Animated.View from ScreenEnter and is then clipped by CosmicScreen's
+  // overflow:hidden root.
   opening: {
+    flexShrink: 1,
     fontFamily: fonts.edensor.regular,
     fontSize: 28,
     lineHeight: 28 * 1.15,
@@ -340,7 +352,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   // so-kima (Option B): Light (300) → Regular readability floor on dark bg.
+  // so-q9oc: flexShrink:1 — same wrapping fix as `opening`.
   paragraph: {
+    flexShrink: 1,
     fontFamily: fonts.outfit.regular,
     fontSize: 15,
     lineHeight: 15 * 1.6,
