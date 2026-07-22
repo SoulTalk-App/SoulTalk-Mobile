@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ScrollView,
   Pressable,
@@ -21,7 +22,8 @@ import { fonts, useThemeColors } from '../theme';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
 import { BottomTabBar } from '../components/BottomTabBar';
-import { useSoulPal, getSoulPalPalette } from '../contexts/SoulPalContext';
+import { useSoulPal } from '../contexts/SoulPalContext';
+import JournalService from '../services/JournalService';
 import { usePersonality } from '../contexts/PersonalityContext';
 import { PersonalityTestResult } from '../services/PersonalityService';
 import { TestType } from '../data/personalityTests/types';
@@ -61,8 +63,16 @@ const ProfileScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { colorId, setColorId } = useSoulPal();
-  const soulPalPalette = getSoulPalPalette(isDarkMode);
+  // so-38wy: color picker removed; rename control added. colorId/setColorId
+  // remain in context (used by HomeScreen + JournalScreen) — only removed here.
+  const { name: soulPalContextName, setName: setSoulPalName } = useSoulPal();
+  const [nameInput, setNameInput] = useState(soulPalContextName);
+  const handleRename = useCallback(() => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setSoulPalName(trimmed);
+    JournalService.syncSoulPalName(trimmed, user?.id ?? '');
+  }, [nameInput, setSoulPalName, user?.id]);
   const { latestByType } = usePersonality();
   const pastResults: PersonalityTestResult[] = (
     Object.values(latestByType).filter(Boolean) as PersonalityTestResult[]
@@ -209,23 +219,19 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
-                {/* so-cjr: replaced the full-card Under Construction overlay
-                    (so-2cy) with a small text label. No tap-blocking; color
-                    picker is interactive again. */}
-                <Text style={dk.underConstructionLabel}>Under Construction</Text>
-                <View style={dk.colorPickerGrid}>
-                  {soulPalPalette.map((c) => (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => setColorId(c.id)}
-                      style={[
-                        dk.colorCircle,
-                        { backgroundColor: c.hex },
-                        colorId === c.id && dk.colorCircleActive,
-                      ]}
-                    />
-                  ))}
-                </View>
+                {/* so-38wy: rename control — color picker removed. Storage +
+                    BE sync via SoulPalContext.setName + JournalService. */}
+                <TextInput
+                  style={dk.soulPalNameInput}
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  onSubmitEditing={handleRename}
+                  onBlur={handleRename}
+                  returnKeyType="done"
+                  placeholder="Name your SoulPal"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  accessibilityLabel="SoulPal name"
+                />
               </View>
             </View>
           </GlassCard>
@@ -353,21 +359,18 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>
-              {/* so-cjr: small text label replaces the full-card overlay. */}
-              <Text style={lt.underConstructionLabel}>Under Construction</Text>
-              <View style={lt.colorPickerGrid}>
-                {soulPalPalette.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => setColorId(c.id)}
-                    style={[
-                      lt.colorCircle,
-                      { backgroundColor: c.hex },
-                      colorId === c.id && lt.colorCircleActive,
-                    ]}
-                  />
-                ))}
-              </View>
+              {/* so-38wy: rename control replaces color picker. */}
+              <TextInput
+                style={lt.soulPalNameInput}
+                value={nameInput}
+                onChangeText={setNameInput}
+                onSubmitEditing={handleRename}
+                onBlur={handleRename}
+                returnKeyType="done"
+                placeholder="Name your SoulPal"
+                placeholderTextColor="rgba(58,14,102,0.35)"
+                accessibilityLabel="SoulPal name"
+              />
             </View>
           </View>
         </View>
@@ -661,31 +664,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     color: colors.white,
     marginBottom: 10,
   },
-  // so-cjr: small caps subline replacing the full-card overlay from so-2cy.
-  underConstructionLabel: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: -4,
-    marginBottom: 8,
-  },
-  colorPickerGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  colorCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorCircleActive: {
-    borderColor: '#FFFFFF',
-    borderWidth: 2.5,
+  // so-38wy: inline name TextInput replacing the color picker.
+  soulPalNameInput: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.3)',
+    paddingVertical: 4,
+    marginTop: 4,
+    minWidth: 120,
   },
 
   // Coming Soon Overlay
@@ -1045,31 +1033,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     color: colors.primary,
     marginBottom: 10,
   },
-  // so-cjr: small caps subline replacing the full-card overlay from so-2cy.
-  underConstructionLabel: {
-    fontFamily: fonts.outfit.medium,
-    fontSize: 11,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: 'rgba(58,14,102,0.5)',
-    marginTop: -4,
-    marginBottom: 8,
-  },
-  colorPickerGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  colorCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorCircleActive: {
-    borderColor: '#59168B',
-    borderWidth: 2.5,
+  // so-38wy: inline name TextInput replacing the color picker.
+  soulPalNameInput: {
+    fontFamily: fonts.outfit.regular,
+    fontSize: 13,
+    color: 'rgba(58,14,102,0.9)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(58,14,102,0.3)',
+    paddingVertical: 4,
+    marginTop: 4,
+    minWidth: 120,
   },
 
   // Coming Soon Overlays
