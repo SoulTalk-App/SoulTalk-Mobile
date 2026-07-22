@@ -837,7 +837,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 {newsletterOptIn && <Ionicons name="checkmark" size={16} color={colors.white} />}
               </View>
               <Text style={styles.termsText}>
-                Send me tips and updates (optional)
+                Sign up for the newsletter and updates
               </Text>
             </Pressable>
 
