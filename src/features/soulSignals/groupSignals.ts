@@ -30,6 +30,19 @@
 
 import { Group, Signal } from './types';
 
+// ─── sectioned-feed types (so-kajr) ──────────────────────────────────────────
+
+/** Injected between category sections in the signals feed. */
+export type DividerItem = { _type: 'divider'; label: string };
+
+/** Union of a pattern-group card or a between-section divider. */
+export type FeedItem = Group | DividerItem;
+
+/** Type-guard: true when item is a DividerItem. */
+export function isDivider(item: FeedItem): item is DividerItem {
+  return (item as DividerItem)._type === 'divider';
+}
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** Compare two signals newest-first by createdAt ISO string. */
@@ -97,4 +110,50 @@ export function buildGroups(signals: Signal[]): Group[] {
     .map((o) => ({ pattern: o, related: [] }));
 
   return [...patternGroups, ...standaloneGroups];
+}
+
+// ─── category-sectioned feed (so-kajr) ───────────────────────────────────────
+
+// BE taxonomy (app/schemas/soul_signal.py:10): pattern|loop|narrative|fear|strength
+// Client layout: [loop, pattern, narrative] → divider → [strength, fear]
+const SECTION_B_CATEGORIES = new Set(['strength', 'fear']);
+
+const DEEPER_DIVIDER: DividerItem = {
+  _type: 'divider',
+  label: "Let's go even deeper",
+};
+
+/**
+ * Build the category-sectioned feed for the Soul Signals hub.
+ *
+ * Groups are ordered within each section by the same createdAt DESC / sortOrder
+ * ASC rules as buildGroups. If only one section has entries the divider is
+ * omitted (nothing to divide). Groups whose pattern has no category (legacy /
+ * missing) fall into section A.
+ *
+ * @param signals - Normalised signals from `SoulSignalsService.list()`.
+ * @returns Flat FeedItem[] ready for a FlatList: sectionA groups, optional
+ *          divider, sectionB groups.
+ */
+export function buildSectionedGroups(signals: Signal[]): FeedItem[] {
+  const groups = buildGroups(signals);
+
+  const sectionA: Group[] = [];
+  const sectionB: Group[] = [];
+
+  for (const g of groups) {
+    const cat = (g.pattern.category ?? '').toLowerCase().trim();
+    if (SECTION_B_CATEGORIES.has(cat)) {
+      sectionB.push(g);
+    } else {
+      sectionA.push(g);
+    }
+  }
+
+  const result: FeedItem[] = [...sectionA];
+  if (sectionA.length > 0 && sectionB.length > 0) {
+    result.push(DEEPER_DIVIDER);
+  }
+  result.push(...sectionB);
+  return result;
 }

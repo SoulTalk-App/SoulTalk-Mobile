@@ -27,6 +27,12 @@ export type Signal = {
    */
   linkedShiftId?: string | null;
   /**
+   * BE taxonomy category for this signal (so-kajr): pattern | loop | narrative
+   * | fear | strength. Drives feed sectioning. Optional — absent for legacy
+   * signals or kinds that pre-date the category field.
+   */
+  category?: string;
+  /**
    * ISO-8601 creation timestamp from the wire (so-9kg3). Used by groupSignals
    * to order groups by most-recent first. Optional — absent for mock/legacy
    * signals that pre-date the field.

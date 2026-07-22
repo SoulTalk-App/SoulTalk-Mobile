@@ -7,7 +7,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { ScreenEnter } from '../components/ScreenEnter';
 import {
-  buildGroups,
+  buildSectionedGroups,
+  FeedItem,
   ResonanceToast,
   SignalsB,
   SignalsDetailModal,
@@ -134,11 +135,17 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
     }, []),
   );
 
-  // so-9kg3 M-1: buildGroups no longer takes a count arg — all signals render.
-  const groups = useMemo(() => buildGroups(signals), [signals]);
+  // so-kajr: buildSectionedGroups buckets groups by category and injects a
+  // "Let's go even deeper" divider between loop/pattern/narrative and
+  // strength/fear sections. Replaces the flat buildGroups call for the main
+  // feed; muted view stays flat (no category sectioning for muted signals).
+  const sectionedItems = useMemo(
+    () => buildSectionedGroups(signals),
+    [signals],
+  );
   // Muted view renders each muted signal as its own pseudo-group (no related
   // siblings) so the existing PatternCard render path stays unchanged.
-  const mutedGroups = useMemo(
+  const mutedItems = useMemo<FeedItem[]>(
     () => mutedSignals.map((s) => ({ pattern: s, related: [] })),
     [mutedSignals],
   );
@@ -390,18 +397,10 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
             : null;
         const detailMsg =
           detailObj?.message ?? (typeof detail === 'string' ? detail : undefined);
-        let existingShiftId: string | undefined = detailObj?.existing_shift_id;
-        if (!existingShiftId) {
-          try {
-            const shifts = await SoulShiftsService.list();
-            const patternSignalIds = new Set(turnCandidate.sourceSignalIds);
-            existingShiftId = shifts.find((s) =>
-              s.source_signal_ids?.some((id) => patternSignalIds.has(id)),
-            )?.id;
-          } catch {
-            // best-effort — fall back to a no-deep-link prompt
-          }
-        }
+        // so-kajr fix: source_signal_ids is not on the normalised Shift type
+        // (only on ShiftSuggestionCandidate), so the list-scan fallback cannot
+        // work. Rely solely on existing_shift_id from the BE 409 detail.
+        const existingShiftId: string | undefined = detailObj?.existing_shift_id;
         showAlert({
           title: 'Already turned into a shift',
           message: detailMsg ?? 'This pattern already has an active shift.',
@@ -477,7 +476,7 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         <SignalsB
           theme={theme}
           status={status}
-          groups={filter === 'muted' ? mutedGroups : groups}
+          items={filter === 'muted' ? mutedItems : sectionedItems}
           eligibility={{ current: entriesSinceSight, needed: entriesNeeded }}
           listeningMeta={{ entries: entriesSinceSight, patterns: patternsCount }}
           onOpenJournal={handleOpenJournal}

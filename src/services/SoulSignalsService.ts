@@ -89,6 +89,8 @@ function normalizeSignal(w: SignalWire & {
     muteUntil: w.muted_until ?? null,
     mutedForever: w.muted_forever ?? false,
     linkedShiftId: w.linked_shift_id ?? null,
+    // so-kajr: surface category for feed sectioning (loop/pattern/narrative/…).
+    category: w.category,
     // so-9kg3: expose ordering fields for groupSignals.buildGroups.
     createdAt: w.created_at ?? undefined,
     sortOrder: w.sort_order ?? undefined,

@@ -23,11 +23,13 @@ import {
   inkSub,
 } from './tokens';
 import { Eligibility, Group, SignalsStatus } from './types';
+import { FeedItem, isDivider } from './groupSignals';
 
 type Props = {
   theme: Theme;
   status: SignalsStatus;
-  groups: Group[];
+  /** so-kajr: flat FeedItem[] — Group cards interleaved with DividerItems. */
+  items: FeedItem[];
   eligibility?: Eligibility;
   listeningMeta?: { entries: number; patterns: number };
   onOpenJournal?: () => void;
@@ -48,7 +50,7 @@ type Props = {
 export function SignalsB({
   theme,
   status,
-  groups,
+  items,
   eligibility,
   listeningMeta,
   onOpenJournal,
@@ -65,24 +67,38 @@ export function SignalsB({
   // notch.
   const scrollTopPad = insets.top + 14;
 
-  // so-9kg3 MI-3: renderItem extracted so FlatList can receive a stable
-  // reference (avoids a re-render of every card on parent re-render).
-  const renderItem: ListRenderItem<Group> = useCallback(
-    ({ item: g }) => (
-      <View style={styles.itemWrap}>
-        <PatternCard
-          group={g}
-          theme={theme}
-          focused={focusId === g.pattern.id}
-          dim={focusId != null && focusId !== g.pattern.id}
-          onPress={onPatternPress}
-        />
-      </View>
-    ),
+  // so-kajr: renderItem handles both Group cards and DividerItems (the
+  // "Let's go even deeper" label between category sections).
+  const renderItem: ListRenderItem<FeedItem> = useCallback(
+    ({ item }) => {
+      if (isDivider(item)) {
+        return (
+          <View style={styles.dividerRow}>
+            <Text style={[styles.dividerText, { color: inkSub(theme) }]}>
+              {item.label}
+            </Text>
+          </View>
+        );
+      }
+      return (
+        <View style={styles.itemWrap}>
+          <PatternCard
+            group={item}
+            theme={theme}
+            focused={focusId === item.pattern.id}
+            dim={focusId != null && focusId !== item.pattern.id}
+            onPress={onPatternPress}
+          />
+        </View>
+      );
+    },
     [theme, focusId, onPatternPress],
   );
 
-  const keyExtractor = useCallback((g: Group) => g.pattern.id, []);
+  const keyExtractor = useCallback(
+    (item: FeedItem) => isDivider(item) ? '__deeper_divider__' : item.pattern.id,
+    [],
+  );
 
   const ItemSeparator = useCallback(
     () => <View style={styles.itemGap} />,
@@ -164,7 +180,7 @@ export function SignalsB({
             SoulSignals
           </Text>
           <Text style={[styles.countCap, { color: inkSub(theme) }]}>
-            {groups.length} patterns
+            {items.filter(i => !isDivider(i)).length} patterns
           </Text>
         </View>
         <Text style={[styles.subtitle, { color: inkSub(theme) }]}>
@@ -244,7 +260,7 @@ export function SignalsB({
         style={styles.scroll}
         contentContainerStyle={{ paddingTop: scrollTopPad }}
         showsVerticalScrollIndicator={false}
-        data={groups}
+        data={items}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ItemSeparatorComponent={ItemSeparator}
@@ -318,6 +334,18 @@ const styles = StyleSheet.create({
   },
   itemGap: {
     height: 16,
+  },
+  // so-kajr: "Let's go even deeper" section divider between category buckets.
+  dividerRow: {
+    paddingHorizontal: 20,
+    paddingTop: 28,
+    paddingBottom: 14,
+    alignItems: 'center',
+  },
+  dividerText: {
+    fontFamily: fonts.edensor.italic,
+    fontSize: 16,
+    letterSpacing: 0.2,
   },
   listTopPad: {
     height: 14,

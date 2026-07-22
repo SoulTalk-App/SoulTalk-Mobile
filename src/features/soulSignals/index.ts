@@ -6,9 +6,10 @@ export { SignalsTurnToShiftModal } from './SignalsTurnToShiftModal';
 export type { TurnToShiftCandidate } from './SignalsTurnToShiftModal';
 export { ResonanceToast } from './ResonanceToast';
 // so-9kg3 M-1: buildGroups moved to groupSignals.ts (groups by tag, no cap).
-// MOCK_SIGNALS remains in mockData.ts for dev tooling; buildGroups is now
-// the production implementation from groupSignals.
-export { buildGroups } from './groupSignals';
+// so-kajr: buildSectionedGroups adds category sectioning + divider for the hub.
+// MOCK_SIGNALS remains in mockData.ts for dev tooling.
+export { buildGroups, buildSectionedGroups, isDivider } from './groupSignals';
+export type { DividerItem, FeedItem } from './groupSignals';
 export { MOCK_SIGNALS } from './mockData';
 export type {
   Signal,
