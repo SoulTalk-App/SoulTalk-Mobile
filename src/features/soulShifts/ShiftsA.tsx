@@ -21,7 +21,8 @@ import {
 
 
 // so-zlvm MI-6: locked + processing removed — no writer produces these statuses.
-type FilterKey = 'all' | 'active' | 'integrated' | 'released';
+// so-hjwv A3: 'snoozed' added — lazy-fetched list of future-snoozed shifts.
+type FilterKey = 'all' | 'active' | 'integrated' | 'released' | 'snoozed';
 
 type Props = {
   theme: Theme;
@@ -49,10 +50,25 @@ type Props = {
    * (or refetch) released shifts. Cached on the screen — fetch is one-shot.
    */
   onReleasedRequested?: () => void;
+  /**
+   * so-hjwv A2: Integrated shifts. Default list excludes status='integrated' so
+   * the screen lazy-fetches on first Integrated-pill tap (same pattern as Released).
+   */
+  integratedShifts?: Shift[];
+  /** Fires when the Integrated pill is tapped — screen fetches once and caches. */
+  onIntegratedRequested?: () => void;
+  /**
+   * so-hjwv A3: Snoozed shifts. Screen lazy-fetches with include_snoozed=true on
+   * first Snoozed-pill tap and client-filters to future snoozed_until rows.
+   */
+  snoozedShifts?: Shift[];
+  /** Fires when the Snoozed pill is tapped — screen fetches once and caches. */
+  onSnoozedRequested?: () => void;
 };
 
+// so-hjwv A2: integrated removed from status-chip counts (lazy-fetched, pill rendered standalone).
 type StatusChip = {
-  k: 'active' | 'integrated';
+  k: 'active';
   n: number;
   color: string;
 };
@@ -66,26 +82,35 @@ export function ShiftsA({
   onSuggestionsPress,
   releasedShifts,
   onReleasedRequested,
+  integratedShifts,
+  onIntegratedRequested,
+  snoozedShifts,
+  onSnoozedRequested,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
   const soulPalName = useSoulPalName();
-  const [filter, setFilter] = useState<FilterKey>('all');
+  // so-hjwv A1: open on Active (not All) — the most actionable view by default.
+  const [filter, setFilter] = useState<FilterKey>('active');
 
-  // Counts always reflect unfiltered totals so the pill counters stay stable
-  // as the user toggles filters.
+  // Active count from the default list; other filters use lazy-fetched lists
+  // so their counts aren't meaningful until fetched (pills shown without counts).
   // so-zlvm MI-6: removed processing pill — no writer produces that status.
+  // so-hjwv A2: integrated removed from counts — default list excludes it; always-0
+  //   was misleading. Rendered as a standalone pill (count-free) like Released.
   const counts: StatusChip[] = [
     { k: 'active', n: shifts.filter((s) => s.status === 'active').length, color: YELLOW },
-    { k: 'integrated', n: shifts.filter((s) => s.status === 'integrated').length, color: TEAL },
   ];
 
-  // Released uses its own lazy-fetched list; the default `shifts` array
-  // excludes released items per BE default. Other filters still scope to
-  // `shifts` (active/integrated all live in the default list).
+  // so-hjwv A2/A3: integrated + snoozed use their own lazy-fetched lists.
+  // Released + integrated + snoozed all live outside the default `shifts` array.
   const visibleShifts =
     filter === 'released'
       ? releasedShifts ?? []
+      : filter === 'integrated'
+      ? integratedShifts ?? []
+      : filter === 'snoozed'
+      ? snoozedShifts ?? []
       : filter === 'all'
       ? shifts
       : shifts.filter((s) => s.status === (filter as ShiftStatus));
@@ -116,9 +141,11 @@ export function ShiftsA({
   const onPillTap = (k: FilterKey) => {
     // Tapping the active pill clears the filter — toggle behavior per design.
     setFilter((prev) => (prev === k ? 'all' : k));
-    // Released list is lazy-fetched on first tap (and refresh-on-reentry):
-    // the screen owns the cache + fetch state.
+    // Lazy-fetched lists: screen owns cache + fetch state; fire once on first tap.
     if (k === 'released') onReleasedRequested?.();
+    // so-hjwv A2/A3: trigger lazy-fetch for integrated + snoozed on first tap.
+    if (k === 'integrated') onIntegratedRequested?.();
+    if (k === 'snoozed') onSnoozedRequested?.();
   };
 
   // Shared header + chips — used in both ScrollView and FlatList paths via
@@ -205,8 +232,29 @@ export function ShiftsA({
             </Pressable>
           );
         })}
-        {/* Released pill (so-2pm). No count for v1 — would require a
-            separate fetch on mount; deferred to a follow-up if asked. */}
+        {/* so-hjwv A2: Integrated pill — lazy-fetched on first tap (no count until loaded). */}
+        <Pressable
+          onPress={() => onPillTap('integrated')}
+          style={[
+            styles.chip,
+            filter === 'integrated'
+              ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+              : { backgroundColor: chipBg, borderColor: chipBorder },
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === 'integrated' }}
+        >
+          <View style={[styles.chipDot, { backgroundColor: TEAL }]} />
+          <Text
+            style={[
+              styles.chipText,
+              { color: filter === 'integrated' ? activeChipFg : ink(theme) },
+            ]}
+          >
+            Integrated
+          </Text>
+        </Pressable>
+        {/* Released pill (so-2pm). No count — separate fetch on mount deferred. */}
         <Pressable
           onPress={() => onPillTap('released')}
           style={[
@@ -225,6 +273,27 @@ export function ShiftsA({
             ]}
           >
             Released
+          </Text>
+        </Pressable>
+        {/* so-hjwv A3: Snoozed pill — lazy-fetched on first tap. */}
+        <Pressable
+          onPress={() => onPillTap('snoozed')}
+          style={[
+            styles.chip,
+            filter === 'snoozed'
+              ? { backgroundColor: activeChipBg, borderColor: activeChipBg }
+              : { backgroundColor: chipBg, borderColor: chipBorder },
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: filter === 'snoozed' }}
+        >
+          <Text
+            style={[
+              styles.chipText,
+              { color: filter === 'snoozed' ? activeChipFg : ink(theme) },
+            ]}
+          >
+            Snoozed
           </Text>
         </Pressable>
         {onSuggestionsPress && (
@@ -291,11 +360,11 @@ export function ShiftsA({
     </View>
   );
 
-  // ── Released filter → FlatList (so-zlvm MI-5) ───────────────────────────
-  // Released list accumulates unboundedly; virtualize it. Other filters
-  // (all/active/integrated) are bounded by the user's active set and kept in
-  // the simpler ScrollView+map path below.
-  if (filter === 'released') {
+  // ── Released / Integrated / Snoozed → FlatList ────────────────────────────
+  // These lists can accumulate unboundedly; virtualize them.
+  // Active/all are bounded by the working set and kept in the ScrollView path.
+  // so-hjwv A2/A3: integrated + snoozed added alongside released.
+  if (filter === 'released' || filter === 'integrated' || filter === 'snoozed') {
     return (
       <View style={styles.root}>
         <PageBg theme={theme} />
@@ -317,7 +386,24 @@ export function ShiftsA({
     );
   }
 
-  // ── All / active / integrated → ScrollView+map (bounded list) ─────────────
+  // ── All / Active → ScrollView+map (bounded list) with A4 ordering ──────────
+  // so-hjwv A4: partition into in-progress (pct>0) then up-next (pct==0/Notice).
+  // Only applies to filters that scope to the default shifts list (all/active).
+  const inProgress = visibleShifts.filter((s) => s.pct > 0);
+  const upNext = visibleShifts.filter((s) => s.pct === 0);
+  const showSectionLabels = inProgress.length > 0 && upNext.length > 0;
+
+  const renderShiftCard = (shift: Shift) => (
+    <ShiftCard
+      key={shift.id}
+      shift={shift}
+      theme={theme}
+      focused={focusId === shift.id}
+      dim={focusId != null && focusId !== shift.id}
+      onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
+    />
+  );
+
   return (
     <View style={styles.root}>
       <PageBg theme={theme} />
@@ -334,16 +420,15 @@ export function ShiftsA({
           {visibleShifts.length === 0 ? (
             EmptyCard
           ) : (
-            visibleShifts.map((shift) => (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                theme={theme}
-                focused={focusId === shift.id}
-                dim={focusId != null && focusId !== shift.id}
-                onPress={onShiftPress ? () => onShiftPress(shift.id) : undefined}
-              />
-            ))
+            <>
+              {inProgress.map(renderShiftCard)}
+              {showSectionLabels && (
+                <Text style={[sectionStyles.label, { color: inkSub(theme) }]}>
+                  Up next
+                </Text>
+              )}
+              {upNext.map(renderShiftCard)}
+            </>
           )}
         </View>
       </ScrollView>
@@ -432,6 +517,18 @@ const styles = StyleSheet.create({
   },
   flatFooter: {
     height: 80,
+  },
+});
+
+// so-hjwv A4: section label between in-progress and up-next buckets.
+const sectionStyles = StyleSheet.create({
+  label: {
+    fontFamily: fonts.outfit.semiBold,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
 });
 

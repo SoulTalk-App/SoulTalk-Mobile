@@ -126,10 +126,13 @@ class SoulShiftsService {
   async list(opts?: {
     statusFilter?: ShiftStatus;
     includeReleased?: boolean;
+    /** so-hjwv A3: include shifts where snoozed_until > now (BE default excludes them). */
+    includeSnoozed?: boolean;
   }): Promise<Shift[]> {
     const params: Record<string, any> = {};
     if (opts?.statusFilter) params.status_filter = opts.statusFilter;
     if (opts?.includeReleased) params.include_released = true;
+    if (opts?.includeSnoozed) params.include_snoozed = true;
     const response = await this.axiosInstance.get('/soul-shifts/', { params });
     const data = response.data as ShiftListResponse;
     return (data.shifts ?? []).map(normalizeShift);

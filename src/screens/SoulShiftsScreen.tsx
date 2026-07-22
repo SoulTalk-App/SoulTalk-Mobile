@@ -53,6 +53,16 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
   const [releasedShifts, setReleasedShifts] = useState<Shift[]>([]);
   const [releasedFetched, setReleasedFetched] = useState(false);
 
+  // so-hjwv A2: Integrated shifts. Default list() excludes status='integrated'
+  // per BE default — lazy-fetch on first Integrated-pill tap (mirrors Released).
+  const [integratedShifts, setIntegratedShifts] = useState<Shift[]>([]);
+  const [integratedFetched, setIntegratedFetched] = useState(false);
+
+  // so-hjwv A3: Snoozed shifts. BE excludes snoozed_until>now by default;
+  // lazy-fetch with include_snoozed=true + client-side filter on first tap.
+  const [snoozedShifts, setSnoozedShifts] = useState<Shift[]>([]);
+  const [snoozedFetched, setSnoozedFetched] = useState(false);
+
   // Detail-modal state. `selectedId` is the source of truth: it drives both
   // the list's focusId (for dim/glow) and the modal's visibility.
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -158,6 +168,37 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
         // Allow a later retry since this fetch has no loading state of its own.
         setReleasedFetched(false);
         surfaceError("Couldn't load released shifts", err);
+      });
+  };
+
+  // so-hjwv A2: fetch integrated on first pill tap (BE excludes them by default).
+  const handleIntegratedRequested = () => {
+    if (integratedFetched) return;
+    setIntegratedFetched(true);
+    SoulShiftsService.list({ statusFilter: 'integrated' })
+      .then(setIntegratedShifts)
+      .catch((err) => {
+        setIntegratedFetched(false);
+        surfaceError("Couldn't load integrated shifts", err);
+      });
+  };
+
+  // so-hjwv A3: fetch snoozed on first pill tap; client-filter to future-snoozed.
+  const handleSnoozedRequested = () => {
+    if (snoozedFetched) return;
+    setSnoozedFetched(true);
+    const now = new Date();
+    SoulShiftsService.list({ includeSnoozed: true })
+      .then((all) =>
+        setSnoozedShifts(
+          all.filter(
+            (s) => s.snoozedUntil != null && new Date(s.snoozedUntil) > now,
+          ),
+        ),
+      )
+      .catch((err) => {
+        setSnoozedFetched(false);
+        surfaceError("Couldn't load snoozed shifts", err);
       });
   };
 
@@ -472,6 +513,10 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
           onSuggestionsPress={handleOpenSuggest}
           releasedShifts={releasedShifts}
           onReleasedRequested={handleReleasedRequested}
+          integratedShifts={integratedShifts}
+          onIntegratedRequested={handleIntegratedRequested}
+          snoozedShifts={snoozedShifts}
+          onSnoozedRequested={handleSnoozedRequested}
         />
         </ScreenEnter>
       )}
