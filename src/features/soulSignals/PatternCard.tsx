@@ -21,9 +21,9 @@ const SOULPAL_SRC: Record<SoulpalVariant, any> = {
   5: require('../../../assets/images/home-v2/soulpal-5.png'),
 };
 
-// Mirrors so-f6x typography logic on Shifts: long headlines fall back to a
-// sans typeface so the hub list card stays readable. Editorial Edensor
-// stays for short, design-canonical headlines.
+// so-eka7: unified headline typeface — all headlines use Edensor-Regular so
+// the list reads consistently. Long headlines step font size down (22→18)
+// for legibility instead of switching typeface (old so-kv3 Outfit-Bold path).
 const HEADLINE_LONG_THRESHOLD = 60;
 const HEADLINE_TRUNCATE_THRESHOLD = 80;
 
@@ -73,10 +73,10 @@ export function PatternCard({
     ? 'rgba(255,255,255,0.12)'
     : 'rgba(79,23,134,0.10)';
 
-  // Headline typography fork (so-kv3): Edensor regular 22 for short titles
-  // (canonical editorial feel) → Outfit Bold 20 for long instructional text
-  // → truncated to 80 chars with ellipsis. Full body always lives in the
-  // detail modal where it gets readable Outfit-light leading.
+  // Headline typography (so-eka7): Edensor-Regular for all headlines so the
+  // list reads consistently. Short ≤60 chars → 22px; long >60 chars → 18px
+  // (size step only, same family). Truncated to 80 chars with ellipsis.
+  // Full body always lives in the detail modal.
   const fullHeadline = pattern.headline ?? '';
   const headlineIsLong = fullHeadline.length > HEADLINE_LONG_THRESHOLD;
   const displayHeadline =
@@ -321,12 +321,12 @@ const styles = StyleSheet.create({
     lineHeight: 22 * 1.15,
     letterSpacing: -0.2,
   },
-  // Long-headline variant (so-kv3): Outfit Bold for legibility; matches
-  // ShiftsDetailModal titleLong (so-f6x) for cross-feature consistency.
+  // Long-headline variant (so-eka7): same Edensor-Regular family as headline;
+  // steps font size down 22→18 for card-level legibility. No typeface switch.
   headlineLong: {
-    fontFamily: fonts.outfit.bold,
-    fontSize: 20,
-    lineHeight: 20 * 1.25,
+    fontFamily: fonts.edensor.regular,
+    fontSize: 18,
+    lineHeight: 18 * 1.3,
     letterSpacing: -0.1,
   },
   detail: {
