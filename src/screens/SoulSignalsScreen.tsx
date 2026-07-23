@@ -231,6 +231,12 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       // Default list call hides muted signals (per be_core so-otk), so the
       // muted signal disappears from the feed. Mirror that locally.
       setSignals((prev) => prev.filter((s) => s.id !== updated.id));
+      // so-1nde: optimistically insert the newly-muted signal into the muted
+      // list (dedupe by id in case of a double-tap). Also reset the fetch latch
+      // so the next Muted-pill tap re-fetches include_muted=true fresh and stays
+      // in sync with the server — without this the cached muted view is stale.
+      setMutedSignals((prev) => [updated, ...prev.filter((s) => s.id !== updated.id)]);
+      setMutedFetched(false);
       setMuteOpen(false);
       handleClose();
     } catch (err: any) {
