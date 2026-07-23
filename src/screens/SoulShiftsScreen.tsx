@@ -242,6 +242,12 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
           ? prev.filter((s) => s.id !== result.shift.id)
           : prev.map((s) => (s.id === result.shift.id ? result.shift : s)),
       );
+      // so-379m: optimistically insert into integratedShifts and bust the
+      // latch so the Integrated tab re-fetches fresh on next open.
+      if (integrated) {
+        setIntegratedShifts((prev) => [result.shift, ...prev.filter((s) => s.id !== result.shift.id)]);
+        setIntegratedFetched(false);
+      }
       setTendOpen(false);
       // Dismiss the entire flow (so-lbw): without this, the underlying detail
       // modal re-appears once TendModal hides because all the gating booleans
@@ -320,6 +326,13 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       // Default GET hides snoozed shifts (be_core so-trc), so the row drops
       // out of the visible list. Mirror that locally.
       setShifts((prev) => prev.filter((s) => s.id !== updated.id));
+      // so-379m: optimistically insert into snoozedShifts when snoozedUntil
+      // is set (it always will be on a fresh snooze). Bust the latch so the
+      // Snoozed tab re-fetches fresh on next open.
+      if (updated.snoozedUntil) {
+        setSnoozedShifts((prev) => [updated, ...prev.filter((s) => s.id !== updated.id)]);
+      }
+      setSnoozedFetched(false);
       setSnoozeOpen(false);
       handleClose();
     } catch (err: any) {
@@ -346,9 +359,12 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
     try {
       const updated = await SoulShiftsService.markIntegrated(detail.id);
       const updatedDetail: ShiftDetail = { ...detail, ...updated };
-      setShifts((prev) =>
-        prev.map((s) => (s.id === updated.id ? updated : s)),
-      );
+      // so-379m: BE auto-archives on integrate (same as tend-integrated path)
+      // — filter out rather than map in-place, which left a stale active row.
+      setShifts((prev) => prev.filter((s) => s.id !== updated.id));
+      // Optimistically insert into integratedShifts and bust the latch.
+      setIntegratedShifts((prev) => [updated, ...prev.filter((s) => s.id !== updated.id)]);
+      setIntegratedFetched(false);
       setIntegratedOpen(false);
       // Dismiss the entire flow (so-h76, sibling of so-lbw): without this, the
       // detail modal re-appears once IntegratedModal hides — and again after
@@ -372,6 +388,10 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       // Default list call excludes status='released' (be_core so-0aa), so the
       // shift simply drops out of the visible list. Mirror that locally.
       setShifts((prev) => prev.filter((s) => s.id !== released.id));
+      // so-379m: optimistically insert into releasedShifts and bust the latch
+      // so the Released tab re-fetches fresh on next open.
+      setReleasedShifts((prev) => [released, ...prev.filter((s) => s.id !== released.id)]);
+      setReleasedFetched(false);
       setReleaseOpen(false);
       handleClose();
     } catch (err: any) {
