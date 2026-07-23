@@ -192,9 +192,14 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       setResonanceSubmitting('not_quite');
       try {
         await SoulSignalsService.setResonance(id, 'not_quite');
-        await SoulSignalsService.muteSignal(id, 'forever');
+        const muted = await SoulSignalsService.muteSignal(id, 'forever');
         // Default list excludes muted, mirror that locally.
-        setSignals((prev) => prev.filter((s) => s.id !== id));
+        setSignals((prev) => prev.filter((s) => s.id !== muted.id));
+        // so-9xjs: mirror so-1nde — optimistically insert the 'not quite'd
+        // signal into mutedSignals so it appears in Muted immediately; bust
+        // the latch so the next Muted tap re-fetches fresh from the server.
+        setMutedSignals((prev) => [muted, ...prev.filter((s) => s.id !== muted.id)]);
+        setMutedFetched(false);
         handleClose();
       } catch (err: any) {
         surfaceError("Couldn't mute this signal", err);
@@ -378,6 +383,13 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
         soulpal: turnCandidate.soulpal,
         sourceSignalIds: turnCandidate.sourceSignalIds,
       });
+      // so-9xjs: remove source signals from both feeds so neither All nor
+      // a cached Muted view retains stale rows after the shift is created.
+      // Bust the muted latch so the next Muted-pill tap re-fetches fresh.
+      const turnedIds = new Set(turnCandidate.sourceSignalIds);
+      setSignals((prev) => prev.filter((s) => !turnedIds.has(s.id)));
+      setMutedSignals((prev) => prev.filter((s) => !turnedIds.has(s.id)));
+      setMutedFetched(false);
       // Close everything and route the user to Soul Shifts so they see the
       // freshly-tended shift in its native list. Detail modal navigation
       // for the new shift requires its id; SoulShifts screen will fetch +
