@@ -126,9 +126,9 @@ type Props = {
   onRestore?: (id: string) => void;
 };
 
-// Long-title threshold: above this, display-serif Italiana becomes unreadable.
-// Above the truncate threshold we ellipsize the header copy; full body always
-// lives in The Practice card.
+// Long-title threshold: above this, step the title font size down (28→22) so
+// it fits the modal header. Edensor-Regular throughout (so-ylf2 / so-eka7
+// parity). Above the truncate threshold we ellipsize; full body in Practice.
 const TITLE_LONG_THRESHOLD = 60;
 const TITLE_TRUNCATE_THRESHOLD = 80;
 
@@ -147,10 +147,10 @@ export function ShiftsDetailModal({
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
 
-  // Title typography + practice fallback (so-f6x). When BE doesn't supply a
-  // separate `practice` body, the (likely-long) title becomes the practice
-  // copy so the user sees the actual instruction. The header itself drops to
-  // a sans typeface and truncates to keep the modal scannable.
+  // Title typography + practice fallback (so-f6x / so-ylf2). When BE doesn't
+  // supply a separate `practice` body, the (likely-long) title becomes the
+  // practice copy so the user sees the actual instruction. The header steps
+  // to 22px Edensor-Regular (no typeface switch) and truncates to 80 chars.
   const fullTitle = detail?.title ?? '';
   const isLongTitle = fullTitle.length > TITLE_LONG_THRESHOLD;
   const displayTitle =
@@ -221,11 +221,10 @@ export function ShiftsDetailModal({
                 </Text>
               </View>
 
-              {/* Long instruction sentences in Italiana 28 (display serif) are
-                  unreadable. Above 60 chars we switch to Outfit Bold 22 — accessible
-                  and consistent with the home Welcome name styling. Above 80 chars
-                  we truncate with ellipsis; the full body always lives in The
-                  Practice card below where it's set in readable Edensor italic. */}
+              {/* Long titles (>60 chars) step down to Edensor-Regular 22 (same
+                  family as the short title, size step only — so-ylf2 / so-eka7
+                  parity). Above 80 chars we truncate with ellipsis; full body
+                  lives in The Practice card below. */}
               <Text
                 style={[
                   isLongTitle ? styles.titleLong : styles.title,
@@ -477,10 +476,10 @@ const styles = StyleSheet.create({
     lineHeight: 28 * 1.15,
     letterSpacing: -0.2,
   },
-  // Long titles render in sans for legibility (so-f6x). Outfit Bold 22 mirrors
-  // the home-screen welcome name styling.
+  // Long-title variant (so-ylf2): Edensor-Regular matches styles.title —
+  // size steps 28→22 for header fit. No typeface switch (so-eka7 parity).
   titleLong: {
-    fontFamily: fonts.outfit.bold,
+    fontFamily: fonts.edensor.regular,
     fontSize: 22,
     lineHeight: 22 * 1.25,
     letterSpacing: -0.1,
