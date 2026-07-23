@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect, useMemo, useReducer } from 'react';
+import React, { useState, useCallback, useMemo, useReducer } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -348,7 +349,21 @@ const JournalScreen = ({ navigation }: any) => {
     journalInfoOpen,
   } = ui;
 
-  useEffect(() => { fetchEntries(); }, [fetchEntries]);
+  // so-4bc6: useFocusEffect replaces the bare mount useEffect so that
+  // returning from CreateJournal/JournalEntry always re-fetches under the
+  // CURRENT filter params. Without this, JournalContext.createEntry/updateEntry
+  // unconditionally prepended/updated the cached list regardless of the active
+  // filter, so a new entry created while a past-month filter was active would
+  // appear at the top of the wrong-month list until a filter change or cold restart.
+  // Params are inlined to avoid a forward-reference to buildParams.
+  useFocusEffect(
+    useCallback(() => {
+      const params: any = {};
+      if (appliedYears.length === 1) params.year = appliedYears[0];
+      if (appliedMonths.length === 1) params.month = appliedMonths[0] + 1;
+      fetchEntries(params);
+    }, [fetchEntries, appliedYears, appliedMonths]),
+  );
 
   // so-tfx7: derive selectable years from the entries themselves so beta
   // users with pre-2026 history (launch was May 2025) can actually filter
