@@ -46,12 +46,9 @@ function formatTakenAt(iso: string): string {
 // Assets — light mode
 const LockIcon = require('../../assets/images/home/LockIcon.png');
 const ProfileGearIcon = require('../../assets/images/profile/ProfileGearIcon.png');
-const ProfileAvatar = require('../../assets/images/profile/ProfileAvatar-f054e3.png');
-const ProfileSoulPalChar = require('../../assets/images/profile/ProfileSoulPalChar.png');
 const ThreeDots = require('../../assets/images/profile/ThreeDots.png');
 // Assets — dark mode variants
 const LockIconDark = require('../../assets/images/home/dark/LockIcon.png');
-const ProfileAvatarDark = require('../../assets/images/profile/dark/ProfileAvatar.png');
 const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
 const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
 const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
@@ -128,10 +125,10 @@ const ProfileScreen = ({ navigation }: any) => {
             </Pressable>
           </View>
 
-          {/* Avatar */}
+          {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
           <View style={dk.avatarContainer}>
             <View style={dk.avatarCircle}>
-              <Image source={ProfileAvatarDark} style={dk.avatarImage} resizeMode="cover" />
+              <SoulPalAnimated pose="default" size={90} animate={false} />
             </View>
           </View>
 
@@ -268,10 +265,10 @@ const ProfileScreen = ({ navigation }: any) => {
           </Pressable>
         </View>
 
-        {/* Avatar */}
+        {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
         <View style={lt.avatarContainer}>
           <View style={lt.avatarCircle}>
-            <Image source={ProfileAvatar} style={lt.avatarImage} resizeMode="cover" />
+            <SoulPalAnimated pose="default" size={90} animate={false} />
           </View>
         </View>
 
@@ -432,10 +429,6 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
   },
 
   // Display Name
@@ -804,10 +797,6 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
   },
 
   // Display Name
