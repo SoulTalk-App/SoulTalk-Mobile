@@ -94,9 +94,10 @@ privacy@soultalkapp.com
 
 export const termsOfService = {
   title: 'Terms of Service',
-  // so-iyhl: canonical 2026-06-26 legal text (Overseer-approved, verbatim)
-  effectiveDate: 'June 26, 2026',
-  content: `Welcome to SoulTalk. These Terms of Service ("Terms") govern Your use of the SoulTalk mobile application and any associated software and services We provide for individuals (together, the "Services"). These Terms are a contract between You and SoulTalk Inc. ("SoulTalk," "we," "us"). By creating an account or using the Services, You agree to these Terms and to Our Privacy Policy. If You do not agree, do not use the Services.
+  // so-5wpf: canonical 2026-07-19 legal text (Overseer-approved, verbatim).
+  // Only change from June 26 version: "SoulTalk®" (® added) in opening sentence.
+  effectiveDate: 'July 19, 2026',
+  content: `Welcome to SoulTalk®. These Terms of Service ("Terms") govern Your use of the SoulTalk mobile application and any associated software and services We provide for individuals (together, the "Services"). These Terms are a contract between You and SoulTalk Inc. ("SoulTalk," "we," "us"). By creating an account or using the Services, You agree to these Terms and to Our Privacy Policy. If You do not agree, do not use the Services.
 Who we are
 SoulTalk is an AI powered journaling and self-reflection application that uses artificial intelligence to generate written insights and reflections from what You write. SoulTalk supports personal self-reflection and wellbeing. It is not a therapy, medical, mental-health, or crisis service.
 1. Artificial Intelligence and Automated Processing
