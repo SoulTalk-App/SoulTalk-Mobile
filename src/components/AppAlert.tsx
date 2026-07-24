@@ -247,6 +247,17 @@ export const AppAlert: React.FC<AppAlertProps> = ({
   const isColumn = effectiveButtons.length > 2;
   const buttonRowStyle = isColumn ? styles.buttonRowColumn : styles.buttonRow;
 
+  // so-8fq4: in column mode, native iOS convention places the cancel-style
+  // button LAST (bottom-most). Partition: non-cancel buttons in original order,
+  // then cancel buttons. Row mode (1-2 buttons) keeps raw array order so the
+  // cancel sits on the left, which matches the side-by-side row convention.
+  const renderedButtons = isColumn
+    ? [
+        ...effectiveButtons.filter((b) => b.style !== 'cancel'),
+        ...effectiveButtons.filter((b) => b.style === 'cancel'),
+      ]
+    : effectiveButtons;
+
   return (
     <Modal
       visible={visible}
@@ -270,7 +281,7 @@ export const AppAlert: React.FC<AppAlertProps> = ({
               {title ? <Text style={styles.title}>{title}</Text> : null}
               <Text style={styles.message}>{message}</Text>
               <View style={buttonRowStyle}>
-                {effectiveButtons.map((btn, i) => {
+                {renderedButtons.map((btn, i) => {
                   const isCancel = btn.style === 'cancel';
                   const isDestructive = btn.style === 'destructive';
                   const buttonBase = isDestructive
