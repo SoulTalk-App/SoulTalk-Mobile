@@ -5,9 +5,12 @@
 
 export const privacyPolicy = {
   title: 'Privacy Policy',
-  // so-iyhl: canonical 2026-06-26 legal text (Overseer-approved, verbatim)
-  effectiveDate: 'June 26, 2026',
-  content: `This Privacy Policy ("Policy") applies to SoulTalk, an AI powered journaling and self-reflection application, as well as related content, tools, features and functionality (collectively, the "Services") provided by SoulTalk Inc. ("SoulTalk," or "SoulTalk Inc.," "we," "our," or "us"). This Policy is hereby formulated by us in accordance with applicable laws to protect the personal information of users ("you" or "your"). This Privacy Policy describes how we collect, use, disclose, store, and protect information when you access or use the SoulTalk mobile application, and related Services. Please read this Policy carefully. By accessing or using SoulTalk and/or our Service, you agree and acknowledge that you understand, agree, and consent to this Policy.
+  // so-i01k: canonical 2026-07-19 legal text (Overseer-approved, verbatim).
+  // Only change from June 26 version: "SoulTalk®" (® added) in opening sentence.
+  // Consent re-prompt for returning users is BE-side (server bumps current_version
+  // on /auth/terms-status; FE always echoes it — no client version constant to bump).
+  effectiveDate: 'July 19, 2026',
+  content: `This Privacy Policy ("Policy") applies to SoulTalk®, an AI powered journaling and self-reflection application, as well as related content, tools, features and functionality (collectively, the "Services") provided by SoulTalk Inc. ("SoulTalk," or "SoulTalk Inc.," "we," "our," or "us"). This Policy is hereby formulated by us in accordance with applicable laws to protect the personal information of users ("you" or "your"). This Privacy Policy describes how we collect, use, disclose, store, and protect information when you access or use the SoulTalk mobile application, and related Services. Please read this Policy carefully. By accessing or using SoulTalk and/or our Service, you agree and acknowledge that you understand, agree, and consent to this Policy.
 Scope & Consent
 This Policy establishes why, how, and what personal information we collect, use, store, process, share, transfer and publicly disclose about you, the information security protection measure we take, and the rights we honor for your access, update, deletion, and control of your personal information. Please read this Policy in combination with SoulTalk Terms of Service. If you do not agree with this Policy, you shall stop using SoulTalk and our Services, because using the Services constitutes your agreement to this Policy. We reserve the right to amend this Policy at any time and will update this policy periodically with updates when changes are made. By accessing and/or using our Service, you confirm that you are an adult at 18 years of age or over.
 1. Artificial Intelligence and Automated Processing
