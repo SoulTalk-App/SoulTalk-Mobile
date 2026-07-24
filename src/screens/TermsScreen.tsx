@@ -37,7 +37,10 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 //                   navigate('Terms') never shows a stray Accept button.
 interface TermsScreenProps {
   navigation: any;
-  route: { params?: { mode?: 'accept' | 'view' } };
+  // so-i5o2: initialTab lets callers (e.g. TermsReacceptanceModal) open on a
+  // specific tab without triggering the accept footer (mode='accept' is still
+  // the only trigger for that).
+  route: { params?: { mode?: 'accept' | 'view'; initialTab?: LegalTab } };
 }
 
 const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
@@ -46,8 +49,11 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   // so-c7wq: accept-mode starts on Terms so the user reads ToS before Privacy.
-  // Read-only view keeps the old Privacy-first default (unchanged).
-  const [activeTab, setActiveTab] = useState<LegalTab>(isAcceptMode ? 'terms' : 'privacy');
+  // so-i5o2: initialTab param lets re-acceptance path also start on Terms
+  // without triggering the accept footer (which only appears in accept-mode).
+  const [activeTab, setActiveTab] = useState<LegalTab>(
+    route.params?.initialTab ?? (isAcceptMode ? 'terms' : 'privacy'),
+  );
   const scrollRef = useRef<ScrollView>(null);
   // so-c7wq: guard — Terms was shown before Accept is reachable.
   // True from mount in accept-mode (we start on Terms); also set true on
@@ -289,21 +295,24 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
         <AppText variant="bodySmall" style={styles.lastUpdated}>
           Effective: {currentDoc.effectiveDate}
         </AppText>
+        {/* so-i5o2: Terms of Service LEFT, Privacy Policy RIGHT — matches the
+            accept-mode progression (Terms first → Next → Privacy) so the active
+            highlight advances left→right instead of right→left. */}
         <View style={styles.tabRow}>
-          <Pressable
-            style={[styles.tab, activeTab === 'privacy' && styles.tabActive]}
-            onPress={() => handleTabSwitch('privacy')}
-          >
-            <Text style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
-              Privacy Policy
-            </Text>
-          </Pressable>
           <Pressable
             style={[styles.tab, activeTab === 'terms' && styles.tabActive]}
             onPress={() => handleTabSwitch('terms')}
           >
             <Text style={[styles.tabText, activeTab === 'terms' && styles.tabTextActive]}>
               Terms of Service
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, activeTab === 'privacy' && styles.tabActive]}
+            onPress={() => handleTabSwitch('privacy')}
+          >
+            <Text style={[styles.tabText, activeTab === 'privacy' && styles.tabTextActive]}>
+              Privacy Policy
             </Text>
           </Pressable>
         </View>

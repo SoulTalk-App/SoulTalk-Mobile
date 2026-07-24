@@ -86,7 +86,9 @@ export function TermsReacceptanceModal({
               Navigates to the Terms stack screen; the blocking modal remains
               visible on return so the user still must explicitly accept. */}
           <Pressable
-            onPress={() => navigation.navigate('Terms')}
+            // so-i5o2: open on Terms tab first — re-acceptance is for the
+            // updated ToS, so users should read Terms before Privacy.
+            onPress={() => navigation.navigate('Terms', { initialTab: 'terms' })}
             accessibilityRole="link"
             accessibilityLabel="View Terms and Privacy Policy"
             style={styles.viewTermsLink}
