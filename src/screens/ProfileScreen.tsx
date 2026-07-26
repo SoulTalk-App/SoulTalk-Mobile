@@ -128,7 +128,7 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
           <View style={dk.avatarContainer}>
             <View style={dk.avatarCircle}>
-              <SoulPalAnimated pose="default" size={90} animate={false} />
+              <SoulPalAnimated pose="default" size={90} animate={false} colorId="teal" />
             </View>
           </View>
 
@@ -212,7 +212,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <GlassCard style={dk.soulPalCard}>
             <View style={dk.soulPalCardInner}>
               <View style={dk.soulPalCharArea}>
-                <SoulPalAnimated pose="celebrating" size={65} animate={true} />
+                <SoulPalAnimated pose="celebrating" size={65} animate={true} colorId="teal" />
               </View>
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
@@ -268,7 +268,7 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
         <View style={lt.avatarContainer}>
           <View style={lt.avatarCircle}>
-            <SoulPalAnimated pose="default" size={90} animate={false} />
+            <SoulPalAnimated pose="default" size={90} animate={false} colorId="teal" />
           </View>
         </View>
 
@@ -352,7 +352,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={lt.soulPalCard}>
           <View style={lt.soulPalCardInner}>
             <View style={lt.soulPalCharArea}>
-              <SoulPalAnimated pose="celebrating" size={65} animate={true} />
+              <SoulPalAnimated pose="celebrating" size={65} animate={true} colorId="teal" />
             </View>
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>

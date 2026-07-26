@@ -117,7 +117,7 @@ export const getSoulPalHex = (colorId: SoulPalColorId, isDark: boolean): string 
   (isDark ? SOULPAL_HEX_DARK : SOULPAL_HEX_LIGHT)[colorId];
 
 // Image maps — require() must be static, so we map by id
-const BODY_IMAGES: Record<SoulPalColorId, any> = {
+export const BODY_IMAGES: Record<SoulPalColorId, any> = {
   teal: require('../../assets/images/soulpal-colors/body_teal.png'),
   blue: require('../../assets/images/soulpal-colors/body_blue.png'),
   purple: require('../../assets/images/soulpal-colors/body_purple.png'),
@@ -128,7 +128,7 @@ const BODY_IMAGES: Record<SoulPalColorId, any> = {
   slate: require('../../assets/images/soulpal-colors/body_slate.png'),
 };
 
-const HOME_IMAGES: Record<SoulPalColorId, any> = {
+export const HOME_IMAGES: Record<SoulPalColorId, any> = {
   teal: require('../../assets/images/soulpal-colors/home_teal.png'),
   blue: require('../../assets/images/soulpal-colors/home_blue.png'),
   purple: require('../../assets/images/soulpal-colors/home_purple.png'),
@@ -139,7 +139,7 @@ const HOME_IMAGES: Record<SoulPalColorId, any> = {
   slate: require('../../assets/images/soulpal-colors/home_slate.png'),
 };
 
-const EYES_IMAGES: Record<SoulPalColorId, any> = {
+export const EYES_IMAGES: Record<SoulPalColorId, any> = {
   teal: require('../../assets/images/soulpal-colors/eyes_teal.png'),
   blue: require('../../assets/images/soulpal-colors/eyes_blue.png'),
   purple: require('../../assets/images/soulpal-colors/eyes_purple.png'),
