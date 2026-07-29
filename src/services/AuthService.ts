@@ -5,7 +5,7 @@ import { AuthRequest, AuthRequestConfig, AuthSessionResult } from 'expo-auth-ses
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import axios, { AxiosResponse } from 'axios';
-import { installAuthInterceptors, refreshAccessToken } from '../utils/authClient';
+import { installAuthInterceptors, refreshAccessToken, getValidToken } from '../utils/authClient';
 import { normalizeError } from '../utils/normalizeError';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -551,7 +551,31 @@ class AuthService {
       return false;
     }
 
-    // Verify token is still valid
+    // so-bvav: proactively refresh the access token if it is expired (or near
+    // expiry) BEFORE calling verifyToken(). The old flow called verifyToken()
+    // directly with a potentially-expired token, which produced a 401. Although
+    // the axios interceptor would catch that 401 and refresh+retry, multiple
+    // concurrent callers at cold open all sent the same expired token and each
+    // triggered an interceptor round-trip — the single-flight latch coalesced
+    // them into one /auth/refresh, but the log showed many verify-token 401s
+    // before the refresh fired, and a timing race caused checkAuthState() to
+    // resolve as unauthenticated, dropping the user to onboarding.
+    //
+    // getValidToken() checks the JWT exp claim locally; if expired (or within
+    // the 2-min buffer), it calls refreshAccessToken() via the shared
+    // single-flight latch — one network round-trip regardless of how many
+    // callers hit this simultaneously. verifyToken() then fires with a fresh
+    // token and sees a clean 200, never a 401.
+    //
+    // Null return means either terminal (no refresh token / 401 from refresh,
+    // already routed through registerLogoutCallback) or a transient network
+    // failure — either way the caller should treat as unauthenticated.
+    const freshToken = await getValidToken();
+    if (!freshToken) {
+      return false;
+    }
+
+    // Token is valid (or was just refreshed) — confirm with the server.
     return await this.verifyToken();
   }
 
