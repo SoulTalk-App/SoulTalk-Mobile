@@ -160,26 +160,27 @@ interface SoulPalContextType {
   eyesImage: any;
 }
 
+// so-xm18: all SoulPals are blue across the app (blue = the single unified color).
+const FIXED_COLOR_ID: SoulPalColorId = 'blue';
+
 const SoulPalContext = createContext<SoulPalContextType>({
-  colorId: 'teal',
+  colorId: FIXED_COLOR_ID,
   setColorId: () => {},
   name: DEFAULT_SOULPAL_NAME,
   setName: () => {},
-  bodyImage: BODY_IMAGES.teal,
-  homeImage: HOME_IMAGES.teal,
-  eyesImage: EYES_IMAGES.teal,
+  bodyImage: BODY_IMAGES[FIXED_COLOR_ID],
+  homeImage: HOME_IMAGES[FIXED_COLOR_ID],
+  eyesImage: EYES_IMAGES[FIXED_COLOR_ID],
 });
 
 export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [colorId, setColorIdState] = useState<SoulPalColorId>('teal');
+  // so-xm18: color is fixed to FIXED_COLOR_ID (blue) for all users.
+  // Stored @soultalk_soulpal_color is ignored so returning users with a
+  // previously-persisted teal/purple/etc. also get blue immediately.
+  const colorId = FIXED_COLOR_ID;
   const [name, setNameState] = useState<string>(DEFAULT_SOULPAL_NAME);
 
   useEffect(() => {
-    AsyncStorage.getItem(SOULPAL_COLOR_KEY).then((val) => {
-      if (val && BODY_IMAGES[val as SoulPalColorId]) {
-        setColorIdState(val as SoulPalColorId);
-      }
-    });
     AsyncStorage.getItem(SOULPAL_NAME_KEY).then((val) => {
       if (val && val.trim()) {
         setNameState(val.trim());
@@ -187,10 +188,9 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   }, []);
 
-  const setColorId = (id: SoulPalColorId) => {
-    setColorIdState(id);
-    AsyncStorage.setItem(SOULPAL_COLOR_KEY, id);
-  };
+  // setColorId is retained on the context API surface for type-compatibility
+  // but is a no-op: the color is pinned to FIXED_COLOR_ID.
+  const setColorId = (_id: SoulPalColorId) => {};
 
   const setName = (next: string) => {
     const trimmed = next.trim();

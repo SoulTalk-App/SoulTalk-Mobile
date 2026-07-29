@@ -263,10 +263,10 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           <View style={styles.mainWrapper}>
             {/* SoulPal Character - Rotating turn */}
             <Animated.View style={[styles.characterContainer, characterContainerStyle]}>
-              {/* Back layer: tinted solid teal (no features visible) */}
+              {/* Back layer: tinted solid blue (no features visible) — so-xm18 */}
               <Image
                 source={SoulpalCharacter}
-                style={[styles.characterImage, { tintColor: '#70CACF' }]}
+                style={[styles.characterImage, { tintColor: '#709ACF' }]}
                 resizeMode="contain"
               />
               {/* Front layer: full character with features, fades in/out */}
