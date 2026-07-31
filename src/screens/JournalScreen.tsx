@@ -27,7 +27,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import JournalLoader from '../components/JournalLoader';
 import GlassCard from '../components/GlassCard';
 import SoulPalAnimated from '../components/SoulPalAnimated';
-import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
+import { SOULPAL_TEAL_HEX } from '../contexts/SoulPalContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import { ScreenEnter } from '../components/ScreenEnter';
 import { cosmicTextShadow } from '../components/CosmicText';
@@ -335,8 +335,7 @@ const JournalScreen = ({ navigation }: any) => {
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { entries, isLoading, isLoadingMore, listError, fetchEntries, loadMoreEntries, streak, hasEntryToday } = useJournal();
-  const { colorId } = useSoulPal();
-  const soulPalHex = getSoulPalHex(colorId, isDarkMode);
+  const soulPalHex = SOULPAL_TEAL_HEX;
 
   const [activeTab, setActiveTab] = useState<TabName>('Journal');
   const [ui, dispatchUI] = useReducer(journalUIReducer, INITIAL_JOURNAL_UI_STATE);

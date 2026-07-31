@@ -11,13 +11,7 @@ import Animated, {
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
-import {
-  useSoulPal,
-  BODY_IMAGES,
-  HOME_IMAGES,
-  EYES_IMAGES,
-  SoulPalColorId,
-} from '../contexts/SoulPalContext';
+import { useSoulPal } from '../contexts/SoulPalContext';
 import {
   TOUCH_HITSLOP_MED,
   TOUCH_PRESS_SCALE,
@@ -36,10 +30,6 @@ interface SoulPalAnimatedProps {
   showEyes?: boolean;
   onTap?: () => void;
   style?: any;
-  /** Pin the rendered SoulPal to a specific color, overriding the user's
-   *  context-selected color. Use on surfaces that must show a fixed color
-   *  (e.g. Profile renders teal to match the original profile-box — so-icj0). */
-  colorId?: SoulPalColorId;
 }
 
 const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
@@ -50,15 +40,8 @@ const SoulPalAnimated: React.FC<SoulPalAnimatedProps> = ({
   showEyes = false,
   onTap,
   style,
-  colorId,
 }) => {
-  const { bodyImage: ctxBodyImage, homeImage: ctxHomeImage, eyesImage: ctxEyesImage } = useSoulPal();
-
-  // When colorId is provided, use that color's images directly instead of the
-  // user's chosen dynamic color (so-icj0: Profile always shows teal).
-  const bodyImage = colorId ? BODY_IMAGES[colorId] : ctxBodyImage;
-  const homeImage = colorId ? HOME_IMAGES[colorId] : ctxHomeImage;
-  const eyesImage = colorId ? EYES_IMAGES[colorId] : ctxEyesImage;
+  const { bodyImage, homeImage, eyesImage } = useSoulPal();
 
   // Celebratory poses use the cheerful, arms-up artwork (home_<id>.png);
   // every other pose uses the resting body (body_<id>.png). The arms-down

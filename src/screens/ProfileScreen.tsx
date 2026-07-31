@@ -60,8 +60,6 @@ const ProfileScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  // so-38wy: color picker removed; rename control added. colorId/setColorId
-  // remain in context (used by HomeScreen + JournalScreen) — only removed here.
   const { name: soulPalContextName, setName: setSoulPalName } = useSoulPal();
   const [nameInput, setNameInput] = useState(soulPalContextName);
   const handleRename = useCallback(() => {
@@ -128,7 +126,7 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
           <View style={dk.avatarContainer}>
             <View style={dk.avatarCircle}>
-              <SoulPalAnimated pose="default" size={90} animate={false} colorId="teal" />
+              <SoulPalAnimated pose="default" size={90} animate={false} />
             </View>
           </View>
 
@@ -212,7 +210,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <GlassCard style={dk.soulPalCard}>
             <View style={dk.soulPalCardInner}>
               <View style={dk.soulPalCharArea}>
-                <SoulPalAnimated pose="celebrating" size={65} animate={true} colorId="teal" />
+                <SoulPalAnimated pose="celebrating" size={65} animate={true} />
               </View>
               <View style={dk.soulPalRight}>
                 <Text style={dk.soulPalLabel}>Soul Pal</Text>
@@ -268,7 +266,7 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
         <View style={lt.avatarContainer}>
           <View style={lt.avatarCircle}>
-            <SoulPalAnimated pose="default" size={90} animate={false} colorId="teal" />
+            <SoulPalAnimated pose="default" size={90} animate={false} />
           </View>
         </View>
 
@@ -352,7 +350,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={lt.soulPalCard}>
           <View style={lt.soulPalCardInner}>
             <View style={lt.soulPalCharArea}>
-              <SoulPalAnimated pose="celebrating" size={65} animate={true} colorId="teal" />
+              <SoulPalAnimated pose="celebrating" size={65} animate={true} />
             </View>
             <View style={lt.soulPalRight}>
               <Text style={lt.soulPalLabel}>Soul Pal</Text>
@@ -642,9 +640,14 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  // so-jor7: explicit width/height + overflow:hidden so the celebrating pose
+  // (arms-up, aspect ~65×91) seats cleanly inside the GlassCard row.
   soulPalCharArea: {
+    width: 65,
+    height: 92,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
     marginRight: 16,
   },
   soulPalRight: {
@@ -1007,9 +1010,14 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  // so-jor7: explicit width/height + overflow:hidden so the celebrating pose
+  // (arms-up, aspect ~65×91) seats cleanly inside the card row.
   soulPalCharArea: {
+    width: 65,
+    height: 92,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
     marginRight: 16,
   },
   soulPalRight: {

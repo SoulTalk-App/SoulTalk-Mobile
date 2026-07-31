@@ -33,7 +33,7 @@ import JournalService from '../services/JournalService';
 import authService from '../services/AuthService';
 import { TermsReacceptanceModal } from '../components/TermsReacceptanceModal';
 import SoulPalAnimated from '../components/SoulPalAnimated';
-import { useSoulPal, getSoulPalHex } from '../contexts/SoulPalContext';
+import { useSoulPal, SOULPAL_TEAL_HEX } from '../contexts/SoulPalContext';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -54,7 +54,8 @@ const GoalGardenBg = require('../../assets/images/home/GoalGardenBg.png');
 const PalmTree1 = require('../../assets/images/home/PalmTree1.png');
 const PalmTree2 = require('../../assets/images/home/PalmTree2.png');
 const PalmTree3 = require('../../assets/images/home/PalmTree3.png');
-const SoulpalEyes = require('../../assets/images/home/SoulpalIcon-f02c98.png');
+// so-jor7: was SoulpalIcon-f02c98.png (purple); repoint at teal asset for both modes.
+const SoulpalEyes = require('../../assets/images/home/dark/SoulpalIcon.png');
 const LockIcon = require('../../assets/images/home/LockIcon.png');
 const AffirmationMirrorCard = require('../../assets/images/home/AffirmationMirrorCard.png');
 const SendIconImg = require('../../assets/images/home/SendIconPng.png');
@@ -82,10 +83,10 @@ const HomeScreen = ({ navigation }: any) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { homeImage, bodyImage, colorId } = useSoulPal();
+  const { homeImage, bodyImage } = useSoulPal();
   // so-1zn0: themed alert replaces native Alert.
   const { showAlert } = useAppAlert();
-  const soulPalHex = getSoulPalHex(colorId, isDarkMode);
+  const soulPalHex = SOULPAL_TEAL_HEX;
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [moodWord, setMoodWord] = useState('');
