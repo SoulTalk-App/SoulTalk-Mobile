@@ -17,8 +17,6 @@ import Animated, {
   withTiming,
   withDelay,
   withRepeat,
-  withSequence,
-  interpolate,
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -155,20 +153,16 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     formOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
     formTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 100 }));
 
-    // Character turn cycle: 0 → 1 represents one full turn
-    // 0 = front, 0.5 = back (no features), 1 = front again.
-    // so-4vvf: inOut ease so the face lingers at front and zips through back;
-    // 5 500 ms gives a relaxed, breathing pace.
+    // so-vqhs: drive degrees directly (0 → 360) — withRepeat restarts cleanly
+    // at 0 each cycle with no visible seam. inOut ease makes the front face
+    // linger and the back pass zip through.
     turnProgress.value = withDelay(
       600,
       withRepeat(
-        withSequence(
-          withTiming(1, {
-            duration: 5500,
-            easing: Easing.inOut(Easing.ease),
-          }),
-          withTiming(0, { duration: 0 }) // instant reset for seamless loop
-        ),
+        withTiming(360, {
+          duration: 5500,
+          easing: Easing.inOut(Easing.ease),
+        }),
         -1,
         false
       )
@@ -206,40 +200,18 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     transform: [{ scale: characterScale.value }],
   }));
 
-  // Front image (with features): rotates away and back with fade.
-  // so-4vvf: widened hidden-opacity window (0.22 → 0.78) so the instant
-  // 90 → -90 rotateY teleport is fully covered; front never pops mid-rotation.
-  // Subtle scale dip at mid-turn (1 → 0.94 → 1) gives a sense of depth.
-  const frontImageStyle = useAnimatedStyle(() => {
-    const op = interpolate(
-      turnProgress.value,
-      [0, 0.22, 0.28, 0.72, 0.78, 1],
-      [1, 1, 0, 0, 1, 1]
-    );
-    const ry = interpolate(
-      turnProgress.value,
-      [0, 0.22, 0.28, 0.72, 0.78, 1],
-      [0, 0, 90, -90, 0, 0]
-    );
-    // Scale dip peaks at mid-turn (0.5); symmetric approach / return.
-    const sc = interpolate(
-      turnProgress.value,
-      [0, 0.25, 0.5, 0.75, 1],
-      [1, 0.97, 0.94, 0.97, 1]
-    );
-    return {
-      opacity: op,
-      // Cast needed: mixing perspective (number), scale (number), and rotateY
-      // (string) widens the discriminated union beyond what DefaultStyle accepts.
-      // Runtime values are correct; the cast is purely a tsc appeasement.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      transform: [
-        { perspective: 800 },
-        { scale: sc },
-        { rotateY: `${ry}deg` },
-      ] as any,
-    };
-  });
+  // so-vqhs: card-flip container — single shared rotateY so both faces spin
+  // together as one solid object. perspective must precede rotateY in the array.
+  // Cast needed: mixing perspective (number) and rotateY (string) widens the
+  // discriminated union beyond what DefaultStyle accepts. Runtime values are
+  // correct; the cast is purely a tsc appeasement.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const spinContainerStyle = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 800 },
+      { rotateY: `${turnProgress.value}deg` },
+    ] as any,
+  }));
 
   const formAnimatedStyle = useAnimatedStyle(() => ({
     opacity: formOpacity.value,
@@ -263,18 +235,33 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           <View style={styles.mainWrapper}>
             {/* SoulPal Character - Rotating turn */}
             <Animated.View style={[styles.characterContainer, characterContainerStyle]}>
-              {/* Back layer: tinted solid teal (no features visible) */}
-              <Image
-                source={SoulpalCharacter}
-                style={[styles.characterImage, { tintColor: '#70CACF' }]}
-                resizeMode="contain"
-              />
-              {/* Front layer: full character with features, fades in/out */}
-              <Animated.Image
-                source={SoulpalCharacter}
-                style={[styles.characterImage, styles.characterFront, frontImageStyle]}
-                resizeMode="contain"
-              />
+              {/* so-vqhs: card-flip — one Animated.View spins both faces together
+                  so the SoulPal reads as a solid object rotating on its Y axis.
+                  backfaceVisibility:'hidden' on each face shows only the forward
+                  face at any moment; no static-blob hold, no opacity crossfade. */}
+              <Animated.View style={[styles.characterImage, spinContainerStyle]}>
+                {/* Front face: full character with eyes + arms */}
+                <Image
+                  source={SoulpalCharacter}
+                  style={[styles.characterImage, { backfaceVisibility: 'hidden' }]}
+                  resizeMode="contain"
+                />
+                {/* Back face: teal silhouette, pre-rotated 180° so it faces the
+                    camera exactly when the container has turned half-way around */}
+                <Image
+                  source={SoulpalCharacter}
+                  style={[
+                    styles.characterImage,
+                    styles.characterFront,
+                    {
+                      tintColor: '#70CACF',
+                      backfaceVisibility: 'hidden',
+                      transform: [{ rotateY: '180deg' }],
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              </Animated.View>
             </Animated.View>
 
             {/* Form Section */}
