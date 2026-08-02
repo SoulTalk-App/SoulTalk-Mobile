@@ -16,9 +16,8 @@ import Animated, {
   withSpring,
   withTiming,
   withDelay,
-  withRepeat,
-  Easing,
 } from 'react-native-reanimated';
+import LottieView from 'lottie-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -27,7 +26,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { CosmicScreen } from '../components/CosmicBackdrop';
 import JournalService from '../services/JournalService';
 
-const SoulpalCharacter = require('../../assets/images/onboarding/soulpal_main.png');
 const SubmitIcon = require('../../assets/images/common/SubmitIcon.png');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -71,14 +69,11 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
         characterContainer: {
           alignItems: 'center',
         },
-        characterImage: {
-          width: SCREEN_WIDTH * 0.35,
-          height: SCREEN_WIDTH * 0.55,
-        },
-        characterFront: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
+        // so-lj2y: Lottie is 2000×2000 square; size to half screen width for
+        // comfortable presence on the name screen without crowding the form.
+        soulpalLottie: {
+          width: SCREEN_WIDTH * 0.5,
+          height: SCREEN_WIDTH * 0.5,
         },
         formSection: {
           marginTop: 40, // Gap between character and form
@@ -138,7 +133,6 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
   // Animation values
   const characterOpacity = useSharedValue(0);
   const characterScale = useSharedValue(0.8);
-  const turnProgress = useSharedValue(0);
 
   const formOpacity = useSharedValue(0);
   const formTranslateY = useSharedValue(30);
@@ -152,21 +146,6 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     // Form fades in
     formOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
     formTranslateY.value = withDelay(300, withSpring(0, { damping: 15, stiffness: 100 }));
-
-    // so-vqhs: drive degrees directly (0 → 360) — withRepeat restarts cleanly
-    // at 0 each cycle with no visible seam. inOut ease makes the front face
-    // linger and the back pass zip through.
-    turnProgress.value = withDelay(
-      600,
-      withRepeat(
-        withTiming(360, {
-          duration: 5500,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        -1,
-        false
-      )
-    );
   }, []);
 
   const handleContinue = () => {
@@ -200,19 +179,6 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     transform: [{ scale: characterScale.value }],
   }));
 
-  // so-vqhs: card-flip container — single shared rotateY so both faces spin
-  // together as one solid object. perspective must precede rotateY in the array.
-  // Cast needed: mixing perspective (number) and rotateY (string) widens the
-  // discriminated union beyond what DefaultStyle accepts. Runtime values are
-  // correct; the cast is purely a tsc appeasement.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const spinContainerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { perspective: 800 },
-      { rotateY: `${turnProgress.value}deg` },
-    ] as any,
-  }));
-
   const formAnimatedStyle = useAnimatedStyle(() => ({
     opacity: formOpacity.value,
     transform: [{ translateY: formTranslateY.value }],
@@ -233,35 +199,17 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
         <View style={[styles.content, { paddingTop: insets.top }]}>
           {/* Main content wrapper */}
           <View style={styles.mainWrapper}>
-            {/* SoulPal Character - Rotating turn */}
+            {/* SoulPal Character — designed Lottie (so-lj2y) */}
             <Animated.View style={[styles.characterContainer, characterContainerStyle]}>
-              {/* so-vqhs: card-flip — one Animated.View spins both faces together
-                  so the SoulPal reads as a solid object rotating on its Y axis.
-                  backfaceVisibility:'hidden' on each face shows only the forward
-                  face at any moment; no static-blob hold, no opacity crossfade. */}
-              <Animated.View style={[styles.characterImage, spinContainerStyle]}>
-                {/* Front face: full character with eyes + arms */}
-                <Image
-                  source={SoulpalCharacter}
-                  style={[styles.characterImage, { backfaceVisibility: 'hidden' }]}
-                  resizeMode="contain"
-                />
-                {/* Back face: teal silhouette, pre-rotated 180° so it faces the
-                    camera exactly when the container has turned half-way around */}
-                <Image
-                  source={SoulpalCharacter}
-                  style={[
-                    styles.characterImage,
-                    styles.characterFront,
-                    {
-                      tintColor: '#70CACF',
-                      backfaceVisibility: 'hidden',
-                      transform: [{ rotateY: '180deg' }],
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-              </Animated.View>
+              {/* so-lj2y: restored assets/animations/Soulpal.json (added in
+                  51df342, deleted as dead in so-jor7 before being wired up).
+                  teal fills retinted to #70CACF to match app-wide SoulPal color. */}
+              <LottieView
+                source={require('../../assets/animations/Soulpal.json')}
+                autoPlay
+                loop
+                style={styles.soulpalLottie}
+              />
             </Animated.View>
 
             {/* Form Section */}
