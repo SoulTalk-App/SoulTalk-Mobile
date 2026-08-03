@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 import LottieView from 'lottie-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, useThemeColors } from '../theme';
 import { useTheme } from '../contexts/ThemeContext';
@@ -130,6 +131,19 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
     [colors, isDarkMode]
   );
 
+  // so-2le1: on Fabric/New Arch, lottie-react-native's autoPlay is a no-op —
+  // the view renders frame 0 and freezes. Drive play() imperatively via ref
+  // on every screen-focus so the animation starts (and restarts on nav back).
+  const lottieRef = useRef<LottieView>(null);
+  useFocusEffect(
+    useCallback(() => {
+      // Small delay lets the Fabric native view finish its async mount before
+      // play() is dispatched; 50 ms is imperceptible but reliably post-layout.
+      const t = setTimeout(() => lottieRef.current?.play(), 50);
+      return () => clearTimeout(t);
+    }, [])
+  );
+
   // Animation values
   const characterOpacity = useSharedValue(0);
   const characterScale = useSharedValue(0.8);
@@ -205,6 +219,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
                   51df342, deleted as dead in so-jor7 before being wired up).
                   teal fills retinted to #70CACF to match app-wide SoulPal color. */}
               <LottieView
+                ref={lottieRef}
                 source={require('../../assets/animations/Soulpal.json')}
                 autoPlay
                 loop
