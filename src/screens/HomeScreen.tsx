@@ -152,7 +152,9 @@ const HomeScreen = ({ navigation }: any) => {
           height: 64,
           borderRadius: 32,
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          // so-a8so: center vertically so the SoulPal sits in the bubble,
+          // not bottom-aligned (flex-end caused the off-seat appearance).
+          justifyContent: 'center',
           overflow: 'hidden',
         },
         avatarBtnDark: {
@@ -168,7 +170,7 @@ const HomeScreen = ({ navigation }: any) => {
         avatarImg: {
           width: 56,
           height: 56,
-          marginBottom: -2,
+          // so-a8so: removed marginBottom:-2 (was a flex-end offset hack)
         },
         greetingTextSection: {
           flex: 1,
@@ -554,7 +556,9 @@ const HomeScreen = ({ navigation }: any) => {
           height: 64,
           borderRadius: 32,
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          // so-a8so: center vertically so the SoulPal sits in the bubble,
+          // not bottom-aligned (flex-end caused the off-seat appearance).
+          justifyContent: 'center',
           overflow: 'hidden',
         },
         avatarBtnDark: {
@@ -570,7 +574,7 @@ const HomeScreen = ({ navigation }: any) => {
         avatarImg: {
           width: 56,
           height: 56,
-          marginBottom: -2,
+          // so-a8so: removed marginBottom:-2 (was a flex-end offset hack)
         },
         greetingTextSection: {
           flex: 1,

@@ -126,7 +126,8 @@ const ProfileScreen = ({ navigation }: any) => {
           {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
           <View style={dk.avatarContainer}>
             <View style={dk.avatarCircle}>
-              <SoulPalAnimated pose="default" size={90} animate={false} />
+              {/* so-a8so: size 90→70 so height≈98px fits the 100px circle without clipping */}
+              <SoulPalAnimated pose="default" size={70} animate={false} />
             </View>
           </View>
 
@@ -266,7 +267,8 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
         <View style={lt.avatarContainer}>
           <View style={lt.avatarCircle}>
-            <SoulPalAnimated pose="default" size={90} animate={false} />
+            {/* so-a8so: size 90→70 so height≈98px fits the 100px circle without clipping */}
+            <SoulPalAnimated pose="default" size={70} animate={false} />
           </View>
         </View>
 
@@ -642,12 +644,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   },
   // so-jor7: explicit width/height + overflow:hidden so the celebrating pose
   // (arms-up, aspect ~65×91) seats cleanly inside the GlassCard row.
+  // so-a8so: widened 65→80 so celebrating pose's raised arms don't clip
+  // against the left/right edge (7.5px clearance each side at size=65).
+  // overflow:hidden removed — animate={true} floats ±3px; the 92px box has
+  // only 0.5px static clearance each way, so the head/feet clipped on every
+  // bounce. Let the bob render freely; marginRight keeps sibling spacing intact.
   soulPalCharArea: {
-    width: 65,
+    width: 80,
     height: 92,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     marginRight: 16,
   },
   soulPalRight: {
@@ -1012,12 +1018,16 @@ function buildStyles(colors: ReturnType<typeof useThemeColors>) {
   },
   // so-jor7: explicit width/height + overflow:hidden so the celebrating pose
   // (arms-up, aspect ~65×91) seats cleanly inside the card row.
+  // so-a8so: widened 65→80 so celebrating pose's raised arms don't clip
+  // against the left/right edge (7.5px clearance each side at size=65).
+  // overflow:hidden removed — animate={true} floats ±3px; the 92px box has
+  // only 0.5px static clearance each way, so the head/feet clipped on every
+  // bounce. Let the bob render freely; marginRight keeps sibling spacing intact.
   soulPalCharArea: {
-    width: 65,
+    width: 80,
     height: 92,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     marginRight: 16,
   },
   soulPalRight: {
