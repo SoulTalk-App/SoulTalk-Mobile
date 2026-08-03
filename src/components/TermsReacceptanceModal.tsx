@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
-  Modal,
+  BackHandler,
   Pressable,
   StyleSheet,
   Text,
@@ -27,13 +27,28 @@ import { setReacceptCallback } from '../utils/reacceptBridge';
  * scrolled to the bottom before Accept is enabled. The one-tap path is removed
  * to close the bypass.
  *
+ * so-ln3u: replaced the native <Modal> with an absolutely-positioned
+ * full-screen View overlay (zIndex 9999). Root cause of the P0 lockout: on real
+ * iOS devices React Native's <Modal> creates a separate UIViewController
+ * presented ABOVE the app's main UIViewController. Calling
+ * navigation.navigate() from inside it pushed TermsScreen into the MAIN stack —
+ * behind the Modal's native window, invisible to the user. callReaccept() was
+ * never reached, acceptTerms() was never called, and zero requests hit the
+ * server, stranding users in the blocking gate permanently.
+ *
+ * The overlay View is part of the SAME React (and native) view hierarchy as the
+ * navigator. navigation.navigate() correctly brings TermsScreen to the foreground
+ * (above HomeScreen + the overlay) with no native-window occlusion. Android
+ * hardware back is blocked via BackHandler while the overlay is visible; the
+ * overlay itself blocks all touch fall-through on the dim area.
+ *
  * Flow:
- *   1. Modal shows "Review and accept" CTA.
+ *   1. Overlay shows "Review and accept" CTA.
  *   2. Tap -> setReacceptCallback(onAccept) + navigate Terms mode='reaccept'.
  *   3. User scrolls both docs to bottom, taps Accept in TermsScreen.
  *   4. TermsScreen calls callReaccept() (fires onAccept) + goBack().
- *   5. Parent's acceptTerms() runs; on success sets visible=false -> modal gone.
- *   6. While acceptTerms is in flight, modal shows a loading spinner (loading=true).
+ *   5. Parent's acceptTerms() runs; on success sets visible=false -> overlay gone.
+ *   6. While acceptTerms is in flight, overlay shows a loading spinner (loading=true).
  */
 type Props = {
   visible: boolean;
@@ -57,8 +72,16 @@ export function TermsReacceptanceModal({
   // so-ap3b MI-2: self-navigating so HomeScreen doesn't need to thread navigation.
   const navigation = useNavigation<any>();
 
-  // so-bl51: bail before building the modal subtree when not visible so the
-  // ModalHostView doesn't sit in memory.
+  // so-ln3u: block Android hardware back while the gate is visible.
+  // The native <Modal>'s onRequestClose={() => {}} handled this before;
+  // BackHandler is the equivalent for a View overlay.
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, [visible]);
+
+  // so-bl51: bail before building the overlay subtree when not visible.
   if (!visible) return null;
 
   // so-chyd: set the bridge callback then navigate to the gated screen.
@@ -70,73 +93,87 @@ export function TermsReacceptanceModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      // Blocking gate: Android back must not dismiss without accepting.
-      onRequestClose={() => {}}
-      statusBarTranslucent
-    >
-      <View style={styles.overlay}>
-        <View
-          style={[
-            styles.card,
-            {
-              marginBottom: insets.bottom + 16,
-              backgroundColor: isDarkMode ? '#0E0820' : '#FFFFFF',
-              borderColor: isDarkMode
-                ? 'rgba(255,255,255,0.10)'
-                : 'rgba(58,14,102,0.08)',
-            },
-          ]}
-        >
-          <Text style={[styles.title, { color: colors.text.primary }]}>
-            We've updated our Terms
-          </Text>
+    // so-ln3u: absoluteFillObject + high zIndex renders this View above all of
+    // HomeScreen's content (including the custom BottomTabBar). React Navigation
+    // native-stack screens pushed above HomeScreen sit at the NATIVE level —
+    // above this overlay — so TermsScreen correctly renders in the foreground
+    // when navigated to.
+    <View style={styles.overlay}>
+      {/* Dim background — Pressable absorbs all touches on the non-card area so
+          nothing beneath the overlay is interactive while the gate is active.
+          accessible={false} hides it from screen readers. */}
+      <Pressable
+        style={styles.dimBackground}
+        onPress={() => {}}
+        accessible={false}
+      />
+      <View
+        style={[
+          styles.card,
+          {
+            marginBottom: insets.bottom + 16,
+            backgroundColor: isDarkMode ? '#0E0820' : '#FFFFFF',
+            borderColor: isDarkMode
+              ? 'rgba(255,255,255,0.10)'
+              : 'rgba(58,14,102,0.08)',
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: colors.text.primary }]}>
+          We've updated our Terms
+        </Text>
 
-          <Text style={[styles.body, { color: colors.text.secondary }]}>
-            Please read and accept our updated Terms of Service and Privacy
-            Policy to keep using SoulTalk.
-          </Text>
+        <Text style={[styles.body, { color: colors.text.secondary }]}>
+          Please read and accept our updated Terms of Service and Privacy
+          Policy to keep using SoulTalk.
+        </Text>
 
-          <Text style={[styles.version, { color: colors.text.secondary }]}>
-            Version {currentVersion}
-          </Text>
+        <Text style={[styles.version, { color: colors.text.secondary }]}>
+          Version {currentVersion}
+        </Text>
 
-          {/* so-chyd: single CTA — routes to gated TermsScreen.
-              While acceptTerms is in flight (loading=true) show a spinner so
-              the user knows the request is being processed on return from
-              TermsScreen. The blocking gate (no dismiss) remains in both states. */}
-          {loading ? (
-            <ActivityIndicator
-              color={colors.primary}
-              style={styles.loadingSpinner}
-            />
-          ) : (
-            <Pressable
-              onPress={handleReviewAndAccept}
-              style={[styles.reviewButton, { backgroundColor: colors.primary }]}
-              accessibilityRole="button"
-              accessibilityLabel="Review and accept Terms of Service and Privacy Policy"
-            >
-              <Text style={[styles.reviewButtonText, { color: colors.white }]}>
-                Review and accept
-              </Text>
-            </Pressable>
-          )}
-        </View>
+        {/* so-chyd: single CTA — routes to gated TermsScreen.
+            While acceptTerms is in flight (loading=true) show a spinner so
+            the user knows the request is being processed on return from
+            TermsScreen. The blocking gate (no dismiss) remains in both states. */}
+        {loading ? (
+          <ActivityIndicator
+            color={colors.primary}
+            style={styles.loadingSpinner}
+          />
+        ) : (
+          <Pressable
+            onPress={handleReviewAndAccept}
+            style={[styles.reviewButton, { backgroundColor: colors.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="Review and accept Terms of Service and Privacy Policy"
+          >
+            <Text style={[styles.reviewButtonText, { color: colors.white }]}>
+              Review and accept
+            </Text>
+          </Pressable>
+        )}
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // so-ln3u: replaced flex:1 (Modal-relative) with absoluteFillObject so the
+  // overlay covers the full screen within the same native view hierarchy.
+  // zIndex 9999 ensures it sits above all HomeScreen content; elevation is the
+  // Android equivalent. The dimBackground Pressable carries the background color
+  // (previously on the overlay itself) so it can intercept stray touches.
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 99,
     justifyContent: 'flex-end',
     paddingHorizontal: 16,
+  },
+  dimBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   card: {
     borderRadius: 24,
