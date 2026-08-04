@@ -215,6 +215,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
   // edit_count and from response_stream_start events. Only events whose
   // generation matches the current are applied; older runs are discarded.
   const currentGenerationRef = React.useRef<number>(-1);
+  // so-erey: highest sequence number seen for the CURRENT generation.
+  // Reset to -1 on every generation change so a fresh run starts clean.
+  // response_token events with sequence <= lastSeqRef are duplicates
+  // (replayed by the WS context or at-least-once BE delivery) and are dropped.
+  const lastSeqRef = React.useRef<number>(-1);
 
   useEffect(() => {
     const unsubStart = subscribe('response_stream_start', (data: any) => {
@@ -224,12 +229,20 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       const gen: number = data.generation ?? 0;
       if (gen < currentGenerationRef.current) return; // stale run — ignore
       currentGenerationRef.current = gen;
+      lastSeqRef.current = -1; // so-erey: reset dedup cursor for fresh generation
       setStreamingText('');
     });
     const unsubToken = subscribe('response_token', (data: any) => {
       if (data.entry_id !== entryId) return;
       // so-wcz1: discard tokens from any generation other than the current.
       if ((data.generation ?? 0) !== currentGenerationRef.current) return;
+      // so-erey: idempotent accumulation — drop duplicate/replayed tokens.
+      // sequence is a monotonic int added by BE so-6g0t. If missing (old BE),
+      // fall back to appending so we never regress on unupgraded servers.
+      if (data.sequence != null) {
+        if (data.sequence <= lastSeqRef.current) return; // duplicate — drop
+        lastSeqRef.current = data.sequence;
+      }
       const delta: string = data.delta ?? '';
       if (!delta) return; // dispatch: empty delta → ignore
       setStreamingText((prev) => (prev !== null ? prev + delta : delta));
