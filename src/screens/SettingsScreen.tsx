@@ -9,7 +9,10 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Linking,
+  Platform,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -452,6 +455,37 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
+  // so-2bhc: prefill a bug-report email with basic diagnostics so the support
+  // team immediately knows the app version, build, and OS version.
+  const handleReportBug = useCallback(async () => {
+    const appVersion = Constants.expoConfig?.version ?? '—';
+    // so-2bhc m1: platform-aware build identifier — ios.buildNumber on iOS,
+    // android.versionCode on Android, '—' if neither is set.
+    const buildNumber = Platform.OS === 'ios'
+      ? (Constants.expoConfig?.ios?.buildNumber ?? '—')
+      : (String(Constants.expoConfig?.android?.versionCode ?? '—'));
+    const osLabel = Platform.OS === 'ios' ? 'iOS' : 'Android';
+    const osVersion = String(Platform.Version);
+    const subject = encodeURIComponent('SoulTalk Bug Report');
+    const body = encodeURIComponent(
+      `App version: ${appVersion} (build ${buildNumber})\n` +
+      `${osLabel} version: ${osVersion}\n\n` +
+      `Describe the issue:\n`,
+    );
+    const url = `mailto:info@soultalkapp.com?subject=${subject}&body=${body}`;
+    // so-2bhc m2: skip canOpenURL — on iOS it false-negatives for 'mailto'
+    // unless the scheme is listed in LSApplicationQueriesSchemes. Just call
+    // openURL directly and let the catch handle a missing mail client.
+    try {
+      await Linking.openURL(url);
+    } catch {
+      showAlert({
+        title: 'Could not open mail',
+        message: 'Please email info@soultalkapp.com directly to report a bug.',
+      });
+    }
+  }, [showAlert]);
+
   const handleLogout = async () => {
     try {
       // so-5eu1: belt-and-suspenders — drop this user's local profile draft on
@@ -650,38 +684,11 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* so-fwva: Subscription affordances. Restore is required by
-            Apple review (any IAP app must allow restoring purchases on
-            a new device); Manage Subscription is the deep link into
-            the Apple-managed centre (Adapty has no Customer Center).
-            Both live above the data/account rows so they're easy to
-            find when the user lands on Settings from the paywall
-            gate's "Settings" carve-out. */}
-        <View style={styles.separator} />
         {/* so-kgs7: trial-status card — visible only during active trial.
             Self-contained: reads isPro/daysLeft from useEntitlement,
             presents paywall on tap, refreshes on unlock. */}
+        <View style={styles.separator} />
         <SettingsTrialCard />
-        <Pressable
-          onPress={handleRestorePurchases}
-          disabled={restoring}
-          style={styles.resetButton}
-          accessibilityRole="button"
-          accessibilityLabel="Restore Purchases"
-          accessibilityState={{ disabled: restoring, busy: restoring }}
-        >
-          <Text style={styles.resetButtonText}>
-            {restoring ? 'RESTORING…' : 'RESTORE PURCHASES'}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={handleManageSubscription}
-          style={styles.resetButton}
-          accessibilityRole="button"
-          accessibilityLabel="Manage Subscription on App Store"
-        >
-          <Text style={styles.resetButtonText}>MANAGE SUBSCRIPTION</Text>
-        </Pressable>
 
         {/* Export My Data (so-sjua — CCPA portability). so-cohf: flag enabled;
             BE route so-aowq is deployed and returns 202. */}
@@ -736,9 +743,44 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.deleteAccountText}>DELETE ACCOUNT</Text>
         </Pressable>
 
-        {/* Footer — Help link promoted to its own prominent row above (so-oecu) */}
+        {/* so-2bhc: compact footer row — Restore Purchases + Manage Subscription
+            moved here from full-width buttons; Report a Bug added. Wrapping
+            layout handles narrow devices; Apple requires Restore to remain
+            labelled and accessible. */}
         <View style={styles.footerLinks}>
-          <Pressable onPress={() => navigation.navigate('Terms')}>
+          <Pressable
+            onPress={handleRestorePurchases}
+            disabled={restoring}
+            accessibilityRole="button"
+            accessibilityLabel="Restore Purchases"
+            accessibilityState={{ disabled: restoring, busy: restoring }}
+          >
+            <Text style={[styles.footerLink, restoring && styles.footerLinkBusy]}>
+              {restoring ? 'Restoring…' : 'Restore Purchases'}
+            </Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable
+            onPress={handleManageSubscription}
+            accessibilityRole="button"
+            accessibilityLabel="Manage Subscription"
+          >
+            <Text style={styles.footerLink}>Manage Subscription</Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable
+            onPress={handleReportBug}
+            accessibilityRole="button"
+            accessibilityLabel="Report a Bug"
+          >
+            <Text style={styles.footerLink}>Report a Bug</Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable
+            onPress={() => navigation.navigate('Terms')}
+            accessibilityRole="button"
+            accessibilityLabel="Terms and Privacy"
+          >
             <Text style={styles.footerLink}>Terms & Privacy</Text>
           </Pressable>
         </View>
@@ -1048,11 +1090,13 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       color: isDark ? colors.white : colors.text.primary,
     },
 
-    // Footer
+    // Footer — so-2bhc: compact wrapping row of text links
     footerLinks: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
       alignItems: 'center',
+      paddingVertical: 4,
     },
     footerLink: {
       fontFamily: fonts.outfit.medium,
@@ -1062,6 +1106,16 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       // purple in light. Dark mode keeps cyan to match the so-iao input chrome.
       color: isDark ? colors.accent.cyan : colors.primary,
       textDecorationLine: 'underline',
+    },
+    footerLinkBusy: {
+      opacity: 0.45,
+    },
+    footerDot: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 12,
+      lineHeight: 28,
+      color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(58,14,102,0.30)',
+      marginHorizontal: 6,
     },
     footerSeparator: {
       height: 1,
