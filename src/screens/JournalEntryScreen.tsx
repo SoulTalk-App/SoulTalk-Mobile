@@ -228,8 +228,11 @@ const JournalEntryScreen = ({ navigation, route }: any) => {
       // generation from an edit supersedes any in-flight older run.
       const gen: number = data.generation ?? 0;
       if (gen < currentGenerationRef.current) return; // stale run — ignore
+      // so-erey: only reset dedup cursor when advancing to a NEW generation.
+      // A duplicate stream_start for the same gen must NOT re-wipe lastSeqRef
+      // — that would re-admit already-seen tokens.
+      if (gen > currentGenerationRef.current) lastSeqRef.current = -1;
       currentGenerationRef.current = gen;
-      lastSeqRef.current = -1; // so-erey: reset dedup cursor for fresh generation
       setStreamingText('');
     });
     const unsubToken = subscribe('response_token', (data: any) => {
