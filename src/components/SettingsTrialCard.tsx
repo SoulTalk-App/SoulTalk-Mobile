@@ -76,19 +76,19 @@ const ProRows: React.FC<ProRowsProps> = ({ proExpiresAt, accent, ink, inkSub }) 
       accessibilityRole="text"
       accessibilityLabel={
         expiryLabel
-          ? `SoulTalk Pro. You're a Pro member. Active until ${expiryLabel}.`
-          : "SoulTalk Pro. You're a Pro member."
+          ? `SoulTalk Full Access. Your subscription is active. Active until ${expiryLabel}.`
+          : "SoulTalk Full Access. Your subscription is active."
       }
     >
       {/* Title row — matches toggleRow height */}
       <View style={styles.proTitleRow}>
         <Feather name="star" size={15} color={accent} style={styles.rowIcon} />
-        <Text style={[styles.proTitle, { color: accent }]}>SoulTalk Pro</Text>
+        <Text style={[styles.proTitle, { color: accent }]}>SoulTalk Full Access</Text>
       </View>
 
       {/* Status + optional expiry — compact sub-rows below the title */}
       <Text style={[styles.proSubtitle, { color: inkSub }]}>
-        {"You're a Pro member."}
+        {"Your subscription is active."}
       </Text>
       {expiryLabel ? (
         <Text style={[styles.proExpiry, { color: inkSub }]}>
@@ -131,7 +131,7 @@ const TrialRow: React.FC<TrialRowProps> = ({ daysLeft, accent, ink, onPress }) =
 
       {/* Right: Go Pro + chevron (urgency-accented) */}
       <View style={styles.ctaGroup}>
-        <Text style={[styles.ctaText, { color: accent }]}>Go Pro</Text>
+        <Text style={[styles.ctaText, { color: accent }]}>Get Full Access</Text>
         <Feather name="chevron-right" size={15} color={accent} />
       </View>
     </Pressable>

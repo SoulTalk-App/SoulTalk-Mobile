@@ -288,7 +288,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>SoulTalk Pro</Text>
+          <Text style={styles.eyebrow}>SoulTalk Full Access</Text>
           <Text style={styles.title}>Your free trial is over.</Text>
           <Text style={styles.body}>
             Subscribe to keep journaling, reflecting, and growing with SoulPal.

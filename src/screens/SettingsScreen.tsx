@@ -421,7 +421,7 @@ const SettingsScreen = ({ navigation }: any) => {
         await refreshEntitlement();
         showAlert({
           title: 'Restore',
-          message: 'Your subscription was restored. Welcome back to SoulTalk Pro.',
+          message: 'Your subscription was restored. Welcome back to SoulTalk Full Access.',
         });
         return;
       }
