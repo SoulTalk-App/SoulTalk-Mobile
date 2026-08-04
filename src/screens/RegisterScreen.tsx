@@ -222,6 +222,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           fontSize: 16,
           color: colors.text.dark,
         },
+        // so-rpsi: secure (password) inputs use a separate base style that
+        // intentionally omits fontFamily. iOS UIKit ignores RN's custom font
+        // when rendering password bullet dots on autofill and falls back to
+        // the system font + black, producing different-sized black dots vs
+        // the light dots shown when typing manually. Dropping the custom font
+        // lets UIKit render uniform system-font bullets in both paths, and the
+        // explicit white color ensures dots are visible on the dark bg even
+        // when UIKit handles the rendering (autofill bypasses the RN color
+        // style, but an explicit native color hint keeps them light).
+        secureInput: {
+          flex: 1,
+          fontSize: 16,
+          color: colors.text.dark,
+        },
         passwordInput: {
           paddingRight: 40,
         },
@@ -684,7 +698,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   yellow + unresponsive. Only `secureTextEntry` flips with
                   the toggle; React reuses the same native view. */}
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                style={[styles.secureInput, styles.passwordInput]}
                 placeholder="Password"
                 placeholderTextColor={focusedField === 'password' ? colors.primary : colors.text.secondary}
                 value={formData.password}
@@ -717,7 +731,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             <View style={[styles.inputContainer, focusedField === 'confirmPassword' && styles.inputContainerFocused]}>
               <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, styles.passwordInput]}
+                style={[styles.secureInput, styles.passwordInput]}
                 placeholder="Confirm Password"
                 placeholderTextColor={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary}
                 value={formData.confirmPassword}
