@@ -83,16 +83,17 @@ export function SightsB({
       <PageBg theme={theme} />
 
       {/* Top atmosphere overlay (so-13y / so-0ig) — sits above PageBg, fades
-          to transparent. Height extends past the orb (HERO_HEIGHT 320 + ~80px
+          to transparent. Height extends past the orb (HERO_HEIGHT 215 + ~80px
           buffer) so the lavender / cosmic atmosphere bleeds smoothly into the
-          text area below — no visible seam between sections. */}
+          text area below — no visible seam between sections.
+          so-yyc4: updated stale 320 → 215 to match current HERO_HEIGHT. */}
       <LinearGradient
         colors={topAtmosphereColors}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={[
           styles.topAtmosphere,
-          { height: insets.top + 14 + 320 + 80 },
+          { height: insets.top + 14 + 215 + 80 },
         ]}
         pointerEvents="none"
       />
