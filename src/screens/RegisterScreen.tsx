@@ -77,6 +77,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   // Ref to track latest password for cross-field validation during rapid autofill
   const passwordRef = useRef('');
+  // so-4mmf: native refs for the two secure TextInputs — used ONLY for the
+  // blur/focus repaint nudge on iOS autofill. Never used to remount or swap
+  // component identity (that would trigger the so-2ohe yellow-lock bug).
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
 
   // Focus states
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -485,6 +490,26 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       passwordRef.current = value;
     }
 
+    // so-4mmf: iOS "Fill Strong Password" autofill delivers the ENTIRE password
+    // string in ONE onChangeText call (a multi-char jump), whereas user typing
+    // arrives one character at a time. On that autofill event, schedule a
+    // blur()+focus() repaint nudge on the SAME native view so iOS re-renders the
+    // secure dots in the field's textColor (otherwise they render black).
+    // SAFE: this does NOT remount the component (no key change, no conditional
+    // render) — only sends blur/focus to the existing native view, so the
+    // so-2ohe yellow-lock regression cannot occur. setTimeout(0) defers until
+    // after React has flushed the new value, giving iOS the correct text to paint.
+    if (field === 'password' || field === 'confirmPassword') {
+      const prevLen = formData[field as 'password' | 'confirmPassword'].length;
+      if (value.length - prevLen > 1) {
+        const ref = field === 'password' ? passwordInputRef : confirmPasswordInputRef;
+        setTimeout(() => {
+          ref.current?.blur();
+          ref.current?.focus();
+        }, 0);
+      }
+    }
+
     // Use functional update to avoid stale state when iOS autofills both fields rapidly
     setFormData(prev => ({ ...prev, [field]: value }));
     validateField(field, value);
@@ -698,6 +723,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   yellow + unresponsive. Only `secureTextEntry` flips with
                   the toggle; React reuses the same native view. */}
               <TextInput
+                ref={passwordInputRef}
                 style={[styles.secureInput, styles.passwordInput]}
                 placeholder="Password"
                 placeholderTextColor={focusedField === 'password' ? colors.primary : colors.text.secondary}
@@ -731,6 +757,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             <View style={[styles.inputContainer, focusedField === 'confirmPassword' && styles.inputContainerFocused]}>
               <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary} style={styles.inputIcon} />
               <TextInput
+                ref={confirmPasswordInputRef}
                 style={[styles.secureInput, styles.passwordInput]}
                 placeholder="Confirm Password"
                 placeholderTextColor={focusedField === 'confirmPassword' ? colors.primary : colors.text.secondary}
