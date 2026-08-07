@@ -230,7 +230,7 @@ const slides: Slide[] = [
     features: [
       { name: 'Daily Reflection', desc: "Write or speak what's on your mind.", icon: 'edit-3' },
       { name: 'Affirmation Mirror', desc: 'Grounded reminders that meet you where you are.', icon: 'sun' },
-      { name: 'SoulSight', desc: 'Deeper insights into yourself over time.', icon: 'eye' },
+      { name: 'SoulSights', desc: 'Deeper insights into yourself over time.', icon: 'eye' },
       { name: 'SoulSignals', desc: 'Patterns and narratives that surface as you reflect.', icon: 'activity' },
       { name: 'SoulShifts', desc: 'Suggestions to implement change in your daily life.', icon: 'shuffle' },
       { name: 'Personality Tests', desc: 'A starting map of how you move through the world.', icon: 'compass' },
