@@ -646,15 +646,23 @@ const SettingsScreen = ({ navigation }: any) => {
         )}
         <View style={styles.separator} />
 
-        {/* User Email */}
-        <Text style={styles.emailLabel}>User Email</Text>
-        <View style={styles.usernameRow}>
-          <Text style={[styles.emailInput, styles.fieldInputActive, { flex: 1 }]}>
-            {user?.email || ''}
-          </Text>
-          <Ionicons name="lock-closed" size={18} color={lockIconColor} />
-        </View>
-        <View style={styles.separator} />
+        {/* User Email — so-s1di: hidden for Apple 'Hide My Email' users whose
+            address is a private-relay alias (…@privaterelay.appleid.com).
+            The relay address is not meaningful to display and confuses users
+            who don't recognise it. Normal email and social-login users
+            (Google, Facebook) still see their real address. */}
+        {!user?.email?.endsWith('@privaterelay.appleid.com') && (
+          <>
+            <Text style={styles.emailLabel}>User Email</Text>
+            <View style={styles.usernameRow}>
+              <Text style={[styles.emailInput, styles.fieldInputActive, { flex: 1 }]}>
+                {user?.email || ''}
+              </Text>
+              <Ionicons name="lock-closed" size={18} color={lockIconColor} />
+            </View>
+            <View style={styles.separator} />
+          </>
+        )}
 
         {/* Change Password — only for email users */}
         {user?.providers?.includes('email') && (
