@@ -153,7 +153,7 @@ export function AffirmationReveal({
   // the guard-rail spacer. onLayout on the textBlock Animated.View gives the
   // natural laid-out height (transforms don't affect layout measurement).
   const [contentH, setContentH] = useState(0);
-  const availableH = MIRROR_HEIGHT - (insets.top + 60);
+  const availableH = MIRROR_HEIGHT - (insets.top + 72); // so-mbta: matches guard-rail bump (+12)
   // center when content fits; top-anchor when it overflows so excess goes DOWN.
   const textOverflows = contentH > 0 && contentH > availableH;
   const isLockedEntry = !initialText && !hasEntryToday;
@@ -667,7 +667,7 @@ export function AffirmationReveal({
           accessibilityLabel="Close affirmation"
         >
           <View style={styles.backIconCircle}>
-            <Feather name="chevron-left" size={26} color="#3A0E66" />
+            <Feather name="chevron-left" size={26} color="rgba(255, 255, 255, 0.9)" />
           </View>
         </Pressable>
       </Animated.View>
@@ -682,7 +682,7 @@ export function AffirmationReveal({
               paddingTop, splitting any overflow equally top AND bottom — the
               upward half went straight under the back button. Moving padding to
               a spacer View anchors centering strictly below the safe zone. */}
-          <View style={{ height: insets.top + 60 }} />
+          <View style={{ height: insets.top + 72 }} />
           {/* so-o8kb m2: dynamic justifyContent — 'center' when content fits,
               'flex-start' when it overflows so excess can ONLY go downward
               (numberOfLines+adjustsFontSizeToFit already cap the downward
@@ -841,13 +841,25 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     left: 22,
     zIndex: 10,
   },
+  // so-mbta: frosted-glass circle — replaces the solid white fill that was the
+  // highest-contrast element on the soft cosmic gradient and felt out of place.
+  // 44×44 preserved for the >=44pt accessibility tap target. White chevron (0.9
+  // alpha) is legible against both the dark cosmic backdrop AND lighter video
+  // frames in both app themes (backdrop is always the night-sky video).
   backIconCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   // so-0wzu: affirmation text occupies the TOP half of the screen (cloud area),
   // now that the layout is corrected — clouds top, animation bottom.
