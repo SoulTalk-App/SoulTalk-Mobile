@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   Dimensions,
 } from 'react-native';
 import Animated, {
@@ -65,7 +66,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
           flex: 1,
           alignItems: 'center',
           width: '100%',
-          paddingTop: 120, // Position content from top
+          paddingTop: 60, // so-36bo: reduced from 120 to give KAV room to shift content above keyboard
         },
         characterContainer: {
           alignItems: 'center',
@@ -210,7 +211,15 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={[styles.content, { paddingTop: insets.top }]}>
+        {/* so-36bo: ScrollView lets the form scroll above the keyboard when KAV
+            shifts content, and keyboardShouldPersistTaps='handled' dismisses the
+            keyboard on a tap outside the input (previously impossible with a plain View). */}
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={{ paddingTop: insets.top, flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Main content wrapper */}
           <View style={styles.mainWrapper}>
             {/* SoulPal Character — designed Lottie (so-lj2y) */}
@@ -267,7 +276,7 @@ const SoulPalNameScreen: React.FC<SoulPalNameScreenProps> = ({ navigation }) => 
               </AnimatedPressable>
             </Animated.View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </CosmicScreen>
   );
