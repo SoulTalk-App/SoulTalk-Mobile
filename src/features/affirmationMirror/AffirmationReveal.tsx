@@ -229,14 +229,17 @@ export function AffirmationReveal({
   // so-o8kb: ladder retuned — tighter thresholds + smaller steps prevent
   // oversized text on mid-length affirmations (40px for ≤80 chars was
   // noticeably too large for typical 60-80-char phrases; jumps were too abrupt).
-  // Floor lowered from 30 → 28 (still comfortably readable at Outfit Regular).
+  // so-8r2l: ladder raised — text was reading too small; raised each tier by
+  // +2px (floor 28→30). adjustsFontSizeToFit + numberOfLines={8} already in
+  // place as a safety net for any overflow; guard-rail spacer (insets.top+60)
+  // prevents upward spill under the back-chevron.
   // ↓ TUNABLE: affirmation size buckets ↓
   const { fontSize, lineHeight } = useMemo(() => {
     const len = text?.length ?? 0;
-    if (len <= 60)  return { fontSize: 38, lineHeight: 50 };
-    if (len <= 100) return { fontSize: 34, lineHeight: 46 };
-    if (len <= 150) return { fontSize: 30, lineHeight: 42 };
-    return { fontSize: 28, lineHeight: 38 };
+    if (len <= 60)  return { fontSize: 40, lineHeight: 52 };
+    if (len <= 100) return { fontSize: 36, lineHeight: 48 };
+    if (len <= 150) return { fontSize: 33, lineHeight: 44 };
+    return { fontSize: 30, lineHeight: 40 };
   }, [text]);
 
   useEffect(() => {
