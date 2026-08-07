@@ -496,6 +496,12 @@ export function AffirmationReveal({
     opacity: textOpacity.value,
     transform: [{ scale: textScale.value }],
   }));
+  // so-f2mm: disclosure label fades in with the reveal but sits in the
+  // bottom-left corner as an absolute overlay — no scale (small chip should
+  // not pulse), just matching opacity.
+  const labelAnimStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+  }));
   const buttonAnimStyle = useAnimatedStyle(() => ({
     opacity: buttonOpacity.value,
     transform: [{ scale: buttonScale.value }],
@@ -688,14 +694,12 @@ export function AffirmationReveal({
               (numberOfLines+adjustsFontSizeToFit already cap the downward
               spill). textOverflows is derived from contentH onLayout below. */}
           <View style={[styles.textCenter, { justifyContent: textOverflows ? 'flex-start' : 'center' }]}>
-            {/* so-gp1q: fade the WHOLE revealed text block (disclosure label +
-                affirmation) in as one unit via textAnimStyle. Previously the
-                AIGeneratedLabel was static and popped in instantly while the
-                clouds were still dissolving — a hard cut on the top half. Now the
-                label and text resolve together with the same opacity/scale, so
-                the top half reads as one continuous reveal. Timing unchanged
-                (reuses the existing textOpacity/textScale); identical in both
-                themes (tone stays "light"). */}
+            {/* so-gp1q: fade the affirmation text in via textAnimStyle so it
+                resolves with the clouds rather than popping in instantly.
+                so-f2mm: AIGeneratedLabel moved out of this block to a
+                bottom-left absolute overlay (see disclosureLabel below) —
+                textBlock now measures affirmation text only, which gives
+                a more accurate contentH for the overflow guard. */}
             <Animated.View
               style={[styles.textBlock, textAnimStyle]}
               onLayout={(e) => setContentH(e.nativeEvent.layout.height)}
@@ -712,19 +716,30 @@ export function AffirmationReveal({
               >
                 {text}
               </Text>
-              {/* so-7r4y / so-cdis: AI-disclosure label — legally required, always
-                  visible per so-7r4y. Moved below the affirmation text so it is
-                  never occluded by the back-chevron (position:absolute top-left).
-                  Compact + no pill chrome keeps it faint metadata, not competing
-                  with the affirmation. tone="light" for the dark cosmic backdrop. */}
-              <AIGeneratedLabel
-                tone="light"
-                size="compact"
-                style={{ marginTop: 14, backgroundColor: 'transparent', borderColor: 'transparent' }}
-              />
             </Animated.View>
           </View>
         </View>
+      )}
+
+      {/* so-f2mm: AI-disclosure label — bottom-left overlay, absolute over the
+          backdrop. Fades in with the reveal (labelAnimStyle = textOpacity only,
+          no scale). tone="light" is correct for BOTH app themes: the cosmic
+          backdrop is always dark (night-sky video), so white-tinted text stays
+          legible regardless of the app colour scheme. The subtle pill chrome
+          (8% white bg + hairline border) adds separation against lighter
+          video frames without being visually heavy.
+          pointerEvents="none": chip must not block taps on the video below it. */}
+      {isRevealed && (
+        <Animated.View
+          style={[
+            styles.disclosureLabel,
+            { bottom: insets.bottom + 16, left: insets.left + 20 },
+            labelAnimStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <AIGeneratedLabel tone="light" size="compact" />
+        </Animated.View>
       )}
 
       {!isRevealed && ctaReady && (
@@ -892,6 +907,14 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>) => StyleSheet.cr
     fontFamily: fonts.outfit.regular, // so-wx08: light (300) → regular (400) for readability on busy sky
     color: colors.white,
     textAlign: 'center',
+  },
+  // so-f2mm: bottom-left disclosure chip overlaid on the backdrop. zIndex 6 puts
+  // it above the cloud/video layers (5) but below the back button (10). bottom+left
+  // are set inline (inset-aware) so they stay off-screen on notched / Dynamic Island
+  // devices. pointerEvents="none" is set on the Animated.View wrapper.
+  disclosureLabel: {
+    position: 'absolute',
+    zIndex: 6,
   },
   // so-0wzu: "Click to Reveal" sits in the centre of the TOP half (cloud area).
   // Top half ends at MIRROR_HEIGHT = 50%; button target ≈ 33% of screen.
