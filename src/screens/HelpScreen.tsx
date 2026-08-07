@@ -410,36 +410,6 @@ const HelpScreen = ({ navigation }: any) => {
               </View>
             )}
 
-            {/* Contact SoulTalk */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Contact SoulTalk</Text>
-              <Pressable
-                style={styles.resourceCard}
-                onPress={() => Linking.openURL('mailto:info@soultalkapp.com')}
-              >
-                <View style={styles.resourceIconWrap}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={22}
-                    color={isDarkMode ? colors.primary : colors.text.primary}
-                  />
-                </View>
-                <View style={styles.resourceInfo}>
-                  <Text style={styles.resourceName}>Email Support</Text>
-                  <Text style={styles.resourceDesc}>
-                    For questions, feedback, or account issues
-                  </Text>
-                  <Text style={styles.resourceContact}>info@soultalkapp.com</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  // TODO: light-mode chevron uses purple-tinted alpha (#59168B-derived); no palette key
-                  color={isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(89,22,139,0.25)'}
-                />
-              </Pressable>
-            </View>
-
           </>
         )}
       </ScrollView>

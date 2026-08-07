@@ -472,7 +472,7 @@ const SettingsScreen = ({ navigation }: any) => {
       `${osLabel} version: ${osVersion}\n\n` +
       `Describe the issue:\n`,
     );
-    const url = `mailto:info@soultalkapp.com?subject=${subject}&body=${body}`;
+    const url = `mailto:bugs@soultalkapp.com?subject=${subject}&body=${body}`;
     // so-2bhc m2: skip canOpenURL — on iOS it false-negatives for 'mailto'
     // unless the scheme is listed in LSApplicationQueriesSchemes. Just call
     // openURL directly and let the catch handle a missing mail client.
@@ -481,7 +481,19 @@ const SettingsScreen = ({ navigation }: any) => {
     } catch {
       showAlert({
         title: 'Could not open mail',
-        message: 'Please email info@soultalkapp.com directly to report a bug.',
+        message: 'Please email bugs@soultalkapp.com directly to report a bug.',
+      });
+    }
+  }, [showAlert]);
+
+  // so-fzga: plain Contact Us mailto — no diagnostics body needed.
+  const handleContactUs = useCallback(async () => {
+    try {
+      await Linking.openURL('mailto:info@soultalkapp.com');
+    } catch {
+      showAlert({
+        title: 'Could not open mail',
+        message: 'Please email info@soultalkapp.com to get in touch.',
       });
     }
   }, [showAlert]);
@@ -774,6 +786,14 @@ const SettingsScreen = ({ navigation }: any) => {
             accessibilityLabel="Report a Bug"
           >
             <Text style={styles.footerLink}>Report a Bug</Text>
+          </Pressable>
+          <Text style={styles.footerDot}>·</Text>
+          <Pressable
+            onPress={handleContactUs}
+            accessibilityRole="button"
+            accessibilityLabel="Contact Us"
+          >
+            <Text style={styles.footerLink}>Contact Us</Text>
           </Pressable>
           <Text style={styles.footerDot}>·</Text>
           <Pressable
