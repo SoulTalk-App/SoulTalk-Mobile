@@ -146,8 +146,12 @@ export function StageAdvance({
           >
             {/* so-8bll: celebrating pose — arms-up artwork (home_<color>.png)
                 via SoulPalContext. Animated float adds life to the achievement
-                moment. Size 100 fits within the 140×140 halo disc. */}
-            <SoulPalAnimated pose="celebrating" size={100} animate={true} />
+                moment. so-ytwi: raised 100->120 so the character breaks slightly
+                above/below the 140x140 halo disc (~14px overflow each, no clip
+                since heroAvatarWrap has no overflow:hidden) — arms become visibly
+                wider (10px clearance vs 20px at 100) and the disc-overflow makes
+                the pose read as celebratory rather than contained/passive. */}
+            <SoulPalAnimated pose="celebrating" size={120} animate={true} />
           </View>
           {/* so-zlvm MI-6: live region announces the celebration to screen
               readers when the modal mounts — VoiceOver/TalkBack reads the
