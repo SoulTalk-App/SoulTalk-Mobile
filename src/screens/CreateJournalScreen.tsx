@@ -113,6 +113,12 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
   // Edit mode: entry passed via params
   const editEntry = route.params?.entry;
   const isEdit = !!editEntry;
+  // so-qosu: shift-reflection context passed from the "Reflect on this" flow
+  // (SoulShiftsScreen → navigate('CreateJournal', { shiftId, isShiftReflection })).
+  // Forwarded into createEntry so the POST includes shift_id + is_shift_reflection,
+  // gating the BE's 1/day cap exemption (so-ym2k). Absent for normal entries.
+  const shiftId = route.params?.shiftId as string | undefined;
+  const isShiftReflection = !!(route.params?.isShiftReflection);
 
   const [text, setText] = useState(isEdit ? editEntry.raw_text : '');
   const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
@@ -307,7 +313,7 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
         });
         entryId = editEntry.id;
       } else {
-        const result = await createEntry(finalizingText);
+        const result = await createEntry(finalizingText, undefined, false, shiftId, isShiftReflection);
         entryId = result?.id || null;
         // so-h8eo: capture resources defensively; the field may be absent on
         // older BE versions or non-crisis entries.
@@ -352,6 +358,13 @@ const CreateJournalScreen = ({ navigation, route }: any) => {
           message:
             detailMsg ||
             "Self-awareness is built through continuous practice. One journal a day, keeps awareness at bay! Come back tomorrow to continue your journey.",
+        });
+      } else if (status === 400 && isShiftReflection && /shift_id_required|invalid_shift_id/i.test(detailMsg || '')) {
+        // so-qosu: BE rejects shift-reflections with a missing or invalid shift_id.
+        // Surface a clean message rather than leaking the raw BE error string.
+        showAlert({
+          title: 'Reflection unavailable',
+          message: 'This SoulShift reflection could not be saved. The shift may no longer be eligible. Please try again or write a regular journal entry.',
         });
       } else if (status === 400 && /max(imum)?\s*edits|edit\s*limit/i.test(detailMsg || '')) {
         // so-uba4: BE returns 400 with a max-edits message when the user

@@ -70,7 +70,7 @@ interface JournalActionsType {
   // No-ops when already loading, loading more, or all pages are loaded.
   // Stable identity (no deps) — safe to pass directly as onEndReached.
   loadMoreEntries: () => Promise<void>;
-  createEntry: (rawText: string, mood?: Mood, isDraft?: boolean) => Promise<JournalEntry>;
+  createEntry: (rawText: string, mood?: Mood, isDraft?: boolean, shiftId?: string, isShiftReflection?: boolean) => Promise<JournalEntry>;
   updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
   deleteEntry: (id: string) => Promise<void>;
   setCurrentEntry: (entry: JournalEntry | null) => void;
@@ -486,8 +486,11 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   // of the daily-mood check-in (JournalService.getTodayMood / upsertTodayMood,
   // which returns a free-form mood_word string). No gate or sync between the
   // two: a user can set daily mood without writing an entry, and vice versa.
-  const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false) => {
-    const entry = await JournalService.createEntry(rawText, mood, isDraft);
+  // so-qosu: shiftId + isShiftReflection are forwarded to JournalService so the
+  // POST /journal/ payload includes shift_id + is_shift_reflection, gating the
+  // BE's 1/day cap exemption (so-ym2k). Normal entries pass neither.
+  const createEntry = useCallback(async (rawText: string, mood?: Mood, isDraft: boolean = false, shiftId?: string, isShiftReflection?: boolean) => {
+    const entry = await JournalService.createEntry(rawText, mood, isDraft, shiftId, isShiftReflection);
     if (!isDraft) {
       // Prepend to local state (newest first)
       setEntries((prev) => [entry, ...prev]);

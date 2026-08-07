@@ -158,12 +158,28 @@ class JournalService {
     rawText: string,
     mood?: Mood,
     isDraft: boolean = false,
+    // so-qosu: shift-reflection context — included in POST body when present
+    // so the BE exempts this entry from the 1/day cap (so-ym2k gate).
+    // is_shift_reflection=true + shift_id (uuid) are both REQUIRED by the BE;
+    // omit both for normal journal entries.
+    shiftId?: string,
+    isShiftReflection?: boolean,
   ): Promise<JournalEntry> {
-    const body: { raw_text: string; mood?: Mood; is_draft: boolean } = {
+    const body: {
+      raw_text: string;
+      mood?: Mood;
+      is_draft: boolean;
+      shift_id?: string;
+      is_shift_reflection?: boolean;
+    } = {
       raw_text: rawText,
       is_draft: isDraft,
     };
     if (mood) body.mood = mood;
+    if (isShiftReflection && shiftId) {
+      body.is_shift_reflection = true;
+      body.shift_id = shiftId;
+    }
     const response = await this.axiosInstance.post('/journal/', body);
     return response.data;
   }

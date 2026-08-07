@@ -628,8 +628,14 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
           theme={theme}
           onContinue={() => setAdvance(null)}
           onReflect={() => {
+            // so-qosu: pass shift context so CreateJournalScreen can include
+            // shift_id + is_shift_reflection in the POST /journal/ payload,
+            // gating the BE's 1/day cap exemption (so-ym2k).
             setAdvance(null);
-            navigation.navigate('CreateJournal');
+            navigation.navigate('CreateJournal', {
+              shiftId: advance.detail.id,
+              isShiftReflection: true,
+            });
           }}
         />
       )}
