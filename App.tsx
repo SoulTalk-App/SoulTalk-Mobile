@@ -13,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "./src/contexts/ThemeContext";
-import { SoulPalProvider } from "./src/contexts/SoulPalContext";
+import { SoulPalProvider, useSoulPal } from "./src/contexts/SoulPalContext";
 import ErrorBoundary from "./src/components/ErrorBoundary";
 import { AppAlertProvider } from "./src/components/AppAlertProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -365,6 +365,18 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 
 const Navigation = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  // so-uagc: hydrate SoulPal name from the server profile on auth/bootstrap
+  // so a returning user on a fresh install sees their chosen name rather than
+  // the default 'SoulPal'. setName() seeds both the in-memory SoulPalContext
+  // and AsyncStorage, so subsequent cold-starts read locally without a
+  // round-trip. Runs whenever user.soulpal_name arrives (async).
+  const { setName: hydrateSoulPalName } = useSoulPal();
+  useEffect(() => {
+    if (user?.soulpal_name) {
+      hydrateSoulPalName(user.soulpal_name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.soulpal_name]);
   // so-fwva: server-side access gate. accessGranted is the trial-clock
   // + Pro authority (null while /auth/me hasn't landed; false when the
   // trial is over and the user isn't Pro). isPro is the Adapty side;
@@ -399,9 +411,17 @@ const Navigation = () => {
 
   const dataReady = !isLoading && onboardingComplete !== null && setupComplete !== null;
 
+  // so-uagc: include user?.username in deps so checkStatus re-evaluates when
+  // the server profile lands async after isAuthenticated flips. On reinstall
+  // the auth token is gone so the user goes through the login flow; after
+  // loginWithGoogle/Apple/Facebook the token is restored and getCurrentUser()
+  // runs, but user?.username may not be in the same React batch as
+  // isAuthenticated=true in all code paths. Adding username here ensures the
+  // returning-user skip fires reliably regardless of batching order.
   useEffect(() => {
     checkStatus();
-  }, [isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.username]);
 
   const checkStatus = async () => {
     try {

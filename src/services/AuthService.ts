@@ -85,6 +85,9 @@ interface UserInfo {
   // ISO timestamp when the Pro subscription expires; null for comped /
   // lifetime (no expiry). Displayed in SettingsTrialCard as "Active until".
   pro_expires_at?: string | null;
+  // so-uagc: server-held SoulPal name from /auth/me — used to re-hydrate
+  // SoulPalContext on reinstall without requiring a separate AI-prefs call.
+  soulpal_name?: string | null;
 }
 
 interface ProfileUpdate {
