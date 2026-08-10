@@ -95,12 +95,14 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
   // so-9t3d MI-4: safety_redirect content gets a neutral default title so the
   // header doesn't read "Your weekly Sight" for crisis resource content.
   const isSafetyRedirect = detail.status === 'safety_redirect';
-  // so-6xir: strip leading '#' heading prefix the BE sometimes sends. Use ||
-  // (not ??) so an empty string after stripping ("# " → "") still falls back.
+  // so-6xir: BE sometimes returns title with a leading '#' heading prefix
+  // (e.g. "# The Wisdom in Letting Go"). parseContent already strips this from
+  // titles extracted via content parsing, but the direct detail.title field
+  // bypasses that path. Strip any leading hash + whitespace here.
   const rawTitle = (detail.title ?? parsed.title)?.replace(/^#+\s*/, '').trim();
   return {
     id: detail.id,
-    title: rawTitle || (isSafetyRedirect ? 'Support Resources' : 'Your weekly Sight'),
+    title: rawTitle ?? (isSafetyRedirect ? 'Support Resources' : 'Your weekly Sight'),
     window,
     entries: detail.entry_count,
     signals: detail.active_days,

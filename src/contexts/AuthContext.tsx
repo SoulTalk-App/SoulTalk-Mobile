@@ -33,6 +33,9 @@ interface UserInfo {
   access_granted?: boolean | null;
   trial_ends_at?: string | null;
   days_left?: number | null;
+  // so-uagc: server-held SoulPal name — hydrated on auth/bootstrap so
+  // SoulPalContext can survive reinstall without re-prompting the user.
+  soulpal_name?: string | null;
 }
 
 interface ProfileUpdate {
