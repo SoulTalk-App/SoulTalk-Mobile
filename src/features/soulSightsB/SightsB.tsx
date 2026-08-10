@@ -91,27 +91,35 @@ export function SightsB({
         colors={topAtmosphereColors}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={[
-          styles.topAtmosphere,
-          { height: insets.top + 14 + 215 + 80 },
-        ]}
+        style={[styles.topAtmosphere, { height: insets.top + 14 + 215 + 80 }]}
         pointerEvents="none"
       />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 14 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 0 }]}
         showsVerticalScrollIndicator={false}
       >
-        {status === 'locked' || status === 'processing' || status === 'error' || !sight ? (
+        {status === "locked" ||
+        status === "processing" ||
+        status === "error" ||
+        !sight ? (
           <View style={styles.stateWrap}>
             <StarsBg theme={theme} />
-            {status === 'processing' ? (
+            {status === "processing" ? (
               <ProcessingState theme={theme} meta={processingMeta} />
-            ) : status === 'error' ? (
+            ) : status === "error" ? (
               // so-9t3d M-3: offline / fetch-failure state — error + retry instead
               // of the eternal spinner that deriveStatus(null) used to produce.
-              <View style={[styles.errorCard, { backgroundColor: surfaceBg(theme), borderColor: surfaceBorder(theme) }]}>
+              <View
+                style={[
+                  styles.errorCard,
+                  {
+                    backgroundColor: surfaceBg(theme),
+                    borderColor: surfaceBorder(theme),
+                  },
+                ]}
+              >
                 <Text style={[styles.errorTitle, { color: ink(theme) }]}>
                   Couldn't load this SoulSight
                 </Text>
@@ -155,7 +163,7 @@ export function SightsB({
                     { color: ink(theme) },
                     // so-jkgo: title sits over StarsBg in dark theme; shadow
                     // halo separates glyphs from any star pixels behind them.
-                    theme === 'dark' && cosmicTextShadow,
+                    theme === "dark" && cosmicTextShadow,
                   ]}
                 >
                   {sight.title}
@@ -166,11 +174,11 @@ export function SightsB({
                       styles.chip,
                       {
                         backgroundColor:
-                          theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
+                          theme === "dark" ? "rgba(255,255,255,0.06)" : "#fff",
                         borderColor:
-                          theme === 'dark'
-                            ? 'rgba(255,255,255,0.14)'
-                            : 'rgba(58,14,102,0.08)',
+                          theme === "dark"
+                            ? "rgba(255,255,255,0.14)"
+                            : "rgba(58,14,102,0.08)",
                       },
                     ]}
                   >
@@ -213,7 +221,7 @@ export function SightsB({
           <Feather
             name="chevron-left"
             size={28}
-            color={theme === 'dark' ? '#FFFFFF' : '#3A0E66'}
+            color={theme === "dark" ? "#FFFFFF" : "#3A0E66"}
           />
         </Pressable>
       ) : null}

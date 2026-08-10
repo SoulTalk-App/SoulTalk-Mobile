@@ -21,22 +21,24 @@ import { Theme } from './tokens';
 // so-8bll: use the celebrating (arms-up) pose so the SoulSight reading
 // header reads warm/positive rather than sad. home_<color>.png via context.
 import SoulPalAnimated from '../../components/SoulPalAnimated';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // so-u343: reduced from 320 → 260 to tighten the hero banner.
 // so-yyc4: further 260 → 215; combined with orbWrap top 43%→40% the
 // empty dark band above the orb shrinks to ~6px (orb just clears the
 // hero top edge) and the total dead-band on screen is ~20px vs ~46px.
-const HERO_HEIGHT = 215;
 
 type Props = {
   theme: Theme;
   sight: SightDetail;
 };
 
+let HERO_HEIGHT = 315;
 export function HeroOrb({ theme, sight }: Props) {
   const isDark = theme === 'dark';
   const pulse = useSharedValue(0);
-
+  const insets = useSafeAreaInsets();
+  HERO_HEIGHT = 315 + insets.top;
   useEffect(() => {
     pulse.value = withRepeat(
       withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
@@ -150,45 +152,45 @@ export function HeroOrb({ theme, sight }: Props) {
 
 const styles = StyleSheet.create({
   hero: {
-    width: '100%',
+    width: "100%",
     height: HERO_HEIGHT,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   orbWrap: {
-    position: 'absolute',
-    left: '50%',
+    position: "absolute",
+    left: "50%",
     // so-yyc4: raised from '43%' → '40%' — orb centre at 215×0.40 = 86px,
     // leaving only ~6px above the orb top edge (vs ~32px at 43%).
-    top: '40%',
+    top: "50%",
     width: 160,
     height: 160,
     marginLeft: -80,
     marginTop: -80,
   },
   soulpalWrap: {
-    position: 'absolute',
-    left: '78%',
-    top: '34%',
+    position: "absolute",
+    left: "78%",
+    top: "44%",
     width: 40,
     height: 40,
     marginLeft: -20,
     marginTop: -20,
-    shadowColor: '#FFC85C',
+    shadowColor: "#FFC85C",
     shadowOpacity: 0.6,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
     // so-8bll: center SoulPalAnimated (self-sizing) within the orb anchor point.
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   // soulpal image style removed — so-8bll switched to SoulPalAnimated (self-sizing).
   caption: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: 18,
-    textAlign: 'center',
+    textAlign: "center",
     fontFamily: fonts.edensor.lightItalic,
     fontSize: 12,
     letterSpacing: 0.4,
