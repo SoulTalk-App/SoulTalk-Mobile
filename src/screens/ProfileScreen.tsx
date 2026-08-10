@@ -7,7 +7,9 @@ import {
   ScrollView,
   Pressable,
   Image,
-} from 'react-native';
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -105,116 +107,69 @@ const ProfileScreen = ({ navigation }: any) => {
   if (isDarkMode) {
     return (
       <CosmicScreen tone="dusk">
-        <ScrollView
-          style={dk.scrollView}
-          contentContainerStyle={[
-            dk.scrollContent,
-            { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 },
-          ]}
-          showsVerticalScrollIndicator={false}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
         >
-          {/* Top Row: Back & Gear */}
-          <View style={dk.topRow}>
-            <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-              <Feather name="chevron-left" size={32} color="#FFFFFF" />
-            </Pressable>
-            <Pressable onPress={() => navigation.navigate("Settings")}>
-              <Image
-                source={ProfileGearIcon}
-                style={dk.topIcon}
-                resizeMode="contain"
-              />
-            </Pressable>
-          </View>
-
-          {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
-          <View style={dk.avatarContainer}>
-            <View style={dk.avatarCircle}>
-              {/* so-a8so: size 90→70 so height≈98px fits the 100px circle without clipping */}
-              <SoulPalAnimated pose="default" size={70} animate={false} />
-            </View>
-          </View>
-
-          {/* Display Name */}
-          <Text style={dk.displayNameText}>
-            {user?.display_first_name || user?.first_name || "User"}
-          </Text>
-
-          {/* @username */}
-          <Text style={dk.usernameText}>
-            {user?.username ? `@${user.username}` : "Add a username"}
-          </Text>
-
-          {/* Badges Card */}
-          <GlassCard style={dk.badgesCard}>
-            <View style={dk.badgesHeader}>
-              <Text style={dk.sectionTitle}>Badges</Text>
-              <Pressable>
+          <ScrollView
+            style={dk.scrollView}
+            contentContainerStyle={[
+              dk.scrollContent,
+              {
+                paddingTop: insets.top + 10,
+                paddingBottom: insets.bottom + 100,
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Top Row: Back & Gear */}
+            <View style={dk.topRow}>
+              <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
+                <Feather name="chevron-left" size={32} color="#FFFFFF" />
+              </Pressable>
+              <Pressable onPress={() => navigation.navigate("Settings")}>
                 <Image
-                  source={ThreeDots}
-                  style={dk.threeDots}
+                  source={ProfileGearIcon}
+                  style={dk.topIcon}
                   resizeMode="contain"
                 />
               </Pressable>
             </View>
-            <View style={dk.badgesRow}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <View key={i} style={dk.badgeCircle} />
-              ))}
-            </View>
-            <View style={dk.comingSoonOverlay}>
-              <Image
-                source={LockIconDark}
-                style={dk.comingSoonLock}
-                resizeMode="contain"
-              />
-              <Text style={dk.comingSoonLabel}>Coming Soon</Text>
-            </View>
-          </GlassCard>
 
-          {/* Two Column Layout — Personality (past results) + Achievement */}
-          <View style={dk.twoColumns}>
-            <GlassCard style={dk.personalityCard} fillHeight>
-              <View style={dk.personalityHeader}>
-                <Text style={dk.personalityTitle}>Personality</Text>
+            {/* Avatar — so-jm9t: dynamic SoulPal (resting pose) replacing static ghost PNG */}
+            <View style={dk.avatarContainer}>
+              <View style={dk.avatarCircle}>
+                {/* so-a8so: size 90→70 so height≈98px fits the 100px circle without clipping */}
+                <SoulPalAnimated pose="default" size={70} animate={false} />
               </View>
-              <View style={dk.personalityBody}>
-                {pastResults.length === 0 ? (
-                  <Text style={dk.personalityEmptyText}>
-                    No tests taken yet
-                  </Text>
-                ) : (
-                  pastResults.map((r) => (
-                    <Pressable
-                      key={r.id}
-                      onPress={() => openResult(r.id)}
-                      style={dk.personalityResultRow}
-                    >
-                      <Text style={dk.personalityResultLabel} numberOfLines={1}>
-                        {TEST_TYPE_LABEL[r.test_type] || r.test_type}
-                      </Text>
-                      <Text
-                        style={dk.personalityResultProfile}
-                        numberOfLines={1}
-                      >
-                        {r.dominant_type}
-                      </Text>
-                      <Text style={dk.personalityResultDate}>
-                        {formatTakenAt(r.completed_at)}
-                      </Text>
-                    </Pressable>
-                  ))
-                )}
-              </View>
-            </GlassCard>
+            </View>
 
-            <GlassCard style={dk.achievementCard} fillHeight>
-              <View style={dk.achievementHeader}>
-                <Text style={dk.achievementHeaderText}>Notebook</Text>
+            {/* Display Name */}
+            <Text style={dk.displayNameText}>
+              {user?.display_first_name || user?.first_name || "User"}
+            </Text>
+
+            {/* @username */}
+            <Text style={dk.usernameText}>
+              {user?.username ? `@${user.username}` : "Add a username"}
+            </Text>
+
+            {/* Badges Card */}
+            <GlassCard style={dk.badgesCard}>
+              <View style={dk.badgesHeader}>
+                <Text style={dk.sectionTitle}>Badges</Text>
+                <Pressable>
+                  <Image
+                    source={ThreeDots}
+                    style={dk.threeDots}
+                    resizeMode="contain"
+                  />
+                </Pressable>
               </View>
-              <View style={dk.achievementGrid}>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <View key={i} style={dk.achievementItem} />
+              <View style={dk.badgesRow}>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <View key={i} style={dk.badgeCircle} />
                 ))}
               </View>
               <View style={dk.comingSoonOverlay}>
@@ -226,33 +181,97 @@ const ProfileScreen = ({ navigation }: any) => {
                 <Text style={dk.comingSoonLabel}>Coming Soon</Text>
               </View>
             </GlassCard>
-          </View>
 
-          {/* Soul Pal Customization Card */}
-          <GlassCard style={dk.soulPalCard}>
-            <View style={dk.soulPalCardInner}>
-              <View style={dk.soulPalCharArea}>
-                <SoulPalAnimated pose="celebrating" size={65} animate={true} />
-              </View>
-              <View style={dk.soulPalRight}>
-                <Text style={dk.soulPalLabel}>Soul Pal</Text>
-                {/* so-38wy: rename control — color picker removed. Storage +
-                    BE sync via SoulPalContext.setName + JournalService. */}
-                <TextInput
-                  style={dk.soulPalNameInput}
-                  value={nameInput}
-                  onChangeText={setNameInput}
-                  onSubmitEditing={handleRename}
-                  onBlur={handleRename}
-                  returnKeyType="done"
-                  placeholder="Name your SoulPal"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
-                  accessibilityLabel="SoulPal name"
-                />
-              </View>
+            {/* Two Column Layout — Personality (past results) + Achievement */}
+            <View style={dk.twoColumns}>
+              <GlassCard style={dk.personalityCard} fillHeight>
+                <View style={dk.personalityHeader}>
+                  <Text style={dk.personalityTitle}>Personality</Text>
+                </View>
+                <View style={dk.personalityBody}>
+                  {pastResults.length === 0 ? (
+                    <Text style={dk.personalityEmptyText}>
+                      No tests taken yet
+                    </Text>
+                  ) : (
+                    pastResults.map((r) => (
+                      <Pressable
+                        key={r.id}
+                        onPress={() => openResult(r.id)}
+                        style={dk.personalityResultRow}
+                      >
+                        <Text
+                          style={dk.personalityResultLabel}
+                          numberOfLines={1}
+                        >
+                          {TEST_TYPE_LABEL[r.test_type] || r.test_type}
+                        </Text>
+                        <Text
+                          style={dk.personalityResultProfile}
+                          numberOfLines={1}
+                        >
+                          {r.dominant_type}
+                        </Text>
+                        <Text style={dk.personalityResultDate}>
+                          {formatTakenAt(r.completed_at)}
+                        </Text>
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              </GlassCard>
+
+              <GlassCard style={dk.achievementCard} fillHeight>
+                <View style={dk.achievementHeader}>
+                  <Text style={dk.achievementHeaderText}>Notebook</Text>
+                </View>
+                <View style={dk.achievementGrid}>
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <View key={i} style={dk.achievementItem} />
+                  ))}
+                </View>
+                <View style={dk.comingSoonOverlay}>
+                  <Image
+                    source={LockIconDark}
+                    style={dk.comingSoonLock}
+                    resizeMode="contain"
+                  />
+                  <Text style={dk.comingSoonLabel}>Coming Soon</Text>
+                </View>
+              </GlassCard>
             </View>
-          </GlassCard>
-        </ScrollView>
+
+            {/* Soul Pal Customization Card */}
+
+            <GlassCard style={dk.soulPalCard}>
+              <View style={dk.soulPalCardInner}>
+                <View style={dk.soulPalCharArea}>
+                  <SoulPalAnimated
+                    pose="celebrating"
+                    size={65}
+                    animate={true}
+                  />
+                </View>
+                <View style={dk.soulPalRight}>
+                  <Text style={dk.soulPalLabel}>Soul Pal</Text>
+                  {/* so-38wy: rename control — color picker removed. Storage +
+                    BE sync via SoulPalContext.setName + JournalService. */}
+                  <TextInput
+                    style={dk.soulPalNameInput}
+                    value={nameInput}
+                    onChangeText={setNameInput}
+                    onSubmitEditing={handleRename}
+                    onBlur={handleRename}
+                    returnKeyType="done"
+                    placeholder="Name your SoulPal"
+                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    accessibilityLabel="SoulPal name"
+                  />
+                </View>
+              </View>
+            </GlassCard>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* so-loo3: BottomTabBar replaces the inline tab JSX. */}
         <BottomTabBar
