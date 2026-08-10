@@ -118,8 +118,12 @@ const ProfileScreen = ({ navigation }: any) => {
             <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
               <Feather name="chevron-left" size={32} color="#FFFFFF" />
             </Pressable>
-            <Pressable onPress={() => navigation.navigate('Settings')}>
-              <Image source={ProfileGearIcon} style={dk.topIcon} resizeMode="contain" />
+            <Pressable onPress={() => navigation.navigate("Settings")}>
+              <Image
+                source={ProfileGearIcon}
+                style={dk.topIcon}
+                resizeMode="contain"
+              />
             </Pressable>
           </View>
 
@@ -133,12 +137,12 @@ const ProfileScreen = ({ navigation }: any) => {
 
           {/* Display Name */}
           <Text style={dk.displayNameText}>
-            {user?.display_first_name || user?.first_name || 'User'}
+            {user?.display_first_name || user?.first_name || "User"}
           </Text>
 
           {/* @username */}
           <Text style={dk.usernameText}>
-            {user?.username ? `@${user.username}` : 'Add a username'}
+            {user?.username ? `@${user.username}` : "Add a username"}
           </Text>
 
           {/* Badges Card */}
@@ -146,7 +150,11 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={dk.badgesHeader}>
               <Text style={dk.sectionTitle}>Badges</Text>
               <Pressable>
-                <Image source={ThreeDots} style={dk.threeDots} resizeMode="contain" />
+                <Image
+                  source={ThreeDots}
+                  style={dk.threeDots}
+                  resizeMode="contain"
+                />
               </Pressable>
             </View>
             <View style={dk.badgesRow}>
@@ -155,7 +163,11 @@ const ProfileScreen = ({ navigation }: any) => {
               ))}
             </View>
             <View style={dk.comingSoonOverlay}>
-              <Image source={LockIconDark} style={dk.comingSoonLock} resizeMode="contain" />
+              <Image
+                source={LockIconDark}
+                style={dk.comingSoonLock}
+                resizeMode="contain"
+              />
               <Text style={dk.comingSoonLabel}>Coming Soon</Text>
             </View>
           </GlassCard>
@@ -168,7 +180,9 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
               <View style={dk.personalityBody}>
                 {pastResults.length === 0 ? (
-                  <Text style={dk.personalityEmptyText}>No tests taken yet</Text>
+                  <Text style={dk.personalityEmptyText}>
+                    No tests taken yet
+                  </Text>
                 ) : (
                   pastResults.map((r) => (
                     <Pressable
@@ -179,7 +193,10 @@ const ProfileScreen = ({ navigation }: any) => {
                       <Text style={dk.personalityResultLabel} numberOfLines={1}>
                         {TEST_TYPE_LABEL[r.test_type] || r.test_type}
                       </Text>
-                      <Text style={dk.personalityResultProfile} numberOfLines={1}>
+                      <Text
+                        style={dk.personalityResultProfile}
+                        numberOfLines={1}
+                      >
                         {r.dominant_type}
                       </Text>
                       <Text style={dk.personalityResultDate}>
@@ -193,7 +210,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
             <GlassCard style={dk.achievementCard} fillHeight>
               <View style={dk.achievementHeader}>
-                <Text style={dk.achievementHeaderText}>Achievement</Text>
+                <Text style={dk.achievementHeaderText}>Notebook</Text>
               </View>
               <View style={dk.achievementGrid}>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -201,7 +218,11 @@ const ProfileScreen = ({ navigation }: any) => {
                 ))}
               </View>
               <View style={dk.comingSoonOverlay}>
-                <Image source={LockIconDark} style={dk.comingSoonLock} resizeMode="contain" />
+                <Image
+                  source={LockIconDark}
+                  style={dk.comingSoonLock}
+                  resizeMode="contain"
+                />
                 <Text style={dk.comingSoonLabel}>Coming Soon</Text>
               </View>
             </GlassCard>
