@@ -45,13 +45,23 @@ describe('isAccessLocked (so-etv4 gate truth table)', () => {
     ).toBe(false);
   });
 
-  it('isPro=true overrides everything → OPEN', () => {
-    // Would otherwise lock (null+settled+active, and explicit false).
+  it('isPro=true + accessGranted=null → OPEN (fast-path: paid, server not yet confirmed)', () => {
+    // Server hasn't explicitly denied — Adapty Pro opens the gate.
+    // Would otherwise lock (null+settled+active).
     expect(
       isAccessLocked({ accessGranted: null, sdkSettled: true, sdkActive: true, isPro: true }),
     ).toBe(false);
+  });
+
+  it('isPro=true + accessGranted=false → LOCKED (so-7juf: server explicit denial wins)', () => {
+    // so-7juf: accessGranted=false is checked BEFORE isPro. A stale device
+    // Adapty profile must not re-open a gate that the server has explicitly closed.
     expect(
       isAccessLocked({ accessGranted: false, sdkSettled: true, sdkActive: true, isPro: true }),
-    ).toBe(false);
+    ).toBe(true);
+    // Same result regardless of SDK state.
+    expect(
+      isAccessLocked({ accessGranted: false, sdkSettled: false, sdkActive: false, isPro: true }),
+    ).toBe(true);
   });
 });

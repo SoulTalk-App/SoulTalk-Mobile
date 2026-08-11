@@ -151,7 +151,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const region = locales?.[0]?.regionCode;
         if (region) {
           const updated = await AuthService.updateProfile({ country_code: region });
-          setUser(updated);
+          // so-7juf: merge rather than replace so access_granted and other
+          // entitlement fields are preserved if PUT /auth/me omits them.
+          setUser(prev => (prev ? { ...prev, ...updated } : updated));
         }
       } catch (_e) {
         // Silent — don't block auth flow for country detection
@@ -167,7 +169,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (userInfo.timezone === deviceTz) return;
     try {
       const updated = await AuthService.updateProfile({ timezone: deviceTz });
-      setUser(updated);
+      // so-7juf: merge rather than replace so access_granted and other
+      // entitlement fields are preserved if PUT /auth/me omits them.
+      setUser(prev => (prev ? { ...prev, ...updated } : updated));
     } catch (_e) {
       // Silent — don't block auth flow for TZ sync. Will retry on next
       // cold-start. 422 surfaces here for unknown IANA strings (shouldn't
@@ -226,6 +230,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthState();
   }, [checkAuthState]);
 
+  // so-7juf / so-ap3b MI-1: refreshUser declared BEFORE the AppState 'active'
+  // effect that calls it — same pattern as the logout/registerLogoutCallback
+  // reorder (so-ap3b MI-1 comment below). The deps array at the call site
+  // referencing a useCallback declared 100+ lines later is a TDZ ReferenceError
+  // on any TDZ-enforcing engine (TS2448); Hermes is lenient but the spec is not.
+  const refreshUser = useCallback(async () => {
+    try {
+      if (isAuthenticated && !initializingRef.current) {
+        const userInfo = await AuthService.getCurrentUser();
+        setUser(userInfo);
+      }
+    } catch (error) {
+      logHandledError('AuthContext: refreshUser', error);
+      // If refresh fails, user might need to re-authenticate
+      setUser(null);
+      setIsAuthenticated(false);
+      // so-hq98: mirror logout()'s cleanup — see checkAuthState branch above.
+      // so-ap3b M-2: use shared helper so @terms_accepted is also cleared.
+      await clearAuthLocalFlags();
+      await AuthService.logout();
+    }
+  }, [isAuthenticated]);
+
   // so-u0w1: existing-logged-in users on TF≤34 may have NULL users.timezone.
   // The 6 auth-completion call sites only fire when the user signs in again,
   // so users who just resume a stored session never get backfilled. Re-run
@@ -244,9 +271,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // inside refreshAccessToken and do not surface to the user.
       proactiveTokenRefresh().catch(() => {});
       ensureTimezone(user);
+      // so-7juf: re-fetch /auth/me on every foreground transition so the
+      // paywall gate re-evaluates with a fresh access_granted — trial expiry
+      // is detected without a cold restart.
+      refreshUser().catch(() => {});
     });
     return () => sub.remove();
-  }, [isAuthenticated, user, ensureTimezone]);
+  }, [isAuthenticated, user, ensureTimezone, refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -339,28 +370,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     registerLogoutCallback(logout, isAuthenticated);
   }, [logout, isAuthenticated]);
 
-  const refreshUser = useCallback(async () => {
-    try {
-      if (isAuthenticated && !initializingRef.current) {
-        const userInfo = await AuthService.getCurrentUser();
-        setUser(userInfo);
-      }
-    } catch (error) {
-      logHandledError('AuthContext: refreshUser', error);
-      // If refresh fails, user might need to re-authenticate
-      setUser(null);
-      setIsAuthenticated(false);
-      // so-hq98: mirror logout()'s cleanup — see checkAuthState branch above.
-      // so-ap3b M-2: use shared helper so @terms_accepted is also cleared.
-      await clearAuthLocalFlags();
-      await AuthService.logout();
-    }
-  }, [isAuthenticated]);
-
   const updateProfile = useCallback(async (data: ProfileUpdate) => {
     try {
       const updated = await AuthService.updateProfile(data);
-      setUser(updated);
+      // so-7juf: merge so entitlement fields (access_granted, is_pro) are
+      // preserved if PUT /auth/me returns a partial response.
+      setUser(prev => (prev ? { ...prev, ...updated } : updated));
     } catch (error) {
       logHandledError('AuthContext: updateProfile', error);
       throw error;

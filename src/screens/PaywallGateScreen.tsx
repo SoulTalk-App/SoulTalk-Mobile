@@ -58,7 +58,7 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { logout } = useAuth();
+  const { logout, refreshUser } = useAuth();
   const { refresh: refreshEntitlement } = useEntitlement();
   const { showAlert } = useAppAlert();
 
@@ -78,11 +78,13 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
       try {
         const outcome = await presentPaywall();
         if (wasUnlocked(outcome)) {
-          // EntitlementProvider's post-unlock hook on the axios layer
-          // also kicks /auth/me; an explicit refresh here covers the
-          // path where no API call was in flight when the paywall was
-          // presented (auto-mount).
-          await refreshEntitlement();
+          // so-7juf: pull both Adapty profile and /auth/me in parallel so
+          // accessGranted reflects the purchase. With the server-authoritative
+          // gate (accessGranted=false => LOCKED), refreshUser() is required
+          // to open the gate after purchase — adaptyPro alone no longer
+          // suffices. The 402-interceptor path has its own postUnlockHook
+          // that already calls refreshUser(); this covers the direct-mount path.
+          await Promise.all([refreshEntitlement(), refreshUser()]);
         } else if (outcome.kind === 'error') {
           showAlert({
             title: 'Subscription',
@@ -111,7 +113,9 @@ const PaywallGateScreen: React.FC<PaywallGateScreenProps> = ({ navigation }) => 
     try {
       const outcome = await restorePurchases();
       if (wasUnlocked(outcome)) {
-        await refreshEntitlement();
+        // so-7juf: same as handlePresent — need /auth/me refresh alongside
+        // Adapty profile so the server-authoritative gate opens on restore.
+        await Promise.all([refreshEntitlement(), refreshUser()]);
         return;
       }
       if (outcome.kind === 'restored') {

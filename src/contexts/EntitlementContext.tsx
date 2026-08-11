@@ -171,12 +171,20 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
   // AuthContext) so the auth layer stays free of Adapty imports — a
   // single useEffect listens for user transitions and keeps the SDK
   // session in lockstep.
+  //
+  // so-7juf lifecycle fix: profile is cleared eagerly (before the async
+  // SDK calls) so a stale profile from a prior session is never visible
+  // to the gate under the incoming identity.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (user?.id) {
         if (lastIdentifiedRef.current === user.id) return;
         lastIdentifiedRef.current = user.id;
+        // so-7juf: clear the old profile before identifying as the new
+        // user so a stale device-scoped Adapty profile from a previous
+        // session can never be read as the current user's entitlement.
+        setProfile(null);
         await identifyAdaptyUser(user.id);
         if (cancelled) return;
         // Re-pull the profile post-identify so the access-level
@@ -186,9 +194,12 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
         await pullProfile();
       } else if (lastIdentifiedRef.current !== null) {
         lastIdentifiedRef.current = null;
-        await logoutAdaptyUser();
-        if (cancelled) return;
+        // so-7juf: clear the profile immediately on logout — do not
+        // wait for logoutAdaptyUser() to complete. A subsequent
+        // identify() (re-login on the same device) must never inherit
+        // the old session's entitlement via a still-visible profile.
         setProfile(null);
+        await logoutAdaptyUser();
       }
     })();
     return () => {
@@ -263,18 +274,29 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
     () => readBool(user, 'is_pro', 'isPro'),
     [user],
   );
-  const isPro = useMemo(
-    () => adaptyPro || serverIsPro === true,
-    [adaptyPro, serverIsPro],
-  );
 
-  // Trial-window fields come straight from /auth/me via the user
-  // object. Server is the trial-clock authority; we never compute
-  // daysLeft from device time here.
+  // so-7juf: accessGranted comes from the entitlement computation below —
+  // define it first so the isPro guard can reference it.
   const accessGranted = useMemo(
     () => readBool(user, 'access_granted', 'accessGranted'),
     [user],
   );
+
+  // so-7juf: when the server has explicitly denied BOTH access_granted AND
+  // is_pro, the server verdict is authoritative — a stale device Adapty
+  // profile (adaptyPro=true from a prior comped/Pro session on the same
+  // device) must NOT re-open the gate. Only trust adaptyPro when the server
+  // hasn't issued a double-denial.
+  const isPro = useMemo(() => {
+    if (accessGranted === false && serverIsPro === false) return false;
+    return adaptyPro || serverIsPro === true;
+  }, [adaptyPro, serverIsPro, accessGranted]);
+
+  // Trial-window fields come straight from /auth/me via the user
+  // object. Server is the trial-clock authority; we never compute
+  // daysLeft from device time here.
+  // NOTE: accessGranted is declared above (before isPro) so isPro can
+  // reference it; do not redeclare it here.
   const trialEndsAt = useMemo(
     () => readString(user, 'trial_ends_at', 'trialEndsAt'),
     [user],
@@ -284,20 +306,32 @@ export const EntitlementProvider: React.FC<EntitlementProviderProps> = ({
     [user],
   );
 
-  // so-etv4: alarm when access_granted is absent/non-boolean from /auth/me
-  // after the SDK has settled. This indicates a BE serializer regression or
-  // partial rollout that dropped the field. The gate in App.tsx will fail
-  // closed on this condition; this log is the observability hook for it.
-  // (Placed after accessGranted declaration to avoid temporal dead zone.)
+  // so-etv4 / so-7juf: diagnostic log once the SDK has settled so the
+  // Overseer can confirm which hole (A: stale adaptyPro; B: null accessGranted)
+  // is live when testing an access_granted=false account on the sim.
   useEffect(() => {
     if (!sdkSettled || !isAuthenticated || !user) return;
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[entitlement] so-7juf gate snapshot — ' +
+          `adaptyPro=${adaptyPro} serverIsPro=${serverIsPro} ` +
+          `accessGranted=${accessGranted} isPro=${isPro} ` +
+          `sdkSettled=${sdkSettled} ` +
+          `raw /auth/me access_granted=${user?.access_granted} is_pro=${(user as any)?.is_pro}`,
+      );
+    }
     if (accessGranted === null) {
+      // so-etv4: access_granted absent/non-boolean from /auth/me after settle
+      // → BE serialiser regression or partial rollout dropped the field.
+      // Gate fails closed when sdkActive (see isAccessLocked); this warning
+      // is the observability hook.
       // eslint-disable-next-line no-console
       console.warn(
         '[entitlement] so-etv4: access_granted absent/non-boolean from /auth/me — paywall gate will fail closed',
       );
     }
-  }, [sdkSettled, isAuthenticated, user, accessGranted]);
+  }, [sdkSettled, isAuthenticated, user, accessGranted, adaptyPro, serverIsPro, isPro]);
 
   const value = useMemo<EntitlementState>(
     () => ({

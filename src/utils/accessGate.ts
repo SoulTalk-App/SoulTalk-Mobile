@@ -17,14 +17,22 @@
  *  - isPro:         Adapty paid-access flag. Always opens the gate.
  *
  * Truth table (returns true = LOCKED behind the paywall):
- *  - isPro=true                          → OPEN  (paid access overrides all)
+ *  - accessGranted=false                 → LOCKED (server explicitly denied;
+ *      authoritative — overrides even a local Adapty isPro so a stale device
+ *      profile from a prior comped/Pro account cannot re-open the gate)
+ *  - isPro=true (& server hasn't denied) → OPEN  (paid access, fast-path)
  *  - accessGranted=true                  → OPEN  (server granted: trial or pro)
- *  - accessGranted=false                 → LOCKED (server denied)
  *  - accessGranted=null & !sdkSettled    → OPEN  (still loading — fail OPEN)
  *  - accessGranted=null & settled & active   → LOCKED (fail CLOSED: this is the
  *      state so-etv4 closes — SDK is up, isPro is false, server gave no grant)
  *  - accessGranted=null & settled & !active  → OPEN  (FE-H2 escape: SDK
  *      inactive/errored, can't trust isPro, don't trap the user)
+ *
+ * so-7juf: accessGranted=false is intentionally checked FIRST (before isPro)
+ * so that a stale Adapty device profile that still reports premium (e.g. from
+ * a previously comped account on the same device) cannot bypass an explicit
+ * server denial. The only path to OPEN from a false grant is a fresh /auth/me
+ * that returns true (or is_pro=true), not a cached Adapty isPro reading.
  */
 export interface AccessGateInputs {
   accessGranted: boolean | null;
@@ -39,7 +47,10 @@ export const isAccessLocked = ({
   sdkActive,
   isPro,
 }: AccessGateInputs): boolean => {
-  // Paid access always opens the gate.
+  // so-7juf: server explicit denial is checked FIRST — a stale Adapty device
+  // profile must not re-open the gate against the server's access_granted=false.
+  if (accessGranted === false) return true;
+  // Paid access opens the gate (server hasn't explicitly denied).
   if (isPro) return false;
   // A null (unknown) verdict fails CLOSED only once the SDK has settled AND is
   // active; otherwise it stays OPEN (loading window, or SDK inactive/errored).
