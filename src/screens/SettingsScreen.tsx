@@ -31,6 +31,8 @@ import { CosmicScreen } from '../components/CosmicBackdrop';
 import { SettingsTrialCard } from '../components/SettingsTrialCard';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { normalizeError } from '../utils/normalizeError';
+import NotificationService from '../services/NotificationService';
+import { Switch } from 'react-native';
 
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
@@ -179,6 +181,11 @@ const SettingsScreen = ({ navigation }: any) => {
   // so-fwva: in-flight guard for restore-purchases (sandbox can take a
   // few seconds to round-trip Adapty → App Store).
   const [restoring, setRestoring] = useState(false);
+  // so-3gty: daily reflection reminder toggle. Tracks whether
+  // 'daily_reflection_nudge' is absent from the disabled_types list.
+  // null = loading, true = enabled, false = disabled.
+  const [dailyReflectionEnabled, setDailyReflectionEnabled] = useState<boolean | null>(null);
+  const notifPrefLoadedRef = useRef(false);
   const autoSaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Gate the autosave + server pre-fill until the initial load (server or
   // restored draft) has run, so we don't autosave an empty form or clobber
@@ -215,6 +222,36 @@ const SettingsScreen = ({ navigation }: any) => {
   }, []);
 
 
+
+  // so-3gty: load notification preferences once on mount (user-scoped;
+  // skip if already loaded this session). Treat fetch errors as "all enabled"
+  // so the UI still renders.
+  useEffect(() => {
+    if (notifPrefLoadedRef.current) return;
+    notifPrefLoadedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      const prefs = await NotificationService.getNotificationPreferences();
+      if (cancelled || !mountedRef.current) return;
+      setDailyReflectionEnabled(!prefs.disabled_types.includes('daily_reflection_nudge'));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // so-3gty: toggle handler — optimistic UI update, then PATCH the backend.
+  // On error, revert the toggle so the UI stays truthful.
+  const handleDailyReflectionToggle = useCallback(async (value: boolean) => {
+    setDailyReflectionEnabled(value);
+    try {
+      const prefs = await NotificationService.getNotificationPreferences();
+      const current = prefs.disabled_types.filter((t) => t !== 'daily_reflection_nudge');
+      const next = value ? current : [...current, 'daily_reflection_nudge'];
+      await NotificationService.updateNotificationPreferences(next);
+    } catch {
+      // Revert on failure so the toggle reflects actual server state.
+      if (mountedRef.current) setDailyReflectionEnabled(!value);
+    }
+  }, []);
 
   const usernameIsLocked = Boolean(user?.username);
 
@@ -704,6 +741,33 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* so-3gty: Notifications section — per-category toggles.
+            ON = type NOT in disabled list; OFF = type in disabled list.
+            Reads current prefs on mount; writes via PATCH /notifications/preferences. */}
+        <View style={styles.separator} />
+        <Text style={styles.sectionHeader}>Notifications</Text>
+        <View style={styles.notifRow}>
+          <View style={styles.notifLabelWrap}>
+            <Text style={styles.notifLabel}>Daily reflection reminder</Text>
+            <Text style={styles.notifSubLabel}>
+              A nudge to write in your journal each day
+            </Text>
+          </View>
+          <Switch
+            value={dailyReflectionEnabled ?? true}
+            onValueChange={handleDailyReflectionToggle}
+            disabled={dailyReflectionEnabled === null}
+            trackColor={{
+              false: isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(58,14,102,0.15)',
+              true: isDarkMode ? '#70CACF' : colors.primary,
+            }}
+            thumbColor={colors.white}
+            accessibilityRole="switch"
+            accessibilityLabel="Daily reflection reminder"
+            accessibilityState={{ checked: dailyReflectionEnabled ?? true }}
+          />
+        </View>
+
         {/* so-kgs7: trial-status card — visible only during active trial.
             Self-contained: reads isPro/daysLeft from useEntitlement,
             presents paywall on tap, refreshes on unlock. */}
@@ -1021,6 +1085,43 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
     },
     // so-lvyt #1: active (set) pronoun uses full ink; placeholder stays inkSub
     pronounTextActive: {
+      color: ink,
+    },
+
+    // so-3gty: section header above notification toggles
+    sectionHeader: {
+      fontFamily: fonts.outfit.semiBold,
+      fontSize: 12,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: inkSub,
+      marginTop: 16,
+      marginBottom: 4,
+    },
+
+    // so-3gty: notification toggle row — standalone (not composed with toggleRow)
+    // so paddingVertical sizes the row rather than a fixed height.
+    notifRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+    },
+    notifLabelWrap: {
+      flex: 1,
+      marginRight: 12,
+    },
+    notifSubLabel: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 12,
+      color: inkSub,
+      lineHeight: 16,
+      marginTop: 2,
+    },
+    notifLabel: {
+      fontFamily: fonts.outfit.regular,
+      fontSize: 14,
+      lineHeight: 20,
       color: ink,
     },
 

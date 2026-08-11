@@ -177,6 +177,36 @@ class NotificationService {
   async getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
     return await Notifications.getLastNotificationResponseAsync();
   }
+
+  // so-3gty: per-category notification preference management.
+  // The backend models prefs as a list of disabled notification types; ON means
+  // the type is NOT in the list, OFF means it IS in the list.
+
+  /**
+   * Fetch the user's current notification preferences from the backend.
+   * Returns { disabled_types: string[] } — an empty array means all types enabled.
+   */
+  async getNotificationPreferences(): Promise<{ disabled_types: string[] }> {
+    try {
+      const axiosInstance = (AuthService as any).axiosInstance;
+      const response = await axiosInstance.get('/notifications/preferences');
+      return response.data;
+    } catch {
+      // Treat a fetch failure as "all enabled" so the toggle renders safely.
+      return { disabled_types: [] };
+    }
+  }
+
+  /**
+   * Replace the user's disabled_types list on the backend.
+   * Pass the full desired list; the backend treats this as a replacement.
+   */
+  async updateNotificationPreferences(disabledTypes: string[]): Promise<void> {
+    const axiosInstance = (AuthService as any).axiosInstance;
+    await axiosInstance.patch('/notifications/preferences', {
+      disabled_types: disabledTypes,
+    });
+  }
 }
 
 export default new NotificationService();
