@@ -122,6 +122,7 @@ const ProfileScreen = ({ navigation }: any) => {
               },
             ]}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Top Row: Back & Gear */}
             <View style={dk.topRow}>
@@ -286,6 +287,13 @@ const ProfileScreen = ({ navigation }: any) => {
   /* ───────────────────────── LIGHT MODE (original design) ───────────────────────── */
   return (
     <CosmicScreen tone="dusk">
+      {/* so-imhc: mirror the dark-mode KAV so the SoulPal name TextInput scrolls
+          into view above the keyboard on light mode. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
       <ScrollView
         style={lt.scrollView}
         contentContainerStyle={[
@@ -293,6 +301,7 @@ const ProfileScreen = ({ navigation }: any) => {
           { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Top Row: Back & Gear */}
         <View style={lt.topRow}>
@@ -412,6 +421,7 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* so-loo3: see dark-mode branch. */}
       <BottomTabBar
