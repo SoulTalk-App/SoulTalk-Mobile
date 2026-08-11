@@ -18,6 +18,10 @@ const eyesImage = require('../../assets/images/soulpal-colors/eyes_teal.png');
 interface SoulPalContextType {
   name: string;
   setName: (name: string) => void;
+  // so-5cdc: resets the in-memory name to the default and removes the
+  // persisted key — called on logout so the next user on a shared device
+  // never sees a previous user's SoulPal name.
+  reset: () => void;
   bodyImage: any;
   homeImage: any;
   eyesImage: any;
@@ -26,6 +30,7 @@ interface SoulPalContextType {
 const SoulPalContext = createContext<SoulPalContextType>({
   name: DEFAULT_SOULPAL_NAME,
   setName: () => {},
+  reset: () => {},
   bodyImage,
   homeImage,
   eyesImage,
@@ -53,11 +58,19 @@ export const SoulPalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // so-5cdc: called on logout so the next user on a shared device sees
+  // the default name, not the previous user's chosen name.
+  const reset = () => {
+    setNameState(DEFAULT_SOULPAL_NAME);
+    AsyncStorage.removeItem(SOULPAL_NAME_KEY);
+  };
+
   return (
     <SoulPalContext.Provider
       value={{
         name,
         setName,
+        reset,
         bodyImage,
         homeImage,
         eyesImage,

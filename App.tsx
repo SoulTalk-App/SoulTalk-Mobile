@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,7 +12,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ThemeProvider } from "./src/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
 import { SoulPalProvider, useSoulPal } from "./src/contexts/SoulPalContext";
 import ErrorBoundary from "./src/components/ErrorBoundary";
 import { AppAlertProvider } from "./src/components/AppAlertProvider";
@@ -364,19 +364,32 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 };
 
 const Navigation = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, isLoggingOut, user } = useAuth();
+  const { isDarkMode } = useTheme();
   // so-uagc: hydrate SoulPal name from the server profile on auth/bootstrap
   // so a returning user on a fresh install sees their chosen name rather than
   // the default 'SoulPal'. setName() seeds both the in-memory SoulPalContext
   // and AsyncStorage, so subsequent cold-starts read locally without a
   // round-trip. Runs whenever user.soulpal_name arrives (async).
-  const { setName: hydrateSoulPalName } = useSoulPal();
+  // so-5cdc: also pull reset so we can clear the name when the user logs out.
+  const { setName: hydrateSoulPalName, reset: resetSoulPal } = useSoulPal();
   useEffect(() => {
     if (user?.soulpal_name) {
       hydrateSoulPalName(user.soulpal_name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.soulpal_name]);
+  // so-5cdc: reset SoulPal name when the user logs out so the next user on a
+  // shared device sees the default name, not the previous user's choice. Track
+  // the previous isAuthenticated value with a ref to detect the true→false
+  // transition without firing on initial mount (where isAuthenticated starts false).
+  const wasAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    if (wasAuthenticatedRef.current && !isAuthenticated) {
+      resetSoulPal();
+    }
+    wasAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated, resetSoulPal]);
   // so-fwva: server-side access gate. accessGranted is the trial-clock
   // + Pro authority (null while /auth/me hasn't landed; false when the
   // trial is over and the user isn't Pro). isPro is the Adapty side;
@@ -510,6 +523,26 @@ const Navigation = () => {
           />
         </Animated.View>
       )}
+      {/* so-5cdc: logout overlay — covers the nav tree for the entire async
+          teardown so there is no flash of authed content or blank frame.
+          isLoggingOut flips true at the start of logout() and false in its
+          finally, so the overlay stays up until ALL teardown work completes.
+          Background matches the CosmicBackdrop palette (dark #02011A /
+          light #F2EBFA) for visual continuity with the rest of the app. */}
+      {isLoggingOut && (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            overlayStyles.logoutOverlay,
+            { backgroundColor: isDarkMode ? '#02011A' : '#F2EBFA' },
+          ]}
+        >
+          <ActivityIndicator
+            size="large"
+            color={isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(58,14,102,0.7)'}
+          />
+        </View>
+      )}
     </>
   );
 };
@@ -536,6 +569,13 @@ const overlayStyles = StyleSheet.create({
   overlay: {
     // Must cover nav + safe-area chrome.
     zIndex: 999,
+  },
+  // so-5cdc: logout overlay — sits above the nav tree but below the cold-start
+  // overlay (which has already dismissed by the time any logout can happen).
+  logoutOverlay: {
+    zIndex: 998,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

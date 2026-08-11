@@ -92,6 +92,10 @@ interface AuthContextType {
   confirmPasswordReset: (token: string, newPassword: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   setPassword: (password: string) => Promise<void>;
+  // so-5cdc: true while the async teardown is in flight — drives the full-screen
+  // loader overlay in Navigation so there is no flash of authed content or a
+  // blank frame mid-transition.
+  isLoggingOut: boolean;
   // Logout all devices
   logoutAllDevices: () => Promise<void>;
   // Account deletion
@@ -142,6 +146,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // so-5cdc: true while logout teardown is in flight; drives the loader overlay.
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const initializingRef = useRef(false);
 
   const ensureCountryCode = useCallback(async (userInfo: UserInfo) => {
@@ -330,6 +336,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // namespaced local journal draft — otherwise it would linger and be offered
     // to the next user on a shared device (cross-user PII leak).
     const uid = user?.id;
+    // so-5cdc: raise the overlay before any async work so there is no flash of
+    // authed content. Lowered in finally so it clears even on error.
+    setIsLoggingOut(true);
     try {
       // Deactivate push token before logout (best-effort, don't block logout)
       try {
@@ -354,6 +363,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       JournalService.clearCrisisCache(); // so-dorm: mirror try-branch cleanup
+    } finally {
+      // so-5cdc: always clear the overlay — even on error the user is signed out.
+      setIsLoggingOut(false);
     }
   }, [user]);
 
@@ -598,6 +610,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Logout all devices
   const logoutAllDevices = useCallback(async () => {
     const uid = user?.id; // so-1k32: clear this user's local journal draft too
+    // so-5cdc: raise the overlay for this teardown path too.
+    setIsLoggingOut(true);
     try {
       setIsLoading(true);
       await AuthService.logoutAllDevices();
@@ -611,10 +625,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await clearLocalDraft(uid);
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       setIsLoading(false);
+      setIsLoggingOut(false); // so-5cdc: clear overlay
     }
   }, [user]);
 
   const deleteAccount = useCallback(async () => {
+    // so-5cdc: raise the overlay for account deletion teardown too.
+    setIsLoggingOut(true);
     try {
       try {
         await NotificationService.unregisterPushToken();
@@ -631,6 +648,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       logHandledError('AuthContext: deleteAccount', error);
       throw error;
+    } finally {
+      setIsLoggingOut(false); // so-5cdc: clear overlay whether success or error
     }
   }, []);
 
@@ -651,6 +670,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user,
       isLoading,
       isAuthenticated,
+      isLoggingOut,
       login,
       register,
       logout,
@@ -677,6 +697,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user,
       isLoading,
       isAuthenticated,
+      isLoggingOut,
       login,
       register,
       logout,
