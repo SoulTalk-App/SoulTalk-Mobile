@@ -117,6 +117,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
           </Pressable>
 
           <ScrollView
+            style={dk.container}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={dk.scrollContent}
           >
@@ -281,6 +282,7 @@ const PersonalityResultScreen = ({ navigation, route }: any) => {
         </Pressable>
 
         <ScrollView
+          style={lt.container}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={lt.scrollContent}
         >

@@ -183,6 +183,7 @@ export function SignalsDetailModal({
             ]}
           >
             <ScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={styles.sheetContent}
               showsVerticalScrollIndicator={false}
             >
