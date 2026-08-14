@@ -383,7 +383,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
           <View style={lt.achievementCard}>
             <View style={lt.achievementHeader}>
-              <Text style={lt.achievementHeaderText}>Achievement</Text>
+              <Text style={lt.achievementHeaderText}>Notebook</Text>
             </View>
             <View style={lt.achievementGrid}>
               {[0, 1, 2, 3, 4, 5].map((i) => (
