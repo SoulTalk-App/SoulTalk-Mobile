@@ -30,11 +30,36 @@ function pickSoulpal(id: string): SoulpalVariant {
   return ((h % 5) + 1) as SoulpalVariant;
 }
 
+// so-3u1t: mirror the BE section-heading registry (soulsight_service.py
+// _SECTION_HEADINGS) so the legacy content-parse fallback strips the model's
+// BARE label lines ("Big picture snapshot", "Hidden narrative", …) — the ones
+// that leak into the reading when the model omits the trailing colon and the
+// generic colon-form strip below misses them.
+const SOULSIGHT_SECTION_LABELS = [
+  'Title',
+  'Big picture snapshot',
+  'Hidden narrative',
+  'Unspoken fear',
+  'Patterns and loops',
+  '80/20 focus',
+  'Micro experiments',
+  'Closing reflection',
+];
+const SECTION_LABEL_RE = new RegExp(
+  '^\\s*(?:' +
+    SOULSIGHT_SECTION_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') +
+    ')\\s*:?\\s*$',
+  'gim',
+);
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/^---+$/gm, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/\*(.+?)\*/g, '$1')
+    // so-3u1t: strip whole-line section labels in either form (bare "Big picture
+    // snapshot" or "Big picture snapshot:") using the BE registry above.
+    .replace(SECTION_LABEL_RE, '')
     // so-9t3d MI-5: strip LLM section-prefix labels that leak through from the
     // prompt structure (e.g. "Big picture snapshot:\n", "Soul signal pattern:\n").
     // Pattern: Title-case word(s) followed by colon at the start of a line.
@@ -76,22 +101,25 @@ function buildSightDetail(detail: SoulsightDetail): SightDetail {
     : { title: undefined, paragraphs: [] };
   // so-y818: use BE-provided relative label; drop client-side tz math.
   const window = detail.window_label ?? '';
-  // so-knjv: BE-provided reading_paragraphs has truncated mid-analysis in the
-  // wild (lead-confirmed 7k+ chars in detail.content vs a shorter array). The
-  // raw `content` is canonical, so parse from it when present and fall back
-  // to the BE split only if content is absent.
+  // so-3u1t: the server's reading_paragraphs is the canonical reading source —
+  // clean (label-free) and complete now that the BE parser (so-d8w2) is fixed
+  // (verified: full para set, no leaked labels). Render it directly; only fall
+  // back to a client-side parse of raw content when the server array is
+  // empty/absent (legacy records / partial data). This drops the obsolete
+  // so-knjv "content-is-canonical" re-parse, which leaked the model's bare
+  // section-label lines into the reading.
   // so-9t3d MI-5: dedupe uses `includes` (not ===) — the pull-quote sentence
   // typically appears verbatim inside a longer body paragraph, so an exact
-  // match fails and the body renders the same sentence twice.
+  // match fails and the body renders the same sentence twice. Applied to
+  // whichever source we render.
   const pullQuoteText = (detail.pull_quote?.text ?? '').trim();
-  let paragraphs: string[];
-  if (parsed.paragraphs.length > 0) {
-    paragraphs = pullQuoteText
-      ? parsed.paragraphs.filter((p) => !p.includes(pullQuoteText))
-      : parsed.paragraphs;
-  } else {
-    paragraphs = detail.reading_paragraphs ?? [];
-  }
+  const dedupePullQuote = (paras: string[]): string[] =>
+    pullQuoteText ? paras.filter((p) => !p.includes(pullQuoteText)) : paras;
+  const serverParagraphs = detail.reading_paragraphs ?? [];
+  const paragraphs =
+    serverParagraphs.length > 0
+      ? dedupePullQuote(serverParagraphs)
+      : dedupePullQuote(parsed.paragraphs);
   // so-9t3d MI-4: safety_redirect content gets a neutral default title so the
   // header doesn't read "Your weekly Sight" for crisis resource content.
   const isSafetyRedirect = detail.status === 'safety_redirect';
