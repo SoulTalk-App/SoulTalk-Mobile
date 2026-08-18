@@ -77,10 +77,21 @@ const CARD_HORIZONTAL_MARGIN = 20;
 const SOULBAR_TEAL = '#70CACF';
 const SOULBAR_PINK = '#E93678';
 const NOTEBOOK_BADGE_PINK = '#E93678';
+// so-sfkm6 (so-ff2t MI-2): per-user AsyncStorage key for the persisted mood
+// widget cache. Mirrors the so-a1lb soul-bar pattern: written after every
+// successful GET or PUT; read on mount so a cold offline start shows the
+// last-known mood word instead of a blank widget.
+const MOOD_CACHE_KEY_PREFIX = '@soultalk_mood';
+const moodCacheKey = (userId: string) => `${MOOD_CACHE_KEY_PREFIX}:${userId}`;
 
 const HomeScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  // so-sfkm6 (so-ff2t MI-2): stable ref so useFocusEffect / submitMoodWord
+  // callbacks can read the current user id without capturing user in their
+  // deps (mirrors the userRef pattern in JournalContext for so-a1lb).
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
   const { homeImage, bodyImage } = useSoulPal();
@@ -105,6 +116,22 @@ const HomeScreen = ({ navigation }: any) => {
   //     rather than showing a blank when today's mood exists server-side.
   const moodFocusRef = useRef(false);
   const lastMoodCacheRef = useRef('');
+  // so-sfkm6 (so-ff2t MI-2): restore persisted mood on cold offline start.
+  // Runs once per user-id change (login/switch). Functional updater ensures
+  // a live fetch that races and lands first is never overwritten by the cache.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    AsyncStorage.getItem(moodCacheKey(user.id))
+      .then((raw) => {
+        if (cancelled || !raw) return;
+        setMoodWord((prev) => prev || raw);
+        setMoodSaved(true);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   // SoulBar (i) popover toggle (so-o61). Tap the badge to expand the
   // description copy in-place; tap again to collapse.
   const [soulBarInfoOpen, setSoulBarInfoOpen] = useState(false);
@@ -931,6 +958,9 @@ const HomeScreen = ({ navigation }: any) => {
               lastMoodCacheRef.current = data.mood_word;
               setMoodWord(data.mood_word);
               setMoodSaved(true);
+              // so-sfkm6 (so-ff2t MI-2): persist for cold offline start.
+              const uid = userRef.current?.id;
+              if (uid) AsyncStorage.setItem(moodCacheKey(uid), data.mood_word).catch(() => {});
             } else {
               // so-suot M-1 null branch: today has no saved mood (fresh day
               // or midnight rollover) — clear any stale word from a previous
@@ -938,6 +968,9 @@ const HomeScreen = ({ navigation }: any) => {
               lastMoodCacheRef.current = '';
               setMoodWord('');
               setMoodSaved(false);
+              // so-sfkm6 (so-ff2t MI-2): clear stale cache; today has no mood.
+              const uid = userRef.current?.id;
+              if (uid) AsyncStorage.removeItem(moodCacheKey(uid)).catch(() => {});
             }
           })
           .catch(() => {
@@ -1135,6 +1168,10 @@ const HomeScreen = ({ navigation }: any) => {
       // same-day update purely for the toast copy (the mood save does NOT
       // charge the SoulBar). BE returns is_first_fill on PUT only.
       setMoodToast(res.is_first_fill ? 'first-fill' : 'update');
+      // so-sfkm6 (so-ff2t MI-2): persist the freshly saved word for cold
+      // offline start. Harmless if the user goes offline right after the PUT.
+      const uid = userRef.current?.id;
+      if (uid) AsyncStorage.setItem(moodCacheKey(uid), word).catch(() => {});
     } catch (e) {
       console.warn('[Mood] Failed to persist mood:', e);
       setMoodToast('error');

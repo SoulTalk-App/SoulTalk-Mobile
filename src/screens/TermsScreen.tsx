@@ -84,9 +84,12 @@ const TermsScreen: React.FC<TermsScreenProps> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
 
   // so-c7wq: gated flows start on Terms so the user reads ToS before Privacy.
-  // so-i5o2: initialTab lets callers override the starting tab.
+  // so-i5o2: initialTab lets callers override the starting tab for view /
+  // reaccept flows. so-sfkm6 (so-ej80): accept-mode ALWAYS starts on 'terms' —
+  // the full accept flow must present ToS before Privacy regardless of any
+  // caller-supplied initialTab (callers must not be able to skip the ToS read).
   const [activeTab, setActiveTab] = useState<LegalTab>(
-    route.params?.initialTab ?? (isGated ? 'terms' : 'privacy'),
+    isAcceptMode ? 'terms' : (route.params?.initialTab ?? (isGated ? 'terms' : 'privacy')),
   );
   const scrollRef = useRef<ScrollView>(null);
   // so-c7wq: guard — Terms was shown before Accept is reachable (legacy guard,
