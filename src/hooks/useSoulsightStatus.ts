@@ -84,11 +84,20 @@ export function useSoulsightStatus(
     }
     // Reset backoff whenever polling context (id / enabled) changes.
     consecutiveErrorsRef.current = 0;
-    let timer: ReturnType<typeof setTimeout>;
+    // so-ui3zp (P1 fix): per-effect-run cancellation flag. mountedRef alone is
+    // component-scoped (stays true on dep changes, not just on unmount), so a
+    // dep change (e.g. id change) without unmount left the in-flight poll free
+    // to reschedule after cleanup ran — orphan chain polling the OLD id forever.
+    // `cancelled` is closure-scoped to each effect run; setting it true in the
+    // cleanup stops the old tick even when mountedRef is still true. `timer` is
+    // also declared outside tick() so the cleanup can always clearTimeout the
+    // handle, even when the previous run had already fired.
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     async function tick() {
       await poll();
-      if (!mountedRef.current) return;
+      if (cancelled || !mountedRef.current) return;
       // so-tn9x MI-1: exponential backoff on consecutive errors.
       const errors = consecutiveErrorsRef.current;
       const delay =
@@ -101,7 +110,7 @@ export function useSoulsightStatus(
     // Poll immediately on mount / id change so the UI responds right away
     // rather than waiting for the first interval tick.
     tick();
-    return () => clearTimeout(timer);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [id, enabled, intervalMs, poll]);
 
   return result;
