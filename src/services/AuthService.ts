@@ -7,6 +7,10 @@ import Constants from 'expo-constants';
 import axios, { AxiosResponse } from 'axios';
 import { installAuthInterceptors, refreshAccessToken, getValidToken } from '../utils/authClient';
 import { normalizeError } from '../utils/normalizeError';
+// so-p2xio: legacy FileSystem API for authenticated file downloads (downloadAsync,
+// documentDirectory, getContentUriAsync). Imported from the /legacy entry point
+// because the package default exports the newer File/Directory class API instead.
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -128,6 +132,19 @@ interface TermsStatus {
   terms_accepted_at: string | null;
 }
 
+// so-p2xio: data-export response shapes for the request + status-poll endpoints.
+// export_id is the job token that drives all subsequent /data-export/{id}/* calls.
+interface DataExportResponse {
+  export_id: string;
+}
+
+// so-p2xio: terminal statuses from GET /data-export/{id}/status.
+// 'ready' = file ready for download; 'error'/'failed' = job aborted.
+// Any other value (e.g. 'pending', 'processing') means still in progress.
+interface DataExportStatusResponse {
+  status: string;
+}
+
 // so-piu2: the BE social age gate (so-4cvq) replies to a NEW social user with
 // no age confirmation with { detail: { code: 'dob_required' } }. After so-e0aw
 // the BE prefers is_18_plus; DobRequiredError is kept as a transition-period
@@ -236,18 +253,58 @@ class AuthService {
 
   // so-sjua / so-ruvl: CCPA data-portability. Authenticated POST that triggers
   // a background export job; the backend bundles all user-owned data, uploads
-  // it, and emails a time-limited secure download link. The call returns once
-  // the job is *queued* (not when the file is ready).
+  // it to cloud storage, and returns the job token for polling.
   //
   // so-ehk7: path confirmed against so-ruvl — the route is POST /api/data-export
   // and the axios baseURL already ends in /api, so this must be '/data-export'
   // (the earlier provisional '/privacy/export' 404'd).
-  async requestDataExport(): Promise<void> {
+  //
+  // so-p2xio: updated return type — BE now returns { export_id } so the FE can
+  // poll /data-export/{id}/status and download via /data-export/{id}/download
+  // instead of relying solely on the emailed link.
+  async requestDataExport(): Promise<DataExportResponse> {
     try {
-      await this.axiosInstance.post('/data-export');
+      const response = await this.axiosInstance.post('/data-export');
+      return response.data;
     } catch (error: any) {
       throw new Error(normalizeError(error));
     }
+  }
+
+  // so-p2xio: poll GET /data-export/{id}/status until status is terminal.
+  // 'ready' = download available; 'error'/'failed' = job aborted; anything
+  // else ('pending', 'processing') = still in progress, keep polling.
+  async getDataExportStatus(exportId: string): Promise<DataExportStatusResponse> {
+    try {
+      const response = await this.axiosInstance.get(`/data-export/${exportId}/status`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(normalizeError(error));
+    }
+  }
+
+  // so-p2xio: download the ready export bundle to the app's document directory.
+  // The BE endpoint is authenticated and responds with a 302 redirect to a
+  // short-lived presigned URL; FileSystem.downloadAsync handles auth headers and
+  // follows the redirect transparently. Returns the local file URI on success.
+  async downloadDataExport(exportId: string): Promise<string> {
+    const token = await getValidToken();
+    if (!token) {
+      throw new Error('Session expired — please sign in again');
+    }
+    const remoteUrl = `${this.apiConfig.baseUrl}/data-export/${exportId}/download`;
+    const docDir = LegacyFileSystem.documentDirectory;
+    if (!docDir) {
+      throw new Error('File storage is unavailable on this device');
+    }
+    const localUri = `${docDir}soultalk-export-${exportId}.zip`;
+    const result = await LegacyFileSystem.downloadAsync(remoteUrl, localUri, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`Download failed (${result.status})`);
+    }
+    return result.uri;
   }
 
   async refreshTokens(): Promise<boolean> {

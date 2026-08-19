@@ -33,6 +33,8 @@ import { useAppAlert } from '../components/AppAlertProvider';
 import { normalizeError } from '../utils/normalizeError';
 import NotificationService from '../services/NotificationService';
 import { Switch } from 'react-native';
+// so-p2xio: legacy FileSystem API for opening a downloaded export file.
+import * as FileSystem from 'expo-file-system/legacy';
 
 const SoulTalkLogo = require('../../assets/images/settings/SoulTalkLogo.png');
 
@@ -61,9 +63,14 @@ const settingsDraftKey = (userId: string) =>
   `${SETTINGS_PROFILE_DRAFT_KEY_PREFIX}:${userId}`;
 
 // so-cohf: BE export route (so-aowq) is on main + deployed (76bf89f).
-// POST /api/data-export returns 202, bundle stored KMS-encrypted, email
-// delivered with a secure download link. Flag flipped to ship the button.
+// POST /api/data-export returns 202 + export_id; bundle stored KMS-encrypted.
+// so-p2xio: polling + in-app download added; email link remains as fallback.
 const DATA_EXPORT_ENABLED = true;
+
+// so-p2xio: poll interval + max attempts for export-ready status check.
+// Total max wait = 3 s * 10 = 30 s; fall back to the email-link message after.
+const EXPORT_POLL_INTERVAL_MS = 3000;
+const EXPORT_POLL_MAX_ATTEMPTS = 10;
 
 interface ProfileFields {
   displayName: string;
@@ -422,28 +429,73 @@ const SettingsScreen = ({ navigation }: any) => {
     navigation.navigate('ChangePassword');
   };
 
-  // so-sjua: CCPA data export. Kicks the background job via the service, then
-  // confirms. In-progress state disables the row so a double-tap can't queue
-  // two jobs; errors surface a retryable alert.
-  const handleExportData = async () => {
+  // so-sjua / so-p2xio: CCPA data export — request + poll-for-ready + download.
+  // Flow: POST /data-export → export_id; poll /data-export/{id}/status every
+  // EXPORT_POLL_INTERVAL_MS until 'ready' (download in-app) or up to
+  // EXPORT_POLL_MAX_ATTEMPTS (fall back to "check your email" message).
+  // In-progress state disables the button so a double-tap can't queue two jobs.
+  const handleExportData = useCallback(async () => {
     if (exportingData) return;
     setExportingData(true);
     try {
-      await authService.requestDataExport();
-      showAlert({
-        title: 'Export requested',
-        message:
-          'We will email a secure download link to your account address.',
-      });
+      const { export_id } = await authService.requestDataExport();
+
+      // Poll status until ready, a terminal error, or the timeout window.
+      let attempt = 0;
+      let localUri: string | null = null;
+      while (attempt < EXPORT_POLL_MAX_ATTEMPTS) {
+        await new Promise<void>((resolve) => setTimeout(resolve, EXPORT_POLL_INTERVAL_MS));
+        if (!mountedRef.current) return;
+        const { status } = await authService.getDataExportStatus(export_id);
+        if (status === 'ready') {
+          localUri = await authService.downloadDataExport(export_id);
+          break;
+        }
+        if (status === 'error' || status === 'failed') {
+          throw new Error('Export failed on the server. Please try again.');
+        }
+        attempt += 1;
+      }
+
+      if (!mountedRef.current) return;
+
+      if (localUri) {
+        // File downloaded — open it via the platform's native mechanism.
+        try {
+          if (Platform.OS === 'android') {
+            // Android: convert to a content:// URI so other apps can open it.
+            const contentUri = await FileSystem.getContentUriAsync(localUri);
+            await Linking.openURL(contentUri);
+          } else {
+            // iOS: file lands in documentDirectory, visible in the Files app.
+            showAlert({
+              title: 'Export downloaded',
+              message: 'Your data export is ready. Open the Files app and look under "On My iPhone" to find it.',
+            });
+          }
+        } catch {
+          showAlert({
+            title: 'Export downloaded',
+            message: 'Your data export has been saved to your device.',
+          });
+        }
+      } else {
+        // Still processing after the poll window — email link is the fallback.
+        showAlert({
+          title: 'Export in progress',
+          message:
+            'Your export is still being prepared. We will email a secure download link to your account address when it is ready.',
+        });
+      }
     } catch (error: any) {
       // so-fntk: normalizeError handles BE detail, Pydantic 422,
       // network/timeout, and status-based fallbacks; no raw axios
       // strings leak into the dialog.
       showError(error, { title: 'Export failed' });
     } finally {
-      setExportingData(false);
+      if (mountedRef.current) setExportingData(false);
     }
-  };
+  }, [exportingData, showAlert, showError]);
 
   // so-fwva: pull useEntitlement().refresh so a successful restore
   // immediately re-derives isPro and unblocks the app.
@@ -774,8 +826,8 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.separator} />
         <SettingsTrialCard />
 
-        {/* Export My Data (so-sjua — CCPA portability). so-cohf: flag enabled;
-            BE route so-aowq is deployed and returns 202. */}
+        {/* Export My Data (so-sjua / so-p2xio — CCPA portability).
+            so-cohf: flag enabled; so-p2xio: polls for ready + in-app download. */}
         {DATA_EXPORT_ENABLED && (
           <>
             <View style={styles.separator} />
