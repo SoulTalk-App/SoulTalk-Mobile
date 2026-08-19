@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
-import { getValidToken, refreshAccessToken } from '../utils/authClient';
+import { getValidToken, refreshAccessToken, invokeAgeGate } from '../utils/authClient';
 import { presentPaywall } from '../services/paywall';
 
 type MessageHandler = (data: any) => void;
@@ -12,6 +12,10 @@ const AUTH_FAILURE_CODE = 4001;
 // subscription. Terminal (like an HTTP 402) — stop reconnecting and route to
 // the paywall/entitlement-refresh flow.
 const SUBSCRIPTION_REQUIRED_CODE = 4002;
+// so-f0uv9: server closes with 4003 when the user has is_18_plus=NULL and
+// the age gate is enforced (so-71o7e). Terminal — stop reconnecting and route
+// to the age-confirmation overlay (same pattern as 4002 → paywall).
+const AGE_GATE_CODE = 4003;
 
 const getWsUrl = (): string => {
   const apiBaseUrl =
@@ -104,6 +108,15 @@ export const useWebSocket = (
       // double-present).
       if (event.code === SUBSCRIPTION_REQUIRED_CODE) {
         presentPaywall().catch(() => {});
+        return;
+      }
+
+      // so-f0uv9: age_gate is terminal — do not reconnect. Route to the
+      // age-confirmation overlay (same pattern as 4002 → paywall). After
+      // the user confirms, the WS will reconnect naturally on the next
+      // AppState 'active' or NetInfo regain (so-3wjm).
+      if (event.code === AGE_GATE_CODE) {
+        invokeAgeGate();
         return;
       }
 

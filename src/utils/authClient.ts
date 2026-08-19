@@ -92,6 +92,25 @@ export const registerLogoutCallback = (fn: () => void, isAuthenticated: boolean)
 };
 
 /**
+ * so-f0uv9: age-gate callback. AuthContext registers setIsAgeGatePending(true)
+ * here on mount so the HTTP interceptor and the WS close handler can route
+ * legacy social accounts (is_18_plus=NULL) to the age-confirmation overlay
+ * without importing React state into this module. Same pattern as
+ * logoutCallback / postUnlockHook. Cleared (null) on logout so a stale
+ * callback from a previous session never fires into a fresh one.
+ */
+let ageGateCallback: (() => void) | null = null;
+
+export const registerAgeGateCallback = (fn: (() => void) | null): void => {
+  ageGateCallback = fn;
+};
+
+/** Call from the interceptor / WS handler when age_confirmation_required fires. */
+export const invokeAgeGate = (): void => {
+  ageGateCallback?.();
+};
+
+/**
  * so-fwva: post-purchase hook. The React layer registers a callback that
  * refetches /auth/me (the server is the trial-clock + access authority)
  * so the EntitlementContext immediately picks up the unlock without
@@ -326,6 +345,25 @@ export const installAuthInterceptors = (instance: AxiosInstance): void => {
           }
         }
         return instance.request(originalRequest);
+      }
+
+      // so-f0uv9: HTTP 403 with code='age_confirmation_required' — server-side
+      // age gate enabled (so-71o7e). Legacy social accounts with is_18_plus=NULL
+      // are blocked on premium routes until they affirm their age. Route to the
+      // age-confirmation overlay via the module-level callback (same pattern as
+      // logoutCallback). Terminal — no retry; the user confirms in the overlay
+      // and the next request will succeed with is_18_plus now set to true.
+      if (
+        error?.response?.status === 403 &&
+        subscriptionCode === 'age_confirmation_required'
+      ) {
+        invokeAgeGate();
+        return Promise.reject(
+          Object.assign(
+            new Error('Age confirmation required'),
+            { _suppressToast: true },
+          ),
+        );
       }
 
       return Promise.reject(error);

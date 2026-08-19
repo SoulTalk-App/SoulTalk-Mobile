@@ -74,6 +74,7 @@ import { PersonalityProvider } from "./src/contexts/PersonalityContext";
 import { WebSocketProvider } from "./src/contexts/WebSocketContext";
 import { useNotifications } from "./src/hooks";
 import { ColdOpenContext } from "./src/contexts/ColdOpenContext";
+import { SocialDobStep } from "./src/features/signup/SocialDobStep";
 
 const ONBOARDING_COMPLETE_KEY = "@soultalk_onboarding_complete";
 const SETUP_COMPLETE_KEY = "@soultalk_setup_complete";
@@ -364,7 +365,11 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
 };
 
 const Navigation = () => {
-  const { isAuthenticated, isLoading, isLoggingOut, user } = useAuth();
+  const {
+    isAuthenticated, isLoading, isLoggingOut, user,
+    // so-f0uv9: age gate overlay state
+    isAgeGatePending, dismissAgeGate, confirmAge, logout,
+  } = useAuth();
   const { isDarkMode } = useTheme();
   // so-uagc: hydrate SoulPal name from the server profile on auth/bootstrap
   // so a returning user on a fresh install sees their chosen name rather than
@@ -390,6 +395,29 @@ const Navigation = () => {
     }
     wasAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated, resetSoulPal]);
+
+  // so-f0uv9: age gate overlay handlers. Shown when isAgeGatePending=true
+  // (set by the HTTP 403 / WS 4003 interceptors). Confirm calls confirmAge()
+  // then dismisses. Decline logs the user out — underage users must not
+  // remain in the app, and logout naturally routes back to the auth stack.
+  const [ageGateBusy, setAgeGateBusy] = useState(false);
+  const handleAgeGateConfirm = useCallback(async () => {
+    if (ageGateBusy) return;
+    setAgeGateBusy(true);
+    try {
+      await confirmAge();
+      setAgeGateBusy(false);
+      dismissAgeGate();
+    } catch (_e) {
+      // confirmAge failed — keep overlay visible so the user can retry.
+      setAgeGateBusy(false);
+    }
+  }, [ageGateBusy, confirmAge, dismissAgeGate]);
+  const handleAgeGateDecline = useCallback(() => {
+    dismissAgeGate();
+    logout().catch(() => {});
+  }, [dismissAgeGate, logout]);
+
   // so-fwva: server-side access gate. accessGranted is the trial-clock
   // + Pro authority (null while /auth/me hasn't landed; false when the
   // trial is over and the user isn't Pro). isPro is the Adapty side;
@@ -543,6 +571,16 @@ const Navigation = () => {
           />
         </View>
       )}
+      {/* so-f0uv9: age-gate overlay. Shown when the HTTP interceptor or the
+          WS close handler fires invokeAgeGate() (403 age_confirmation_required
+          or WS 4003). Uses the existing SocialDobStep modal component.
+          Confirm → confirmAge() → dismiss. Decline → logout() (underage). */}
+      <SocialDobStep
+        visible={isAgeGatePending}
+        submitting={ageGateBusy}
+        onContinue={handleAgeGateConfirm}
+        onCancel={handleAgeGateDecline}
+      />
     </>
   );
 };

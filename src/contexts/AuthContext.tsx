@@ -8,7 +8,7 @@ import { logHandledError } from '../utils/logger';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
 import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
-import { proactiveTokenRefresh, registerLogoutCallback } from '../utils/authClient';
+import { proactiveTokenRefresh, registerLogoutCallback, registerAgeGateCallback } from '../utils/authClient';
 
 interface UserInfo {
   id: string;
@@ -103,6 +103,12 @@ interface AuthContextType {
   // so-qg4o M-1: one-shot 18+ affirmation for social users with is_18_plus=null.
   // Calls POST /auth/confirm-age and updates user in context.
   confirmAge: () => Promise<void>;
+  // so-f0uv9: true while the age-gate overlay should be visible (set by the
+  // HTTP interceptor / WS close handler when the server returns 403/4003 with
+  // code='age_confirmation_required'). Cleared by dismissAgeGate() after the
+  // user confirms or cancels.
+  isAgeGatePending: boolean;
+  dismissAgeGate: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -148,6 +154,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // so-5cdc: true while logout teardown is in flight; drives the loader overlay.
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // so-f0uv9: true while the age-confirmation overlay should be shown. Set by
+  // the invokeAgeGate callback (registered below) when the HTTP interceptor or
+  // WS close handler detects a 403/4003 age_confirmation_required. Cleared by
+  // dismissAgeGate() after the user confirms or declines.
+  const [isAgeGatePending, setIsAgeGatePending] = useState(false);
   const initializingRef = useRef(false);
 
   const ensureCountryCode = useCallback(async (userInfo: UserInfo) => {
@@ -284,6 +295,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
     return () => sub.remove();
   }, [isAuthenticated, user, ensureTimezone, refreshUser]);
+
+  // so-f0uv9: age gate trigger/dismiss pair. triggerAgeGate is registered as
+  // the module-level invokeAgeGate callback so the Axios interceptor and the WS
+  // onclose handler can flip isAgeGatePending without importing React state.
+  // Registration is stable (empty deps: triggerAgeGate is a no-capture closure,
+  // dismissAgeGate is a stable setter alias). Cleared on unmount so a stale
+  // callback from a previous AuthProvider mount never fires.
+  const triggerAgeGate = useCallback(() => setIsAgeGatePending(true), []);
+  const dismissAgeGate = useCallback(() => setIsAgeGatePending(false), []);
+  useEffect(() => {
+    registerAgeGateCallback(triggerAgeGate);
+    return () => { registerAgeGateCallback(null); };
+  }, [triggerAgeGate]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -692,6 +716,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logoutAllDevices,
       deleteAccount,
       confirmAge,
+      isAgeGatePending,
+      dismissAgeGate,
     }),
     [
       user,
@@ -719,6 +745,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logoutAllDevices,
       deleteAccount,
       confirmAge,
+      isAgeGatePending,
+      dismissAgeGate,
     ],
   );
 
