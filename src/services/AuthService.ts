@@ -145,6 +145,17 @@ interface DataExportStatusResponse {
   status: string;
 }
 
+// so-p2xio: response from GET /data-export/{id}/download-url (authed JSON
+// endpoint). Returns a presigned URL that is self-authenticating — NEVER send
+// an Authorization header to download_url; S3 rejects requests that carry
+// both a presigned signature and an Authorization header.
+interface DataExportDownloadUrlResponse {
+  download_url: string;
+  expires_at: string;
+  filename: string;
+  content_type: string;
+}
+
 // so-piu2: the BE social age gate (so-4cvq) replies to a NEW social user with
 // no age confirmation with { detail: { code: 'dob_required' } }. After so-e0aw
 // the BE prefers is_18_plus; DobRequiredError is kept as a transition-period
@@ -283,24 +294,33 @@ class AuthService {
     }
   }
 
-  // so-p2xio: download the ready export bundle to the app's document directory.
-  // The BE endpoint is authenticated and responds with a 302 redirect to a
-  // short-lived presigned URL; FileSystem.downloadAsync handles auth headers and
-  // follows the redirect transparently. Returns the local file URI on success.
-  async downloadDataExport(exportId: string): Promise<string> {
-    const token = await getValidToken();
-    if (!token) {
-      throw new Error('Session expired — please sign in again');
+  // so-p2xio: fetch the presigned download URL from the authenticated JSON
+  // endpoint. The returned download_url is S3-presigned (self-authenticating);
+  // it MUST NOT receive an Authorization header on the subsequent download call.
+  async getDataExportDownloadUrl(exportId: string): Promise<DataExportDownloadUrlResponse> {
+    try {
+      const response = await this.axiosInstance.get(`/data-export/${exportId}/download-url`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(normalizeError(error));
     }
-    const remoteUrl = `${this.apiConfig.baseUrl}/data-export/${exportId}/download`;
+  }
+
+  // so-p2xio: download the ready export bundle to the app's document directory.
+  // Two-step to avoid the S3 'only one auth mechanism allowed' rejection:
+  //   1. GET /data-export/{id}/download-url (authed via axiosInstance) → presigned URL + filename
+  //   2. FileSystem.downloadAsync(presignedUrl, localPath) with NO Authorization header
+  // In DEV the BE streams directly so either approach works; in PROD it 302s to
+  // S3 and forwarding Authorization alongside the presigned signature causes 403.
+  async downloadDataExport(exportId: string): Promise<string> {
+    const { download_url, filename } = await this.getDataExportDownloadUrl(exportId);
     const docDir = LegacyFileSystem.documentDirectory;
     if (!docDir) {
       throw new Error('File storage is unavailable on this device');
     }
-    const localUri = `${docDir}soultalk-export-${exportId}.zip`;
-    const result = await LegacyFileSystem.downloadAsync(remoteUrl, localUri, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const localUri = `${docDir}${filename || `soultalk-export-${exportId}.zip`}`;
+    // No headers — the presigned URL is self-authenticating.
+    const result = await LegacyFileSystem.downloadAsync(download_url, localUri);
     if (result.status < 200 || result.status >= 300) {
       throw new Error(`Download failed (${result.status})`);
     }
