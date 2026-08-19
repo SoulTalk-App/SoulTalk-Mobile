@@ -72,7 +72,6 @@ interface JournalActionsType {
   loadMoreEntries: () => Promise<void>;
   createEntry: (rawText: string, mood?: Mood, isDraft?: boolean, shiftId?: string, isShiftReflection?: boolean) => Promise<JournalEntry>;
   updateEntry: (id: string, data: { raw_text?: string; mood?: Mood; is_draft?: boolean }) => Promise<JournalEntry>;
-  deleteEntry: (id: string) => Promise<void>;
   setCurrentEntry: (entry: JournalEntry | null) => void;
   refreshEntries: () => Promise<void>;
   fetchStreak: () => Promise<void>;
@@ -326,8 +325,8 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
   }, []);
 
   // so-rhap: fetchStreak / fetchSoulBar are called fire-and-forget from
-  // ~8 sites (mount, createEntry, finalizeDraft, updateEntry, pending
-  // finalize retry, deleteEntry, HomeScreen focus, SoulSight generate).
+  // ~7 sites (mount, createEntry, finalizeDraft, updateEntry, pending
+  // finalize retry, HomeScreen focus, SoulSight generate).
   // When two overlap, an OLDER response can land AFTER a newer one and
   // setSoulBar/setStreak to a stale (often LOWER) value — the tester
   // "soul bar charged backward after journaling" trace was this exact
@@ -547,19 +546,6 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
     return updated;
   }, [currentEntry, fetchGamification]);
 
-  const deleteEntry = useCallback(async (id: string) => {
-    await JournalService.deleteEntry(id);
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-    setTotal((prev) => prev - 1);
-    if (currentEntry?.id === id) setCurrentEntry(null);
-    // so-rhap: deleting a published entry can reduce the SoulBar (and
-    // streak when the deletion crosses a day boundary). Refetch both —
-    // the request-id guard above keeps a concurrent older fetch from
-    // overwriting the new value. Pre-fix the bar stayed stale (visibly
-    // too high) until the next Home focus.
-    fetchGamification();
-  }, [currentEntry, fetchGamification]);
-
   const saveDraft = useCallback(async (text: string, mood?: Mood, draftId?: string) => {
     if (draftId) {
       // so-hl09: belt-and-suspenders guard against the autosave-after-
@@ -655,7 +641,6 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       loadMoreEntries,
       createEntry,
       updateEntry,
-      deleteEntry,
       setCurrentEntry,
       refreshEntries,
       fetchStreak,
@@ -670,7 +655,6 @@ export const JournalProvider: React.FC<JournalProviderProps> = ({ children }) =>
       loadMoreEntries,
       createEntry,
       updateEntry,
-      deleteEntry,
       refreshEntries,
       fetchStreak,
       fetchSoulBar,

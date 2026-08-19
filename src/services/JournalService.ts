@@ -204,10 +204,6 @@ class JournalService {
     return response.data;
   }
 
-  async deleteEntry(id: string): Promise<void> {
-    await this.axiosInstance.delete(`/journal/${id}`);
-  }
-
   async getStreak(): Promise<StreakResponse> {
     const response = await this.axiosInstance.get('/streak/');
     return response.data;
