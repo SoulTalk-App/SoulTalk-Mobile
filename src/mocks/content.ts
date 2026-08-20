@@ -139,7 +139,7 @@ SoulTalk is an AI powered journaling and self-reflection application that uses a
 6.2 We may suspend or terminate accounts that violate these rules or to protect the Services or other users.
 7. Subscriptions, billing, and trials
 7.1 App Store billing. Subscriptions are sold and billed through Apple in-app purchase. Apple processes Your payment and manages Your subscription, and Apple’s terms govern payment, billing, and refunds. The price is shown in the App before You purchase.
-7.2 Free trial. New users receive a one-week free trial. If You do not cancel before the trial ends, Your paid subscription begins and Apple charges Your payment method.
+7.2 Free trial. New users receive a 14-day free trial. If You do not cancel before the trial ends, Your paid subscription begins and Apple charges Your payment method.
 7.3 Automatic renewal. Your subscription renews automatically at the end of each period until You cancel. You manage or cancel Your subscription in Your Apple account settings, and cancellation takes effect at the end of the current period. To avoid being charged for the next period, cancel at least 24 hours before the current period ends.
 7.4 Refunds. Because Apple processes payment, refunds are handled by Apple under Apple’s policies. We generally cannot issue refunds directly.
 7.5 Restore Purchases. You can restore an active subscription on a new device using the Restore Purchases option in the App.
