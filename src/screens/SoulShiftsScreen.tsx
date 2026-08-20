@@ -449,18 +449,14 @@ const SoulShiftsScreen = ({ navigation, route }: any) => {
       setSuggestOpen(false);
       setSuggestResponse(null);
     } catch (err: any) {
-      // so-vlia SH-M4: a duplicate accept returns 409 with the existing shift's
-      // id ({ message, existing_shift_id }). Offer a deep-link to it instead of
-      // a dead-end error; fall back to a friendly alert when the id is absent.
+      // so-vlia SH-M4 / so-tkff1: a duplicate accept returns 409. Contract:
+      // { detail: "<string>", existing_shift_id: "<UUID>" } — existing_shift_id
+      // is a top-level sibling of detail (not nested inside it).
       if (err?.response?.status === 409) {
-        const detail = err?.response?.data?.detail;
-        const detailObj =
-          detail && typeof detail === 'object' && !Array.isArray(detail)
-            ? (detail as { message?: string; existing_shift_id?: string })
-            : null;
-        const detailMsg =
-          detailObj?.message ?? (typeof detail === 'string' ? detail : undefined);
-        const existingShiftId = detailObj?.existing_shift_id;
+        const body = err?.response?.data;
+        const detailMsg: string | undefined =
+          typeof body?.detail === 'string' ? body.detail : undefined;
+        const existingShiftId: string | undefined = body?.existing_shift_id;
         showAlert({
           title: 'Already a shift',
           message: detailMsg ?? 'This suggestion is already an active shift.',

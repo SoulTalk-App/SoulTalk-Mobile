@@ -403,22 +403,13 @@ const SoulSignalsScreen = ({ navigation, route }: any) => {
       // Defense-in-depth: the gate on PatternModal should prevent this, but
       // races/stale state can still trigger it. Land softly.
       if (err?.response?.status === 409) {
-        // so-vlia SH-M4: the BE now returns the 409 detail as an object that
-        // carries the existing shift's id ({ message, existing_shift_id }) —
-        // prefer it. Fall back to resolving the shift ourselves (so-72fx) when
-        // the field is absent (older BE / flat-string detail) so the deep-link
-        // keeps working across the BE rollout.
-        const detail = err?.response?.data?.detail;
-        const detailObj =
-          detail && typeof detail === 'object' && !Array.isArray(detail)
-            ? (detail as { message?: string; existing_shift_id?: string })
-            : null;
-        const detailMsg =
-          detailObj?.message ?? (typeof detail === 'string' ? detail : undefined);
-        // so-kajr fix: source_signal_ids is not on the normalised Shift type
-        // (only on ShiftSuggestionCandidate), so the list-scan fallback cannot
-        // work. Rely solely on existing_shift_id from the BE 409 detail.
-        const existingShiftId: string | undefined = detailObj?.existing_shift_id;
+        // so-vlia SH-M4 / so-tkff1: contract { detail: "<string>",
+        // existing_shift_id: "<UUID>" } — existing_shift_id is a top-level
+        // sibling of detail, not nested inside it.
+        const body = err?.response?.data;
+        const detailMsg: string | undefined =
+          typeof body?.detail === 'string' ? body.detail : undefined;
+        const existingShiftId: string | undefined = body?.existing_shift_id;
         showAlert({
           title: 'Already turned into a shift',
           message: detailMsg ?? 'This pattern already has an active shift.',
