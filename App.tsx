@@ -66,6 +66,7 @@ import SoulSightDetailScreen from "./src/screens/SoulSightDetailScreen";
 import SoulShiftsScreen from "./src/screens/SoulShiftsScreen";
 import SoulSignalsScreen from "./src/screens/SoulSignalsScreen";
 import PersonalityHubScreen from "./src/screens/personality/PersonalityHubScreen";
+import PersonalityHistoryScreen from "./src/screens/personality/PersonalityHistoryScreen";
 import PersonalityIntroScreen from "./src/screens/personality/PersonalityIntroScreen";
 import PersonalityQuestionScreen from "./src/screens/personality/PersonalityQuestionScreen";
 import PersonalityResultScreen from "./src/screens/personality/PersonalityResultScreen";
@@ -351,6 +352,7 @@ const AppStack = ({ setupComplete }: { setupComplete: boolean }) => {
           <Stack.Screen name="SoulShifts" component={SoulShiftsScreen} />
           <Stack.Screen name="SoulSignals" component={SoulSignalsScreen} />
           <Stack.Screen name="PersonalityHub" component={PersonalityHubScreen} />
+          <Stack.Screen name="PersonalityHistory" component={PersonalityHistoryScreen} />
           <Stack.Screen name="PersonalityIntro" component={PersonalityIntroScreen} />
           <Stack.Screen name="PersonalityQuestion" component={PersonalityQuestionScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="PersonalityResult" component={PersonalityResultScreen} />

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AccessibilityInfo,
   View,
@@ -29,6 +30,7 @@ import {
 } from '../../data/personalityTests/types';
 import PersonalityService from '../../services/PersonalityService';
 import { usePersonality } from '../../contexts/PersonalityContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppAlert } from '../../components/AppAlertProvider';
 import { normalizeError } from '../../utils/normalizeError';
 
@@ -45,6 +47,12 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   const { setResult } = usePersonality();
   // so-1zn0: themed alert replaces native Alert.
   const { showAlert } = useAppAlert();
+
+  const { user } = useAuth();
+  // so-xt9j MI-1: per-user per-test key for crash-recovery draft.
+  const draftKey = user?.id && testType
+    ? `@soultalk_personality_draft:${user.id}:${testType}`
+    : '';
 
   // so-8hun M-1: gate used by the beforeRemove interceptor so the Exit
   // button's own confirm dialog doesn't trigger a second dialog when the
@@ -97,6 +105,53 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, LikertValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // so-xt9j MI-1: on mount, check for a crash-recovery draft and offer resume.
+  // `active` prevents a stale alert when the effect re-runs (dep change / StrictMode
+  // double-invoke); the latch prevents showing the prompt twice in dev StrictMode.
+  const draftLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!draftKey || !def || draftLoadedRef.current) return;
+    draftLoadedRef.current = true;
+    let active = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(draftKey);
+        if (!active || !raw) return;
+        const parsed = JSON.parse(raw) as {
+          answers: Record<string, number>;
+          currentIndex: number;
+        };
+        if (!parsed?.answers || Object.keys(parsed.answers).length === 0) return;
+        showAlert({
+          title: 'Resume test?',
+          message: 'You have unsaved progress. Pick up where you left off?',
+          buttons: [
+            {
+              text: 'Start fresh',
+              style: 'cancel',
+              onPress: () => { AsyncStorage.removeItem(draftKey).catch(() => {}); },
+            },
+            {
+              text: 'Resume',
+              onPress: () => {
+                setAnswers(parsed.answers as Record<string, LikertValue>);
+                const safeIdx = Math.max(
+                  0,
+                  Math.min(parsed.currentIndex, questions.length - 1),
+                );
+                setCurrentIndex(safeIdx);
+              },
+            },
+          ],
+        });
+      } catch {
+        // ignore corrupted draft
+      }
+    })();
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
 
   const question = questions[currentIndex] ?? null;
   const selectedValue = question ? answers[question.id] : undefined;
@@ -161,6 +216,9 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
             text: 'Leave',
             style: 'destructive',
             onPress: () => {
+              // so-xt9j MI-1: graceful exit — clear draft so the next visit
+              // doesn't offer a resume for a session the user chose to leave.
+              if (draftKey) AsyncStorage.removeItem(draftKey).catch(() => {});
               canLeaveRef.current = true;
               navigation.dispatch(e.data.action);
             },
@@ -183,6 +241,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
           version,
           answers: finalAnswers,
         });
+        // so-xt9j MI-1: clear crash-recovery draft on successful submit
+        if (draftKey) AsyncStorage.removeItem(draftKey).catch(() => {});
         // Allow navigation.replace to proceed without the beforeRemove guard.
         canLeaveRef.current = true;
         setResult(result);
@@ -197,13 +257,24 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
         });
       }
     },
-    [testType, localVersion, remoteVersion, navigation, setResult],
+    [testType, localVersion, remoteVersion, navigation, setResult, draftKey],
   );
 
   const handleSelect = (value: LikertValue) => {
     if (!question || isSubmitting) return;
     const nextAnswers = { ...answers, [question.id]: value };
     setAnswers(nextAnswers);
+
+    // so-xt9j MI-1: persist draft per selection for crash/app-kill recovery.
+    // nextIdx = where the user will be after auto-advance so resume lands
+    // on the first unanswered question rather than the one just answered.
+    if (draftKey) {
+      const nextIdx = isLastQuestion ? currentIndex : currentIndex + 1;
+      AsyncStorage.setItem(
+        draftKey,
+        JSON.stringify({ answers: nextAnswers, currentIndex: nextIdx }),
+      ).catch(() => {});
+    }
 
     if (isLastQuestion) {
       // Don't auto-submit — wait for explicit Submit press on last question
@@ -243,6 +314,8 @@ const PersonalityQuestionScreen = ({ navigation, route }: any) => {
           text: 'Leave',
           style: 'destructive',
           onPress: () => {
+            // so-xt9j MI-1: graceful exit — clear draft on explicit leave
+            if (draftKey) AsyncStorage.removeItem(draftKey).catch(() => {});
             canLeaveRef.current = true;
             navigation.goBack();
           },

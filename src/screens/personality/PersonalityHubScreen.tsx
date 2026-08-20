@@ -449,6 +449,24 @@ const PersonalityHubScreen = ({ navigation }: any) => {
     );
   };
 
+  // so-xt9j MI-3: link to history screen; only rendered once data has loaded
+  // so it doesn't flash in on the loading skeleton.
+  const renderHistoryLink = () => (
+    <Pressable
+      onPress={() => navigation.navigate('PersonalityHistory')}
+      style={styles.historyLink}
+      accessibilityRole="button"
+      accessibilityLabel="View test history"
+    >
+      <Feather
+        name="clock"
+        size={13}
+        color={isDark ? 'rgba(255,255,255,0.45)' : 'rgba(58,14,102,0.45)'}
+      />
+      <Text style={styles.historyLinkText}>Test history</Text>
+    </Pressable>
+  );
+
   return (
     <CosmicScreen tone="dusk">
       <View style={styles.content}>
@@ -483,6 +501,7 @@ const PersonalityHubScreen = ({ navigation }: any) => {
           >
             {renderHeader()}
             <View style={styles.testList}>{tests.map(renderTestCard)}</View>
+            {hasLoadedOnce && renderHistoryLink()}
           </ScrollView>
         )}
       </View>
@@ -666,6 +685,21 @@ const buildStyles = (colors: ReturnType<typeof useThemeColors>, isDark: boolean)
       fontSize: 11,
       letterSpacing: 0.4,
       color: colors.white,
+    },
+
+    // so-xt9j MI-3: history link below test cards
+    historyLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      marginTop: 20,
+      paddingVertical: 12,
+    },
+    historyLinkText: {
+      fontFamily: fonts.outfit.medium,
+      fontSize: 13,
+      color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(58,14,102,0.45)',
     },
   });
 
