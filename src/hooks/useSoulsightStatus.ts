@@ -24,6 +24,35 @@ const INITIAL: SoulsightStatusResult = {
 // than once per minute.
 const MAX_BACKOFF_MS = 60_000;
 
+// so-v22au: normalize BE error_message before it reaches the UI.
+// The BE today sets user-grade constant strings in error_message, but that
+// is an implementation detail — any future BE path that writes raw exception
+// text into the field would silently surface it to the user via showAlert
+// (regression channel identified in so-sjgfs PII audit).
+// Fix: whitelist messages that are verified user-grade; everything else maps
+// to a safe generic. Re-audit SOULSIGHT_ERROR_PASSTHROUGH whenever the BE gains
+// an error_message writer.
+const SOULSIGHT_ERROR_GENERIC = 'Generation failed. Please try again.';
+// Verified user-grade BE error_message constants. THREE backend files write
+// soulsight.error_message, so audit all three — not just the service:
+//   app/services/ai/soulsight_service.py — SOULSIGHT_ERROR_STALE,
+//       SOULSIGHT_ERROR_GENERIC, "AI data-sharing consent required"
+//   app/api/soulsight.py                 — SOULSIGHT_ERROR_STALE
+//   app/workers/ai_pipeline.py           — SOULSIGHT_ERROR_GENERIC
+// The three strings below are the complete set those writers produce, byte-verified
+// against backend main AND the held release pin. Any string NOT in this set falls
+// back to SOULSIGHT_ERROR_GENERIC — string drift on the BE side stays safe.
+const SOULSIGHT_ERROR_PASSTHROUGH = new Set<string>([
+  'SoulSight generation failed. Please try again.',
+  'SoulSight generation timed out. Please try again.',
+  'AI data-sharing consent required',
+]);
+function normalizeStatusError(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  if (SOULSIGHT_ERROR_PASSTHROUGH.has(raw)) return raw;
+  return SOULSIGHT_ERROR_GENERIC;
+}
+
 /**
  * so-9t3d systemic fix: shared resumable status-polling hook used by both the
  * list "forming" card and the Detail screen.
@@ -68,7 +97,7 @@ export function useSoulsightStatus(
         status: (s.status || '').toLowerCase(),
         isFinal: s.final ?? false,
         retriesRemaining: s.retries_remaining ?? null,
-        errorMessage: s.error_message ?? null,
+        errorMessage: normalizeStatusError(s.error_message),
       });
     } catch {
       if (!mountedRef.current) return;
