@@ -389,8 +389,13 @@ export function ShiftsA({
   // ── All / Active → ScrollView+map (bounded list) with A4 ordering ──────────
   // so-hjwv A4: partition into in-progress (pct>0) then up-next (pct==0/Notice).
   // Only applies to filters that scope to the default shifts list (all/active).
-  const inProgress = visibleShifts.filter((s) => s.pct > 0);
-  const upNext = visibleShifts.filter((s) => s.pct === 0);
+  // so-a28l: guard pct==null/undefined/NaN at runtime (wire type is number but
+  // BE can return null on new shifts; ?? does not coalesce NaN). upNext is the
+  // COMPLEMENT of inProgress so every shift lands in exactly one bucket
+  // regardless of what the BE sends — up-next is the correct default for any
+  // shift with no or uninterpretable progress.
+  const inProgress = visibleShifts.filter((s) => (s.pct ?? 0) > 0);
+  const upNext = visibleShifts.filter((s) => !((s.pct ?? 0) > 0));
   const showSectionLabels = inProgress.length > 0 && upNext.length > 0;
 
   const renderShiftCard = (shift: Shift) => (
