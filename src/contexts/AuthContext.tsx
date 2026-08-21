@@ -8,6 +8,7 @@ import { logHandledError } from '../utils/logger';
 import NotificationService from '../services/NotificationService';
 import { getDeviceTimezone } from '../utils/timezone';
 import { clearLocalDraft, purgeLegacyGlobalDraft } from '../hooks/useLocalDraft';
+import { PERSONALITY_TEST_ORDER } from '../data/personalityTests';
 import { proactiveTokenRefresh, registerLogoutCallback, registerAgeGateCallback } from '../utils/authClient';
 
 interface UserInfo {
@@ -135,6 +136,23 @@ export const consumeJustSignedIn = (): boolean => {
 // Module-level: no closure deps, safe to call from any callback.
 const clearAuthLocalFlags = () =>
   AsyncStorage.multiRemove(['user_logged_in', '@terms_accepted']);
+
+// so-av4sp: clear per-user personality test drafts on logout so storage cruft
+// doesn't accumulate across sessions. Keys are user+testType scoped (no leak),
+// but removing them on logout keeps AsyncStorage tidy.
+const clearPersonalityDrafts = async (
+  userId: string | null | undefined,
+): Promise<void> => {
+  if (!userId) return;
+  try {
+    const keys = PERSONALITY_TEST_ORDER.map(
+      (t) => `@soultalk_personality_draft:${userId}:${t}`,
+    );
+    await AsyncStorage.multiRemove(keys);
+  } catch (err: any) {
+    console.log('[AuthContext] personality draft clear error:', err?.message);
+  }
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -384,6 +402,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // any future auth-local keys) so no teardown path leaves a stale flag.
       await clearAuthLocalFlags();
       await clearLocalDraft(uid);
+      await clearPersonalityDrafts(uid); // so-av4sp: clear orphaned test drafts
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       JournalService.clearCrisisCache(); // so-dorm: shared-device PII hygiene
       await AuthService.logout();
@@ -393,6 +412,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
       await clearAuthLocalFlags();
       await clearLocalDraft(uid);
+      await clearPersonalityDrafts(uid); // so-av4sp: mirror try-branch cleanup
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       JournalService.clearCrisisCache(); // so-dorm: mirror try-branch cleanup
     } finally {
@@ -655,6 +675,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // so-ap3b M-2: shared helper (replaces so-r2ts inline multiRemove).
       await clearAuthLocalFlags();
       await clearLocalDraft(uid);
+      await clearPersonalityDrafts(uid); // so-av4sp: clear orphaned test drafts
       await purgeLegacyGlobalDraft(); // so-1k32: purge legacy device-global draft
       setIsLoading(false);
       setIsLoggingOut(false); // so-5cdc: clear overlay

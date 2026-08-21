@@ -61,9 +61,19 @@ const PersonalityHistoryScreen = ({ navigation }: any) => {
     }
   }, []);
 
+  // so-av4sp: mirror PersonalityQuestionScreen active-flag pattern — a fast
+  // unmount mid-fetch would setState on an unmounted component without this.
   useEffect(() => {
-    load();
-  }, [load]);
+    let active = true;
+    setIsLoading(true);
+    setError(null);
+    PersonalityService.getHistory()
+      .then((data) => { if (active) setResults(data); })
+      .catch((err: any) => { if (active) setError(err?.message || 'Failed to load history.'); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: PersonalityTestResult }) => {
