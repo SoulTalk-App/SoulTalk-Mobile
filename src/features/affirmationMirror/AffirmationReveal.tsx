@@ -132,8 +132,10 @@ export function AffirmationReveal({
   // color tokens resolve dynamically.
   const colors = useThemeColors();
   const styles = useMemo(() => buildStyles(colors), [colors]);
-  const [isRevealed, setIsRevealed] = useState(false);
-  const [isRevealedMounted, setIsRevealedMounted] = useState(false);
+  // so-783dr: seed both flags true on the replay path (initialText supplied) so
+  // the FIRST paint is the affirmation layout — no idle-intro window.
+  const [isRevealed, setIsRevealed] = useState(() => !!initialText);
+  const [isRevealedMounted, setIsRevealedMounted] = useState(() => !!initialText);
   // so-dtuh: text/dateKey become local state so the cold-entry generate flow
   // can populate them after onGenerate resolves. For the replay path the
   // initial values come straight from props.
@@ -158,7 +160,9 @@ export function AffirmationReveal({
   const textOverflows = contentH > 0 && contentH > availableH;
   const isLockedEntry = !initialText && !hasEntryToday;
   const revealedPlayerRef = useRef<RevealedPlayerHandle>(null);
-  const playRevealedOnMountRef = useRef(false);
+  // so-783dr: on replay, arm play-on-mount immediately so the revealed video
+  // starts as soon as RevealedVideoPlayer's ref is set (effect at line ~315).
+  const playRevealedOnMountRef = useRef(!!initialText);
 
   // so-3i78: P0 crash on TF49 (Chelsea repro) — exiting the mirror before
   // the in-flight generate request resolves. Several callsites continue to
@@ -198,7 +202,9 @@ export function AffirmationReveal({
     p.loop = true;
     p.muted = true;
     p.audioMixingMode = 'mixWithOthers';
-    p.play();
+    // so-783dr: idle video is hidden (opacity 0) on replay; don't start it.
+    // Cold entry still auto-plays so the ambient backdrop appears immediately.
+    if (!initialText) p.play();
     p.addListener('statusChange', ({ status }) => {
       // so-3i78: the listener can fire mid-teardown; only flip state if
       // the component is still mounted, otherwise we update on a disposed
@@ -209,21 +215,28 @@ export function AffirmationReveal({
     });
   });
 
-  const textOpacity = useSharedValue(0);
-  const textScale = useSharedValue(0.92);
+  // so-783dr: on replay (initialText supplied) seed every shared value at its
+  // revealed end-state so the first paint IS the affirmation layout. The values
+  // mirror exactly what checkRevealed sets at lines 279-296.  Cold entry gets
+  // the idle start-states as before.
+  const replay = !!initialText;
+  const textOpacity = useSharedValue(replay ? 1 : 0);
+  const textScale = useSharedValue(replay ? 1 : 0.92);
   const buttonOpacity = useSharedValue(0);
   const buttonScale = useSharedValue(1);
-  const cloudsBgOpacity = useSharedValue(1);
-  const cloudsLeftX = useSharedValue(0);
-  const cloudsLeftOpacity = useSharedValue(1);
-  const cloudsRightX = useSharedValue(0);
-  const cloudsRightOpacity = useSharedValue(1);
+  const cloudsBgOpacity = useSharedValue(replay ? 0 : 1);
+  const cloudsLeftX = useSharedValue(replay ? -SCREEN_WIDTH : 0);
+  const cloudsLeftOpacity = useSharedValue(replay ? 0 : 1);
+  const cloudsRightX = useSharedValue(replay ? SCREEN_WIDTH : 0);
+  const cloudsRightOpacity = useSharedValue(replay ? 0 : 1);
   const backButtonOpacity = useSharedValue(1);
-  const idleVideoOpacity = useSharedValue(1);
-  const revealedVideoOpacity = useSharedValue(0);
-  const videoZoom = useSharedValue(1);
+  const idleVideoOpacity = useSharedValue(replay ? 0 : 1);
+  const revealedVideoOpacity = useSharedValue(replay ? 1 : 0);
+  const videoZoom = useSharedValue(replay ? 1.08 : 1);
 
-  const isRevealedRef = useRef(false);
+  // so-783dr: sync with isRevealed so the AppState resume handler plays
+  // the right video from the very first foreground event.
+  const isRevealedRef = useRef(!!initialText);
 
   // so-wx08: size ladder rebalanced for the ~180-char BE cap.
   // so-o8kb: ladder retuned — tighter thresholds + smaller steps prevent
@@ -268,6 +281,11 @@ export function AffirmationReveal({
   }, [idlePlayer]);
 
   useEffect(() => {
+    // so-783dr: replay path is already sync-initialized (all state + shared
+    // values seeded to revealed end-states above); skip the async AsyncStorage
+    // read entirely — it is only needed for cold entry where we must check
+    // whether the user already revealed today before the component mounted.
+    if (initialText) return;
     // so-dtuh: only meaningful on the replay-from-ready path where an
     // initialDateKey was supplied. Cold entry has no key to compare against.
     if (!initialDateKey) return;
