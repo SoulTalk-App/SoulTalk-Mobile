@@ -79,6 +79,9 @@ export function useSoulsightStatus(
   const mountedRef = useRef(true);
   // so-tn9x MI-1: consecutive error counter drives backoff delay.
   const consecutiveErrorsRef = useRef(0);
+  // so-i3j5f: tracks the active id so poll() can discard a late response
+  // issued before id changed — avoids a brief stale-status flash.
+  const currentIdRef = useRef<string | null | undefined>(id);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -92,6 +95,9 @@ export function useSoulsightStatus(
     try {
       const s = await SoulSightService.getStatus(id);
       if (!mountedRef.current) return;
+      // so-i3j5f: id may have changed while this network call was in flight;
+      // discard the result rather than briefly flashing the old id's status.
+      if (currentIdRef.current !== id) return;
       consecutiveErrorsRef.current = 0;
       setResult({
         status: (s.status || '').toLowerCase(),
@@ -101,12 +107,16 @@ export function useSoulsightStatus(
       });
     } catch {
       if (!mountedRef.current) return;
+      if (currentIdRef.current !== id) return; // so-i3j5f: same guard on error path
       // so-tn9x MI-1: count errors; scheduler reads this to compute backoff.
       consecutiveErrorsRef.current += 1;
     }
   }, [id, enabled]);
 
   useEffect(() => {
+    // so-i3j5f: update before any early return so poll() always sees the
+    // current id — covers both the id-change and id-goes-null cases.
+    currentIdRef.current = id;
     if (!id || !enabled) {
       setResult(INITIAL);
       return;
