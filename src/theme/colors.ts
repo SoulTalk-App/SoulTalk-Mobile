@@ -80,6 +80,10 @@ export const lightColors = {
  * AffirmationMirrorScreen, SoulSightScreen, SoulSightDetailScreen,
  * SettingsScreen, ProfileScreen, HelpScreen.
  */
+// so-zown: darkColors.primary (teal #4DE8D4) vs lightColors.primary (purple
+// #4F1786) is INTENTIONAL — the brand accent colour forks per theme.
+// Light uses the SoulTalk purple; dark uses the cosmic teal so the accent
+// reads on the deep-space background. Design-confirmed; no code change.
 export const darkColors: typeof lightColors = {
   primary: '#4DE8D4',      // Teal — dark-mode brand accent
   secondary: '#70CACF',    // Soft teal

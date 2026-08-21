@@ -32,8 +32,6 @@ import { useJournal } from '../contexts/JournalContext';
 import JournalService from '../services/JournalService';
 import authService from '../services/AuthService';
 import { TermsReacceptanceModal } from '../components/TermsReacceptanceModal';
-import SoulPalAnimated from '../components/SoulPalAnimated';
-import { useSoulPal, SOULPAL_TEAL_HEX } from '../contexts/SoulPalContext';
 import { useAppAlert } from '../components/AppAlertProvider';
 import { ChargeUpGrid } from '../features/homeV2';
 import { CosmicScreen } from '../components/CosmicBackdrop';
@@ -43,27 +41,6 @@ import { BottomTabBar } from '../components/BottomTabBar';
 import { sanitizeMoodWord } from '../utils/moodSanitizer';
 import WelcomeBackOverlay from '../components/WelcomeBackOverlay';
 import { useColdOpenRevealed } from '../contexts/ColdOpenContext';
-
-// Assets — light mode (original)
-const SoulpalHome = require('../../assets/images/home/SoulpalHome.png');
-const HomeIconImg = require('../../assets/images/home/HomeIcon.png');
-const JournalIconImg = require('../../assets/images/home/JournalIconPng.png');
-const ProfileIconImg = require('../../assets/images/home/ProfileIconPng.png');
-const GoalGardenCharacterImg = require('../../assets/images/home/GoalGardenCharacter.png');
-const GoalGardenBg = require('../../assets/images/home/GoalGardenBg.png');
-const PalmTree1 = require('../../assets/images/home/PalmTree1.png');
-const PalmTree2 = require('../../assets/images/home/PalmTree2.png');
-const PalmTree3 = require('../../assets/images/home/PalmTree3.png');
-// so-jor7: was SoulpalIcon-f02c98.png (purple); repoint at teal asset for both modes.
-const SoulpalEyes = require('../../assets/images/home/dark/SoulpalIcon.png');
-const LockIcon = require('../../assets/images/home/LockIcon.png');
-const AffirmationMirrorCard = require('../../assets/images/home/AffirmationMirrorCard.png');
-const SendIconImg = require('../../assets/images/home/SendIconPng.png');
-
-// Assets — dark mode variants
-const LockIconDark = require('../../assets/images/home/dark/LockIcon.png');
-const SoulpalEyesDark = require('../../assets/images/home/dark/SoulpalIcon.png');
-const AffirmationMirrorCardDark = require('../../assets/images/home/dark/AffirmationMirrorCard.png');
 
 // Greeting hero avatar (canonical home-v2 design)
 const Soulpal5 = require('../../assets/images/home-v2/soulpal-5.png');
@@ -94,10 +71,8 @@ const HomeScreen = ({ navigation }: any) => {
   useEffect(() => { userRef.current = user; }, [user]);
   const { isDarkMode } = useTheme();
   const colors = useThemeColors();
-  const { homeImage, bodyImage } = useSoulPal();
   // so-1zn0: themed alert replaces native Alert.
   const { showAlert } = useAppAlert();
-  const soulPalHex = SOULPAL_TEAL_HEX;
   const [localName, setLocalName] = useState('User');
   const [activeTab, setActiveTab] = useState<TabName>('Home');
   const [moodWord, setMoodWord] = useState('');
@@ -116,6 +91,11 @@ const HomeScreen = ({ navigation }: any) => {
   //     rather than showing a blank when today's mood exists server-side.
   const moodFocusRef = useRef(false);
   const lastMoodCacheRef = useRef('');
+  // so-zown: stable ref tracking moodWord so submitMoodWord can read the
+  // current value without capturing moodWord in its deps (prevents rebuild
+  // on every keystroke). Kept in sync with moodWord state via useEffect.
+  const moodWordRef = useRef('');
+  useEffect(() => { moodWordRef.current = moodWord; }, [moodWord]);
   // so-l2brf: explicit fetched flag so '' is unambiguous (unfetched vs no mood).
   // Set to true when the focus-GET resolves; reset on user-id change so a
   // session/account switch can't let the previous user's word bleed into the
@@ -1169,7 +1149,9 @@ const HomeScreen = ({ navigation }: any) => {
   }, []);
 
   const submitMoodWord = useCallback(async () => {
-    const word = moodWord.trim();
+    // so-zown: read from moodWordRef (not moodWord) so this callback is stable
+    // and does not rebuild on every keystroke.
+    const word = moodWordRef.current.trim();
     if (!word || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
@@ -1192,7 +1174,7 @@ const HomeScreen = ({ navigation }: any) => {
       submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [fetchSoulBar, moodWord]);
+  }, [fetchSoulBar]);
 
   const dismissMoodToast = useCallback(() => setMoodToast(null), []);
   const canSubmitMood = moodWord.trim().length > 0 && !submitting;

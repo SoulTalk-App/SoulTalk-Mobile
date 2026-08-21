@@ -372,7 +372,7 @@ const Navigation = () => {
     // so-f0uv9: age gate overlay state
     isAgeGatePending, dismissAgeGate, confirmAge, logout,
   } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, themeLoaded } = useTheme();
   // so-uagc: hydrate SoulPal name from the server profile on auth/bootstrap
   // so a returning user on a fresh install sees their chosen name rather than
   // the default 'SoulPal'. setName() seeds both the in-memory SoulPalContext
@@ -524,24 +524,29 @@ const Navigation = () => {
     <>
       {/* NavigationContainer is ALWAYS mounted so Home settles under the overlay.
           ColdOpenContext.Provider wraps the nav tree so HomeScreen can gate its
-          entrance animation on overlay dismissal rather than on its own mount. */}
+          entrance animation on overlay dismissal rather than on its own mount.
+          so-zown: gate NavigationContainer on themeLoaded so the app never
+          renders with the wrong theme colours before AsyncStorage resolves.
+          The LoadingScreen overlay below still shows during this brief window. */}
       <ColdOpenContext.Provider value={coldOpenRevealed}>
-        <NavigationContainer linking={linking}>
-          {isAuthenticated ? (
-            accessLocked ? (
-              // so-fwva: server says trial over and not Pro — hide the
-              // whole app behind the paywall gate. Carve-outs still
-              // reachable via PaywallStack.
-              <PaywallStack />
+        {themeLoaded && (
+          <NavigationContainer linking={linking}>
+            {isAuthenticated ? (
+              accessLocked ? (
+                // so-fwva: server says trial over and not Pro — hide the
+                // whole app behind the paywall gate. Carve-outs still
+                // reachable via PaywallStack.
+                <PaywallStack />
+              ) : (
+                <AppStack setupComplete={setupComplete} />
+              )
+            ) : onboardingComplete ? (
+              <AuthStack />
             ) : (
-              <AppStack setupComplete={setupComplete} />
-            )
-          ) : onboardingComplete ? (
-            <AuthStack />
-          ) : (
-            <OnboardingStack />
-          )}
-        </NavigationContainer>
+              <OnboardingStack />
+            )}
+          </NavigationContainer>
+        )}
       </ColdOpenContext.Provider>
       {/* so-5zrq: LoadingScreen as an absolutely-positioned overlay. Stays
           opaque until dataReady+intro-loop; fades out over 400ms then unmounts. */}

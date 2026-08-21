@@ -30,6 +30,9 @@ export const fontSizes = {
   xs: 12,
   sm: 14,
   md: 16,
+  // so-zown: named token for 17pt (bodyLarge). Sits between md=16 and lg=18;
+  // avoids a hardcoded literal in the bodyLarge style.
+  mdLg: 17,
   lg: 18,
   xl: 20,
   xxl: 24,
@@ -131,8 +134,8 @@ export const typography = {
   // body for comfort during sustained reading. Added per so-cn9.
   bodyLarge: {
     fontFamily: fonts.outfit.regular,
-    fontSize: 17,
-    lineHeight: 17 * lineHeights.normal,
+    fontSize: fontSizes.mdLg,
+    lineHeight: fontSizes.mdLg * lineHeights.normal,
   } as TextStyle,
 
   // Small body text — Outfit Regular (was Thin) per so-cn9.

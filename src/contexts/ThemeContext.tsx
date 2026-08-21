@@ -10,8 +10,6 @@ interface ThemeContextValue {
   isDarkMode: boolean;
   themeLoaded: boolean;
   setThemePref: (pref: ThemePref) => void;
-  /** @deprecated use setThemePref. Toggles light ↔ dark. */
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
@@ -19,7 +17,6 @@ const ThemeContext = createContext<ThemeContextValue>({
   isDarkMode: true,
   themeLoaded: false,
   setThemePref: () => {},
-  toggleTheme: () => {},
 });
 
 const isThemePref = (val: unknown): val is ThemePref =>
@@ -31,17 +28,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     (async () => {
-      const stored = await AsyncStorage.getItem(THEME_PREF_KEY);
-      if (isThemePref(stored)) {
-        setThemePrefState(stored);
-      } else {
-        // Anything else — legacy 'true'/'false' from LEGACY_DARK_KEY era, the
-        // removed 'system' value (so-d6y3), or no entry at all — collapses to
-        // 'dark'. Silent migration; matches the brand default for new installs.
+      try {
+        const stored = await AsyncStorage.getItem(THEME_PREF_KEY);
+        if (isThemePref(stored)) {
+          setThemePrefState(stored);
+        } else {
+          // Anything else — legacy 'true'/'false' from LEGACY_DARK_KEY era, the
+          // removed 'system' value (so-d6y3), or no entry at all — collapses to
+          // 'dark'. Silent migration; matches the brand default for new installs.
+          setThemePrefState('dark');
+          await AsyncStorage.setItem(THEME_PREF_KEY, 'dark');
+        }
+      } catch {
+        // so-zown: AsyncStorage failure (corrupted store, disk full, native
+        // error) — fall back to 'dark' and unblock the gate. Without this,
+        // themeLoaded would stay false forever -> NavigationContainer never
+        // mounts -> app permanently stuck on LoadingScreen.
         setThemePrefState('dark');
-        await AsyncStorage.setItem(THEME_PREF_KEY, 'dark');
+      } finally {
+        // Always unblock the themeLoaded gate regardless of success or failure.
+        setThemeLoaded(true);
       }
-      setThemeLoaded(true);
     })();
   }, []);
 
@@ -50,19 +57,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     AsyncStorage.setItem(THEME_PREF_KEY, pref);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setThemePrefState((prev) => {
-      const next: ThemePref = prev === 'light' ? 'dark' : 'light';
-      AsyncStorage.setItem(THEME_PREF_KEY, next);
-      return next;
-    });
-  }, []);
-
   const isDarkMode = themePref === 'dark';
 
   return (
     <ThemeContext.Provider
-      value={{ themePref, isDarkMode, themeLoaded, setThemePref, toggleTheme }}
+      value={{ themePref, isDarkMode, themeLoaded, setThemePref }}
     >
       {children}
     </ThemeContext.Provider>
