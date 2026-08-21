@@ -116,16 +116,26 @@ const HomeScreen = ({ navigation }: any) => {
   //     rather than showing a blank when today's mood exists server-side.
   const moodFocusRef = useRef(false);
   const lastMoodCacheRef = useRef('');
+  // so-l2brf: explicit fetched flag so '' is unambiguous (unfetched vs no mood).
+  // Set to true when the focus-GET resolves; reset on user-id change so a
+  // session/account switch can't let the previous user's word bleed into the
+  // cache-seed window of the new session.
+  const moodFetchedRef = useRef(false);
   // so-sfkm6 (so-ff2t MI-2): restore persisted mood on cold offline start.
-  // Runs once per user-id change (login/switch). Functional updater ensures
-  // a live fetch that races and lands first is never overwritten by the cache.
+  // Runs once per user-id change (login/switch).
+  // so-l2brf: reset fetched flag + mood state on user change so the prior
+  // user's word can't linger; guard cache seed so a focus-GET that already
+  // landed (moodFetchedRef=true) is never overwritten by stale AsyncStorage.
   useEffect(() => {
     if (!user?.id) return;
+    moodFetchedRef.current = false;
+    setMoodWord('');
+    setMoodSaved(false);
     let cancelled = false;
     AsyncStorage.getItem(moodCacheKey(user.id))
       .then((raw) => {
-        if (cancelled || !raw) return;
-        setMoodWord((prev) => prev || raw);
+        if (cancelled || !raw || moodFetchedRef.current) return;
+        setMoodWord(raw);
         setMoodSaved(true);
       })
       .catch(() => {});
@@ -948,6 +958,9 @@ const HomeScreen = ({ navigation }: any) => {
         fetchEntries(),
         JournalService.getTodayMood()
           .then((data) => {
+            // so-l2brf: mark the authoritative GET as landed so the
+            // cache-seed effect (if still in flight) will not overwrite it.
+            moodFetchedRef.current = true;
             // so-suot M-1: skip applying the GET result when a submit is in
             // flight (submittingRef) or the input has focus (moodFocusRef).
             // Without this guard a slow focus-GET can overwrite text the user
