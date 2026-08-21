@@ -96,8 +96,8 @@ export const registerLogoutCallback = (fn: () => void, isAuthenticated: boolean)
  * here on mount so the HTTP interceptor and the WS close handler can route
  * legacy social accounts (is_18_plus=NULL) to the age-confirmation overlay
  * without importing React state into this module. Same pattern as
- * logoutCallback / postUnlockHook. Cleared (null) on logout so a stale
- * callback from a previous session never fires into a fresh one.
+ * logoutCallback / postUnlockHook. Cleared (null) on AuthProvider unmount
+ * (effect cleanup) so a stale callback from a previous mount never fires.
  */
 let ageGateCallback: (() => void) | null = null;
 

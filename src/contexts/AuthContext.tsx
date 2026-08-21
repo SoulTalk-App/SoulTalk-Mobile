@@ -308,6 +308,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     registerAgeGateCallback(triggerAgeGate);
     return () => { registerAgeGateCallback(null); };
   }, [triggerAgeGate]);
+  // so-mw4oa: defensive reset — an out-of-band logout (token-refresh failure
+  // firing logoutCallback) while the age gate is visible leaves the overlay
+  // stranded because dismissAgeGate() is only called by the user's confirm or
+  // decline. Clear the gate whenever auth drops so it cannot persist over the
+  // auth stack.
+  useEffect(() => {
+    if (!isAuthenticated) setIsAgeGatePending(false);
+  }, [isAuthenticated]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
