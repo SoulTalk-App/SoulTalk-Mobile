@@ -35,6 +35,9 @@ function pickSoulpal(id: string): SoulpalVariant {
 // BARE label lines ("Big picture snapshot", "Hidden narrative", …) — the ones
 // that leak into the reading when the model omits the trailing colon and the
 // generic colon-form strip below misses them.
+// so-aodyy: SYNC-WITH-BE — this list must exactly match _SECTION_HEADINGS in
+// soulsight_service.py. Update both together when the prompt / BE list changes.
+// Verified against BE main 2026-08-16: 8 labels, exact match.
 const SOULSIGHT_SECTION_LABELS = [
   'Title',
   'Big picture snapshot',
@@ -46,9 +49,13 @@ const SOULSIGHT_SECTION_LABELS = [
   'Closing reflection',
 ];
 const SECTION_LABEL_RE = new RegExp(
-  '^\\s*(?:' +
+  '^[^\\S\\n]*(?:' +
     SOULSIGHT_SECTION_LABELS.map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') +
-    ')\\s*:?\\s*$',
+    // so-aodyy: [^\S\n]* = horizontal whitespace only (spaces/tabs, not newlines)
+    // so the regex cannot eat the \n\n paragraph separators around a label line.
+    // $\n? guards against partial-line matches and consumes the line terminator
+    // so the stripped label doesn't leave a blank line in the fallback parse path.
+    ')[^\\S\\n]*:?[^\\S\\n]*$\\n?',
   'gim',
 );
 
